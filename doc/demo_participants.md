@@ -33,7 +33,7 @@ As stated beforehand, if you just want to test drive Diffa, you don't want to ha
 
 The main difference between the demo application and a typical production rollout is a web application that contains two remote controllable Diffa participants. These participants are remote controllable for the sake of being able to view the whole end to end interaction within a single browser:
 
-![demo]
+![demo_image]
 
 In this example, the two participants are implemented by two different threads of execution within a single web application. In addition to this, a simple UI is provided to facilitate the manipulation of each participant's internal state. 
 

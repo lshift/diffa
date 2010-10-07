@@ -25,7 +25,7 @@
 
 [diff]: /images/differences_screenshot.png
 [generic]: /images/generic_participants.png
-[demo]: /images/demo_web_participants.png  "Demo Web participants"
+[demo_image]: /images/demo_web_participants.png  "Demo Web participants"
 
 <!-- External -->
 
