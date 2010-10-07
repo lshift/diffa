@@ -29,4 +29,5 @@
 
 <!-- External -->
 
-[repo]:http://github.com/
+[repo]:http://github.com/lshift/diffa
+[bugs]:http://diffa.lighthouseapp.com
