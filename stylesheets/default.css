@@ -81,11 +81,11 @@ h1, h2, h3, h4 {
   color: #364F56;
 }
 a, a:link {
-  color:#28B2F1;
+  color:#00ac3a;
   text-decoration:none;
 }
 a:visited {
-  color:#28B2F1;	
+  color:#00ac3a;	
 }
 a:active, a:hover {
   text-decoration:underline;
