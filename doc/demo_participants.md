@@ -11,7 +11,7 @@ This is a pre-packaged demo application that supplies two example participants, 
 
 ### Generic Diffa Layout
 
-The generic deployment scenario will look like the following:
+The moving parts in a generic deployment scenario will generally look like the following:
 
 ![generic]
 
@@ -21,13 +21,11 @@ In this diagram you can see the following components:
 * An upstream participant;
 * A downstream participant;
 * The user interface that allows you to view differences;
-* A CLI toolset that can be used to configure the agent.
 
 ### Web Demo Application
 
 As stated beforehand, if you just want to test drive Diffa, you don't want to have implement your own participants. The demo participant application is a small application that illustrates:
 
-* How the continuous comparison works using our command line diff tail tool (which you are essentially porting to a browser based UI)
 * How to add upstream events and create inconsistencies
 * How to bring the downstream back into line with the upstream
 
@@ -37,64 +35,90 @@ The main difference between the demo application and a typical production rollou
 
 In this example, the two participants are implemented by two different threads of execution within a single web application. In addition to this, a simple UI is provided to facilitate the manipulation of each participant's internal state. 
 
-### Running The Demo
+# Installing The Demo App
 
-Here's how you run the demo participants:
+The demo app can either be run from the pre-built binary distribution or from source using Maven.
 
-* Check out and build the latest version (mvn install -Dmaven.test.skip=true)
-* Boot the agent: in diffa/agent do $ mvn jetty:run
-* Boot the participant web app: in diffa/participants-web do $ mvn jetty:run
-* In diffa/tools run $ bash samples\declare-same.sh:
+### Booting The Demo (From The Binary Package)
 
-In the same window you should see this output:
+Surprisingly, the easy variant has not been documented yet.
 
-	[INFO] [exec:java {execution: default-cli}]
-	Declaring group: mygroup
-	Declaring endpoint: a -> http://localhost:19293/diffa-participants/p/upstream
-	Declaring endpoint: b -> http://localhost:19293/diffa-participants/p/downstream        
-	Declaring pair: mygroup.WEB-1 -> (a <= {same} => b)
+### Booting The Demo (From Source)
+
+Here's how you run the demo participants from source:
+
+* Check out and build the latest version:
+
+		$ mvn install -Dmaven.test.skip=true
+
+* Once the installation phase has completed, boot the agent:
+
+		$ cd agent
+		$ mvn jetty:run
+		.....
+		..... // many lines omitted
+		.....	
+		2010-10-08 16:32:46.133:INFO::Started SelectChannelConnector@0.0.0.0:19093
+		[INFO] Started Jetty Server
+		[INFO] Starting scanner at interval of 600 seconds.
+
+* Now boot the participant web app:
+
+		$ cd participants-web
+		$ mvn jetty:run
+		.....
+		..... // many lines omitted
+		.....
+		2010-10-08 16:40:24.853:INFO::Started SelectChannelConnector@0.0.0.0:19293
+		[INFO] Started Jetty Server
+		[INFO] Starting scanner at interval of 600 seconds.
 
       
-In the agent window you should see this output:
+* When the demo app boots, it will register an appropriate configuration with the agent. You should see the result of this configuration in the output of the agent's shell:
 
-	15:38:40.257 [qtp1565082940-17] Configuration.scala:70 - Processing group declare/update request: mygroup
-	15:38:40.348 [qtp1565082940-21] Configuration.scala:26 - Processing endpoint declare/update request: a
-	15:38:40.374 [qtp1565082940-20] Configuration.scala:26 - Processing endpoint declare/update request: b
-	15:38:40.400 [qtp1565082940-19] Configuration.scala:55 - Processing pair declare/update request: WEB-1
-	15:38:40.493 [qtp1565082940-19] Alerter.scala:21 - FDK010: Starting analyzer for pair [WEB-1] with a window of 5 second(s)
+		16:40:21.745 [qtp433194283-27] Configuration.scala:103 - Processing group declare/update request: mygroup
+		16:40:21.891 [qtp433194283-22] Configuration.scala:43 - Processing endpoint declare/update request: b
+		16:40:21.918 [qtp433194283-23] Configuration.scala:43 - Processing endpoint declare/update request: a
+		16:40:21.948 [qtp433194283-24] Configuration.scala:87 - Processing pair declare/update request: WEB-1
+		16:40:22.067 [qtp433194283-24] DefaultSessionManager.scala:236 - Execute difference report for pair WEB-1
+	
+# Experimenting With The Demo App 	
+		
+Once both the agent and the demo app have successfully booted, you can open up a browser tab for each app:
 
-* In diffa/tools run $ bash samples/diff-same.sh
+* The agent is available on http://localhost:19093/diffa-agent/. An agent that has just booted and has no conflicts to report will look like this:
 
-In the agent window you should see this output: 
+![1]
 
-	15:40:04.225 [qtp1565082940-22] DifferencesResource.scala:34 - Creating a subscription for this pair: WEB-1
-	15:40:04.700 [qtp1565082940-22] DefaultSessionManager.scala:78 - Created session cache for: net.lshift.diffa.kernel.differencing.LocalSessionCache@2bb4d74 for the pair key WEB-1
+* The demo app is available on http://localhost:19093/diffa-agent/. The demo app has a panel to insert arbitrary data for fictitious pair of participants:
 
-(tool window):
+![2]
 
-	[INFO] [exec:java {execution: default-cli}]
 
-* Start playing with the UI
-** Add an (id, version) to the upstream. This will emit a change event for the upstream. Just leave this for 5 seconds to leave the sliding window:
+* Add an arbitrary (id, body) pair to the [upstream][] participant:
 
-(agent window)
+![6]
 
-	15:41:50.028 [qtp1565082940-17] Changes.scala:20 - Received change event: UpstreamChangeEvent(VersionID(WEB-1,id),2010-09-21T15:41:49.810+01:00,version)
-	15:41:50.036 [qtp1565082940-17] EsperMatcher.scala:101 - Received event UpstreamChangeEvent(VersionID(WEB-1,id),2010-09-21T15:41:49.810+01:00,version)
-	15:41:54.951 [com.espertech.esper.Timer-WEB-1-Matcher-0] EsperMatcher.scala:40 - Processing event for expired upstream: id; listeners = 1
+* Now switch back to the agent window - there you will see a blob appear that corresponds to the previously entered entity:
 
-(tool window):
+![5]
 
-	> Difference: VersionID(WEB-1,id) (1)
+* Going back to the demo app, let's enter a corresponding entry into the [downstream][] participant panel. To illustrate the different types of differences, let's enter a value that is slightly different to the upstream's data item:
 
-* Add the same (id, version) to the upstream. This will rebalance the system for that same data item and the diff tool will show that the system has been aligned.
+![7]
 
-(agent window):
+* Back in the agent window the detail of the blob will have changed from having a missing [downstream][] to having a different content:
 
-	15:43:57.731 [qtp1565082940-20] Changes.scala:20 - Received change event: DownstreamChangeEvent(VersionID(WEB-1,id),2010-09-21T15:43:57.719+01:00,version)
-	15:43:57.740 [qtp1565082940-20] EsperMatcher.scala:101 - Received event DownstreamChangeEvent(VersionID(WEB-1,id),2010-09-21T15:43:57.719+01:00,version)
-	15:44:02.651 [com.espertech.esper.Timer-WEB-1-Matcher-0] EsperMatcher.scala:46 - Processing event for expired downstream: id; listeners = 1
+![8]
 
-(tool window):
+* If we now line up the data item in the [downstream][] to match the [upstream][], the blob will disappear from the the agent window:
 
-	> Alignment:  VersionID(WEB-1,id)
+![9]
+
+* The demo app also has a link that can be used to inject some historical data:
+
+![10]
+
+* The agent window will now display a list of conflicts: 
+
+![11]

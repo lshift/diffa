@@ -25,7 +25,19 @@
 
 [diff]: /images/differences_screenshot.png
 [generic]: /images/generic_participants.png
-[demo_image]: /images/demo_web_participants.png  "Demo Web participants"
+[demo_image]: /images/demo_web_participants.png
+
+<!-- Shots -->
+
+[1]:/images/screenshots/1.png
+[2]:/images/screenshots/2.png
+[5]:/images/screenshots/5.png
+[6]:/images/screenshots/6.png
+[7]:/images/screenshots/7.png
+[8]:/images/screenshots/8.png
+[9]:/images/screenshots/9.png
+[10]:/images/screenshots/10.png
+[11]:/images/screenshots/11.png
 
 <!-- External -->
 

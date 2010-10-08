@@ -45,7 +45,7 @@ div#footer {
 code {
   padding: 5px;
   background: #E7E9D7;
-  border: 1px solid #8E5EEE;
+  border: 1px solid #77896f;
   color:#77896f;
   display: block;
 }
@@ -53,8 +53,8 @@ code {
 pre {
   padding: 5px;
   background: #E7E9D7;
-  border: 1px solid #8E5EEE;
-  color:#8E5EEE;
+  border: 1px solid #77896f;
+  color:#77896f;
 }
 
 pre code {
