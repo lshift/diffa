@@ -8,7 +8,7 @@ title: Diffa
 
 # Diffa
 
-Diffa is a real time tool that automatically establishes the differences between two arbitrary components. A component can be any application in your infrastructure, irrespective of whether it's an in-house system or third party software. 
+Diffa is a [open source][license] real time tool that automatically establishes the differences between two arbitrary components. A component can be any application in your infrastructure, irrespective of whether it's an in-house system or third party software. 
 
 It is brings an overview of all disparities that often occur in a heterogeneous IT landscape. It frees you from having to implement a cross system comparison. Diffa comes with an intuitive user interface designed to give operations staff a clean yet up to the second view of where potential errors are occurring.
 
