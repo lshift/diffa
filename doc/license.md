@@ -6,7 +6,7 @@ title: License
 
 # License
 
-Diffa is licensed under the Apache license:
+Diffa is licensed under the Apache license version 2.0:
 
     Copyright 2010 LShift Ltd.
 
