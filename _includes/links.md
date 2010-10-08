@@ -31,3 +31,4 @@
 
 [repo]:http://github.com/lshift/diffa
 [bugs]:http://diffa.lighthouseapp.com
+[support]:http://diffa.tenderapp.com
