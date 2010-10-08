@@ -6,8 +6,8 @@ title: Screenshots
 
 {% include links.md %}
 
-### Screenshots
+# Screenshots
 
-This is what the UI looks like.
+This is what the real time agent heat map looks like:
 
-![diff]
+![5]
