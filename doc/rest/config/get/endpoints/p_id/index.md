@@ -14,19 +14,19 @@ Contents
 * [GET config/endpoints](/doc/rest/config/get/endpoints)
 * [GET config/groups](/doc/rest/config/get/groups)
 * GET config/endpoints/:id
-* [POST config/endpoints](/doc/rest/config/post/endpoints)
-* [PUT config/endpoints/:id](/doc/rest/config/put/endpoints/p_id)
 * [DELETE config/endpoints/:id](/doc/rest/config/delete/endpoints/p_id)
-* [POST config/pairs](/doc/rest/config/post/pairs)
-* [PUT config/pairs/:id](/doc/rest/config/put/pairs/p_id)
 * [DELETE config/pairs/:id](/doc/rest/config/delete/pairs/p_id)
-* [PUT config/groups/:id](/doc/rest/config/put/groups/p_id)
 * [DELETE config/groups/:id](/doc/rest/config/delete/groups/p_id)
 * [GET config/pairs/:id](/doc/rest/config/get/pairs/p_id)
+* [POST config/endpoints](/doc/rest/config/post/endpoints)
+* [PUT config/endpoints/:id](/doc/rest/config/put/endpoints/p_id)
+* [POST config/pairs](/doc/rest/config/post/pairs)
+* [PUT config/pairs/:id](/doc/rest/config/put/pairs/p_id)
+* [PUT config/groups/:id](/doc/rest/config/put/groups/p_id)
 
 ### DifferencesResource
 
-* [GET diffs/events/:sessionId/:evtSeqId](/doc/rest/diffs/get/events/p_sessionId/p_evtSeqId)
+* [GET diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [POST diffs/sessions](/doc/rest/diffs/post/sessions)
 * [GET diffs/sessions/:sessionId](/doc/rest/diffs/get/sessions/p_sessionId)
 
@@ -37,11 +37,11 @@ Contents
 
 ### UsersResource
 
-* [POST security/users](/doc/rest/security/post/users)
-* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [GET security/users](/doc/rest/security/get/users)
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
+* [POST security/users](/doc/rest/security/post/users)
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 
 </div>
