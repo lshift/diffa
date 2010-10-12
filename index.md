@@ -8,34 +8,34 @@ title: Diffa
 
 # Diffa
 
-Diffa is a [open source][license] real time tool that automatically establishes the differences between two arbitrary components. A component can be any application in your infrastructure, irrespective of whether it's an in-house system or third party software. 
+Diffa is an [open source][license] data analysis tool that automatically establishes data differences between two or more real-time systems. 
 
-It is brings an overview of all disparities that often occur in a heterogeneous IT landscape. It frees you from having to implement a cross system comparison. Diffa comes with an intuitive user interface designed to give operations staff a clean yet up to the second view of where potential errors are occurring.
+Diffa will help you compare local or distributed systems for data consistency, without having to stop them running or implement manual cross-system comparisons. The interface provides you with simple visual summary of any consistency breaks and tools to investigate the issues. 
 
-Diffa is intended to assist with first line fault recognition. It provides an investigator with timely information that can be used in conjunction with other enterprise diagnosis tools to quickly troubleshoot faults.
+Diffa is the ideal tool to use to investigate where or when inconsistencies are occuring, or simply to provide confidence that your systems are running in perfect sync. It can be used operationally as an early warning system, in deployment for release verification, or in development with other enterprise diagnosis tools to help troubleshoot faults.
 
 ### Features
 
-* Real time alerting when two systems conflict
-* Heat map based [UI][diff] that supports continuous differencing of a number of paired applications
-* Ability to drill down into the detail of a conflict in order to repair it
-* Categorize [pairs][pair] into meaningful workflow [groups][group]
-* Only warns you of a potential conflict after a configurable window of time
+* Real time alerting when two systems differ
+* Compose representative workflows by [pairing][pair] systems into [groups][group]
+* Heat map based [UI][diff] that supports continuous differencing of a number of paired systems
+* Ability to drill down into the detail of a difference in order to repair it
+* Configure your acceptable difference resolution periods 
 
 ### See It In Action
 
 <embed src="http://player.vimeo.com/video/4886705?title=0&amp;byline=0&amp;portrait=0" width="400" height="230" frameborder="0"></embed>
 
-If you'd like to test drive Diffa yourself, you can run the the [demo app][demo] that comes packaged with Diffa.
+To test drive Diffa yourself, run the [demo app][demo] that comes packaged with Diffa.
 
 ### How Diffa Can Help You
 
-If you're wondering how Diffa can help you in your specific role, check out the list of [use cases][uc].
+Some examples of how Diffa can help you are detailed in the [use cases][uc].
 
-### How Does It Work
+### How Diffa Works
 
 Check out the [architectural overview][how_it_works].
 
-### Integrate Diffa Into Your App
+### How To Integrate Diffa Into Your App
 
-Check out the [integration guide][integration] to find out how to get Diffa speaking your application.
+Check out the [integration guide][integration] to find out how to get Diffa speaking with your application.
