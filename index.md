@@ -25,7 +25,7 @@ Diffa is the ideal tool to use to investigate where or when inconsistencies are 
 
 ### See It In Action
 
-<object width="640" height="385"><param name="movie" value="http://www.youtube.com/v/TecIkDlaAks?fs=1&amp;hl=en_US&amp;rel=0&amp;hd=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/TecIkDlaAks?fs=1&amp;hl=en_US&amp;rel=0&amp;hd=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="385"></embed></object>
+<object width="200" height="125"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="200" height="125"></embed></object><p><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
 
 To test drive Diffa yourself, run the [demo app][demo] that comes packaged with Diffa.
 
