@@ -25,9 +25,9 @@ Diffa is the ideal tool to use to investigate where or when inconsistencies are 
 
 ### See It In Action
 
-<object width="600" height="375"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="375"></embed></object><p><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
+For a quick overview of Diffa you can see the simple demo application via the [screencast][demo].
 
-To test drive Diffa yourself, run the [demo app][demo] that comes packaged with Diffa.
+To test drive it yourself, run the [demo app][demo] that comes packaged with the main Diffa bundle.
 
 ### How Diffa Can Help You
 
