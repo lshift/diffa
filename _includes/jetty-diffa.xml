@@ -1,0 +1,71 @@
+        <Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+        <New class="java.io.File">
+        <Arg>derby</Arg>
+        <Get id="dbPath" name="absolutePath"/>
+        </New>
+
+        <New id="diffaDS" class="org.eclipse.jetty.plus.jndi.Resource">
+        <Arg></Arg>
+        <Arg>java:comp/env/jdbc/diffaDS</Arg>
+        <Arg>
+        <New class="org.apache.commons.dbcp.BasicDataSource">
+        <Set name="driverClassName">org.apache.derby.jdbc.EmbeddedDriver</Set>
+        <Set name="url">jdbc:derby:<Ref id="dbPath"/>;create=true
+        </Set>
+        </New>
+        </Arg>
+        </New>
+        <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+        <Arg></Arg>
+        <Arg>java:comp/env/diffaHibernateDialect</Arg>
+        <Arg type="java.lang.String">org.hibernate.dialect.DerbyDialect</Arg>
+        <Arg type="boolean">true</Arg>
+        </New>
+        <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+        <Arg></Arg>
+        <Arg>java:comp/env/diffaCreateDB</Arg>
+        <Arg type="java.lang.Boolean">true</Arg>
+        <Arg type="boolean">true</Arg>
+        </New>
+        <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+        <Arg></Arg>
+        <Arg>java:comp/env/diffaCustomRoot</Arg>
+        <Arg type="java.lang.String">diffa-agent</Arg>
+        <Arg type="boolean">true</Arg>
+        </New>
+        <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+        <Arg></Arg>
+        <Arg>java:comp/env/diffaProperties</Arg>
+        <Arg>
+        <New class="java.util.Properties">
+        <Call name="load">
+        <Arg>
+        <New class="java.io.FileReader">
+        <Arg type="java.lang.String">etc/diffa.properties</Arg>
+        </New>
+        </Arg>
+        </Call>
+        </New>
+        </Arg>
+        <Arg type="boolean">true</Arg>
+        </New>
+        <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">
+        <Arg>java:comp/env/mail/Session</Arg>
+        <Arg>
+        <New class="org.eclipse.jetty.jndi.factories.MailSessionReference">
+        <Set name="user"></Set>
+        <Set name="password"></Set>
+        <Set name="properties">
+        <New class="java.util.Properties">
+        <Put name="mail.smtp.host">localhost</Put>
+        <Put name="mail.from">diffa@localhost</Put>
+        <Put name="mail.senderName">diffa Agent</Put>
+        <Put name="mail.debug">false</Put>
+        </New>
+        </Set>
+        </New>
+        </Arg>
+        </New>
+
+        </Container>    

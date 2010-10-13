@@ -18,6 +18,7 @@
 [integration]:/doc/integration.html
 [how_it_works]:/doc/how_it_works.html
 [rest]:/doc/rest/
+[container]:/doc/container.html
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
 
