@@ -24,7 +24,6 @@
 
 <!-- Images -->
 
-[diff]: /images/differences_screenshot.png
 [generic]: /images/generic_participants.png
 [demo_image]: /images/demo_web_participants.png
 
@@ -40,6 +39,7 @@
 [10]:/images/screenshots/10.png
 [11]:/images/screenshots/11.png
 [busy_600]:/images/screenshots/busy_600.png
+[busy_960]:/images/screenshots/busy_960.png
 
 <!-- External -->
 

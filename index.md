@@ -18,7 +18,7 @@ Diffa is the ideal tool to use to investigate where or when inconsistencies are 
 
 * Real time alerting when two systems differ
 * Compose representative workflows by [pairing][pair] systems into [groups][group]
-* Heat map based [UI][diff] that supports continuous differencing of a number of paired systems
+* Heat map based [UI][busy_960] that supports continuous differencing of a number of paired systems
 * Ability to drill down into the detail of a difference in order to repair it
 * Configure your acceptable difference resolution periods
 * Participating systems are not tied to a particular language
