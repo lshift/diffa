@@ -25,7 +25,7 @@ Diffa is the ideal tool to use to investigate where or when inconsistencies are 
 
 ### See It In Action
 
-<embed src="http://player.vimeo.com/video/4886705?title=0&amp;byline=0&amp;portrait=0" width="400" height="230" frameborder="0"></embed>
+<object width="640" height="385"><param name="movie" value="http://www.youtube.com/v/TecIkDlaAks?fs=1&amp;hl=en_US&amp;rel=0&amp;hd=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/TecIkDlaAks?fs=1&amp;hl=en_US&amp;rel=0&amp;hd=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="385"></embed></object>
 
 To test drive Diffa yourself, run the [demo app][demo] that comes packaged with Diffa.
 
