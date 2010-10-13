@@ -42,5 +42,6 @@
 <!-- External -->
 
 [repo]:http://github.com/lshift/diffa
+[download]:http://github.com/lshift/diffa/downloads
 [bugs]:http://diffa.lighthouseapp.com
 [support]:http://diffa.tenderapp.com
