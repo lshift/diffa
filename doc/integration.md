@@ -19,5 +19,6 @@ The Diffa agent makes callback queries to Diffa [participants][participant]. Thi
 * An upstream participant will be queried to return the content corresponding to an identifier
 * A downstream participant will be queried to return the version of an entity body
 
-Check out the .proto files in the code.
+### Transport
 
+The Diffa protocol currently uses HTTP as a transport. Messages are encoded with JSON. 
