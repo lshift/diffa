@@ -5,6 +5,11 @@ title: Demo Participants
 
 {% include links.md %}
 
+# Diffa Screencast
+
+For a quick overview you can see the simple demo application via the screencast. Please note you will need Flash enabled in your browser.
+<object width="600" height="375"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="375"></embed></object><p><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
+
 # Diffa Demo Application
 
 This is a pre-packaged demo application that supplies two example participants, which, in themselves can be remote controlled from a web browser. It is useful to see how Diffa works in context without having to implement your own participants. In this article we're going to review the generic scenario in order to understand how the demo application is working. 
