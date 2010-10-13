@@ -27,6 +27,8 @@ Diffa is the ideal tool to use to investigate where or when inconsistencies are 
 
 For a quick overview of Diffa you can see the simple demo application via the [screencast][demo].
 
+![busy_600]
+
 To test drive it yourself, run the [demo app][demo] that comes packaged with the main Diffa bundle.
 
 ### How Diffa Can Help You
