@@ -8,6 +8,7 @@ title: Demo Participants
 # Diffa Screencast
 
 For a quick overview you can see the simple demo application via the screencast. Please note you will need Flash enabled in your browser.
+
 <object width="600" height="375"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="375"></embed></object><p><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
 
 # Diffa Demo Application
@@ -40,13 +41,22 @@ The main difference between the demo application and a typical production rollou
 
 In this example, the two participants are implemented by two different threads of execution within a single web application. In addition to this, a simple UI is provided to facilitate the manipulation of each participant's internal state. 
 
-# Installing The Demo App
+# Running The Demo App
 
 The demo app can either be run from the pre-built binary distribution or from source using Maven.
 
 ### Booting The Demo (From The Binary Package)
 
-Surprisingly, the easy variant has not been documented yet.
+1. [Download][download] and unpack the standalone binary zip file.
+2. In the same directory, run this command:
+
+        $ java -jar jetty-start-7.1.6.v20100715.jar
+        WARNING: System properties and/or JVM args set.  Consider using --dry-run or --exec
+        2010-10-13 18:56:26.191:INFO::Redirecting Jetty stderr to/Users/0x6e6562/Downloads/diffa/logs/jetty-2010_10_13.log
+        2010-10-13 18:56:35,419 INFO  Diffa Agent successfully initialized
+
+3. The agent is now available on http://localhost:7654.
+4. The demo application is available on http://localhost:7654/participant-demo.
 
 ### Booting The Demo (From Source)
 
