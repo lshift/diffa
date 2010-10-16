@@ -33,7 +33,18 @@ Please search the issue tracker before submitting a bug. The issue tracker is av
 
 ### Building
 
-If you'd like to build Diffa from source there is README in the top level of the source tree that gives a basic outline of how to do this. Diffa is built using Maven using these steps: 
+If you'd like to build Diffa from source there is README in the top level of the source tree that gives a basic outline of how to do this. Diffa is built using Maven.
+
+If you'd like to use the same mirror as the Diffa build server does, add the following to your $M2_HOME/settings.xml:
+ 
+     <mirror>
+         <id>nexus</id>
+         <mirrorOf>central</mirrorOf>
+         <name>LShift Nexus Proxy</name>
+         <url>https://nexus.lshift.net/nexus/content/groups/public</url>
+     </mirror>
+
+Once you have the proxy reference set up, then follow these steps: 
 
 	$ git clone git://github.com/lshift/diffa.git
 	$ cd diffa
