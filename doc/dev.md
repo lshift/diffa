@@ -35,14 +35,31 @@ Please search the issue tracker before submitting a bug. The issue tracker is av
 
 If you'd like to build Diffa from source there is README in the top level of the source tree that gives a basic outline of how to do this. Diffa is built using Maven.
 
-If you'd like to use the same mirror as the Diffa build server does, add the following to your $M2_HOME/settings.xml:
- 
-     <mirror>
-         <id>nexus</id>
-         <mirrorOf>central</mirrorOf>
-         <name>LShift Nexus Proxy</name>
-         <url>https://nexus.lshift.net/nexus/content/groups/public</url>
-     </mirror>
+In order to download artifacts not available in Maven central, you can use the Diffa repository. To do so, 
+add the following to your $M2_HOME/settings.xml:
+
+* In the profiles block:
+    
+		<profile>
+	      <id>diffa-repo</id>
+	      <repositories>
+	        <repository>
+	          <id>diffa</id>
+	          <url>https://nexus.lshift.net/nexus/content/groups/public</url>
+	        </repository>
+	      </repositories>
+	
+	      <pluginRepositories>
+	        <pluginRepository>
+	          <id>diffa</id>
+	          <url>https://nexus.lshift.net/nexus/content/groups/public</url>
+	        </pluginRepository>
+	      </pluginRepositories>
+	    </profile>
+
+* In the activeProfiles block:
+    
+		<activeProfile>diffa-repo</activeProfile>
 
 Once you have the proxy reference set up, then follow these steps: 
 
