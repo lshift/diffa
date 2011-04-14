@@ -110,9 +110,10 @@ abstract class BaseSynchingVersionPolicy(val stores:VersionCorrelationStoreFacto
       val remoteDigests = p.queryAggregateDigests(bucketing, constraints)
       val localDigests = getAggregates(pair.key, bucketing, constraints)
 
-
-      log.trace("Remote digests: %s".format(remoteDigests))
-      log.trace("Local digests: %s".format(localDigests))
+      if (log.isTraceEnabled()) {
+        log.trace("Remote digests: %s".format(remoteDigests))
+        log.trace("Local digests: %s".format(localDigests))
+      }
 
       DigestDifferencingUtils.differenceAggregates(remoteDigests, localDigests, bucketing, constraints).foreach(o => o match {
         case AggregateQueryAction(narrowBuckets, narrowConstraints) =>
