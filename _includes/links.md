@@ -23,7 +23,7 @@
 [container]:/doc/container.html
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
-[quick_start]:/doc/quick_start.html
+[health_monitoring_guide]:/doc/health_monitoring_guide.html
 
 [digest]:/doc/glossary.html#digest
 [version_policy]:/doc/glossary.html#version_policy

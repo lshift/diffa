@@ -6,9 +6,9 @@ title: Quick Start Guide
 
 {% include links.md %}
 
-# Quick Start Guide
+# Integrating Developer's Guide To Health Monitoring
 
-This guide is designed to help you boot a working Diffa agent as quickly as possible, and to guide you through some hands-on examples of configuring and using Diffa.
+This guide is designed to help you boot a working Diffa agent as quickly as possible, and to guide you through some hands-on examples of configuring and using Diffa in a health monitoring scenario. In such a scenario, upstream and downstream systems send [change events][event] to the Diffa agent.
 
 ## Download And Run Diffa
 
@@ -66,7 +66,7 @@ Let's test-drive the configured Diffa agent by simulating some of the [events][e
 
 ### Upstream Change Event
 
-One scenario might be a new [entity][] appears in the upstream system. Save the following JSON as `upstream.json`:
+One scenario might be that a new [entity][] appears in the upstream system, but not yet in the downstream. To simulate the upstream system sending a change event to Diffa, we can send a JSON message directly to the agent. Save the following JSON as `upstream.json`:
 
     {"attributes":[],"eventType":"upstream","metadata":{"id":"id1","endpoint":"a",
     "lastUpdate":"2011-05-23T15:22:42.000+01:00","vsn":"x"}}
