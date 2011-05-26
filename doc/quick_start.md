@@ -85,9 +85,9 @@ Note that, in the `metadata`, the `id` is the same: this event relates to the sa
 
 The Diffa UI should now be showing a difference type of "Data difference".
 
-### Reconciliation
+### Repairing Data Differences
 
-As the last step in our scenario, we'll pretend that some remedial action has been taken to reconcile the data difference. (That could simply be that the upstream system re-sends the entity to the downstream system, an action that can be performed from the Diffa UI. *TODO: docs on how to configure reconciliation actions*)
+As the last step in our scenario, we'll pretend that some remedial action has been taken to repair the data difference. (That could simply be that the upstream system re-sends the entity to the downstream system, an action that can be performed from the Diffa UI. *TODO: docs on how to configure repair actions*)
 
 This would cause the downstream system to send another change event to the agent. To simulate this, POST the same downstream event again, but with the `vsn` changed to `"x"`:
 
