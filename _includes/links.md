@@ -21,6 +21,14 @@
 [container]:/doc/container.html
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
+[quick_start]:/doc/quick_start.html
+
+<!-- Glossary fragment links -->
+
+[endpoint]:/doc/glossary.html#endpoint
+[pair]:/doc/glossary.html#pair
+[event]:/doc/glossary.html#event
+[digest]:/doc/glossary.html#digest
 
 <!-- Images -->
 

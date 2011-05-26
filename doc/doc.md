@@ -10,6 +10,7 @@ title: Documentation
 
 If you want to:
 
+* Get an instance of Diffa running right away, view the [quick start guide][quick_start]
 * Deploy Diffa into a web container, view the [container guide][container]
 * See how to remotely the configure the agent, then check out the [REST API][rest]
 * Want to integrate Diffa into your application, check out the [integration guide][integration]

@@ -46,3 +46,7 @@ Represents the [version][] information for a particular data item. For an indivi
 * the business date of the entity
 * (otpionally) the a timestamp of when the particpant last updated the entity
 * a digest string containing the [version][] of the [entity][]
+
+### Event
+
+// TODO
