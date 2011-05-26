@@ -9,6 +9,8 @@
 [digest]:/doc/glossary.html#digest
 [upstream]:/doc/glossary.html#upstream_participant
 [downstream]:/doc/glossary.html#downstream_participant
+[event]:/doc/glossary.html#event
+[version_policy]:/doc/glossary.html#version_policy
 
 <!-- Pages -->
 
@@ -23,12 +25,8 @@
 [license]:/doc/license.html
 [quick_start]:/doc/quick_start.html
 
-<!-- Glossary fragment links -->
-
-[endpoint]:/doc/glossary.html#endpoint
-[pair]:/doc/glossary.html#pair
-[event]:/doc/glossary.html#event
 [digest]:/doc/glossary.html#digest
+[version_policy]:/doc/glossary.html#version_policy
 
 <!-- Images -->
 
