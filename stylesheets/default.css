@@ -94,6 +94,11 @@ pre code {
   border: none;
 }
 
+blockquote {
+  padding : 5px;
+  border : 1px solid #000;
+}
+
 div#menu {
   float: right;
   width: 250px;

@@ -70,6 +70,15 @@ One scenario might be a new [entity][] appears in the upstream system. Save the 
 
     {"attributes":[],"eventType":"upstream","metadata":{"id":"id1","endpoint":"a",
     "lastUpdate":"2011-05-23T15:22:42.000+01:00","vsn":"x"}}
+    
+> A brief explanation of the keys in this JSON:
+> * `attributes` is not used for this health-monitoring scenario
+> * `eventType` is one of "upstream", "downstream-same", "downstream-correlated"
+> * `metadata` holds information about the event, including;
+> * `id`, the unique identifier of the entity
+> * `endpoint`, the endpoint from which the event originated
+> * `lastUpdate`, the last time at which the entity changed
+> * `vsn`, the [digest][] of the entity
 
 POST it to the agent:
 
@@ -84,7 +93,7 @@ Continuing the scenario, we'll make a different version of the same entity appea
     {"attributes":[],"eventType":"downstream-same","metadata":{"id":"id1","endpoint":"b",
     "lastUpdate":"2011-05-23T15:22:42.000+01:00","vsn":"y"}}
 
-Note that, in the `metadata`, the `id` is the same: this event relates to the same entity which appeared on the upstream system. But notice that `vsn` (the [digest][] of the entity) is different: the two systems hold different versions of the same entity.
+Note that, in the `metadata`, the `id` is the same: this event relates to the same entity which appeared on the upstream system. But notice that `vsn` is different: the two systems hold different versions of the same entity.
 
 The Diffa UI should now be showing a difference type of "Data difference".
 
