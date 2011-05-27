@@ -9,6 +9,8 @@
 [digest]:/doc/glossary.html#digest
 [upstream]:/doc/glossary.html#upstream_participant
 [downstream]:/doc/glossary.html#downstream_participant
+[event]:/doc/glossary.html#event
+[version_policy]:/doc/glossary.html#version_policy
 
 <!-- Pages -->
 
@@ -21,6 +23,10 @@
 [container]:/doc/container.html
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
+[health_monitoring_guide]:/doc/health_monitoring_guide.html
+
+[digest]:/doc/glossary.html#digest
+[version_policy]:/doc/glossary.html#version_policy
 
 <!-- Images -->
 

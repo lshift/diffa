@@ -11,12 +11,12 @@ For a quick overview you can view the simple demo application in action via the 
 Please note you will need Flash enabled in your browser.
 
 
-<object width="600" height="375"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="375"></embed></object><p><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
+<p><object width="600" height="375"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=15802963&amp;server=vimeo.com&amp;show_title=0&amp;show_byline=0&amp;show_portrait=0&amp;color=00ac3a&amp;fullscreen=1&amp;autoplay=0&amp;loop=0" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="375"></embed></object><br /><a href="http://vimeo.com/15802963">Diffa Screencast</a> from <a href="http://vimeo.com/user4956615">0x6e6562</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
 
 
 ### How The Demo Application Works
 
-You can see how Diffa works in context without having to implement your own participants by using the Demo application. This pre-packaged demo supplies a generic example where two example participants are supplying data for comparison. The input data can be manually controlled from a web browser.  
+You can see how Diffa works in context without having to implement your own participants by using the Demo application. This pre-packaged demo supplies a generic example where two example participants are supplying data for comparison. The input data can be manually controlled from a web browser.
 
 The Demo shows you: 
 

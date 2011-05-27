@@ -77,12 +77,9 @@ p {
   margin-bottom: 10px;
   padding-top: 0px;
 }
-code {
-  padding: 5px;
-  background: #E7E9D7;
-  border: 1px solid #77896f;
+code {  
   color:#77896f;
-  display: block;
+  background: #E7E9D7;
 }
 
 pre {
@@ -95,6 +92,11 @@ pre {
 pre code {
   padding: 0px;
   border: none;
+}
+
+blockquote {
+  padding : 5px;
+  border : 1px solid #000;
 }
 
 div#menu {
