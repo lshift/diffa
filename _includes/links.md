@@ -11,6 +11,8 @@
 [downstream]:/doc/glossary.html#downstream_participant
 [event]:/doc/glossary.html#event
 [version_policy]:/doc/glossary.html#version_policy
+[health_monitoring]:/doc/glossary.html#health_monitoring
+[health_scanning]:/doc/glossary.html#health_scanning
 
 <!-- Pages -->
 
@@ -24,6 +26,7 @@
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
 [health_monitoring_guide]:/doc/health_monitoring_guide.html
+[health_scanning_guide]:/doc/health_scanning_guide.html
 
 [digest]:/doc/glossary.html#digest
 [version_policy]:/doc/glossary.html#version_policy

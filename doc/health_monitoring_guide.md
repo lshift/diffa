@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Quick Start Guide
+title: Quick Start - Health Monitoring
 
 ---
 
@@ -12,17 +12,7 @@ This guide is designed to help you boot a working Diffa agent as quickly as poss
 
 ## Download And Run Diffa
 
-Get the latest Standalone Diffa agent package from the Diffa [download page][download] on GitHub.
-
-    $ wget https://github.com/downloads/lshift/diffa/diffa-0.9.3-SNAPSHOT.zip
-
-Extract the contents of the archive, and boot the agent:
-
-    $ unzip diffa-0.9.3-SNAPSHOT.zip -d diffa-agent
-    $ cd diffa-agent/bin
-    $ sh agent.sh
-
-Once you see the log message `Diffa Agent successfully initialized`, open a browser window and go to [http://localhost:7654/](http://localhost:7654/). You should see the Diffa UI.
+{% include download_and_run.md %}
 
 ## Configure Diffa
 
@@ -34,7 +24,7 @@ You can view all of the current configuration by requesting an XML representatio
     <?xml version="1.0" encoding="UTF-8"?>
     <diffa-config/>
 
-It is quite empty because this is a fresh, unconfigured Diffa agent. To make Diffa useful, we need to declare at least one [pair][] of [endpoints][endpoint].
+It is quite empty because this is a fresh, unconfigured Diffa agent. To make Diffa useful, we need to declare at least one [pair][pair] of [endpoints][endpoint].
 
 Copy the following XML and save it as `diffa-config.xml`.
 
