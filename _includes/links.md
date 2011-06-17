@@ -25,7 +25,8 @@
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
 [health_monitoring_guide]:/doc/health_monitoring_guide.html
-[repair_actions_guide]: /doc/repair_actions_guide.html
+[health_monitoring_guide_configure_diffa]:/doc/health_monitoring_guide.html#configure_diffa
+[repair_actions_guide]:/doc/repair_actions_guide.html
 
 [digest]:/doc/glossary.html#digest
 [version_policy]:/doc/glossary.html#version_policy
