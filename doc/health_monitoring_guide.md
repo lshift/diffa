@@ -50,9 +50,9 @@ Copy the following XML and save it as `diffa-config.xml`.
         <!-- key: An identifier for the pair.
              upstream: The endpoint that is the upstream system.
              downstream: The downstream endpoint.
-             match-timeout: How long Diffa waits before showing a difference on the UI
+             matching-timeout: How long Diffa waits before showing a difference on the UI
              version-policy: "same" means both systems use the same digest scheme -->
-        <pair key="my-pair" upstream="a" downstream="b" match-timeout="5" version-policy="same" />
+        <pair key="my-pair" upstream="a" downstream="b" matching-timeout="5" version-policy="same" />
       </group>  
     </diffa-config>
 
