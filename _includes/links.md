@@ -11,6 +11,7 @@
 [downstream]:/doc/glossary.html#downstream_participant
 [event]:/doc/glossary.html#event
 [version_policy]:/doc/glossary.html#version_policy
+[repair_action]:/doc/glossary.html#repair_action
 
 <!-- Pages -->
 
@@ -24,6 +25,7 @@
 [glossary]:/doc/glossary.html
 [license]:/doc/license.html
 [health_monitoring_guide]:/doc/health_monitoring_guide.html
+[repair_actions_guide]: /doc/repair_actions_guide.html
 
 [digest]:/doc/glossary.html#digest
 [version_policy]:/doc/glossary.html#version_policy

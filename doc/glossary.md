@@ -50,3 +50,8 @@ Represents the [version][] information for a particular data item. For an indivi
 ## Event
 
 // TODO
+
+## Repair Action
+
+Some remedial action, invoked by a user via the Diffa UI, which the agent can perform in order to repair a data difference. See the [guide to repair actions][repair_actions_guide] for instructions on how to configure repair actions.
+

@@ -14,5 +14,6 @@ If you want to:
 * See how to remotely the configure the agent, then check out the [REST API][rest]
 * Want to integrate Diffa into your application, check out the [integration guide][integration]
 * Learn how to use Diffa in a health monitoring scenario, read the [integrating developer's guide to health monitoring][health_monitoring_guide]
+* Learn about repair actions and how to configure them, read the [integrating developer's guide to repair actions][repair_actions_guide]
 * Find out what any of the terms mean, check out the [glossary][]
 * See the [software license terms][license]
