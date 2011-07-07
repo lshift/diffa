@@ -11,37 +11,60 @@ Contents
 
 * [POST config/groups](/doc/rest/config/post/groups)
 * [GET config/groups/:id](/doc/rest/config/get/groups/p_id)
+* [GET config/xml](/doc/rest/config/get/xml)
+* [POST config/xml](/doc/rest/config/post/xml)
 * [GET config/endpoints](/doc/rest/config/get/endpoints)
 * GET config/groups
+* [GET config/repair-actions](/doc/rest/config/get/repair-actions)
 * [GET config/endpoints/:id](/doc/rest/config/get/endpoints/p_id)
-* [DELETE config/endpoints/:id](/doc/rest/config/delete/endpoints/p_id)
-* [DELETE config/pairs/:id](/doc/rest/config/delete/pairs/p_id)
-* [DELETE config/groups/:id](/doc/rest/config/delete/groups/p_id)
-* [GET config/pairs/:id](/doc/rest/config/get/pairs/p_id)
 * [POST config/endpoints](/doc/rest/config/post/endpoints)
 * [PUT config/endpoints/:id](/doc/rest/config/put/endpoints/p_id)
+* [DELETE config/endpoints/:id](/doc/rest/config/delete/endpoints/p_id)
 * [POST config/pairs](/doc/rest/config/post/pairs)
 * [PUT config/pairs/:id](/doc/rest/config/put/pairs/p_id)
+* [DELETE config/pairs/:id](/doc/rest/config/delete/pairs/p_id)
+* [GET config/pairs/:id/repair-actions](/doc/rest/config/get/pairs/p_id/repair-actions)
+* [POST config/pairs/:id/repair-actions](/doc/rest/config/post/pairs/p_id/repair-actions)
+* [DELETE config/pairs/:pairKey/repair-actions/:name](/doc/rest/config/delete/pairs/p_pairKey/repair-actions/p_name)
+* [POST config/pairs/:id/escalations](/doc/rest/config/post/pairs/p_id/escalations)
+* [DELETE config/pairs/:pairKey/escalations/:name](/doc/rest/config/delete/pairs/p_pairKey/escalations/p_name)
 * [PUT config/groups/:id](/doc/rest/config/put/groups/p_id)
+* [DELETE config/groups/:id](/doc/rest/config/delete/groups/p_id)
+* [GET config/pairs/:id](/doc/rest/config/get/pairs/p_id)
 
 ### DifferencesResource
 
 * [GET diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [POST diffs/sessions](/doc/rest/diffs/post/sessions)
+* [POST diffs/sessions/:sessionId/sync](/doc/rest/diffs/post/sessions/p_sessionId/sync)
+* [POST diffs/sessions/scan_all](/doc/rest/diffs/post/sessions/scan_all)
+* [GET diffs/sessions/all_scan_states](/doc/rest/diffs/get/sessions/all_scan_states)
+* [GET diffs/sessions/:sessionId/sync](/doc/rest/diffs/get/sessions/p_sessionId/sync)
 * [GET diffs/sessions/:sessionId](/doc/rest/diffs/get/sessions/p_sessionId)
+* [GET diffs/sessions/:sessionId/page](/doc/rest/diffs/get/sessions/p_sessionId/page)
+* [GET diffs/sessions/:sessionId/zoom](/doc/rest/diffs/get/sessions/p_sessionId/zoom)
 
 ### ActionsResource
 
 * [GET actions/:pairId](/doc/rest/actions/get/p_pairId)
+* [POST actions/:pairId/:actionId](/doc/rest/actions/post/p_pairId/p_actionId)
 * [POST actions/:pairId/:actionId/:entityId](/doc/rest/actions/post/p_pairId/p_actionId/p_entityId)
 
 ### UsersResource
 
+* [POST security/users](/doc/rest/security/post/users)
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [GET security/users](/doc/rest/security/get/users)
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
-* [POST security/users](/doc/rest/security/post/users)
-* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
+
+### EscalationsResource
+
+* [GET escalations/:pairId](/doc/rest/escalations/get/p_pairId)
+
+### ScanningResource
+
+* [DELETE scanning/pairs/:pairKey/scan](/doc/rest/scanning/delete/pairs/p_pairKey/scan)
 
 
 </div>
@@ -60,15 +83,57 @@ URL
 ---
 http://server:port/diffa-agent/rest/config/groups
 
-Requires Authentication
------------------------
-no 
-
 Example
--------
-``Array of {"group":{"key":"important-group"},"pairs":[{"key":"pair-id","group":{"key":"important-group"},"matchingTimeout":120,"versionPolicyName":"correlated","downstream":{"name":"downstream-system","url":"http://acme.com/downstream","online":true},"upstream":{"name":"upstream-system","url":"http://acme.com/upstream","online":true}}]} ``
-
-JSON Schema
------------
-``{"type":"object","optional":true,"items":{"type":"array","optional":true,"items":{"type":"object","optional":true,"items":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}},"properties":{"key":{"type":"string","optional":true},"group":{"type":"object","optional":true,"items":{"type":"string","optional":true},"properties":{"key":{"type":"string","optional":true}}},"matchingTimeout":{"type":"integer","optional":true},"versionPolicyName":{"type":"string","optional":true},"downstream":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}},"upstream":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}}}}},"properties":{"group":{"type":"object","optional":true,"items":{"type":"string","optional":true},"properties":{"key":{"type":"string","optional":true}}},"pairs":{"type":"array","optional":true,"items":{"type":"object","optional":true,"items":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}},"properties":{"key":{"type":"string","optional":true},"group":{"type":"object","optional":true,"items":{"type":"string","optional":true},"properties":{"key":{"type":"string","optional":true}}},"matchingTimeout":{"type":"integer","optional":true},"versionPolicyName":{"type":"string","optional":true},"downstream":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}},"upstream":{"type":"object","optional":true,"items":{"type":"boolean","optional":false},"properties":{"name":{"type":"string","optional":true},"url":{"type":"string","optional":true},"online":{"type":"boolean","optional":false}}}}}}}} ``
+-------</div>
+<div id="example">
+<pre class="brush: js">[ {
+  "group" : {
+    "key" : "important-group"
+  },
+  "pairs" : [ {
+    "key" : "pair-id",
+    "scanCronSpec" : null,
+    "matchingTimeout" : 120,
+    "versionPolicyName" : "correlated",
+    "group" : {
+      "key" : "important-group"
+    },
+    "downstream" : {
+      "name" : "downstream-system",
+      "contentType" : "application/json",
+      "categories" : {
+        "bizDate" : {
+          "@type" : "range",
+          "dataType" : "datetime",
+          "lower" : null,
+          "upper" : null,
+          "id" : 0
+        }
+      },
+      "inboundContentType" : null,
+      "inboundUrl" : null,
+      "versionGenerationUrl" : null,
+      "contentRetrievalUrl" : null,
+      "scanUrl" : "http://acme.com/downstream/scan"
+    },
+    "upstream" : {
+      "name" : "upstream-system",
+      "contentType" : "application/json",
+      "categories" : {
+        "bizDate" : {
+          "@type" : "range",
+          "dataType" : "datetime",
+          "lower" : null,
+          "upper" : null,
+          "id" : 0
+        }
+      },
+      "inboundContentType" : null,
+      "inboundUrl" : null,
+      "versionGenerationUrl" : null,
+      "contentRetrievalUrl" : null,
+      "scanUrl" : "http://acme.com/upstream/scan"
+    }
+  } ]
+} ]</pre>
 </div>
