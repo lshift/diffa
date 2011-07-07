@@ -62,7 +62,7 @@ class DefaultSessionManager(
 
   private val participants = new HashMap[Endpoint, Participant]
 
-  private val pairStates = new HashMap[String, PairScanState]
+  private val pairStates = new HashMap[String, PairScanInfo]
 
   // Subscribe to events from the matching manager
   matching.addListener(this)
@@ -158,7 +158,7 @@ class DefaultSessionManager(
   def pairScanStates(scope:SessionScope) = {
     val pairKeys = pairKeysForScope(scope)
     pairStates.synchronized {
-      pairKeys.map(pairKey => pairKey -> pairStates.getOrElse(pairKey, PairScanState.UNKNOWN)).toMap
+      pairKeys.map(pairKey => pairKey -> pairStates.getOrElse(pairKey, PairScanInfo(state = PairScanState.UNKNOWN))).toMap
     }
   }
 
@@ -307,7 +307,13 @@ class DefaultSessionManager(
   // Pair Sync Notifications
   //
 
-  def pairSyncStateChanged(pairKey: String, syncState: PairScanState) = updatePairSyncState(pairKey, syncState)
+  def pairSyncStateChanged(pairKey: String, syncState: PairScanState, statusMessage:String) {
+    updatePairSyncState(pairKey, Some(syncState), statusMessage)
+  }
+  def pairSyncStatusChanged(pairKey: String, statusMessage: String) {
+    updatePairSyncState(pairKey, None, statusMessage)
+  }
+
 
 
   //
@@ -348,7 +354,7 @@ class DefaultSessionManager(
     // Update the sync state ourselves. The policy itself will send an update shortly, but since that happens
     // asynchronously, we might have returned before then, and this may potentially result in clients seeing
     // a "Up To Date" view, even though we're just about to transition out of that state.
-    updatePairSyncState(pairKey, PairScanState.SYNCHRONIZING)
+    updatePairSyncState(pairKey, Some(PairScanState.SYNCHRONIZING), "Scan Starting")
 
     pairPolicyClient.scanPair(pairKey, listener, this)
   }
@@ -433,10 +439,16 @@ class DefaultSessionManager(
     f()
   }
 
-  def updatePairSyncState(pairKey:String, state:PairScanState) = {
+  def updatePairSyncState(pairKey:String, state:Option[PairScanState], statusMessage:String = "") = {
     pairStates.synchronized {
-      pairStates(pairKey) = state
+      var pairInfo = pairStates.getOrElseUpdate(pairKey, PairScanInfo(state = PairScanState.UNKNOWN, statusMessage = statusMessage))
+
+      state.foreach(s => pairInfo.state = s)
+      pairInfo.statusMessage = statusMessage
     }
-    log.info("Pair " + pairKey + " entered synchronization state: " + state)
+    if (state.isDefined)
+      log.info("Pair " + pairKey + " entered synchronization state: " + state.get)
+    if (statusMessage.length > 0)
+      log.info("Pair " + pairKey + " has status: " + statusMessage)
   }
 }

@@ -29,6 +29,7 @@ import com.eaio.uuid.UUID
 import akka.actor._
 import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
+import java.lang.StringBuilder
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -56,7 +57,8 @@ case class PairActor(pairKey:String,
    * Flag that can be used to signal that scanning should be cancelled.
    */
   @ThreadSafe
-  private var feedbackHandle:FeedbackHandle = null
+  private var upstreamFeedbackHandle:ScanningFeedbackHandle = null
+  private var downstreamFeedbackHandle:ScanningFeedbackHandle = null
 
   /**
    * Thread safe buffer of match events that will be accessed directly by different sub actors
@@ -175,12 +177,22 @@ case class PairActor(pairKey:String,
   /**
    * Provides a simple handle to indicated that a scan should be cancelled.
    */
-  private class ScanningFeedbackHandle extends FeedbackHandle {
+  private class ScanningFeedbackHandle(upOrDown:UpOrDown) extends FeedbackHandle {
+    var lastStatus:String = null
 
     private val flag = new SyncVar[Boolean]
     flag.set(false)
 
-    def logStatus(status: String) = logger.debug("Not yet implemented")
+    def logStatus(status: String) {
+      lastStatus = status
+      onFeedbackStatusUpdated(upOrDown)
+    }
+
+    def clearStatus() {
+      lastStatus = null
+      onFeedbackStatusUpdated(upOrDown)
+    }
+
     def isCancelled = flag.get
     def cancel() = flag.set(true)
   }
@@ -244,8 +256,8 @@ case class PairActor(pairKey:String,
       updateOutstandingScans(a)
 
       a.result match {
-        case Failure => leaveScanState(PairScanState.FAILED)
-        case Success => maybeLeaveScanningState
+        case Failure(msg) => leaveScanState(PairScanState.FAILED, "Scan Failed: " + msg)
+        case Success      => maybeLeaveScanningState
       }
     }
     case camsg:ChildActorScanMessage if isOwnedByOutstandingScan(camsg) =>
@@ -259,10 +271,11 @@ case class PairActor(pairKey:String,
    */
   def handleCancellation() = {
     logger.info("%s: Scan %s for pair %s was cancelled on request".format(AlertCodes.CANCELLATION_REQUEST, activeScan.uuid, pairKey))
-    feedbackHandle.cancel()
+    upstreamFeedbackHandle.cancel()
+    downstreamFeedbackHandle.cancel()
 
     // Leave the scanning state as cancelled
-    leaveScanState(PairScanState.CANCELLED)
+    leaveScanState(PairScanState.CANCELLED, "Scan Cancelled")
   }
 
   /**
@@ -281,7 +294,7 @@ case class PairActor(pairKey:String,
       policy.replayUnmatchedDifferences(pairKey, escalationListener)
 
       // Re-queue all buffered commands
-      leaveScanState(PairScanState.UP_TO_DATE)
+      leaveScanState(PairScanState.UP_TO_DATE, "Scan Completed")
     }
   }
 
@@ -290,7 +303,7 @@ case class PairActor(pairKey:String,
   /**
    * Ensures that the scan state is left cleanly
    */
-  def leaveScanState(state:PairScanState) = {
+  def leaveScanState(state:PairScanState, statusMessage:String) = {
 
     if (state == PairScanState.FAILED || state == PairScanState.CANCELLED) {
       writer.rollback()
@@ -300,13 +313,14 @@ case class PairActor(pairKey:String,
     activeScan = null
 
     // Re-queue all buffered commands
-    processBacklog(state)
+    processBacklog(state, statusMessage)
 
     // Make sure that the event queue is empty for the next scan
     bufferedMatchEvents.clear()
 
     // Make sure that this flag is zeroed out
-    feedbackHandle = null
+    upstreamFeedbackHandle = null
+    downstreamFeedbackHandle = null
 
     // Make sure there is no dangling back address
     cancellationRequester = null
@@ -318,13 +332,33 @@ case class PairActor(pairKey:String,
   /**
    * Resets the state of the actor and processes any pending messages that may have arrived during a scan phase.
    */
-  def processBacklog(state:PairScanState) = {
+  def processBacklog(state:PairScanState, statusMessage:String) = {
     if (currentScanListener != null) {
-      currentScanListener.pairSyncStateChanged(pairKey, state)
+      currentScanListener.pairSyncStateChanged(pairKey, state, statusMessage)
     }
     currentDiffListener = null
     currentScanListener = null
     deferred.dequeueAll(d => {self ! d; true})
+  }
+
+  /**
+   * Processes a status update
+   */
+  def onFeedbackStatusUpdated(upOrDown:UpOrDown) {
+    if (currentScanListener != null) {
+      var msg = new StringBuilder()
+      if (upstreamFeedbackHandle != null && upstreamFeedbackHandle.lastStatus != null) {
+        msg.append("Upstream: " + upstreamFeedbackHandle.lastStatus)
+      }
+      if (downstreamFeedbackHandle != null && downstreamFeedbackHandle.lastStatus != null) {
+        if (msg.length() > 0) msg.append("\n")
+        msg.append("Downstream: " + downstreamFeedbackHandle.lastStatus)
+      }
+
+      if (msg.length() > 0) {
+        currentScanListener.pairSyncStatusChanged(pairKey, msg.toString)
+      }
+    }
   }
 
   /**
@@ -373,16 +407,21 @@ case class PairActor(pairKey:String,
       bufferedMatchEvents.clear()
     }
 
-    message.pairSyncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING)
+    message.pairSyncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING, "Scan Starting")
 
     try {
       writer.flush()
 
-      feedbackHandle = new ScanningFeedbackHandle
+      upstreamFeedbackHandle = new ScanningFeedbackHandle(Up)
+      downstreamFeedbackHandle = new ScanningFeedbackHandle(Down)
 
       Actor.spawn {
         try {
-          policy.scanUpstream(pairKey, writerProxy, us, bufferingListener, feedbackHandle)
+          try {
+            policy.scanUpstream(pairKey, writerProxy, us, bufferingListener, upstreamFeedbackHandle)
+          } finally {
+            upstreamFeedbackHandle.clearStatus()
+          }
           self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
         }
         catch {
@@ -392,14 +431,18 @@ case class PairActor(pairKey:String,
           }
           case e:Exception => {
             logger.error("Upstream scan failed: " + pairKey, e)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Failure)
+            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Failure(e.getMessage))
           }
         }
       }
 
       Actor.spawn {
         try {
-          policy.scanDownstream(pairKey, writerProxy, us, ds, bufferingListener, feedbackHandle)
+          try {
+            policy.scanDownstream(pairKey, writerProxy, us, ds, bufferingListener, downstreamFeedbackHandle)
+          } finally {
+            downstreamFeedbackHandle.clearStatus()
+          }
           self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
         }
         catch {
@@ -409,7 +452,7 @@ case class PairActor(pairKey:String,
           }
           case e:Exception => {
             logger.error("Downstream scan failed: " + pairKey, e)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Failure)
+            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Failure(e.getMessage))
           }
         }
       }
@@ -425,7 +468,7 @@ case class PairActor(pairKey:String,
     } catch {
       case x: Exception => {
         logger.error("Failed to initiate scan for pair: " + pairKey, x)
-        processBacklog(PairScanState.FAILED)
+        processBacklog(PairScanState.FAILED, "Scan failed")
         false
       }
     }
@@ -475,7 +518,7 @@ case object Down extends UpOrDown
  */
 abstract class Result
 case object Success extends Result
-case object Failure extends Result
+case class Failure(msg:String) extends Result
 case object Cancellation extends Result
 
 /**

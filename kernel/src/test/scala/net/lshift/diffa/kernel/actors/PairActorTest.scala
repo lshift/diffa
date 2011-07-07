@@ -40,6 +40,10 @@ class PairActorTest {
   val policyName = ""
   val upstream = Endpoint(name = "up", scanUrl = "up", contentType = "application/json")
   val downstream = Endpoint(name = "down", scanUrl = "down", contentType = "application/json")
+  val scanStartingMsg = "Scan Starting"
+  val scanFailedMsg = "Scan Failed"
+  val scanCompletedMsg = "Scan Completed"
+  val scanCancelledMsg = "Scan Cancelled"
 
   val pair = new net.lshift.diffa.kernel.config.Pair()
   pair.key = pairKey
@@ -144,14 +148,14 @@ class PairActorTest {
 
     expect(writer.flush()).atLeastOnce
     replay(writer)
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING); expectLastCall
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING, scanStartingMsg); expectLastCall
 
     expectScans
 
     expect(versionPolicy.replayUnmatchedDifferences(pairKey, diffListener))
     expect(versionPolicy.replayUnmatchedDifferences(pairKey, escalationListener))
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.UP_TO_DATE, scanCompletedMsg); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = { monitor.synchronized { monitor.notifyAll } }
     })
     replay(versionPolicy, syncListener)
@@ -171,8 +175,8 @@ class PairActorTest {
 
     val event = buildUpstreamEvent()
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING); expectLastCall
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING, scanStartingMsg); expectLastCall
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.UP_TO_DATE, scanCompletedMsg); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = { flushMonitor.synchronized { flushMonitor.notifyAll } }
     })
     replay(syncListener)
@@ -240,7 +244,7 @@ class PairActorTest {
 
     val timeToWait = 2000L
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING, scanStartingMsg); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = {
         Actor.spawn {
           // Request a cancellation in a background thread so that the pair actor can be scheduled
@@ -254,7 +258,7 @@ class PairActorTest {
       }
     })
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.CANCELLED); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.CANCELLED, scanCancelledMsg); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = cancelMonitor.synchronized{ cancelMonitor.notifyAll() }
     })
 
@@ -297,11 +301,11 @@ class PairActorTest {
     expect(writer.rollback())
     replay(writer)
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING); expectLastCall
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.SYNCHRONIZING, scanStartingMsg); expectLastCall
 
     expectScans.andThrow(new RuntimeException("Deliberate runtime excecption, this should be handled"))
 
-    syncListener.pairSyncStateChanged(pairKey, PairScanState.FAILED); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
+    syncListener.pairSyncStateChanged(pairKey, PairScanState.FAILED, "Scan Failed: Deliberate runtime excecption, this should be handled"); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer { monitor.synchronized { monitor.notifyAll } }
     })
     replay(versionPolicy, syncListener)

@@ -22,10 +22,10 @@ import com.sun.jersey.api.client.{WebResource, ClientResponse}
 import net.lshift.diffa.kernel.client.DifferencesClient
 import net.lshift.diffa.kernel.participants.ParticipantType
 import javax.ws.rs.core.{Response, MediaType}
-import net.lshift.diffa.kernel.differencing.{PairScanState, SessionScope, SessionEvent}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.messaging.json.{NotFoundException, AbstractRestClient}
 import org.joda.time.format.ISODateTimeFormat
+import net.lshift.diffa.kernel.differencing.{PairScanInfo, PairScanState, SessionScope, SessionEvent}
 
 /**
  * A RESTful client to start a matching session and poll for events from it.
@@ -81,8 +81,13 @@ class DifferencesRestClient(serverRootUrl:String)
 
     status.getStatusCode match {
       case 200 => {
-        val responseData = response.getEntity(classOf[java.util.Map[String, String]])
-        responseData.map {case (k, v) => k -> PairScanState.valueOf(v) }.toMap
+        val responseData = response.getEntity(classOf[java.util.Map[String, java.util.Map[String, String]]])
+        responseData.map {case (k, v:java.util.Map[String, String]) =>
+          val state = PairScanState.valueOf(v.get("state"))
+          var statusMessage = v.get("statusMessage")
+
+          k -> PairScanInfo(state, statusMessage)
+        }.toMap
       }
       case x:Int   => handleHTTPError(x, path, status)
     }

@@ -92,7 +92,7 @@ class DifferencesResource {
   @Description("Lists the scanning state for every configured pair.")
   def getAllPairStates = {
     val states = sessionManager.retrieveAllPairScanStates
-    Response.ok(scala.collection.JavaConversions.asJavaMap(states)).build
+    Response.ok(scala.collection.JavaConversions.mapAsJavaMap(states)).build
   }
 
   @GET
@@ -102,7 +102,7 @@ class DifferencesResource {
   @MandatoryParams(Array(new MandatoryParam(name = "sessionId", datatype = "string", description = "Session ID")))
   def getPairStates(@PathParam("sessionId") sessionId: String): Response = {
     val states = sessionManager.retrievePairSyncStates(sessionId)
-    Response.ok(scala.collection.JavaConversions.asJavaMap(states)).build
+    Response.ok(scala.collection.JavaConversions.mapAsJavaMap(states)).build
   }
 
   @GET

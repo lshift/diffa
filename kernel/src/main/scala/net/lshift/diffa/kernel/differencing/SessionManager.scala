@@ -76,12 +76,12 @@ trait SessionManager {
    * Retrieves the synchronization state of all pairs associated with the given session.
    * @param sessionID the identifier of the session to query the pairs from.
    */
-  def retrievePairSyncStates(sessionID:String):Map[String, PairScanState]
+  def retrievePairSyncStates(sessionID:String):Map[String, PairScanInfo]
 
   /**
    * Retrieves the scanning state of all pairs known to the system.
    */
-  def retrieveAllPairScanStates : Map[String, PairScanState]
+  def retrieveAllPairScanStates : Map[String, PairScanInfo]
 
   /**
    * Requests that a synchronization be run on all pairs associated with the given session.
@@ -180,3 +180,9 @@ case class SessionEvent(
     
 }
 
+case class PairScanInfo(
+  @BeanProperty var state:PairScanState = PairScanState.UNKNOWN,
+  @BeanProperty var statusMessage:String = ""
+) {
+  def this() = this(state = PairScanState.UNKNOWN)
+}

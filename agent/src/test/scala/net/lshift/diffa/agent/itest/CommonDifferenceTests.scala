@@ -30,8 +30,8 @@ import java.net.URI
 import org.junit.{Before, Test}
 import net.lshift.diffa.kernel.participants.ParticipantType
 import java.util.{UUID, Properties}
-import net.lshift.diffa.kernel.differencing.{PairScanState, SessionScope, SessionEvent}
 import net.lshift.diffa.kernel.client.DifferencesClient
+import net.lshift.diffa.kernel.differencing.{PairScanInfo, PairScanState, SessionScope, SessionEvent}
 
 /**
  * Tests that can be applied to an environment to validate that differencing functionality works appropriately.
@@ -203,7 +203,7 @@ trait CommonDifferenceTests {
   }
 
   def subscribeAndRunScan(scope:SessionScope, from:DateTime, until:DateTime, n:Int = 30, wait:Int = 100) = {
-    def isUpToDate(states:Map[String, PairScanState]) = states.values.forall(s => s == PairScanState.UP_TO_DATE)
+    def isUpToDate(states:Map[String, PairScanInfo]) = states.values.forall(s => s.state == PairScanState.UP_TO_DATE)
 
     var sessionId = env.diffClient.subscribe(SessionScope.forPairs(env.pairKey), from, until)
     env.diffClient.runScan(sessionId)

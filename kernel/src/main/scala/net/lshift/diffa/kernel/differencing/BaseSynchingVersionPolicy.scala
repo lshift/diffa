@@ -121,6 +121,7 @@ abstract class BaseSynchingVersionPolicy(val stores:VersionCorrelationStoreFacto
                         handle:FeedbackHandle) {
 
       checkForCancellation(handle, pair)
+      handle.logStatus("Scanning aggregates for %s with (constraints=%s, bucketing=%s)".format(endpoint.name, constraints, bucketing))
 
       val remoteDigests = participant.scan(constraints, bucketing)
       val localDigests = getAggregates(pair.key, bucketing, constraints)
@@ -138,6 +139,7 @@ abstract class BaseSynchingVersionPolicy(val stores:VersionCorrelationStoreFacto
         case EntityQueryAction(narrowed)    => {
 
           checkForCancellation(handle, pair)
+          handle.logStatus("Scanning entities for {0} with (constraints={1})".format(endpoint.name, narrowed))
 
           val remoteVersions = participant.scan(narrowed, Map())
           val cachedVersions = getEntities(pair.key, narrowed)
