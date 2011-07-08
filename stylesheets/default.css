@@ -114,6 +114,10 @@ div#resources {
   float: left;
   width: 670px;
 }
+div#example {
+  float: left;
+  width: 66%;
+}
 h1, h2, h3, h4 {
   color: #364F56;
 }
