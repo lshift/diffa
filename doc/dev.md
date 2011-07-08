@@ -6,9 +6,9 @@ title: Development
 
 {% include links.md %}
 
-## Support
+## Mailing List
 
-Support and general discussion lists about Diffa are accessible [here][support]. 
+The discussion list about Diffa is [here][mailing-list]. 
 
 ## Development
 
