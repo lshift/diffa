@@ -53,6 +53,6 @@
 <!-- External -->
 
 [repo]:http://github.com/lshift/diffa
-[download]:http://github.com/lshift/diffa/downloads
+[download]:https://s3.amazonaws.com/diffa-downloads/current/diffa-0.9-SNAPSHOT.zip
 [bugs]:http://diffa.lighthouseapp.com
 [mailing-list]:https://groups.google.com/group/diffa-user
