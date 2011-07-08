@@ -65,8 +65,6 @@ Once you have the proxy reference set up, then follow these steps:
 
 	$ git clone git://github.com/lshift/diffa.git
 	$ cd diffa
-	$ git submodule init
-	$ git submodule update
 	$ export MAVEN_OPTS=-XX:MaxPermSize=512m
 	$ mvn install
 
