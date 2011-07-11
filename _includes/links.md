@@ -23,6 +23,7 @@
 [rest]:/doc/rest/
 [container]:/doc/container.html
 [glossary]:/doc/glossary.html
+[download]:/doc/packages.html
 [license]:/doc/license.html
 [health_monitoring_guide]:/doc/health_monitoring_guide.html
 [health_monitoring_guide_configure_diffa]:/doc/health_monitoring_guide.html#configure_diffa
@@ -53,6 +54,5 @@
 <!-- External -->
 
 [repo]:http://github.com/lshift/diffa
-[download]:https://s3.amazonaws.com/diffa-downloads/current/diffa-0.9-SNAPSHOT.zip
 [bugs]:http://diffa.lighthouseapp.com
 [mailing-list]:https://groups.google.com/group/diffa-user

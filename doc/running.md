@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Downloads
+title: Running Diffa
 
 ---
 
