@@ -34,12 +34,12 @@ Contents
 
 ### DifferencesResource
 
-* [GET diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [POST diffs/sessions](/doc/rest/diffs/post/sessions)
-* [POST diffs/sessions/:sessionId/sync](/doc/rest/diffs/post/sessions/p_sessionId/sync)
+* [GET diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
+* [POST diffs/sessions/:sessionId/scan](/doc/rest/diffs/post/sessions/p_sessionId/scan)
 * [POST diffs/sessions/scan_all](/doc/rest/diffs/post/sessions/scan_all)
 * [GET diffs/sessions/all_scan_states](/doc/rest/diffs/get/sessions/all_scan_states)
-* [GET diffs/sessions/:sessionId/sync](/doc/rest/diffs/get/sessions/p_sessionId/sync)
+* [GET diffs/sessions/:sessionId/scan](/doc/rest/diffs/get/sessions/p_sessionId/scan)
 * [GET diffs/sessions/:sessionId](/doc/rest/diffs/get/sessions/p_sessionId)
 * GET diffs/sessions/:sessionId/page
 * [GET diffs/sessions/:sessionId/zoom](/doc/rest/diffs/get/sessions/p_sessionId/zoom)

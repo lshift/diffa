@@ -36,12 +36,12 @@ ConfigurationResource
 DifferencesResource
 -----------
 
-* [GET diffs/events/:sessionId/:evtSeqId/:participant](diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [POST diffs/sessions](diffs/post/sessions)
-* [POST diffs/sessions/:sessionId/sync](diffs/post/sessions/p_sessionId/sync)
+* [GET diffs/events/:sessionId/:evtSeqId/:participant](diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
+* [POST diffs/sessions/:sessionId/scan](diffs/post/sessions/p_sessionId/scan)
 * [POST diffs/sessions/scan_all](diffs/post/sessions/scan_all)
 * [GET diffs/sessions/all_scan_states](diffs/get/sessions/all_scan_states)
-* [GET diffs/sessions/:sessionId/sync](diffs/get/sessions/p_sessionId/sync)
+* [GET diffs/sessions/:sessionId/scan](diffs/get/sessions/p_sessionId/scan)
 * [GET diffs/sessions/:sessionId](diffs/get/sessions/p_sessionId)
 * [GET diffs/sessions/:sessionId/page](diffs/get/sessions/p_sessionId/page)
 * [GET diffs/sessions/:sessionId/zoom](diffs/get/sessions/p_sessionId/zoom)
