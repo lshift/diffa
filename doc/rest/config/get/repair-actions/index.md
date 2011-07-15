@@ -64,6 +64,7 @@ Contents
 
 ### ScanningResource
 
+* [POST scanning/pairs/:pairKey/scan](/doc/rest/scanning/post/pairs/p_pairKey/scan)
 * [DELETE scanning/pairs/:pairKey/scan](/doc/rest/scanning/delete/pairs/p_pairKey/scan)
 
 
@@ -88,8 +89,8 @@ Example
 <div id="example">
 <pre class="brush: js">[ {
   "name" : "resend",
+  "url" : "http://acme.com/repairs/resend/{id}",
   "scope" : "entity",
-  "url" : "http://acme.com/upstream/resend",
   "pairKey" : "pairKey"
 } ]</pre>
 </div>

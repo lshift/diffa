@@ -64,6 +64,7 @@ Contents
 
 ### ScanningResource
 
+* [POST scanning/pairs/:pairKey/scan](/doc/rest/scanning/post/pairs/p_pairKey/scan)
 * DELETE scanning/pairs/:pairKey/scan
 
 
@@ -77,7 +78,6 @@ DELETE scanning/pairs/:pairKey/scan
 
 Entity Type
 -----------
-boolean
 
 URL
 ---

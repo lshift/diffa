@@ -64,6 +64,7 @@ Contents
 
 ### ScanningResource
 
+* [POST scanning/pairs/:pairKey/scan](/doc/rest/scanning/post/pairs/p_pairKey/scan)
 * [DELETE scanning/pairs/:pairKey/scan](/doc/rest/scanning/delete/pairs/p_pairKey/scan)
 
 
@@ -92,12 +93,12 @@ Example
   },
   "pairs" : [ {
     "key" : "pair-id",
-    "scanCronSpec" : null,
-    "matchingTimeout" : 120,
-    "versionPolicyName" : "correlated",
     "group" : {
       "key" : "important-group"
     },
+    "scanCronSpec" : null,
+    "matchingTimeout" : 120,
+    "versionPolicyName" : "correlated",
     "downstream" : {
       "name" : "downstream-system",
       "contentType" : "application/json",

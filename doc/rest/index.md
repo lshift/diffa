@@ -70,6 +70,7 @@ EscalationsResource
 ScanningResource
 -----------
 
+* [POST scanning/pairs/:pairKey/scan](scanning/post/pairs/p_pairKey/scan)
 * [DELETE scanning/pairs/:pairKey/scan](scanning/delete/pairs/p_pairKey/scan)
 
 

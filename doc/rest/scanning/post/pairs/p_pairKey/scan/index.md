@@ -1,5 +1,5 @@
 ---
-title: GET config/groups/:id | REST API Documentation
+title: POST scanning/pairs/:pairKey/scan | REST API Documentation
 layout: default
 ---
 
@@ -10,7 +10,7 @@ Contents
 ### ConfigurationResource
 
 * [POST config/groups](/doc/rest/config/post/groups)
-* GET config/groups/:id
+* [GET config/groups/:id](/doc/rest/config/get/groups/p_id)
 * [GET config/xml](/doc/rest/config/get/xml)
 * [POST config/xml](/doc/rest/config/post/xml)
 * [GET config/endpoints](/doc/rest/config/get/endpoints)
@@ -64,40 +64,33 @@ Contents
 
 ### ScanningResource
 
-* [POST scanning/pairs/:pairKey/scan](/doc/rest/scanning/post/pairs/p_pairKey/scan)
+* POST scanning/pairs/:pairKey/scan
 * [DELETE scanning/pairs/:pairKey/scan](/doc/rest/scanning/delete/pairs/p_pairKey/scan)
 
 
 </div>
 
 <div id="resources" markdown="1">
-GET config/groups/:id
+POST scanning/pairs/:pairKey/scan
 =======================================================
 
-<em>Returns a group of endpoint pairings by its identifier.</em>
+<em>Starts a scan for the given pair.</em>
 
 Entity Type
 -----------
-PairGroup
 
 URL
 ---
-http://server:port/diffa-agent/rest/config/groups/:id
+http://server:port/diffa-agent/rest/scanning/pairs/:pairKey/scan
 
  
 Mandatory Parameters
 --------------------
 
-### id
+### pairKey
 
 *string*
 
-Group ID
+Pair Key
 
-Example
--------</div>
-<div id="example">
-<pre class="brush: js">{
-  "key" : "important-group"
-}</pre>
 </div>
