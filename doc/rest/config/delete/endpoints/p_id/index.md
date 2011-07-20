@@ -9,12 +9,9 @@ Contents
 
 ### ConfigurationResource
 
-* [POST config/groups](/doc/rest/config/post/groups)
-* [GET config/groups/:id](/doc/rest/config/get/groups/p_id)
 * [GET config/xml](/doc/rest/config/get/xml)
 * [POST config/xml](/doc/rest/config/post/xml)
 * [GET config/endpoints](/doc/rest/config/get/endpoints)
-* [GET config/groups](/doc/rest/config/get/groups)
 * [GET config/repair-actions](/doc/rest/config/get/repair-actions)
 * [GET config/endpoints/:id](/doc/rest/config/get/endpoints/p_id)
 * [POST config/endpoints](/doc/rest/config/post/endpoints)
@@ -28,8 +25,6 @@ Contents
 * [DELETE config/pairs/:pairKey/repair-actions/:name](/doc/rest/config/delete/pairs/p_pairKey/repair-actions/p_name)
 * [POST config/pairs/:id/escalations](/doc/rest/config/post/pairs/p_id/escalations)
 * [DELETE config/pairs/:pairKey/escalations/:name](/doc/rest/config/delete/pairs/p_pairKey/escalations/p_name)
-* [PUT config/groups/:id](/doc/rest/config/put/groups/p_id)
-* [DELETE config/groups/:id](/doc/rest/config/delete/groups/p_id)
 * [GET config/pairs/:id](/doc/rest/config/get/pairs/p_id)
 
 ### DifferencesResource
@@ -41,7 +36,6 @@ Contents
 * [GET diffs/sessions/all_scan_states](/doc/rest/diffs/get/sessions/all_scan_states)
 * [GET diffs/sessions/:sessionId/scan](/doc/rest/diffs/get/sessions/p_sessionId/scan)
 * [GET diffs/sessions/:sessionId](/doc/rest/diffs/get/sessions/p_sessionId)
-* [GET diffs/sessions/:sessionId/page](/doc/rest/diffs/get/sessions/p_sessionId/page)
 * [GET diffs/sessions/:sessionId/zoom](/doc/rest/diffs/get/sessions/p_sessionId/zoom)
 
 ### ActionsResource
