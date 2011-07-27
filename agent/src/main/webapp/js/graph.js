@@ -44,8 +44,10 @@ var colours = {
   black: 'black',
   darkGrey: '#555555',
   red: '#d12f19',
+  fadedRed: '#d19e97',
   transparent: 'rgba(0,0,0,0)',
-  white: 'white'
+  white: 'white',
+  yellow: '#FFF2CC'
 }
 
 var directions = {
@@ -581,17 +583,7 @@ function drawGrid() {
   }
 
   // draw "live" / "click to poll" text
-  var pollText = polling ? " LIVE " : " CLICK TO POLL ";
-  var textWidth = underlayContext.measureText(pollText).width;
-  var textSpacer = 20;
-  underlayContext.fillStyle = colours.red;
-  underlayContext.fillRect(canvas.width - textWidth - textSpacer, 0, textWidth + textSpacer, 20);
-  underlayContext.fillStyle = colours.white;
-  underlayContext.font = "12px 'Lucida Grande', Tahoma, Arial, Verdana, sans-serif";
-  underlayContext.textBaseline = "top";
-  underlayContext.fillText(pollText, canvas.width - underlayContext.measureText(pollText).width - (textSpacer / 2), 5);
-  toggleX = canvas.width - textWidth - textSpacer;
-  toggleY = 20;
+  drawLiveIndicator()
 
   // draw circles
   for (var i = 0.5; i < region_width; i += gridSize) {
@@ -709,6 +701,10 @@ function mouseUp(e) {
       selectedBucket = coordsToCell(c);
       page = 0;
       fetchData();
+    }
+  } else {
+    if (Math.abs(o_x) >= rightLimit) {
+      if (!polling) startPolling();
     }
   }
   dragged = false;
@@ -838,4 +834,49 @@ function initGraph() {
 
   $("#navigation").hide();
 
+  pulseUpLive();
+}
+
+var livePulseTracker = $.extend($('<div>')[0], {
+  backgroundColor: colours.red,
+
+  customAnimate: true,
+  updated: true
+});
+livePulseTracker.style.backgroundColor = colours.red;
+
+var liveIndicatorActiveColour = colours.red;
+function drawLiveIndicator() {
+  var pollText = polling ? "LIVE" : "PAUSED";
+  var textWidth = underlayContext.measureText(pollText).width;
+  var textSpacer = 20;
+  underlayContext.fillStyle = polling ? liveIndicatorActiveColour : colours.yellow;
+  underlayContext.fillRect(canvas.width - textWidth - textSpacer, 0, textWidth + textSpacer, 20);
+  underlayContext.fillStyle = polling ? colours.white : colours.black;
+  underlayContext.font = "12px 'Lucida Grande', Tahoma, Arial, Verdana, sans-serif";
+  underlayContext.textBaseline = "top";
+  underlayContext.fillText(pollText, canvas.width - underlayContext.measureText(pollText).width - (textSpacer / 2), 5);
+  toggleX = canvas.width - textWidth - textSpacer;
+  toggleY = 20;
+}
+
+function pulseLiveToColour(colour, completionFn) {
+  $(livePulseTracker).animate({ backgroundColor: colour }, {
+    duration: 2000,
+    easing: 'linear',
+    step: function(now, fx) {
+      liveIndicatorActiveColour = fx.elem.style.backgroundColor;
+      drawLiveIndicator();
+    },
+    complete: function() {
+      completionFn();
+    }
+  });
+}
+
+function pulseUpLive() {
+  pulseLiveToColour(colours.fadedRed, pulseDownLive);
+}
+function pulseDownLive() {
+  pulseLiveToColour(colours.red, pulseUpLive);
 }
