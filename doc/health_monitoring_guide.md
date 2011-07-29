@@ -12,9 +12,9 @@ This guide is designed to help you boot a working Diffa agent as quickly as poss
 
 ## Download And Run Diffa
 
-Get the latest Standalone Diffa agent package from the Diffa [download page][download] on GitHub.
+Get the latest Standalone Diffa agent package from the Diffa [download page][download].
 
-    $ wget https://github.com/downloads/lshift/diffa/diffa-0.9.3-SNAPSHOT.zip
+    $ wget https://s3.amazonaws.com/diffa-packages/diffa-b<VERSION_NUMBER>.zip
 
 Extract the contents of the archive, and boot the agent:
 
