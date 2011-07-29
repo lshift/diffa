@@ -18,7 +18,7 @@ Get the latest Standalone Diffa agent package from the Diffa [download page][dow
 
 Extract the contents of the archive, and boot the agent:
 
-    $ unzip diffa-0.9.3-SNAPSHOT.zip -d diffa-agent
+    $ unzip diffa-b<VERSION_NUMBER>.zip -d diffa-agent
     $ cd diffa-agent/bin
     $ sh agent.sh
 
