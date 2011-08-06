@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/config/endpoints | REST API Documentation
 layout: default
 ---
 
@@ -27,7 +27,7 @@ Contents
 * [POST :domain/config/members/:username](/doc/rest/p_domain/config/post/members/p_username)
 * [DELETE :domain/config/members/:username](/doc/rest/p_domain/config/delete/members/p_username)
 * [GET :domain/config/endpoints/:id](/doc/rest/p_domain/config/get/endpoints/p_id)
-* [POST :domain/config/endpoints](/doc/rest/p_domain/config/post/endpoints)
+* POST :domain/config/endpoints
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,17 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/config/endpoints
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Registers a new endpoint with the agent.</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
-
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
+http://server:port/diffa-agent/rest/:domain/config/endpoints
 
 </div>

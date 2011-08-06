@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/diffs/sessions/:sessionId | REST API Documentation
 layout: default
 ---
 
@@ -49,7 +49,7 @@ Contents
 
 * [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
 * [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
-* [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
+* GET :domain/diffs/sessions/:sessionId
 * [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
 
 ### ActionsResource
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,61 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/diffs/sessions/:sessionId
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns a list of outstanding differences in the current session in a paged format.</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/diffs/sessions/:sessionId
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### sessionId
 
 *string*
 
-Username
+Session ID
+
+### pairKey
+
+*string*
+
+Pair Key
+
+ 
+Optional Parameters
+-------------------
+
+### range-start
+
+*date*
+
+The lower bound of the items to be paged.
+
+### range-end
+
+*date*
+
+The upper bound of the items to be paged.
+
+### offset
+
+*int*
+
+The offset to base the page on.
+
+### length
+
+*int*
+
+The number of items to return in the page.
 
 </div>

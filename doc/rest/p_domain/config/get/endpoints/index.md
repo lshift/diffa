@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/config/endpoints | REST API Documentation
 layout: default
 ---
 
@@ -17,7 +17,7 @@ Contents
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
 * [GET :domain/config/repair-actions](/doc/rest/p_domain/config/get/repair-actions)
-* [GET :domain/config/endpoints](/doc/rest/p_domain/config/get/endpoints)
+* GET :domain/config/endpoints
 * [GET :domain/config/xml](/doc/rest/p_domain/config/get/xml)
 * [DELETE :domain/config/endpoints/:id](/doc/rest/p_domain/config/delete/endpoints/p_id)
 * [DELETE :domain/config/pairs/:id](/doc/rest/p_domain/config/delete/pairs/p_id)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,38 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/config/endpoints
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns a list of all the endpoints registered with the agent.</em>
 
 Entity Type
 -----------
-void
+Array of EndpointDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/endpoints
 
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
-
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">[ {
+  "name" : "upstream-system",
+  "contentType" : "application/json",
+  "categories" : {
+    "bizDate" : {
+      "@type" : "range",
+      "dataType" : "datetime",
+      "lower" : null,
+      "upper" : null,
+      "id" : 0
+    }
+  },
+  "inboundContentType" : "application/json",
+  "inboundUrl" : "http://diff.io/domain/changes",
+  "versionGenerationUrl" : null,
+  "contentRetrievalUrl" : "http://acme.com/upstream/node-content",
+  "scanUrl" : "http://acme.com/upstream/scan"
+} ]</pre>
 </div>

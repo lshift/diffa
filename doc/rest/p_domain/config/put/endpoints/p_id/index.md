@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: PUT :domain/config/endpoints/:id | REST API Documentation
 layout: default
 ---
 
@@ -28,7 +28,7 @@ Contents
 * [DELETE :domain/config/members/:username](/doc/rest/p_domain/config/delete/members/p_username)
 * [GET :domain/config/endpoints/:id](/doc/rest/p_domain/config/get/endpoints/p_id)
 * [POST :domain/config/endpoints](/doc/rest/p_domain/config/post/endpoints)
-* [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
+* PUT :domain/config/endpoints/:id
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
 * [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,48 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+PUT :domain/config/endpoints/:id
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Updates the attributes of an endpoint that is registered with the agent.</em>
 
 Entity Type
 -----------
-void
+EndpointDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/endpoints/:id
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### id
 
 *string*
 
-Username
+Endpoint ID
 
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">{
+  "name" : "upstream-system",
+  "contentType" : "application/json",
+  "categories" : {
+    "bizDate" : {
+      "@type" : "range",
+      "dataType" : "datetime",
+      "lower" : null,
+      "upper" : null,
+      "id" : 0
+    }
+  },
+  "inboundContentType" : "application/json",
+  "inboundUrl" : "http://diff.io/domain/changes",
+  "versionGenerationUrl" : null,
+  "contentRetrievalUrl" : "http://acme.com/upstream/node-content",
+  "scanUrl" : "http://acme.com/upstream/scan"
+}</pre>
 </div>

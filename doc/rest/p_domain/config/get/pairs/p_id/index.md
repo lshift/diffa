@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/config/pairs/:id | REST API Documentation
 layout: default
 ---
 
@@ -13,7 +13,7 @@ Contents
 
 ### ConfigurationResource
 
-* [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
+* GET :domain/config/pairs/:id
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
 * [GET :domain/config/repair-actions](/doc/rest/p_domain/config/get/repair-actions)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,38 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/config/pairs/:id
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns an endpoint pairing by its identifier.</em>
 
 Entity Type
 -----------
-void
+PairDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/pairs/:id
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### id
 
 *string*
 
-Username
+Pair ID
 
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">{
+  "key" : "pairKey",
+  "scanCronSpec" : "0 15 10 ? * *",
+  "downstreamName" : "downstream",
+  "upstreamName" : "upstream",
+  "matchingTimeout" : 10,
+  "versionPolicyName" : "same"
+}</pre>
 </div>

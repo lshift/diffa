@@ -7,65 +7,82 @@ REST API Documentation
 ======================
 
 <div id="collections" markdown="1">
+ChangesResource
+-----------
+
+* [POST :domain/changes/:endpoint](p_domain/changes/post/p_endpoint)
+
 ConfigurationResource
 -----------
 
-* [GET config/xml](config/get/xml)
-* [POST config/xml](config/post/xml)
-* [GET config/endpoints](config/get/endpoints)
-* [GET config/repair-actions](config/get/repair-actions)
-* [GET config/endpoints/:id](config/get/endpoints/p_id)
-* [POST config/endpoints](config/post/endpoints)
-* [PUT config/endpoints/:id](config/put/endpoints/p_id)
-* [DELETE config/endpoints/:id](config/delete/endpoints/p_id)
-* [POST config/pairs](config/post/pairs)
-* [PUT config/pairs/:id](config/put/pairs/p_id)
-* [DELETE config/pairs/:id](config/delete/pairs/p_id)
-* [GET config/pairs/:id/repair-actions](config/get/pairs/p_id/repair-actions)
-* [POST config/pairs/:id/repair-actions](config/post/pairs/p_id/repair-actions)
-* [DELETE config/pairs/:pairKey/repair-actions/:name](config/delete/pairs/p_pairKey/repair-actions/p_name)
-* [POST config/pairs/:id/escalations](config/post/pairs/p_id/escalations)
-* [DELETE config/pairs/:pairKey/escalations/:name](config/delete/pairs/p_pairKey/escalations/p_name)
-* [GET config/pairs/:id](config/get/pairs/p_id)
-
-DifferencesResource
------------
-
-* [POST diffs/sessions](diffs/post/sessions)
-* [GET diffs/events/:sessionId/:evtSeqId/:participant](diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
-* [POST diffs/sessions/:sessionId/scan](diffs/post/sessions/p_sessionId/scan)
-* [POST diffs/sessions/scan_all](diffs/post/sessions/scan_all)
-* [GET diffs/sessions/all_scan_states](diffs/get/sessions/all_scan_states)
-* [GET diffs/sessions/:sessionId/scan](diffs/get/sessions/p_sessionId/scan)
-* [GET diffs/sessions/:sessionId](diffs/get/sessions/p_sessionId)
-* [GET diffs/sessions/:sessionId/zoom](diffs/get/sessions/p_sessionId/zoom)
-
-ActionsResource
------------
-
-* [GET actions/:pairId](actions/get/p_pairId)
-* [POST actions/:pairId/:actionId](actions/post/p_pairId/p_actionId)
-* [POST actions/:pairId/:actionId/:entityId](actions/post/p_pairId/p_actionId/p_entityId)
-
-UsersResource
------------
-
-* [POST security/users](security/post/users)
-* [PUT security/users/:name](security/put/users/p_name)
-* [DELETE security/users/:name](security/delete/users/p_name)
-* [GET security/users](security/get/users)
-* [GET security/users/:name](security/get/users/p_name)
-
-EscalationsResource
------------
-
-* [GET escalations/:pairId](escalations/get/p_pairId)
+* [GET :domain/config/pairs/:id](p_domain/config/get/pairs/p_id)
+* [POST :domain/config/xml](p_domain/config/post/xml)
+* [GET :domain/config/members](p_domain/config/get/members)
+* [GET :domain/config/repair-actions](p_domain/config/get/repair-actions)
+* [GET :domain/config/endpoints](p_domain/config/get/endpoints)
+* [GET :domain/config/xml](p_domain/config/get/xml)
+* [DELETE :domain/config/endpoints/:id](p_domain/config/delete/endpoints/p_id)
+* [DELETE :domain/config/pairs/:id](p_domain/config/delete/pairs/p_id)
+* [DELETE :domain/config/pairs/:pairKey/repair-actions/:name](p_domain/config/delete/pairs/p_pairKey/repair-actions/p_name)
+* [GET :domain/config/pairs/:id/repair-actions](p_domain/config/get/pairs/p_id/repair-actions)
+* [DELETE :domain/config/pairs/:pairKey/escalations/:name](p_domain/config/delete/pairs/p_pairKey/escalations/p_name)
+* [POST :domain/config/members/:username](p_domain/config/post/members/p_username)
+* [DELETE :domain/config/members/:username](p_domain/config/delete/members/p_username)
+* [GET :domain/config/endpoints/:id](p_domain/config/get/endpoints/p_id)
+* [POST :domain/config/endpoints](p_domain/config/post/endpoints)
+* [PUT :domain/config/endpoints/:id](p_domain/config/put/endpoints/p_id)
+* [POST :domain/config/pairs](p_domain/config/post/pairs)
+* [PUT :domain/config/pairs/:id](p_domain/config/put/pairs/p_id)
+* [POST :domain/config/pairs/:id/repair-actions](p_domain/config/post/pairs/p_id/repair-actions)
+* [POST :domain/config/pairs/:id/escalations](p_domain/config/post/pairs/p_id/escalations)
 
 ScanningResource
 -----------
 
-* [POST scanning/pairs/:pairKey/scan](scanning/post/pairs/p_pairKey/scan)
-* [DELETE scanning/pairs/:pairKey/scan](scanning/delete/pairs/p_pairKey/scan)
+* [GET :domain/scanning/states](p_domain/scanning/get/states)
+* [POST :domain/scanning/pairs/:pairKey/scan](p_domain/scanning/post/pairs/p_pairKey/scan)
+* [POST :domain/scanning/scan_all](p_domain/scanning/post/scan_all)
+* [DELETE :domain/scanning/pairs/:pairKey/scan](p_domain/scanning/delete/pairs/p_pairKey/scan)
+
+DiagnosticsResource
+-----------
+
+* [GET :domain/diagnostics/:pairKey/log](p_domain/diagnostics/get/p_pairKey/log)
+
+DifferencesResource
+-----------
+
+* [POST :domain/diffs/sessions](p_domain/diffs/post/sessions)
+* [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
+* [GET :domain/diffs/sessions/:sessionId](p_domain/diffs/get/sessions/p_sessionId)
+* [GET :domain/diffs/sessions/:sessionId/zoom](p_domain/diffs/get/sessions/p_sessionId/zoom)
+
+ActionsResource
+-----------
+
+* [GET :domain/actions/:pairId](p_domain/actions/get/p_pairId)
+* [POST :domain/actions/:pairId/:actionId](p_domain/actions/post/p_pairId/p_actionId)
+* [POST :domain/actions/:pairId/:actionId/:entityId](p_domain/actions/post/p_pairId/p_actionId/p_entityId)
+
+UsersResource
+-----------
+
+* [GET security/users](security/get/users)
+* [GET security/users/:name](security/get/users/p_name)
+* [DELETE security/users/:name](security/delete/users/p_name)
+* [POST security/users](security/post/users)
+* [PUT security/users/:name](security/put/users/p_name)
+
+EscalationsResource
+-----------
+
+* [GET :domain/escalations/:pairId](p_domain/escalations/get/p_pairId)
+
+SystemConfigResource
+-----------
+
+* [DELETE root/domains/:name](root/delete/p_domains/p_name)
+* [POST root/domains](root/post/p_domains)
 
 
 </div>

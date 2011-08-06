@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST root/domains | REST API Documentation
 layout: default
 ---
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -73,33 +73,23 @@ Contents
 ### SystemConfigResource
 
 * [DELETE root/domains/:name](/doc/rest/root/delete/p_domains/p_name)
-* [POST root/domains](/doc/rest/root/post/p_domains)
+* POST root/domains
 
 
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST root/domains
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Creates a new domain within the agent.</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
-
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
+http://server:port/diffa-agent/rest/root/domains
 
 </div>

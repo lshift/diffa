@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/scanning/states | REST API Documentation
 layout: default
 ---
 
@@ -36,7 +36,7 @@ Contents
 
 ### ScanningResource
 
-* [GET :domain/scanning/states](/doc/rest/p_domain/scanning/get/states)
+* GET :domain/scanning/states
 * [POST :domain/scanning/pairs/:pairKey/scan](/doc/rest/p_domain/scanning/post/pairs/p_pairKey/scan)
 * [POST :domain/scanning/scan_all](/doc/rest/p_domain/scanning/post/scan_all)
 * [DELETE :domain/scanning/pairs/:pairKey/scan](/doc/rest/p_domain/scanning/delete/pairs/p_pairKey/scan)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,16 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/scanning/states
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Lists the scanning state for every configured pair within this domain.</em>
 
 Entity Type
 -----------
-void
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
-
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
+http://server:port/diffa-agent/rest/:domain/scanning/states
 
 </div>

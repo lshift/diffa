@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/diffs/events/:sessionId/:evtSeqId/:participant | REST API Documentation
 layout: default
 ---
 
@@ -48,7 +48,7 @@ Contents
 ### DifferencesResource
 
 * [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
-* [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
+* GET :domain/diffs/events/:sessionId/:evtSeqId/:participant
 * [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
 * [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,39 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/diffs/events/:sessionId/:evtSeqId/:participant
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns the verbatim detail from each participant for the event that corresponds to the sequence id.</em>
 
 Entity Type
 -----------
-void
+String
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/diffs/events/:sessionId/:evtSeqId/:participant
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### sessionId
 
 *string*
 
-Username
+Session ID
+
+### evtSeqId
+
+*string*
+
+Event Sequence ID
+
+### participant
+
+*string*
+
+Denotes whether the upstream or downstream participant is intended. Legal values are {upstream,downstream}.
 
 </div>

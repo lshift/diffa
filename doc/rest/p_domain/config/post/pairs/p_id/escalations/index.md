@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/config/pairs/:id/escalations | REST API Documentation
 layout: default
 ---
 
@@ -32,7 +32,7 @@ Contents
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
 * [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
+* POST :domain/config/pairs/:id/escalations
 
 ### ScanningResource
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,27 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/config/pairs/:id/escalations
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Creates a new escalation associated with a pair that is registered with the agent.</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/pairs/:id/escalations
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### id
 
 *string*
 
-Username
+Pair ID
 
 </div>

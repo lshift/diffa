@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/actions/:pairId/:actionId/:entityId | REST API Documentation
 layout: default
 ---
 
@@ -56,7 +56,7 @@ Contents
 
 * [GET :domain/actions/:pairId](/doc/rest/p_domain/actions/get/p_pairId)
 * [POST :domain/actions/:pairId/:actionId](/doc/rest/p_domain/actions/post/p_pairId/p_actionId)
-* [POST :domain/actions/:pairId/:actionId/:entityId](/doc/rest/p_domain/actions/post/p_pairId/p_actionId/p_entityId)
+* POST :domain/actions/:pairId/:actionId/:entityId
 
 ### UsersResource
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,46 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/actions/:pairId/:actionId/:entityId
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Invokes an entity-scoped action on the pair.</em>
 
 Entity Type
 -----------
-void
+InvocationResult
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/actions/:pairId/:actionId/:entityId
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### pairId
 
 *string*
 
-Username
+The indentifier of the pair
 
+### actionId
+
+*string*
+
+The name of the action to invoke
+
+### entityId
+
+*string*
+
+The id of the pair to perform the action on
+
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">{
+  "output" : "OK",
+  "code" : "200"
+}</pre>
 </div>

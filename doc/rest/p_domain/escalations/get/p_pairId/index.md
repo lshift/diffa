@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/escalations/:pairId | REST API Documentation
 layout: default
 ---
 
@@ -64,11 +64,11 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
-* [GET :domain/escalations/:pairId](/doc/rest/p_domain/escalations/get/p_pairId)
+* GET :domain/escalations/:pairId
 
 ### SystemConfigResource
 
@@ -79,27 +79,38 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/escalations/:pairId
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns a list of escalations that are configured for a pair.</em>
 
 Entity Type
 -----------
-void
+Array of EscalationDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/escalations/:pairId
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### pairId
 
 *string*
 
-Username
+The identifier of the pair
 
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">[ {
+  "name" : "some-escalation",
+  "pair" : "pairKey",
+  "origin" : "scan",
+  "event" : "downstream-missing",
+  "actionType" : "repair",
+  "action" : "resend"
+} ]</pre>
 </div>

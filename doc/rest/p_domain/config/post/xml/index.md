@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/config/xml | REST API Documentation
 layout: default
 ---
 
@@ -14,7 +14,7 @@ Contents
 ### ConfigurationResource
 
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
-* [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
+* POST :domain/config/xml
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
 * [GET :domain/config/repair-actions](/doc/rest/p_domain/config/get/repair-actions)
 * [GET :domain/config/endpoints](/doc/rest/p_domain/config/get/endpoints)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,10 +79,10 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/config/xml
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em></em>
 
 Entity Type
 -----------
@@ -90,16 +90,6 @@ void
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
-
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
+http://server:port/diffa-agent/rest/:domain/config/xml
 
 </div>

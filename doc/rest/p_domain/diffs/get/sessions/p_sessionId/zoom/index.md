@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/diffs/sessions/:sessionId/zoom | REST API Documentation
 layout: default
 ---
 
@@ -50,7 +50,7 @@ Contents
 * [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
 * [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
-* [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
+* GET :domain/diffs/sessions/:sessionId/zoom
 
 ### ActionsResource
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,39 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/diffs/sessions/:sessionId/zoom
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns a zoomed view of the data within a specific time range</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/diffs/sessions/:sessionId/zoom
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### range-start
 
-*string*
+*date*
 
-Username
+The starting time for any differences
+
+### range-end
+
+*date*
+
+The ending time for any differences
+
+### bucketing
+
+*int*
+
+The size in elements in the zoomed view
 
 </div>

@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/diffs/sessions | REST API Documentation
 layout: default
 ---
 
@@ -47,7 +47,7 @@ Contents
 
 ### DifferencesResource
 
-* [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
+* POST :domain/diffs/sessions
 * [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
 * [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
 * [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,38 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/diffs/sessions
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns the URL of an endpoint that can be polled to receive outstanding differences. If a requested pair does not exist, a 404 will be returned.</em>
 
 Entity Type
 -----------
-void
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/diffs/sessions
 
  
-Mandatory Parameters
---------------------
+Optional Parameters
+-------------------
 
-### name
+### pairs
 
 *string*
 
-Username
+Comma-separated list of pair IDs
+
+### start
+
+*date*
+
+This is the lower bound of the date range for analysis
+
+### end
+
+*date*
+
+This is the upper bound of the date range for analysis
 
 </div>

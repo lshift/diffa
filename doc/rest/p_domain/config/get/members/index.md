@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/config/members | REST API Documentation
 layout: default
 ---
 
@@ -15,7 +15,7 @@ Contents
 
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
-* [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
+* GET :domain/config/members
 * [GET :domain/config/repair-actions](/doc/rest/p_domain/config/get/repair-actions)
 * [GET :domain/config/endpoints](/doc/rest/p_domain/config/get/endpoints)
 * [GET :domain/config/xml](/doc/rest/p_domain/config/get/xml)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,24 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/config/members
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Returns a list of all of the members of this domain.</em>
 
 Entity Type
 -----------
-void
+Array of UserDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/members
 
- 
-Mandatory Parameters
---------------------
-
-### name
-
-*string*
-
-Username
-
+Example
+-------</div>
+<div id="example">
+<pre class="brush: js">[ {
+  "name" : "joe.public",
+  "email" : "joe.public@acme.com"
+} ]</pre>
 </div>

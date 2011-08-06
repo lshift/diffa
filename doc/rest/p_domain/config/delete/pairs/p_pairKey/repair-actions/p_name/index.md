@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: DELETE :domain/config/pairs/:pairKey/repair-actions/:name | REST API Documentation
 layout: default
 ---
 
@@ -21,7 +21,7 @@ Contents
 * [GET :domain/config/xml](/doc/rest/p_domain/config/get/xml)
 * [DELETE :domain/config/endpoints/:id](/doc/rest/p_domain/config/delete/endpoints/p_id)
 * [DELETE :domain/config/pairs/:id](/doc/rest/p_domain/config/delete/pairs/p_id)
-* [DELETE :domain/config/pairs/:pairKey/repair-actions/:name](/doc/rest/p_domain/config/delete/pairs/p_pairKey/repair-actions/p_name)
+* DELETE :domain/config/pairs/:pairKey/repair-actions/:name
 * [GET :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/get/pairs/p_id/repair-actions)
 * [DELETE :domain/config/pairs/:pairKey/escalations/:name](/doc/rest/p_domain/config/delete/pairs/p_pairKey/escalations/p_name)
 * [POST :domain/config/members/:username](/doc/rest/p_domain/config/post/members/p_username)
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,32 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+DELETE :domain/config/pairs/:pairKey/repair-actions/:name
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Removes an action that is registered with the agent.</em>
 
 Entity Type
 -----------
-void
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/config/pairs/:pairKey/repair-actions/:name
 
  
 Mandatory Parameters
 --------------------
 
+### pairKey
+
+*string*
+
+Pair ID
+
 ### name
 
 *string*
 
-Username
+Action name
 
 </div>

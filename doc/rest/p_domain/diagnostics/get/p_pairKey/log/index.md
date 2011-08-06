@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: GET :domain/diagnostics/:pairKey/log | REST API Documentation
 layout: default
 ---
 
@@ -43,7 +43,7 @@ Contents
 
 ### DiagnosticsResource
 
-* [GET :domain/diagnostics/:pairKey/log](/doc/rest/p_domain/diagnostics/get/p_pairKey/log)
+* GET :domain/diagnostics/:pairKey/log
 
 ### DifferencesResource
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,37 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+GET :domain/diagnostics/:pairKey/log
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Retrieves the most recent log entries for the given pair.</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/diagnostics/:pairKey/log
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### pairKey
 
 *string*
 
-Username
+Pair Key
+
+ 
+Optional Parameters
+-------------------
+
+### maxItems
+
+*integer*
+
+Maximum number of returned entries
 
 </div>

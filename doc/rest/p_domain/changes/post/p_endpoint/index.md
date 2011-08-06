@@ -1,5 +1,5 @@
 ---
-title: PUT security/users/:name | REST API Documentation
+title: POST :domain/changes/:endpoint | REST API Documentation
 layout: default
 ---
 
@@ -9,7 +9,7 @@ Contents
 
 ### ChangesResource
 
-* [POST :domain/changes/:endpoint](/doc/rest/p_domain/changes/post/p_endpoint)
+* POST :domain/changes/:endpoint
 
 ### ConfigurationResource
 
@@ -64,7 +64,7 @@ Contents
 * [GET security/users/:name](/doc/rest/security/get/users/p_name)
 * [DELETE security/users/:name](/doc/rest/security/delete/users/p_name)
 * [POST security/users](/doc/rest/security/post/users)
-* PUT security/users/:name
+* [PUT security/users/:name](/doc/rest/security/put/users/p_name)
 
 ### EscalationsResource
 
@@ -79,27 +79,27 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-PUT security/users/:name
+POST :domain/changes/:endpoint
 =======================================================
 
-<em>Updates the attributes of a user that is registered with the agent.</em>
+<em>Submits a change for the given endpoint within a domain</em>
 
 Entity Type
 -----------
-void
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/security/users/:name
+http://server:port/diffa-agent/rest/:domain/changes/:endpoint
 
  
 Mandatory Parameters
 --------------------
 
-### name
+### endpoint
 
 *string*
 
-Username
+Endpoint Identifier
 
 </div>
