@@ -1,5 +1,5 @@
 ---
-title: POST :domain/diffs/sessions | REST API Documentation
+title: GET :domain/diffs/events/:evtSeqId/:participant | REST API Documentation
 layout: default
 ---
 
@@ -13,6 +13,8 @@ Contents
 
 ### ConfigurationResource
 
+* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
+* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
@@ -31,8 +33,6 @@ Contents
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
-* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
 
 ### ScanningResource
 
@@ -47,10 +47,8 @@ Contents
 
 ### DifferencesResource
 
-* POST :domain/diffs/sessions
-* [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
-* [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
-* [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
+* GET :domain/diffs/events/:evtSeqId/:participant
+* [GET :domain/diffs/zoom](/doc/rest/p_domain/diffs/get/zoom)
 
 ### ActionsResource
 
@@ -79,38 +77,33 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-POST :domain/diffs/sessions
+GET :domain/diffs/events/:evtSeqId/:participant
 =======================================================
 
-<em>Returns the URL of an endpoint that can be polled to receive outstanding differences. If a requested pair does not exist, a 404 will be returned.</em>
+<em>Returns the verbatim detail from each participant for the event that corresponds to the sequence id.</em>
 
 Entity Type
 -----------
+String
 
 URL
 ---
-http://server:port/diffa-agent/rest/:domain/diffs/sessions
+http://server:port/diffa-agent/rest/:domain/diffs/events/:evtSeqId/:participant
 
  
-Optional Parameters
--------------------
+Mandatory Parameters
+--------------------
 
-### pairs
+### evtSeqId
 
 *string*
 
-Comma-separated list of pair IDs
+Event Sequence ID
 
-### start
+### participant
 
-*date*
+*string*
 
-This is the lower bound of the date range for analysis
-
-### end
-
-*date*
-
-This is the upper bound of the date range for analysis
+Denotes whether the upstream or downstream participant is intended. Legal values are {upstream,downstream}.
 
 </div>

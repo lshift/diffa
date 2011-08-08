@@ -1,5 +1,5 @@
 ---
-title: GET :domain/diffs/sessions/:sessionId | REST API Documentation
+title: GET :domain/diffs/zoom | REST API Documentation
 layout: default
 ---
 
@@ -13,6 +13,8 @@ Contents
 
 ### ConfigurationResource
 
+* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
+* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
@@ -31,8 +33,6 @@ Contents
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
-* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
 
 ### ScanningResource
 
@@ -47,10 +47,8 @@ Contents
 
 ### DifferencesResource
 
-* [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
-* [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
-* GET :domain/diffs/sessions/:sessionId
-* [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
+* [GET :domain/diffs/events/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_evtSeqId/p_participant)
+* GET :domain/diffs/zoom
 
 ### ActionsResource
 
@@ -79,10 +77,10 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-GET :domain/diffs/sessions/:sessionId
+GET :domain/diffs/zoom
 =======================================================
 
-<em>Returns a list of outstanding differences in the current session in a paged format.</em>
+<em>Returns a zoomed view of the data within a specific time range</em>
 
 Entity Type
 -----------
@@ -90,50 +88,28 @@ Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/:domain/diffs/sessions/:sessionId
+http://server:port/diffa-agent/rest/:domain/diffs/zoom
 
  
 Mandatory Parameters
 --------------------
 
-### sessionId
-
-*string*
-
-Session ID
-
-### pairKey
-
-*string*
-
-Pair Key
-
- 
-Optional Parameters
--------------------
-
 ### range-start
 
 *date*
 
-The lower bound of the items to be paged.
+The starting time for any differences
 
 ### range-end
 
 *date*
 
-The upper bound of the items to be paged.
+The ending time for any differences
 
-### offset
-
-*int*
-
-The offset to base the page on.
-
-### length
+### bucketing
 
 *int*
 
-The number of items to return in the page.
+The size in elements in the zoomed view
 
 </div>

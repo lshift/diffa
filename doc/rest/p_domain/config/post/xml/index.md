@@ -13,6 +13,8 @@ Contents
 
 ### ConfigurationResource
 
+* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
+* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * POST :domain/config/xml
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
@@ -31,8 +33,6 @@ Contents
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
-* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
 
 ### ScanningResource
 
@@ -47,10 +47,8 @@ Contents
 
 ### DifferencesResource
 
-* [POST :domain/diffs/sessions](/doc/rest/p_domain/diffs/post/sessions)
-* [GET :domain/diffs/events/:sessionId/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_sessionId/p_evtSeqId/p_participant)
-* [GET :domain/diffs/sessions/:sessionId](/doc/rest/p_domain/diffs/get/sessions/p_sessionId)
-* [GET :domain/diffs/sessions/:sessionId/zoom](/doc/rest/p_domain/diffs/get/sessions/p_sessionId/zoom)
+* [GET :domain/diffs/events/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_evtSeqId/p_participant)
+* [GET :domain/diffs/zoom](/doc/rest/p_domain/diffs/get/zoom)
 
 ### ActionsResource
 
