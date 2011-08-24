@@ -40,7 +40,7 @@ import net.lshift.diffa.kernel.frontend.FrontendConversions
 class PairActorTest {
 
   val domainName = "some-domain"
-  val pairKey = "some-pairing"
+  val pairKey = "some-pairing-" + PairActorAllocator.nextId
   val policyName = ""
   val upstream = Endpoint(name = "up", scanUrl = "up", contentType = "application/json")
   val downstream = Endpoint(name = "down", scanUrl = "down", contentType = "application/json")
@@ -532,6 +532,15 @@ class PairActorTest {
     while (!feedbackHandle.isCancelled && endTime > System.currentTimeMillis()) {
       Thread.sleep(100)
     }
+  }
+}
+
+object PairActorAllocator {
+  private var id = 0
+
+  def nextId = {
+    id += 1
+    id
   }
 }
 
