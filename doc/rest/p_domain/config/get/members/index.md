@@ -13,8 +13,6 @@ Contents
 
 ### ConfigurationResource
 
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
-* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * GET :domain/config/members
@@ -33,6 +31,8 @@ Contents
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](/doc/rest/p_domain/config/put/pairs/p_id)
+* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
+* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
 
 ### ScanningResource
 
@@ -95,6 +95,8 @@ Example
 <div id="example">
 <pre class="brush: js">[ {
   "name" : "joe.public",
-  "email" : "joe.public@acme.com"
+  "password" : null,
+  "email" : "joe.public@acme.com",
+  "superuser" : false
 } ]</pre>
 </div>

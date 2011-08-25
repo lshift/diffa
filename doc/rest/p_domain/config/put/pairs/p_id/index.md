@@ -13,8 +13,6 @@ Contents
 
 ### ConfigurationResource
 
-* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
-* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](/doc/rest/p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](/doc/rest/p_domain/config/post/xml)
 * [GET :domain/config/members](/doc/rest/p_domain/config/get/members)
@@ -33,6 +31,8 @@ Contents
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
 * PUT :domain/config/pairs/:id
+* [POST :domain/config/pairs/:id/repair-actions](/doc/rest/p_domain/config/post/pairs/p_id/repair-actions)
+* [POST :domain/config/pairs/:id/escalations](/doc/rest/p_domain/config/post/pairs/p_id/escalations)
 
 ### ScanningResource
 

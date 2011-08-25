@@ -15,8 +15,6 @@ ChangesResource
 ConfigurationResource
 -----------
 
-* [POST :domain/config/pairs/:id/escalations](p_domain/config/post/pairs/p_id/escalations)
-* [POST :domain/config/pairs/:id/repair-actions](p_domain/config/post/pairs/p_id/repair-actions)
 * [GET :domain/config/pairs/:id](p_domain/config/get/pairs/p_id)
 * [POST :domain/config/xml](p_domain/config/post/xml)
 * [GET :domain/config/members](p_domain/config/get/members)
@@ -35,6 +33,8 @@ ConfigurationResource
 * [PUT :domain/config/endpoints/:id](p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](p_domain/config/post/pairs)
 * [PUT :domain/config/pairs/:id](p_domain/config/put/pairs/p_id)
+* [POST :domain/config/pairs/:id/repair-actions](p_domain/config/post/pairs/p_id/repair-actions)
+* [POST :domain/config/pairs/:id/escalations](p_domain/config/post/pairs/p_id/escalations)
 
 ScanningResource
 -----------
