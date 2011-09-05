@@ -1,5 +1,5 @@
 ---
-title: GET :domain/config/endpoints/:id | REST API Documentation
+title: DELETE :domain/diffs/events/:evtSeqId | REST API Documentation
 layout: default
 ---
 
@@ -26,7 +26,7 @@ Contents
 * [DELETE :domain/config/pairs/:pairKey/escalations/:name](/doc/rest/p_domain/config/delete/pairs/p_pairKey/escalations/p_name)
 * [POST :domain/config/members/:username](/doc/rest/p_domain/config/post/members/p_username)
 * [DELETE :domain/config/members/:username](/doc/rest/p_domain/config/delete/members/p_username)
-* GET :domain/config/endpoints/:id
+* [GET :domain/config/endpoints/:id](/doc/rest/p_domain/config/get/endpoints/p_id)
 * [POST :domain/config/endpoints](/doc/rest/p_domain/config/post/endpoints)
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
@@ -48,7 +48,7 @@ Contents
 ### DifferencesResource
 
 * [GET :domain/diffs/events/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_evtSeqId/p_participant)
-* [DELETE :domain/diffs/events/:evtSeqId](/doc/rest/p_domain/diffs/delete/events/p_evtSeqId)
+* DELETE :domain/diffs/events/:evtSeqId
 * [PUT :domain/diffs/events/:evtSeqId](/doc/rest/p_domain/diffs/put/events/p_evtSeqId)
 * [GET :domain/diffs/tiles/:zoomLevel](/doc/rest/p_domain/diffs/get/tiles/p_zoomLevel)
 
@@ -79,49 +79,26 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-GET :domain/config/endpoints/:id
+DELETE :domain/diffs/events/:evtSeqId
 =======================================================
 
-<em>Returns an endpoint by its identifier.</em>
+<em>Ignores the difference with the given sequence id.</em>
 
 Entity Type
 -----------
-EndpointDef
 
 URL
 ---
-http://server:port/diffa-agent/rest/:domain/config/endpoints/:id
+http://server:port/diffa-agent/rest/:domain/diffs/events/:evtSeqId
 
  
 Mandatory Parameters
 --------------------
 
-### id
+### evtSeqId
 
 *string*
 
-Endpoint ID
+Event Sequence ID
 
-Example
--------</div>
-<div id="example">
-<pre class="brush: js">{
-  "name" : "upstream-system",
-  "contentType" : "application/json",
-  "categories" : {
-    "bizDate" : {
-      "@type" : "range",
-      "maxGranularity" : null,
-      "dataType" : "datetime",
-      "lower" : null,
-      "upper" : null,
-      "id" : 0
-    }
-  },
-  "inboundContentType" : "application/json",
-  "inboundUrl" : "http://diff.io/domain/changes",
-  "versionGenerationUrl" : null,
-  "contentRetrievalUrl" : "http://acme.com/upstream/node-content",
-  "scanUrl" : "http://acme.com/upstream/scan"
-}</pre>
 </div>

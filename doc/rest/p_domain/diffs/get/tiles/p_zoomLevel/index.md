@@ -1,5 +1,5 @@
 ---
-title: GET :domain/config/endpoints/:id | REST API Documentation
+title: GET :domain/diffs/tiles/:zoomLevel | REST API Documentation
 layout: default
 ---
 
@@ -26,7 +26,7 @@ Contents
 * [DELETE :domain/config/pairs/:pairKey/escalations/:name](/doc/rest/p_domain/config/delete/pairs/p_pairKey/escalations/p_name)
 * [POST :domain/config/members/:username](/doc/rest/p_domain/config/post/members/p_username)
 * [DELETE :domain/config/members/:username](/doc/rest/p_domain/config/delete/members/p_username)
-* GET :domain/config/endpoints/:id
+* [GET :domain/config/endpoints/:id](/doc/rest/p_domain/config/get/endpoints/p_id)
 * [POST :domain/config/endpoints](/doc/rest/p_domain/config/post/endpoints)
 * [PUT :domain/config/endpoints/:id](/doc/rest/p_domain/config/put/endpoints/p_id)
 * [POST :domain/config/pairs](/doc/rest/p_domain/config/post/pairs)
@@ -50,7 +50,7 @@ Contents
 * [GET :domain/diffs/events/:evtSeqId/:participant](/doc/rest/p_domain/diffs/get/events/p_evtSeqId/p_participant)
 * [DELETE :domain/diffs/events/:evtSeqId](/doc/rest/p_domain/diffs/delete/events/p_evtSeqId)
 * [PUT :domain/diffs/events/:evtSeqId](/doc/rest/p_domain/diffs/put/events/p_evtSeqId)
-* [GET :domain/diffs/tiles/:zoomLevel](/doc/rest/p_domain/diffs/get/tiles/p_zoomLevel)
+* GET :domain/diffs/tiles/:zoomLevel
 
 ### ActionsResource
 
@@ -79,49 +79,39 @@ Contents
 </div>
 
 <div id="resources" markdown="1">
-GET :domain/config/endpoints/:id
+GET :domain/diffs/tiles/:zoomLevel
 =======================================================
 
-<em>Returns an endpoint by its identifier.</em>
+<em>Returns a zoomed view of the data within a specific time range</em>
 
 Entity Type
 -----------
-EndpointDef
+Response
 
 URL
 ---
-http://server:port/diffa-agent/rest/:domain/config/endpoints/:id
+http://server:port/diffa-agent/rest/:domain/diffs/tiles/:zoomLevel
 
  
 Mandatory Parameters
 --------------------
 
-### id
+### range-start
 
-*string*
+*date*
 
-Endpoint ID
+The starting time for any differences
 
-Example
--------</div>
-<div id="example">
-<pre class="brush: js">{
-  "name" : "upstream-system",
-  "contentType" : "application/json",
-  "categories" : {
-    "bizDate" : {
-      "@type" : "range",
-      "maxGranularity" : null,
-      "dataType" : "datetime",
-      "lower" : null,
-      "upper" : null,
-      "id" : 0
-    }
-  },
-  "inboundContentType" : "application/json",
-  "inboundUrl" : "http://diff.io/domain/changes",
-  "versionGenerationUrl" : null,
-  "contentRetrievalUrl" : "http://acme.com/upstream/node-content",
-  "scanUrl" : "http://acme.com/upstream/scan"
-}</pre>
+### range-end
+
+*date*
+
+The ending time for any differences
+
+### zoom-level
+
+*int*
+
+The level of zoom for the requested tiles
+
 </div>
