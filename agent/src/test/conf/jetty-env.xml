@@ -32,9 +32,10 @@
     <Arg></Arg>
     <Arg>jdbc/diffaDS</Arg>
     <Arg>
-      <New class="org.apache.commons.dbcp.BasicDataSource">
-        <Set name="driverClassName">org.apache.derby.jdbc.EmbeddedDriver</Set>
-        <Set name="url">jdbc:derby:<Ref id="dbPath" />;create=true</Set>
+      <New class="com.jolbox.bonecp.BoneCPDataSource">
+        <Set name="driverClass">org.hsqldb.jdbc.JDBCDriver</Set>
+        <Set name="jdbcUrl">jdbc:hsqldb:file:<Ref id="dbPath" /></Set>
+        <Set name="username">SA</Set>
       </New>
     </Arg>
   </New>

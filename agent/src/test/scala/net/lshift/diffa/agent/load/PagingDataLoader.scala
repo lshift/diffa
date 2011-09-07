@@ -19,12 +19,12 @@ import net.lshift.diffa.messaging.json.ChangesRestClient
 import net.lshift.diffa.kernel.events.UpstreamChangeEvent
 import org.joda.time.DateTime
 import scala.collection.JavaConversions._
-import net.lshift.diffa.agent.client.{DifferencesRestClient, ConfigurationRestClient}
 import org.junit.Assert._
 import net.lshift.diffa.kernel.differencing.DifferenceEvent
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
-import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
+import net.lshift.diffa.agent.client.{SystemConfigRestClient, DifferencesRestClient, ConfigurationRestClient}
+import net.lshift.diffa.kernel.frontend.{DomainDef, EndpointDef, PairDef}
 
 /**
  * Utility class to load lots of unmatched events into the agent.
@@ -41,7 +41,9 @@ object PagingDataLoader {
 
   def loadData(size:Int, hours:Int, pair:String) = {
     val host = "http://localhost:19093/diffa-agent/"
-    val domain = "domain"
+
+    // Use the default domain
+    val domain = "diffa"
     val up = "up"
     val down = "down"
 
@@ -49,11 +51,13 @@ object PagingDataLoader {
 
     val configClient = new ConfigurationRestClient(host, domain)
     val changesClient = new ChangesRestClient(host, domain, up)
-    val diffsClient = new DifferencesRestClient(host, domain)
+    val systemConfigClient = new SystemConfigRestClient(host)
 
     val content = "application/json"
 
     val categories = Map("bizDate" -> new RangeCategoryDescriptor("datetime"))
+
+    systemConfigClient.declareDomain(DomainDef(name = domain))
 
     configClient.declareEndpoint(EndpointDef(name = up, scanUrl = host, contentType = content, categories = categories))
     configClient.declareEndpoint(EndpointDef(name = down, scanUrl = host, contentType = content, categories = categories))
@@ -66,22 +70,15 @@ object PagingDataLoader {
       val timestamp = start.plusMinutes(i)
       val id = "id_" + i
       val version = "vsn_" + i
-      changesClient.onChangeEvent(UpstreamChangeEvent(id, List(start.toString), timestamp, version))
+
+      val event = UpstreamChangeEvent(id, List(start.toString), timestamp, version)
+      changesClient.onChangeEvent(event)
+
+      if (i % 100 == 0) {
+        println("Loaded event: " + event)
+      }
+
     }
-
-    Thread.sleep(1000)
-
-    val from = start.minusHours(1)
-    val until = start.plusHours(1)
-
-    def firstPage(client:DifferencesRestClient) = client.getEvents(pair, start, start.plusHours(1), 0, 10).toSeq
-    def secondPage(client:DifferencesRestClient) = client.getEvents(pair, start, start.plusHours(1), 10, 10).toSeq
-
-    println("First page:")
-    tryAgain(diffsClient, firstPage).foreach(println(_))
-
-    println("Second page:")
-    tryAgain(diffsClient, secondPage).foreach(println(_))
 
   }
 
