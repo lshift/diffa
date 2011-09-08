@@ -132,4 +132,9 @@
       e.objId.pair.domain = :domain and e.objId.pair.key = :pair and
       e.lastSeen < :cutoff
   ]]></query>
+
+  <sql-query name="aggregatedDiffs" callable="true" read-only="true">
+    call aggregatedDiffs(?, :domain, :pair, :lowerBound, :upperBound)
+  </sql-query>
+
 </hibernate-mapping>

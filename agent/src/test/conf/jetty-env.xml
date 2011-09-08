@@ -32,16 +32,22 @@
     <Arg></Arg>
     <Arg>jdbc/diffaDS</Arg>
     <Arg>
-      <New class="org.apache.commons.dbcp.BasicDataSource">
-        <Set name="driverClassName">org.apache.derby.jdbc.EmbeddedDriver</Set>
-        <Set name="url">jdbc:derby:<Ref id="dbPath" />;create=true</Set>
+
+
+      <New class="com.jolbox.bonecp.BoneCPDataSource">
+        <!--<New class="oracle.jdbc.pool.OracleDataSource">-->
+        <Set name="driverClass">oracle.jdbc.driver.OracleDriver</Set>
+        <Set name="jdbcUrl">jdbc:oracle:thin:@diffadevdb01.global.trafigura.com:1521/diffadev01.global.trafigura.com</Set>
+        <Set name="username">DIFFA_OWNER</Set>
+        <Set name="password">diffa</Set>
+
       </New>
     </Arg>
   </New>
   <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
     <Arg></Arg>
     <Arg>diffaHibernateDialect</Arg>
-    <Arg type="java.lang.String">org.hibernate.dialect.DerbyDialect</Arg>
+    <Arg type="java.lang.String">org.hibernate.dialect.Oracle10gDialect</Arg>
     <Arg type="boolean">true</Arg>
   </New>
   <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">

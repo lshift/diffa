@@ -20,6 +20,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import reflect.BeanProperty
+import java.sql.Timestamp
 
 /**
  * The domain cache provides facilities for storing difference events that occur, and managing the states of these
@@ -176,4 +177,19 @@ case class ReportedDifferenceEvent(
       }
 
     }
+}
+
+/**
+ * Simple wrapper for a aggregated proc result.
+ *
+ * Note that the field names are capitalized because of some issue with the Hibernate mapping.
+ */
+case class DifferenceAggregate(
+  @BeanProperty var PAIR:String = null,
+  @BeanProperty var DOMAIN:String = null,
+  @BeanProperty var LAST_DETECTION_TIME:Timestamp = null,
+  @BeanProperty var LOWER_BOUND:Timestamp = null,
+  @BeanProperty var COUNT:java.math.BigDecimal = null
+  ) {
+  def this() = this(PAIR = null)
 }
