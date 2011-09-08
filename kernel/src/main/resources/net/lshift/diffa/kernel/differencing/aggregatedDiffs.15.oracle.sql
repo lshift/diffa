@@ -1,10 +1,10 @@
 -- Zoom level should be a parameter
 create or replace PROCEDURE aggregatedDiffs
-(  res OUT SYS_REFCURSOR,
-   domainName IN diffs.domain%type,
-   pairKey    IN diffs.pair%type,
-   lowerBound IN diffs.detected_at%type,
-   upperBound IN diffs.detected_at%type) AS
+(  res        OUT SYS_REFCURSOR,
+   domainName IN  diffs.domain%type,
+   pairKey    IN  diffs.pair%type,
+   lowerBound IN  diffs.detected_at%type,
+   upperBound IN  diffs.detected_at%type) AS
 BEGIN
   OPEN res FOR select
       trunc(d.detected_at,'HH') +
@@ -16,11 +16,16 @@ BEGIN
     from
       diffs d
     where
+      -- Try to hit as many indexes as possible
       d.pair = pairKey and
       d.domain = domainName and
       d.detected_at >= lowerBound and
-      d.detected_at <= upperBound
+      d.detected_at <= upperBound and
+      -- Need to avoid ignored and matched diffs
+      d.ignored = 0 and
+      d.is_match = 0
     group by
+      -- Round of the detection timestamp to the nearest 15 minutes
       trunc(d.detected_at,'HH') + (trunc(( cast(d.detected_at as date) - trunc(d.detected_at,'HH'))*24/(15/60)))/(60/15)/24,
       d.pair,
       d.domain

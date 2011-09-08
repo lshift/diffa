@@ -63,8 +63,16 @@ class AggregationEquivalencyTest {
 
   val lowerBound = new DateTime(2009,5,5,17,14,55,742)
 
+  /**
+   * This needs to be cranked to get get some proper scale
+   */
   val expectedEvents = 10
-  val offsetPerEvent  = 1 // Every 5 minutes
+
+  /**
+   * This dictates how closely the events are packed and hence influences the possible effect that processing
+   * in the DB can have.
+   */
+  val offsetPerEvent  = 1 // Every 1 minute
   val interval = new Interval(lowerBound, lowerBound.plusMinutes(expectedEvents * offsetPerEvent))
 
   /**
