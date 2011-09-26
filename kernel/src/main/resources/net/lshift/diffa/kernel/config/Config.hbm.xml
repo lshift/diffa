@@ -31,7 +31,7 @@
     </id>
     <discriminator column="constraint_type" type="string"/>
     <subclass name="RangeCategoryDescriptor" discriminator-value="range">
-      <join table="range_category_descriptor">
+      <join table="range_category_descriptor" fetch="select">
         <key column="id"/>
         <property name="dataType" column="data_type" type="string"/>
         <property name="upper" column="upper_bound" type="string" not-null="false"/>
@@ -40,11 +40,11 @@
       </join>
     </subclass>
     <subclass name="SetCategoryDescriptor" discriminator-value="set">
-      <set name="values" table="set_constraint_values" lazy="false" cascade="all" order-by="value_name">
+      <set name="values" table="set_constraint_values" lazy="false" cascade="all" order-by="value_name" fetch="select">
         <key column="value_id"/>
         <element column="value_name" type="string" not-null="true"/>
       </set>
-      <join table="set_category_descriptor">
+      <join table="set_category_descriptor" fetch="select">
         <key column="id"/>
       </join>
     </subclass>
@@ -52,7 +52,7 @@
       <property name="prefixLength" column="prefix_length" type="int"/>
       <property name="maxLength" column="max_length" type="int"/>
       <property name="step" type="int"/>
-      <join table="prefix_category_descriptor">
+      <join table="prefix_category_descriptor" fetch="select">
         <key column="id"/>
       </join>
     </subclass>
@@ -71,6 +71,7 @@
     <property name="contentType" column="content_type" type="string" not-null="true"/>
     <property name="inboundContentType" column="inbound_content_type" type="string" not-null="false"/>
     <map name="categories" lazy="false" cascade="all">
+      <cache usage="read-write"/>
       <key>
         <column name="id"/>
         <column name="domain"/>
@@ -86,11 +87,11 @@
       <key-property name="key" type="string" column="pair_key" />
       <key-many-to-one name="domain" class="Domain" column="domain" lazy="false" />
     </composite-id>
-    <many-to-one name="upstream" class="Endpoint" not-null="true" lazy="false" fetch="join">
+    <many-to-one name="upstream" class="Endpoint" not-null="true" lazy="false" fetch="select">
       <column name="upstream" />
       <column name="uep_domain" />
     </many-to-one>
-    <many-to-one name="downstream" class="Endpoint" not-null="true" lazy="false" fetch="join">
+    <many-to-one name="downstream" class="Endpoint" not-null="true" lazy="false" fetch="select">
       <column name="downstream" />
       <column name="dep_domain" />
     </many-to-one>
@@ -221,7 +222,7 @@
     select d from Domain d where d.name = :domain_name
   </query>
 
-  <query name="pairsByDomain">
+  <query name="pairsByDomain" cacheable="true">
     select p from Pair p where p.domain.name = :domain_name
   </query>
 

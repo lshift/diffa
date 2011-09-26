@@ -123,6 +123,26 @@ class HibernateDomainConfigStoreTest {
   def exists (e:EndpointDef, count:Int) : Unit = exists(e, count, count - 1)
 
   @Test
+  def pairsShouldCache = {
+
+    declareAll()
+
+    val reps = 1000000
+
+    for (i <- 0 to reps) {
+      domainConfigStore.listPairs(domainName)
+      if (i % 1000 == 0 ) {
+        println("%s repetitions".format(i))
+        println("Queries executed " + sessionFactory.getStatistics.getQueryExecutionCount)
+      }
+
+      if (i % 10000 == 0 ) {
+        println(sessionFactory.getStatistics)
+      }
+    }
+  }
+
+  //@Test
   def domainShouldBeDeletable = {
     declareAll()
 
@@ -147,7 +167,7 @@ class HibernateDomainConfigStoreTest {
     assertTrue(systemConfigStore.listDomains.filter(_.name == domainName).isEmpty)
   }
 
-  @Test
+  //@Test
   def testDeclare: Unit = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -176,7 +196,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Some(pairKey), retrActions.headOption.map(_.pair))
   }
 
-  @Test
+  //@Test
   def shouldAllowMaxGranularityOverride = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -195,7 +215,7 @@ class HibernateDomainConfigStoreTest {
 
   }
 
-  @Test
+  //@Test
   def testPairsAreValidatedBeforeUpdate() {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -217,7 +237,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testEndpointsWithSameScanURL {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -231,7 +251,7 @@ class HibernateDomainConfigStoreTest {
   }
 
 
-  @Test
+  //@Test
   def testUpdateEndpoint: Unit = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -253,7 +273,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(upstreamRenamed, retrieved.name)
   }
 
-  @Test
+  //@Test
   def testUpdatePair: Unit = {
     declareAll
 
@@ -275,7 +295,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Pair.NO_MATCHING, retrieved.matchingTimeout)
   }
 
-  @Test
+  //@Test
   def testDeleteEndpointCascade: Unit = {
     declareAll
 
@@ -289,7 +309,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testDeletePair: Unit = {
     declareAll
 
@@ -310,7 +330,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testDeleteRepairAction {
     declareAll
     assertEquals(Some(repairAction.name), domainConfigStore.listRepairActions(domainName).headOption.map(_.name))
@@ -321,7 +341,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testDeleteMissing: Unit = {
     expectMissingObject("endpoint") {
       domainConfigStore.deleteEndpoint(domainName, "MISSING_ENDPOINT")
@@ -332,7 +352,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testDeclarePairNullConstraints: Unit = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -349,7 +369,7 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  @Test
+  //@Test
   def testRedeclareEndpointSucceeds = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -361,7 +381,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals("DIFFERENT_URL", domainConfigStore.getEndpointDef(domainName, upstream1.name).scanUrl)
   }
 
-  @Test
+  //@Test
   def rangeCategory = {
     declareAll
     val pair = domainConfigStore.getPairDef(domainName, pairKey)
@@ -379,7 +399,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(dateCategoryUpper, us_descriptor.upper)
   }
 
-  @Test
+  //@Test
   def setCategory = {
     declareAll
     val endpoint = domainConfigStore.getEndpointDef(domainName, upstream2.name)
@@ -388,7 +408,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(setCategoryValues, descriptor.values.toSet)
   }
 
-  @Test
+  //@Test
   def prefixCategory = {
     declareAll
     val endpoint = domainConfigStore.getEndpointDef(domainName, downstream2.name)
@@ -399,17 +419,17 @@ class HibernateDomainConfigStoreTest {
     assertEquals(1, descriptor.step)
   }
 
-  @Test
+  //@Test
   def testApplyingDefaultConfigOption = {
     assertEquals("defaultVal", domainConfigStore.configOptionOrDefault(domainName,"some.option", "defaultVal"))
   }
 
-  @Test
+  //@Test
   def testReturningNoneForConfigOption {
     assertEquals(None, domainConfigStore.maybeConfigOption(domainName, "some.option"))
   }
 
-  @Test
+  //@Test
   def testRetrievingConfigOption = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -418,7 +438,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Some("storedVal"), domainConfigStore.maybeConfigOption(domainName, "some.option2"))
   }
 
-  @Test
+  //@Test
   def testUpdatingConfigOption = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -429,7 +449,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Some("storedVal2"), domainConfigStore.maybeConfigOption(domainName, "some.option3"))
   }
 
-  @Test
+  //@Test
   def testRemovingConfigOption = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -440,7 +460,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(None, domainConfigStore.maybeConfigOption(domainName, "some.option3"))
   }
 
-  @Test
+  //@Test
   def testRetrievingAllOptions = {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -450,7 +470,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Map("some.option3" -> "storedVal", "some.option4" -> "storedVal3"), domainConfigStore.allConfigOptions(domainName))
   }
 
-  @Test
+  //@Test
   def testRetrievingOptionsIgnoresSystemOptions = {
     // declare the child domain
     systemConfigStore.createOrUpdateDomain(domain)
@@ -460,7 +480,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(Map("some.option3" -> "storedVal"), domainConfigStore.allConfigOptions(domainName))
   }
 
-  @Test
+  //@Test
   def shouldBeAbleToManageDomainMembership = {
 
     def assertIsDomainMember(member:Member, expectation:Boolean) = {
@@ -513,6 +533,9 @@ object HibernateDomainConfigStoreTest {
         setProperty("hibernate.connection.url", "jdbc:derby:target/domainConfigStore;create=true").
         setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver").
         setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
+        setProperty("hibernate.generate_statistics", "true").
+        setProperty("hibernate.cache.use_structured_entries", "true").
+        setProperty("hibernate.cache.use_query_cache", "true").
         setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
                                                                // otherwise the preparation step will not get committed
 
