@@ -57,11 +57,13 @@ abstract class AbstractPolicyTest {
   val diagnostics = createStrictMock("diagnostics", classOf[DiagnosticsManager])
 
   val writer = createMock("writer", classOf[LimitedVersionCorrelationWriter])
+  val extendedWriter = createMock("extendedWriter", classOf[ExtendedVersionCorrelationWriter])
   val store = createMock("versionStore", classOf[VersionCorrelationStore])
 
   val stores = new VersionCorrelationStoreFactory {
     def apply(pairKey: DiffaPairRef) = store
     def remove(pairKey: DiffaPairRef) {}
+    def close(pairKey: DiffaPairRef) {}
     def close {}
   }
 
@@ -157,14 +159,6 @@ abstract class AbstractPolicyTest {
   )
 
   @Test
-  def shouldReportMismatchesReportedByUnderlyingStoreForDateCategories =
-    shouldReportMismatchesReportedByUnderlyingStore(dateCategoryData)
-
-  @Test
-  def shouldReportMismatchesReportedByUnderlyingStoreForIntegerCategories =
-    shouldReportMismatchesReportedByUnderlyingStore(integerCategoryData)
-
-  @Test
   def shouldStoreUpstreamChangesToCorrelationStoreAndNotifyDifferencesManagerForQuasiLiveDate {
     val lastUpdate = Some(JUL_8_2010_2)
     storeUpstreamChanges(emptyAttributes, lastUpdate)
@@ -223,23 +217,6 @@ abstract class AbstractPolicyTest {
       downstreamCategories = Map("someInt" -> intCategoryDescriptor),
       attributes = Map("someInt" -> "1234"),
       downstreamAttributes = Map("someInt" -> IntegerAttribute(1234)))
-
-  protected def shouldReportMismatchesReportedByUnderlyingStore(testData: PolicyTestData) {
-    val timestamp = new DateTime
-
-    // If the version check returns mismatches, we should see differences generated
-    expect(store.unmatchedVersions(EasyMock.eq(testData.constraints(0)), EasyMock.eq(testData.constraints(0)))).andReturn(Seq(
-      new Correlation(null, pair.asRef, "id1", toStrMap(testData.upstreamAttributes(0)), emptyStrAttributes, JUN_6_2009_1, timestamp, "vsn1", "vsn1a", "vsn3", false),
-      new Correlation(null, pair.asRef, "id2", toStrMap(testData.upstreamAttributes(1)), emptyStrAttributes, JUL_8_2010_1, timestamp, "vsn2", "vsn2a", "vsn4", false)))
-    diffWriter.writeMismatch(VersionID(pair.asRef, "id1"), JUN_6_2009_1, "vsn1", "vsn1a", TriggeredByScan); expectLastCall
-    diffWriter.writeMismatch(VersionID(pair.asRef, "id2"), JUL_8_2010_1, "vsn2", "vsn2a", TriggeredByScan); expectLastCall
-
-    replayAll
-
-    policy.replayUnmatchedDifferences(pair, diffWriter, TriggeredByScan)
-
-    verifyAll
-  }
 
   /**
    * This is a utility function that allows a kind of virtual date mode for testing

@@ -29,6 +29,7 @@ import net.lshift.diffa.docgen.annotations.OptionalParams.OptionalParam
 import net.lshift.diffa.kernel.differencing.{EventOptions, DifferencesManager}
 
 class DifferencesResource(val differencesManager: DifferencesManager,
+                          val domainSequenceCache:DomainSequenceCache,
                           val domain:String,
                           val uriInfo:UriInfo) {
 
@@ -56,20 +57,20 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                           @QueryParam("include-ignored") includeIgnored:java.lang.Boolean,
                           @Context request: Request) = {
 
-    val now = new DateTime()
-    val from = defaultDateTime(from_param, now.minusDays(1))
-    val until = defaultDateTime(until_param, now)
-    val offset = defaultInt(offset_param, 0)
-    val length = defaultInt(length_param, 100)
-    val reallyIncludeIgnored = if (includeIgnored != null) { includeIgnored.booleanValue() } else { false }
-
     try {
-      val domainVsn = new EntityTag(differencesManager.retrieveDomainSequenceNum(domain))
+      val domainVsn = new EntityTag(getSequenceNumber(domain))
 
       request.evaluatePreconditions(domainVsn) match {
         case null => // We'll continue with the request
         case r => throw new WebApplicationException(r.build)
       }
+
+      val now = new DateTime()
+      val from = defaultDateTime(from_param, now.minusDays(1))
+      val until = defaultDateTime(until_param, now)
+      val offset = defaultInt(offset_param, 0)
+      val length = defaultInt(length_param, 100)
+      val reallyIncludeIgnored = if (includeIgnored != null) { includeIgnored.booleanValue() } else { false }
 
       val interval = new Interval(from,until)
       val diffs = differencesManager.retrievePagedEvents(domain, pairKey, interval, offset, length,
@@ -103,7 +104,7 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                      @Context request: Request): Response = {
 
     // Evaluate whether the version of the domain has changed
-    val domainVsn = new EntityTag(differencesManager.retrieveDomainSequenceNum(domain) + "@" + zoomLevel)
+    val domainVsn = new EntityTag(getSequenceNumber(domain) + "@" + zoomLevel)
     request.evaluatePreconditions(domainVsn) match {
       case null => // We'll continue with the request
       case r => throw new WebApplicationException(r.build)
@@ -172,4 +173,6 @@ class DifferencesResource(val differencesManager: DifferencesManager,
     case "" | null => default
     case x         => x.toInt
   }
+
+  private def getSequenceNumber(domain:String) = domainSequenceCache.readThrough( domain, () => differencesManager.retrieveDomainSequenceNum(domain) )
 }

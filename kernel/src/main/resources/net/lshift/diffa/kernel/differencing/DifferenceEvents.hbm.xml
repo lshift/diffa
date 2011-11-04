@@ -41,7 +41,8 @@
   </class>
 
   <class name="ReportedDifferenceEvent" table="diffs">
-    <id name="seqId" column="seq_id">
+    <id name="seqId">
+      <column name="seq_id" index="seq_id_domain_idx"/>
       <generator class="native">
         <param name="sequence">diffs_sequence</param>
       </generator>
@@ -49,7 +50,7 @@
     <component name="objId">
       <property name="id" type="string" column="entity_id" index="rdiff_domain_idx" />
       <component name="pair">
-        <property name="domain" type="string" column="domain" index="rdiff_domain_idx" />
+        <property name="domain" type="string" column="domain" index="rdiff_domain_idx, seq_id_domain_idx" />
         <property name="key" type="string" column="pair" index="rdiff_domain_idx" />
       </component>
     </component>
@@ -61,12 +62,45 @@
     <property name="ignored" type="boolean" column="ignored" />
   </class>
 
+  <class name="StoreCheckpoint" table="store_checkpoints">
+    <composite-id mapped="true">
+      <key-many-to-one name="pair" class="net.lshift.diffa.kernel.config.Pair" lazy="false">
+        <column name="pair" />
+        <column name="domain" />
+      </key-many-to-one>
+    </composite-id>
+    <property name="latestVersion" type="long" column="latest_version" not-null="true"/>
+  </class>
+
+  <query name="storeCheckpointByPairAndDomain">
+    select c from StoreCheckpoint c where c.pair.domain.name = :domain_name and c.pair.key = :pair_key
+  </query>
+
+  <query name="removeDomainCheckpoints">
+    delete from StoreCheckpoint where domain = :domain_name
+  </query>
+
   <query name="removeDomainDiffs">
     delete from ReportedDifferenceEvent where objId.pair.domain = :domain
   </query>
   <query name="removeDomainPendingDiffs">
     delete from PendingDifferenceEvent where objId.pair.domain = :domain
   </query>
+
+  <query name="removeDiffsByEntityId">
+    delete from ReportedDifferenceEvent
+    where objId.pair.domain = :domain_name
+    and objId.pair.key = :pair_key
+    and objId.id = :entity_id
+  </query>
+
+  <query name="removePendingDiffsByEntityId">
+    delete from PendingDifferenceEvent
+    where objId.pair.domain = :domain_name
+    and objId.pair.key = :pair_key
+    and objId.id = :entity_id
+  </query>
+
   <query name="expireMatches"><![CDATA[
     delete from ReportedDifferenceEvent where lastSeen < :cutoff and isMatch = true
   ]]></query>
@@ -106,6 +140,12 @@
       e.isMatch = false and
       e.ignored = false
   ]]></query>
+  <query name="unmatchedEventsByDomainAndPair"><![CDATA[
+    select e from ReportedDifferenceEvent e where
+      e.objId.pair.domain = :domain and e.objId.pair.key = :pair and
+      e.isMatch = false and
+      e.ignored = false
+  ]]></query>
   <query name="unmatchedEventsInIntervalByDomainAndPair"><![CDATA[
     select e from ReportedDifferenceEvent e where
       e.objId.pair.domain = :domain and e.objId.pair.key = :pair and
@@ -133,4 +173,187 @@
       e.isMatch = false and
       e.lastSeen < :cutoff
   ]]></query>
+
+  <!--
+    Mismatch aggregation queries - although written in native SQL, these must be portable
+    across supported DBs
+  -->
+
+  <sql-query name="15_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      extract(hour from d.detected_at) as hour,
+      floor(extract(minute from d.detected_at)/15) * 15 as minute,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      extract(hour from d.detected_at),
+      floor(extract(minute from d.detected_at)/15) * 15
+    order by
+      year,month,day,hour,minute
+  ]]></sql-query>
+
+  <sql-query name="30_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      extract(hour from d.detected_at) as hour,
+      floor(extract(minute from d.detected_at)/30) * 30 as minute,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      extract(hour from d.detected_at),
+      floor(extract(minute from d.detected_at)/30) * 30
+    order by
+      year,month,day,hour,minute
+  ]]></sql-query>
+
+  <sql-query name="60_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      extract(hour from d.detected_at) as hour,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      extract(hour from d.detected_at)
+    order by
+      year,month,day,hour
+  ]]></sql-query>
+
+  <sql-query name="120_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      floor(extract(hour from d.detected_at)/2) * 2 as hour,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      floor(extract(hour from d.detected_at)/2) * 2
+    order by
+      year,month,day,hour
+  ]]></sql-query>
+
+  <sql-query name="240_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      floor(extract(hour from d.detected_at)/4) * 4 as hour,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      floor(extract(hour from d.detected_at)/4) * 4
+    order by
+      year,month,day,hour
+  ]]></sql-query>
+
+  <sql-query name="480_minute_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      floor(extract(hour from d.detected_at)/8) * 8 as hour,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at),
+      floor(extract(hour from d.detected_at)/8) * 8
+    order by
+      year,month,day,hour
+  ]]></sql-query>
+
+  <sql-query name="daily_aggregation"><![CDATA[
+    select
+      extract(year from d.detected_at) as year,
+      extract(month from d.detected_at) as month,
+      extract(day from d.detected_at) as day,
+      count(*) as aggregate
+    from
+      diffs d
+    where
+      d.domain = :domain
+      and d.pair = :pair
+      and d.detected_at >= :lower_bound
+      and d.detected_at <= :upper_bound
+      and d.is_match = :matched
+      and d.ignored = :ignored
+    group by
+      extract(year from d.detected_at),
+      extract(month from d.detected_at),
+      extract(day from d.detected_at)
+    order by
+      year,month,day
+  ]]></sql-query>
+
 </hibernate-mapping>

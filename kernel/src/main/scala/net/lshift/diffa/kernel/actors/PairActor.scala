@@ -31,6 +31,7 @@ import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -194,8 +195,8 @@ case class PairActor(pair:DiffaPair,
    * and will be re-delivered into this actor's mailbox when the scan state is exited.
    */
   def receive = {
-    case ScanMessage => {
-      if (handleScanMessage()) {
+    case ScanMessage(scanView) => {
+      if (handleScanMessage(scanView)) {
         // Go into the scanning state
         become(receiveWhilstScanning)
       }
@@ -275,14 +276,12 @@ case class PairActor(pair:DiffaPair,
 
       // Notify all interested parties of all of the outstanding mismatches
       writer.flush()
-      val diffWriter = differencesManager.createDifferenceWriter(pair.domain.name, pair.key, overwrite = true)
+
       try {
         diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Calculating differences")
-        policy.replayUnmatchedDifferences(pair, diffWriter, TriggeredByScan)
-        diffWriter.close()
+        replayCorrelationStore(differencesManager, writer, store, pair, TriggeredByScan)
       } catch {
         case ex =>
-          diffWriter.abort()
           logger.error("Failed to apply unmatched differences to the differences manager", ex)
       }
 
@@ -320,6 +319,10 @@ case class PairActor(pair:DiffaPair,
     // Make sure there is no dangling back address
     cancellationRequester = null
 
+    // Inform the diagnostics manager that we've completed a major operation, so it should checkpoint the explanation
+    // data.
+    diagnostics.checkpointExplanations(pair.asRef)
+
     // Leave the scan state
     unbecome()
   }
@@ -352,16 +355,7 @@ case class PairActor(pair:DiffaPair,
   def handleDifferenceMessage() = {
     try {
       writer.flush()
-
-      val diffWriter = differencesManager.createDifferenceWriter(pair.domain.name, pair.key, overwrite = true)
-      try {
-        policy.replayUnmatchedDifferences(pair, diffWriter, TriggeredByBoot)
-        diffWriter.close()
-      } catch {
-        case ex =>
-          diffWriter.abort()
-          throw ex      // The exception will be logged below. This block is simply to ensure that abort is called.
-      }
+      replayCorrelationStore(differencesManager, writer, store, pair, TriggeredByBoot)
     } catch {
       case ex => {
         diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to Difference Pair: " + ex.getMessage)
@@ -374,7 +368,7 @@ case class PairActor(pair:DiffaPair,
    * Implements the top half of the request to scan the participants for digests.
    * This actor will still be in the scan state after this callback has returned.
    */
-  def handleScanMessage() : Boolean = {
+  def handleScanMessage(scanView:Option[String]) : Boolean = {
     val createdScan = OutstandingScan(new UUID)
 
     // allocate a writer proxy
@@ -392,7 +386,7 @@ case class PairActor(pair:DiffaPair,
 
       Actor.spawn {
         try {
-          policy.scanUpstream(pair, writerProxy, us, bufferingListener, currentFeedbackHandle)
+          policy.scanUpstream(pair, scanView, writerProxy, us, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
         }
         catch {
@@ -410,7 +404,7 @@ case class PairActor(pair:DiffaPair,
 
       Actor.spawn {
         try {
-          policy.scanDownstream(pair, writerProxy, us, ds, bufferingListener, currentFeedbackHandle)
+          policy.scanDownstream(pair, scanView, writerProxy, us, ds, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
         }
         catch {
@@ -497,7 +491,7 @@ case object Cancellation extends Result
 abstract class Deferrable
 case class ChangeMessage(event: PairChangeEvent) extends Deferrable
 case object DifferenceMessage extends Deferrable
-case object ScanMessage
+case class ScanMessage(scanView:Option[String])
 
 /**
  * This message indicates that this actor should cancel all current and pending scan operations.

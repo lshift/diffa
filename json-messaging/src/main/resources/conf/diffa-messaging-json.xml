@@ -24,16 +24,7 @@
   <bean class="net.lshift.diffa.messaging.json.JsonMessagingRegistrar">
     <constructor-arg ref="protocolMapper" />
     <constructor-arg ref="participantFactory" />
-    <constructor-arg ref="eventFormatMapperManager"/>
     <constructor-arg ref="changesFrontend" />
   </bean>
 
-  <bean id="registerDefaultContentTypeMapper" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="eventFormatMapperManager" />
-    <property name="targetMethod" value="registerMapper" />
-    <property name="arguments">
-      <bean class="net.lshift.diffa.messaging.json.DefaultEventFormatMapper" />
-    </property>
-  </bean>
-  
 </beans>

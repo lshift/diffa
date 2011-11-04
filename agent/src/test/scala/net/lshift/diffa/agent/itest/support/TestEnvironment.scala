@@ -33,7 +33,7 @@ import collection.mutable.HashMap
 import net.lshift.diffa.agent.client._
 import java.util.List
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanConstraint}
-import net.lshift.diffa.kernel.frontend.{UserDef, EndpointDef, DomainDef, PairDef}
+import net.lshift.diffa.kernel.frontend._
 
 /**
  * An assembled environment consisting of a downstream and upstream participant. Provides a factory for the
@@ -120,8 +120,10 @@ class TestEnvironment(val pairKey: String,
   val escalationName = "Repair By Resending"
 
   // Categories
-  val categories = Map("someDate" -> new RangeCategoryDescriptor("datetime"), "someString" -> new SetCategoryDescriptor(Set("ss")))
-  
+  val categories = Map("someDate" -> new RangeCategoryDescriptor("datetime"), "someString" -> new SetCategoryDescriptor(Set("ss", "tt")))
+
+  val views = Seq(EndpointViewDef(name = "tt-only", categories = Map("someString" -> new SetCategoryDescriptor(Set("tt")))))
+
   // Participants' RPC server setup
   participants.startUpstreamServer(upstream, upstream)
   participants.startDownstreamServer(downstream, downstream, downstream)
@@ -130,13 +132,15 @@ class TestEnvironment(val pairKey: String,
   systemConfig.declareDomain(domain)
   configurationClient.declareEndpoint(EndpointDef(name = upstreamEpName,
     scanUrl = participants.upstreamScanUrl, contentRetrievalUrl = participants.upstreamContentUrl, contentType = contentType,
-    inboundUrl = inboundURLBuilder(upstreamEpName), inboundContentType = contentType,
-    categories = categories))
+    inboundUrl = inboundURLBuilder(upstreamEpName),
+    categories = categories,
+    views = views))
   configurationClient.declareEndpoint(EndpointDef(name = downstreamEpName,
     scanUrl = participants.downstreamScanUrl, contentRetrievalUrl = participants.downstreamContentUrl,
     versionGenerationUrl = participants.downstreamVersionUrl, contentType = contentType,
-    inboundUrl = inboundURLBuilder(downstreamEpName), inboundContentType = contentType,
-    categories = categories))
+    inboundUrl = inboundURLBuilder(downstreamEpName),
+    categories = categories,
+    views = views))
 
   createPair
 
@@ -144,7 +148,12 @@ class TestEnvironment(val pairKey: String,
   configurationClient.declareEscalation(escalationName, pairKey, entityScopedActionName, EscalationActionType.REPAIR, EscalationEvent.DOWNSTREAM_MISSING, EscalationOrigin.SCAN)
 
 
-  def createPair = configurationClient.declarePair(PairDef(pairKey, versionScheme.policyName, matchingTimeout, upstreamEpName, downstreamEpName, "0 15 10 15 * ?"))
+  def createPair = configurationClient.declarePair(PairDef(key = pairKey,
+    versionPolicyName = versionScheme.policyName,
+    matchingTimeout = matchingTimeout,
+    upstreamName = upstreamEpName, downstreamName = downstreamEpName,
+    scanCronSpec = "0 15 10 15 * ?",
+    views = Seq(PairViewDef("tt-only"))))
   def deletePair() {
    configurationClient.deletePair(pairKey)
   }

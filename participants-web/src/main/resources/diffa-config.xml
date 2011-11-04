@@ -4,6 +4,10 @@
             scan-url="http://localhost:19293/participant-demo/p/upstream/scan"
             content-url="http://localhost:19293/participant-demo/p/upstream/content"
             content-type="application/json">
+
+    <view name="view1" />
+    <view name="view2" />
+
   </endpoint>
 
   <endpoint name="b"
@@ -11,9 +15,30 @@
             content-url="http://localhost:19293/participant-demo/p/downstream/content"
             version-url="http://localhost:19293/participant-demo/p/downstream/corr-version"
             content-type="application/json">
+
+    <view name="view1" />
+    <view name="view2" />
+
   </endpoint>
 
   <pair key="WEB-1" upstream="a" downstream="b" match-timeout="5" version-policy="same">
+    <view name="view1" />
+    <view name="view2" />
+
+    <repair-action name="Resend Source" url="http://localhost:19293/participant-demo/actions/resend/{id}" scope="entity"/>
+    <repair-action name="Remove Destination" url="http://localhost:19293/participant-demo/actions/resend/{id}" scope="entity"/>
+    <repair-action name="Mail Tech Support" url="http://localhost:19293/invalid" scope="pair"/>
+    <repair-action name="Resend All" url="http://localhost:19293/participant-demo/actions/resend-all" scope="pair"/>
+    <repair-action name="Rebuild" url="http://localhost:19293/participant-demo/actions/resend-all" scope="pair"/>
+
+    <report name="Differences" report-type="differences" target="http://localhost:19293/participant-demo/reports/display" />
+    <escalation name="Display Differences on Scan Completion" action="Differences" type="report" event="scan-completed" />
+  </pair>
+
+  <pair key="WEB-2" upstream="a" downstream="b" match-timeout="5" version-policy="same" allow-manual-scans="false">
+    <view name="view1" />
+    <view name="view2" />
+
     <repair-action name="Resend Source" url="http://localhost:19293/participant-demo/actions/resend/{id}" scope="entity"/>
     <repair-action name="Remove Destination" url="http://localhost:19293/participant-demo/actions/resend/{id}" scope="entity"/>
     <repair-action name="Mail Tech Support" url="http://localhost:19293/invalid" scope="pair"/>

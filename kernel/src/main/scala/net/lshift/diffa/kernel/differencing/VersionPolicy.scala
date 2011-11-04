@@ -39,18 +39,11 @@ trait VersionPolicy {
   def onChange(writer: LimitedVersionCorrelationWriter, evt:PairChangeEvent) : Unit
 
   /**
-   * Requests that the policy generate a series of events describing the differences between the endpoints
-   * within the given pair. This does not perform any endpoint scanning, it operates entirely from
-   * local data stores.
-   */
-  def replayUnmatchedDifferences(pair:DiffaPair, writer:DifferenceWriter, origin:MatchOrigin) : Unit
-
-  /**
    * Requests that the policy scan the upstream participants for the given pairing. Differences that are
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanUpstream(pair:DiffaPair, writer: LimitedVersionCorrelationWriter,
+  def scanUpstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter,
                    participant:UpstreamParticipant, listener:DifferencingListener,
                    handle:FeedbackHandle)
 
@@ -59,7 +52,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanDownstream(pair:DiffaPair, writer: LimitedVersionCorrelationWriter,
+  def scanDownstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter,
                      us:UpstreamParticipant, ds:DownstreamParticipant,
                      listener:DifferencingListener, handle:FeedbackHandle)
 

@@ -27,6 +27,7 @@ import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import system.SystemConfigStore
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
+import org.joda.time.{Interval, DateTime, Period}
 
 class Configuration(val configStore: DomainConfigStore,
                     val systemConfigStore: SystemConfigStore,
@@ -68,16 +69,23 @@ class Configuration(val configStore: DomainConfigStore,
     diffaConfig.repairActions.foreach(createOrUpdateRepairAction(domain,_))
       
     // Remove missing escalations, and create/update the rest
-    var removedEscalations =
+    val removedEscalations =
       configStore.listEscalations(domain).filter(e => diffaConfig.escalations
         .find(newE => newE.name == e.name && newE.pair == e.pair).isEmpty)
     removedEscalations.foreach(e => deleteEscalation(domain, e.name, e.pair))
     diffaConfig.escalations.foreach(createOrUpdateEscalation(domain,_))
 
+    // Remove missing reports, and create/update the rest
+    val removedReports =
+      configStore.listReports(domain).filter(r => diffaConfig.reports
+        .find(newR => newR.name == r.name && newR.pair == r.pair).isEmpty)
+    removedReports.foreach(r => deleteReport(domain, r.name, r.pair))
+    diffaConfig.reports.foreach(createOrUpdateReport(domain,_))
+
     // Remove old pairs and endpoints
     val removedPairs = configStore.listPairs(domain).filter(currP => diffaConfig.pairs.find(newP => newP.key == currP.key).isEmpty)
     removedPairs.foreach(p => deletePair(domain, p.key))
-    var removedEndpoints = configStore.listEndpoints(domain).filter(currE => diffaConfig.endpoints.find(newE => newE.name == currE.name).isEmpty)
+    val removedEndpoints = configStore.listEndpoints(domain).filter(currE => diffaConfig.endpoints.find(newE => newE.name == currE.name).isEmpty)
     removedEndpoints.foreach(e => deleteEndpoint(domain, e.name))
   }
   def retrieveConfiguration(domain:String) : DiffaConfig = {
@@ -89,8 +97,8 @@ class Configuration(val configStore: DomainConfigStore,
         p => PairDef(p.key, p.versionPolicyName, p.matchingTimeout, p.upstreamName, p.downstreamName, p.scanCronSpec)).toSet,
       repairActions = configStore.listRepairActions(domain).map(
         a => RepairActionDef(a.name, a.url, a.scope, a.pair)).toSet,
-      escalations = configStore.listEscalations(domain).map(
-        e => EscalationDef(e.name, e.pair, e.action, e.actionType, e.event, e.origin)).toSet
+      escalations = configStore.listEscalations(domain).toSet,
+      reports = configStore.listReports(domain).toSet
     )
   }
 
@@ -140,31 +148,53 @@ class Configuration(val configStore: DomainConfigStore,
   def declarePair(domain:String, pairDef: PairDef): Unit = createOrUpdatePair(domain, pairDef)
 
   def createOrUpdatePair(domain:String, pairDef: PairDef): Unit = {
-    log.debug("[%s] Processing pair declare/update request: %s".format(domain,pairDef.key))
+
+    val pairRef = DiffaPairRef(pairDef.key, domain)
+    log.info("%s -> Processing pair declare/update request ....".format(pairRef))
+
     pairDef.validate()
     // Stop a running actor, if there is one
-    maybeWithPair(domain, pairDef.key, (p:DiffaPair) => supervisor.stopActor(p.asRef) )
+    maybeWithPair(domain, pairDef.key, (p:DiffaPair) => {
+      log.info("%s -> Stopping pair actor  (%s)".format(p.asRef, benchmark( () => supervisor.stopActor(p.asRef)) ))
+    })
     configStore.createOrUpdatePair(domain, pairDef)
     withCurrentPair(domain, pairDef.key, (p:DiffaPair) => {
-      supervisor.startActor(p)
-      matchingManager.onUpdatePair(p)
-      differencesManager.onUpdatePair(p.asRef)
-      scanScheduler.onUpdatePair(p)
-      pairPolicyClient.difference(p.asRef)
+      val pair = p.asRef
+      log.info("%s -> Starting pair actor  (%s)".format(pair, benchmark( () => supervisor.startActor(p)) ))
+      log.info("%s -> Adding to matching manager (%s)".format(pair, benchmark( () => matchingManager.onUpdatePair(p)) ))
+      log.info("%s -> Adding to differences store (%s)".format(pair, benchmark( () => differencesManager.onUpdatePair(pair)) ))
+      log.info("%s -> Registering with scheduler (%s)".format(pair, benchmark( () => scanScheduler.onUpdatePair(p)) ))
+      log.info("%s -> Running initial difference (%s)".format(pair, benchmark( () => pairPolicyClient.difference(pair)) ))
     })
+
+    log.info("%s -> Completed pair declare/update request".format(pairRef))
   }
 
   def deletePair(domain:String, key: String): Unit = {
-    log.debug("Processing pair delete request: " + key)
+
+    val pairRef = DiffaPairRef(key,domain)
+    log.info("%s -> Processing pair delete request ...".format(pairRef))
+
     withCurrentPair(domain, key, (p:DiffaPair) => {
-      supervisor.stopActor(p.asRef)
-      matchingManager.onDeletePair(p)
-      versionCorrelationStoreFactory.remove(p.asRef)
-      scanScheduler.onDeletePair(p)
-      differencesManager.onDeletePair(p.asRef)
-      diagnostics.onDeletePair(p.asRef)
+      val pair = p.asRef
+      log.info("%s -> Stopping pair actor  (%s)".format(pair, benchmark( () => supervisor.stopActor(pair)) ))
+      log.info("%s -> Removing from matching manager (%s)".format(pair, benchmark( () => matchingManager.onDeletePair(p)) ))
+      log.info("%s -> Removing from correlation store (%s)".format(pair, benchmark( () => versionCorrelationStoreFactory.remove(pair)) ))
+      log.info("%s -> Unregistering from scheduler (%s)".format(pair, benchmark( () => scanScheduler.onDeletePair(p)) ))
+      log.info("%s -> Removing from differences store (%s)".format(pair, benchmark( () => differencesManager.onDeletePair(pair)) ))
+      log.info("%s -> Unregistering from diagnostics (%s)".format(pair, benchmark( () => diagnostics.onDeletePair(pair)) ))
     })
+
     configStore.deletePair(domain, key)
+
+    log.info("%s -> Completed pair delete request".format(pairRef))
+  }
+
+  private def benchmark(f:() => Unit) : Period = {
+    val start = new DateTime()
+    f()
+    val end = new DateTime()
+    new Interval(start,end).toPeriod()
   }
 
   /**
@@ -232,6 +262,17 @@ class Configuration(val configStore: DomainConfigStore,
 
   def listEscalationForPair(domain:String, pairKey: String): Seq[EscalationDef] = {
     configStore.listEscalationsForPair(domain, pairKey)
+  }
+
+  def deleteReport(domain:String, name: String, pairKey: String) {
+    log.debug("Processing report delete request: (name="+name+", pairKey="+pairKey+")")
+    configStore.deleteReport(domain, name, pairKey)
+  }
+
+  def createOrUpdateReport(domain:String, report: PairReportDef) {
+    log.debug("Processing report declare/update request: " + report.name)
+    report.validate()
+    configStore.createOrUpdateReport(domain, report)
   }
 
   def makeDomainMember(domain:String, userName:String) = configStore.makeDomainMember(domain,userName)

@@ -138,8 +138,8 @@
       <Arg>jdbc/diffaDS</Arg>
       <Arg>
         <New class="org.apache.commons.dbcp.BasicDataSource">
-          <Set name="driverClassName">org.apache.derby.jdbc.EmbeddedDriver</Set>
-          <Set name="url">jdbc:derby:<Ref id="dbPath"/>;create=true
+          <Set name="driverClassName">org.hsqldb.jdbc.JDBCDriver</Set>
+          <Set name="url">jdbc:hsqldb:file:<Ref id="dbPath"/>
           </Set>
         </New>
       </Arg>
@@ -147,7 +147,7 @@
     <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
       <Arg></Arg>
       <Arg>diffaHibernateDialect</Arg>
-      <Arg type="java.lang.String">org.hibernate.dialect.DerbyDialect</Arg>
+      <Arg type="java.lang.String">org.hibernate.dialect.HSQLDialect</Arg>
       <Arg type="boolean">true</Arg>
     </New>
     <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">

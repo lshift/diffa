@@ -105,24 +105,35 @@
     <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
   </bean>
-  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStore">
+  <bean id="domainDifferenceStoreFactory" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreFactory">
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="zoomCacheManager"/>
+    <constructor-arg ref="dialect"/>
   </bean>
+  <bean id="domainDifferenceStore"
+        factory-bean="domainDifferenceStoreFactory"
+        factory-method="create"/>
   <bean id="sweeper" class="net.lshift.diffa.kernel.util.Sweeper" init-method="start" destroy-method="shutdown">
     <constructor-arg value="5" />
     <constructor-arg ref="domainDifferenceStore" />
   </bean>
 
   <!--
-    ============
-      Escalations
-    ============
+    =============================
+      Escalations and Reporting
+    =============================
   -->
 
   <bean id="escalationManager" class="net.lshift.diffa.kernel.escalation.EscalationManager">
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="actionsFrontend" />
+    <constructor-arg ref="reportManager" />
+  </bean>
+
+  <bean id="reportManager" class="net.lshift.diffa.kernel.reporting.ReportManager">
+    <constructor-arg ref="domainConfigStore" />
+    <constructor-arg ref="domainDifferenceStore" />
+    <constructor-arg ref="diagnosticsManager" />
   </bean>
 
   <!--
@@ -213,14 +224,6 @@
     <constructor-arg ref="systemConfigStore" />
   </bean>
 
-    <!--
-      ===============================
-        Event Format Mapping Management
-      ===============================
-    -->
-
-  <bean id="eventFormatMapperManager" class="net.lshift.diffa.kernel.participants.EventFormatMapperManager" />
-
   <!--
     =============
       Supervision
@@ -287,6 +290,7 @@
     <constructor-arg ref="domainConfigStore"/>
     <constructor-arg ref="pairActorSupervisor"/>
     <constructor-arg ref="matchingManager"/>
+    <constructor-arg ref="diagnosticsManager"/>
   </bean>
   <bean id="actionsFrontend" class="net.lshift.diffa.kernel.frontend.wire.ActionsProxy">
     <constructor-arg ref="domainConfigStore"/>
@@ -300,6 +304,10 @@
       Data
     ========
   -->
+  <bean id="dialect" class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
+  </bean>
+
   <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
     <constructor-arg>
       <bean class="net.lshift.diffa.kernel.activation.BaselineConfiguration"/>
@@ -311,11 +319,7 @@
     </property>
     <property name="hibernateProperties">
       <bean class="net.lshift.diffa.agent.util.HibernatePropertiesFactory">
-        <constructor-arg>
-          <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-            <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
-          </bean>
-        </constructor-arg>
+        <constructor-arg ref="dialect"/>
         <constructor-arg value="net.sf.ehcache.hibernate.EhCacheRegionFactory"/>
       </bean>
     </property>
@@ -341,18 +345,39 @@
     <constructor-arg type="java.net.URL" value="classpath:ehcache-zooming.xml"/>
   </bean>
 
+  <bean id="domainSequenceCache" class="net.lshift.diffa.agent.rest.DomainSequenceCache">
+    <constructor-arg>
+      <bean class="net.sf.ehcache.CacheManager">
+        <constructor-arg type="java.net.URL" value="classpath:ehcache-domain-sequences.xml"/>
+      </bean>
+    </constructor-arg>
+    <constructor-arg value="lastDomainSequence"/>
+  </bean>
+
+
   <!--
     ===========
       Configuration
     ===========
   -->
 
+  <!-- TODO Once #366 lands, this cache should be unnecessary -->
+  <bean id="pairCache" class="net.lshift.diffa.kernel.config.PairCache">
+    <constructor-arg>
+      <bean class="net.sf.ehcache.CacheManager">
+        <constructor-arg type="java.net.URL" value="classpath:ehcache-pairs.xml"/>
+      </bean>
+    </constructor-arg>
+  </bean>
+
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.HibernateDomainConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="pairCache" />
   </bean>
 
   <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="pairCache" />
   </bean>
 
   <!--
@@ -370,6 +395,7 @@
     </constructor-arg>
     <constructor-arg value="org.apache.lucene.store.MMapDirectory" />
     <constructor-arg ref="systemConfigStore" />
+    <constructor-arg ref="diagnosticsManager" />
   </bean>
 
   <!--
@@ -380,6 +406,11 @@
 
   <bean id="diagnosticsManager" class="net.lshift.diffa.kernel.diag.LocalDiagnosticsManager">
     <constructor-arg ref="domainConfigStore" />
+    <constructor-arg>
+      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName" value="java:comp/env/diffaExplainDir"/>
+      </bean>
+    </constructor-arg>
   </bean>
 
   <!--

@@ -18,30 +18,20 @@
 
 <Configure class="org.eclipse.jetty.webapp.WebAppContext">
 
-  <!--
-    Maven seems to have lovely behaviours of changing paths during the run of the webapp, which causes a
-    relative database path not to actually point to a stable location. To correct this, we "snapshot" the path
-    with File.absolutePath, and then use that from here-on.
-  -->
-  <New class="java.io.File">
-    <Arg>target/webapp-data/diffa</Arg>
-    <Get id="dbPath" name="absolutePath"/>
-  </New>
-
   <New id="diffaDS" class="org.eclipse.jetty.plus.jndi.Resource">
     <Arg></Arg>
     <Arg>jdbc/diffaDS</Arg>
     <Arg>
       <New class="org.apache.commons.dbcp.BasicDataSource">
-        <Set name="driverClassName">org.apache.derby.jdbc.EmbeddedDriver</Set>
-        <Set name="url">jdbc:derby:<Ref id="dbPath" />;create=true</Set>
+        <Set name="driverClassName">org.hsqldb.jdbc.JDBCDriver</Set>
+        <Set name="url">jdbc:hsqldb:target/webapp-data/diffa-data</Set>
       </New>
     </Arg>
   </New>
   <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
     <Arg></Arg>
     <Arg>diffaHibernateDialect</Arg>
-    <Arg type="java.lang.String">org.hibernate.dialect.DerbyDialect</Arg>
+    <Arg type="java.lang.String">org.hibernate.dialect.HSQLDialect</Arg>
     <Arg type="boolean">true</Arg>
   </New>
   <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">

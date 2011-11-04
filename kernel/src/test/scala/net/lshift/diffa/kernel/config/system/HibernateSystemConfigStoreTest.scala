@@ -20,13 +20,15 @@ import org.junit.Assert._
 import collection.JavaConversions._
 import net.lshift.diffa.kernel.util.SessionHelper._
 import org.junit.{Before, Test}
-import net.lshift.diffa.kernel.config.{User, Domain, HibernateDomainConfigStoreTest}
 import net.lshift.diffa.kernel.util.MissingObjectException
+import net.lshift.diffa.kernel.config.{PairCache, User, Domain, HibernateDomainConfigStoreTest}
+import net.sf.ehcache.CacheManager
 
 class HibernateSystemConfigStoreTest {
 
   private val sf = HibernateDomainConfigStoreTest.domainConfigStore.sessionFactory
-  private val systemConfigStore:SystemConfigStore = new HibernateSystemConfigStore(sf)
+  private val pairCache = new PairCache(new CacheManager())
+  private val systemConfigStore:SystemConfigStore = new HibernateSystemConfigStore(sf,pairCache)
 
   val domainName = "domain"
   val domain = Domain(name=domainName)

@@ -89,10 +89,6 @@
     <field name="inboundUrl" type="string">
       <bind-xml name="inbound-url" node="attribute" />
     </field>
-    <field name="inboundContentType" type="string">
-      <bind-xml name="inbound-content-type" node="attribute" />
-    </field>
-
     <field name="rangeCategories" type="net.lshift.diffa.agent.rest.CastorSerializableRangeCategoryDescriptor" collection="arraylist">
       <bind-xml name="range-category" />
     </field>
@@ -101,6 +97,10 @@
     </field>
     <field name="setCategories" type="net.lshift.diffa.agent.rest.CastorSerializableSetCategoryDescriptor" collection="arraylist">
       <bind-xml name="set-category" />
+    </field>
+
+    <field name="views" type="net.lshift.diffa.agent.rest.CastorSerializableEndpointView" collection="arraylist">
+      <bind-xml name="view" />
     </field>
   </class>
 
@@ -123,11 +123,20 @@
     <field name="scanCronSpec" type="string">
       <bind-xml name="scan-schedule" node="attribute" />
     </field>
+    <field name="allowManualScans" type="boolean">
+      <bind-xml name="allow-manual-scans" node="attribute" />
+    </field>
     <field name="repairActions" type="net.lshift.diffa.kernel.frontend.RepairActionDef" collection="arraylist">
       <bind-xml name="repair-action" />
     </field>
     <field name="escalations" type="net.lshift.diffa.kernel.frontend.EscalationDef" collection="arraylist">
       <bind-xml name="escalation" />
+    </field>
+    <field name="reports" type="net.lshift.diffa.kernel.frontend.PairReportDef" collection="arraylist">
+      <bind-xml name="report" />
+    </field>
+    <field name="views" type="net.lshift.diffa.kernel.frontend.PairViewDef" collection="arraylist">
+      <bind-xml name="view" />
     </field>
   </class>
 
@@ -158,6 +167,43 @@
     </field>
     <field name="origin" type="string">
       <bind-xml name="origin" node="attribute" />
+    </field>
+  </class>
+
+  <class name="net.lshift.diffa.kernel.frontend.PairReportDef">
+    <field name="name" type="string">
+      <bind-xml name="name" node="attribute" />
+    </field>
+    <field name="reportType" type="string">
+      <bind-xml name="report-type" node="attribute" />
+    </field>
+    <field name="target" type="string">
+      <bind-xml name="target" node="attribute" />
+    </field>
+  </class>
+
+  <class name="net.lshift.diffa.agent.rest.CastorSerializableEndpointView">
+    <field name="name" type="string">
+      <bind-xml name="name" node="attribute" />
+    </field>
+    
+    <field name="rangeCategories" type="net.lshift.diffa.agent.rest.CastorSerializableRangeCategoryDescriptor" collection="arraylist">
+      <bind-xml name="range-category" />
+    </field>
+    <field name="prefixCategories" type="net.lshift.diffa.agent.rest.CastorSerializablePrefixCategoryDescriptor" collection="arraylist">
+      <bind-xml name="prefix-category" />
+    </field>
+    <field name="setCategories" type="net.lshift.diffa.agent.rest.CastorSerializableSetCategoryDescriptor" collection="arraylist">
+      <bind-xml name="set-category" />
+    </field>
+  </class>
+
+  <class name="net.lshift.diffa.kernel.frontend.PairViewDef">
+    <field name="name" type="string">
+      <bind-xml name="name" node="attribute" />
+    </field>
+    <field name="scanCronSpec" type="string">
+      <bind-xml name="scan-schedule" node="attribute" />
     </field>
   </class>
 

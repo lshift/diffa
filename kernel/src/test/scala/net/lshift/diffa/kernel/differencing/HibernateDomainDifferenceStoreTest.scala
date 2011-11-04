@@ -27,13 +27,14 @@ import experimental.theories.{Theories, DataPoint, Theory}
 import org.hibernate.SessionFactory
 import runner.RunWith
 import system.HibernateSystemConfigStore
-import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreTest.TileScenario
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.util.DerbyHelper
 import net.lshift.diffa.kernel.differencing.ZoomCache._
 import scala.collection.mutable.HashMap
-import org.joda.time.{DateTime, DateTimeZone, Interval}
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import org.joda.time.{DateTime, Interval, DateTimeZone}
+import org.hibernate.dialect.Dialect
 
 /**
  * Test cases for the HibernateDomainDifferenceStore.
@@ -46,8 +47,9 @@ class HibernateDomainDifferenceStoreTest {
   def clear() {
     diffStore.clearAllDifferences
 
-    val configStore = new HibernateDomainConfigStore(sf)
-    val systemConfigStore = new HibernateSystemConfigStore(sf)
+    val pairCache = new PairCache(new CacheManager())
+    val configStore = new HibernateDomainConfigStore(sf, pairCache)
+    val systemConfigStore = new HibernateSystemConfigStore(sf, pairCache)
 
     val domain = Domain("domain")
     systemConfigStore.createOrUpdateDomain(domain)
@@ -186,6 +188,34 @@ class HibernateDomainDifferenceStoreTest {
     diffStore.ignoreEvent("domain", event1.seqId)
     val event2 = diffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), timestamp, "uV2", "dV1", timestamp)
     assertTrue(event1.seqId.toInt < event2.seqId.toInt)
+  }
+
+  @Test
+  def shouldRemoveReportedEventsById() {
+    val timestamp = new DateTime()
+    val pair = DiffaPairRef("pair2", "domain")
+
+    def versionId(i:Int) = VersionID(pair, "id-" + i)
+
+    val events = 100
+
+    for (i <- 0 until events) {
+      diffStore.addReportableUnmatchedEvent(versionId(i), timestamp, "uV-" + i, "dV-" + i, timestamp)
+    }
+
+    def checkUnmatched(expectation:Int) = {
+      val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
+      val unmatched = diffStore.retrieveUnmatchedEvents("domain", interval)
+      assertEquals(expectation, unmatched.length)
+    }
+
+    checkUnmatched(events)
+
+    val toDelete = for (i <- 0 until (events / 2)) yield versionId(i)
+    diffStore.removeEvents(toDelete)
+
+    checkUnmatched(events / 2)
+
   }
 
   @Test
@@ -635,6 +665,16 @@ class HibernateDomainDifferenceStoreTest {
     diffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("nonexistent-pair2", "domain"), "id1"), lastUpdate, "uV", "dV", seen)
   }
 
+  @Test
+  def shouldStoreLatestVersionPerPair = {
+    val pair = DiffaPairRef("pair1", "domain")
+    assertEquals(None, diffStore.lastRecordedVersion(pair))
+    diffStore.recordLatestVersion(pair, 5294967296L)
+    assertEquals(Some(5294967296L), diffStore.lastRecordedVersion(pair))
+    diffStore.removeLatestRecordedVersion(pair)
+    assertEquals(None, diffStore.lastRecordedVersion(pair))
+  }
+
   @Theory
   def shouldTileEvents(scenario:TileScenario) = {
     scenario.events.foreach(e => diffStore.addReportableUnmatchedEvent(e.id, e.timestamp, "", "", e.timestamp))
@@ -645,6 +685,49 @@ class HibernateDomainDifferenceStoreTest {
           assertEquals("Failure @ zoom level %s; ".format(zoom), group.tiles, retrieved.get.tiles)
         })
       }}
+    }}
+  }
+
+  @Test
+  def unmatchedEventsShouldAggregate = {
+
+    diffStore.clearAllDifferences
+    val pair = DiffaPairRef("pair1", "domain")
+    val start = new DateTime(2009,6,6,14,15,0,0,DateTimeZone.UTC)
+    val end = start.plusDays(1)
+    val interval = new Interval(start, end)
+
+    val eventTime = start.plusMinutes(1)
+
+    diffStore.addReportableUnmatchedEvent(VersionID(pair, "aaz"), eventTime, "", "", eventTime)
+
+    val expected = Map(
+      ZoomCache.QUARTER_HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.QUARTER_HOURLY), 1)
+      ),
+      ZoomCache.HALF_HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.HALF_HOURLY), 1)
+      ),
+      ZoomCache.HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.HOURLY), 1)
+      ),
+      ZoomCache.TWO_HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.TWO_HOURLY), 1)
+      ),
+      ZoomCache.FOUR_HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.FOUR_HOURLY), 1)
+      ),
+      ZoomCache.EIGHT_HOURLY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.EIGHT_HOURLY), 1)
+      ),
+      ZoomCache.DAILY -> Seq(
+        AggregateEvents(ZoomCache.containingInterval(eventTime, ZoomCache.DAILY), 1)
+      )
+    )
+
+    expected.foreach{ case (zoomLevel, events) => {
+      val aggregates = diffStore.aggregateUnmatchedEvents(pair, interval, zoomLevel)
+      assertEquals(events, aggregates)
     }}
   }
 
@@ -922,9 +1005,11 @@ object HibernateDomainDifferenceStoreTest {
       new Configuration().
         addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
         addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-        setProperty("hibernate.connection.url", "jdbc:derby:target/domainCache;create=true").
-        setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver").
+        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/domainCache")).
+        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
         setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
         setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
                                                                // otherwise the preparation step will not get committed
@@ -933,12 +1018,7 @@ object HibernateDomainDifferenceStoreTest {
 
   val sf:SessionFactory = config.buildSessionFactory
   (new HibernateConfigStorePreparationStep).prepare(sf, config)
-  val diffStore = new HibernateDomainDifferenceStore(sf, cacheManager)
+  val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
+  val diffStore = new HibernateDomainDifferenceStore(sf, cacheManager, dialect)
 
-
-  @AfterClass
-  def close() {
-    sf.close()
-    DerbyHelper.shutdown("target/domainCache")
-  }
 }

@@ -36,6 +36,15 @@
   </appender>
 
   <logger name="org.hibernate" level="WARN" />
+  <logger name="org.springframework" level="WARN" />
+  <logger name="net.sf.ehcache" level="WARN" />
+  <logger name="org.apache" level="WARN" />
+  <logger name="httpclient.wire" level="WARN" />
+  <logger name="org.mortbay.log" level="WARN" />
+  <logger name="org.quartz" level="WARN" />
+  <logger name="org.exolab" level="WARN" />
+  <logger name="org.codehaus" level="WARN" />
+  <logger name="net.lshift.diffa.kernel.differencing.DigestBuilder" level="INFO" />
 
   <root level="debug">
     <appender-ref ref="FILE" />

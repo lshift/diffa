@@ -37,17 +37,17 @@ class EndpointTest {
   @Test
   def defaultConstraintsForEndpointWithNoCategories = {
     val ep = new Endpoint()
-    assertEquals(Seq(), ep.defaultConstraints)
-    assertEquals(Seq(), ep.groupedConstraints)
+    assertEquals(Seq(), ep.initialConstraints(None))
+    assertEquals(Seq(), ep.groupedConstraints(None))
   }
 
   @Theory
   def shouldBuildConstraintsForEndpoint(expectation:ConstraintExpectation) = {
     val ep = new Endpoint(categories=Map(expectation.name -> expectation.descriptor))
     if (expectation.constraint != null)
-      assertEquals(Seq(expectation.constraint), ep.defaultConstraints)
+      assertEquals(Seq(expectation.constraint), ep.initialConstraints(None))
     else
-      assertEquals(Seq(), ep.defaultConstraints)
+      assertEquals(Seq(), ep.initialConstraints(None))
   }
 
   @Test

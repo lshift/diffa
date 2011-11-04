@@ -66,7 +66,7 @@ class VersionCorrelationStorePerfTest {
     }
 
     withTiming("run unmatched version query") {
-      val res = stores(pair).unmatchedVersions(Seq(new TimeRangeConstraint("bizDate", JUL_2010, END_JUL_2010)), Seq())
+      val res = stores(pair).unmatchedVersions(Seq(new TimeRangeConstraint("bizDate", JUL_2010, END_JUL_2010)), Seq(), None)
       println("Retrieved " + res.length + " unmatched versions")
       assertEquals(vsnCount, res.length)
     }
@@ -80,7 +80,7 @@ class VersionCorrelationStorePerfTest {
     }
 
     withTiming("run unmatched version query (2)") {
-      val res = stores(pair).unmatchedVersions(Seq(new TimeRangeConstraint("bizDate", JUL_2010, END_JUL_2010)), Seq())
+      val res = stores(pair).unmatchedVersions(Seq(new TimeRangeConstraint("bizDate", JUL_2010, END_JUL_2010)), Seq(), None)
       println("Retrieved " + res.length + " unmatched versions")
       assertEquals(0, res.length)
     }

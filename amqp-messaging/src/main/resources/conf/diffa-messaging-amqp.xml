@@ -35,7 +35,6 @@
     <constructor-arg ref="inboundEndpointManager" />
     <constructor-arg ref="protocolMapper" />
     <constructor-arg ref="participantFactory" />
-    <constructor-arg ref="eventFormatMapperManager" />
     <constructor-arg ref="changesFrontend" />
     <constructor-arg>
       <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

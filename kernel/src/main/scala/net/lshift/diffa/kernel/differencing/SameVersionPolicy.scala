@@ -38,6 +38,8 @@ class SameVersionPolicy(stores:VersionCorrelationStoreFactory, listener:Differen
   def downstreamStrategy(us:UpstreamParticipant, ds:DownstreamParticipant) = new DownstreamSameScanStrategy
 
   protected class DownstreamSameScanStrategy extends ScanStrategy {
+    val name = "DownstreamSame"
+
     def getAggregates(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint]) = {
       val aggregator = new Aggregator(bucketing)
       stores(pair).queryDownstreams(constraints, aggregator.collectDownstream)

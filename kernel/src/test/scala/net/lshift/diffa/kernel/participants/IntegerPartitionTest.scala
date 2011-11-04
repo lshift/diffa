@@ -53,6 +53,28 @@ class IntegerPartitionTest {
   }
 
   @Test
+  def halfOpenDateRangeShouldOnlyAcceptValuesGreaterThanTheDefinedBound = {
+    val unboundedUpper = new IntegerRangeConstraint("someInt", 100, null)
+    assertTrue(unboundedUpper.contains(101))
+    assertFalse(unboundedUpper.contains(99))
+  }
+
+  @Test
+  def halfOpenDateRangeShouldOnlyAcceptValuesLessThanTheDefinedBound = {
+    val unboundedLower = new IntegerRangeConstraint("someInt", null, 100)
+    assertTrue(unboundedLower.contains(99))
+    assertFalse(unboundedLower.contains(101))
+  }
+
+  @Test
+  def completelyUnboundDateRangeShouldAcceptAnyValue = {
+    val unbounded = new IntegerRangeConstraint("someInt", null.asInstanceOf[java.lang.Integer], null)
+    assertTrue(unbounded.contains(100))
+    val unboundedAsString = new IntegerRangeConstraint("someInt", null.asInstanceOf[String], null)
+    assertTrue(unboundedAsString.contains(100))
+  }
+
+  @Test
   def descendFromTensPartition {
     assertEquals(None, tens.descend)
     assertEquals(new IntegerRangeConstraint("someInt", 10, 19), tens.constrain(None, "10"))

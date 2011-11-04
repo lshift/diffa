@@ -29,14 +29,28 @@ import java.io.OutputStream;
  */
 public class JSONHelper {
   private static ObjectMapper mapper = new ObjectMapper();
+  private static ObjectMapper prettyMapper = new ObjectMapper();
   static {
     mapper.getSerializationConfig().set(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS, false);
+    prettyMapper.getSerializationConfig().set(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS, false);
+    prettyMapper.getSerializationConfig().set(SerializationConfig.Feature.INDENT_OUTPUT, true);
   }
 
   public static void writeQueryResult(OutputStream responseStream, Iterable<ScanResultEntry> entries)
       throws IOException {
     try {
       mapper.writeValue(responseStream, entries);
+    } catch (IOException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IOException("Failed to serialise result to JSON", ex);
+    }
+  }
+
+  public static void formatQueryResult(OutputStream responseStream, Iterable<ScanResultEntry> entries)
+      throws IOException {
+    try {
+      prettyMapper.writeValue(responseStream, entries);
     } catch (IOException ex) {
       throw ex;
     } catch (Exception ex) {

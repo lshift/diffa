@@ -121,13 +121,20 @@ class ZoomCacheProvider(diffStore:DomainDifferenceStore,
         // driven fashion. Iterate through the diff store to generate aggregate sums of the events in tile
         // aligned buckets
 
-        diffStore.retrieveUnmatchedEvents(pair, alignedTimespan, (event:ReportedDifferenceEvent) => {
-          val intervalStart = containingInterval(event.detectedAt, zoomLevel).getStart
-          cache.get(intervalStart) match {
-            case Some(n) => cache(intervalStart) += 1
-            case None    => cache(intervalStart)  = 1
-          }
+        diffStore.aggregateUnmatchedEvents(pair, alignedTimespan, zoomLevel).foreach(aggregate => {
+          cache(aggregate.interval.getStart) = aggregate.count
         })
+
+        // TODO Deliberately leave old code here until the new approach has proven itself in production, also
+        // take down a ticket to clean this up and potentially delete the retrieveUnmatchedEvents/3 call
+
+//        diffStore.retrieveUnmatchedEvents(pair, alignedTimespan, (event:ReportedDifferenceEvent) => {
+//          val intervalStart = containingInterval(event.detectedAt, zoomLevel).getStart
+//          cache.get(intervalStart) match {
+//            case Some(n) => cache(intervalStart) += 1
+//            case None    => cache(intervalStart)  = 1
+//          }
+//        })
 
         // Initialize a dirty flag set for this cache
         dirtyTilesByLevel.put(cacheKey, new HashSet[DateTime])
@@ -272,7 +279,7 @@ object ZoomCache {
   }
 
   /**
-   * Calculates what the tile aligned interval conatins the given timestamp at the given level of zoom
+   * Calculates what the tile aligned interval contains the given timestamp at the given level of zoom
    */
   def containingInterval(timestamp:DateTime, zoomLevel:Int) = {
     val utc = timestamp.withZone(DateTimeZone.UTC)

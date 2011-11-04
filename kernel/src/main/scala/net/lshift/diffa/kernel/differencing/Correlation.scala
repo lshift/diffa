@@ -36,6 +36,7 @@ case class Correlation(
   var downstreamAttributes:Map[String,String] = null,
   @BeanProperty var lastUpdate:DateTime = null,
   @BeanProperty var timestamp:DateTime = null,
+  @BeanProperty var storeVersion:java.lang.Long = null,
   @BeanProperty var upstreamVsn:String = null,
   @BeanProperty var downstreamUVsn:String = null,
   @BeanProperty var downstreamDVsn:String = null,
@@ -48,7 +49,16 @@ case class Correlation(
            down:Map[String,String],
            lastUpdate:DateTime, timestamp:DateTime,
            uvsn:String, duvsn:String, ddvsn:String,
-           isMatched:java.lang.Boolean) = this(oid,pair.key,pair.domain,id,up,down,lastUpdate,timestamp,uvsn,duvsn,ddvsn,isMatched)
+           isMatched:java.lang.Boolean) = this(oid,pair.key,pair.domain,id,up,down,lastUpdate,timestamp,0L,uvsn,duvsn,ddvsn,isMatched)
+
+  def this(oid:java.lang.Integer,pair:DiffaPairRef,
+           id:String,
+           up:Map[String,String],
+           down:Map[String,String],
+           lastUpdate:DateTime, timestamp:DateTime,
+           storeVersion:java.lang.Long,
+           uvsn:String, duvsn:String, ddvsn:String,
+           isMatched:java.lang.Boolean) = this(oid,pair.key,pair.domain,id,up,down,lastUpdate,timestamp,storeVersion,uvsn,duvsn,ddvsn,isMatched)
 
   // Allocate these in the constructor because of NPE when Hibernate starts mapping this stuff 
   if (upstreamAttributes == null) upstreamAttributes = new HashMap[String,String]
@@ -80,7 +90,7 @@ case class Correlation(
 
 object Correlation {
   def asDeleted(pair:DiffaPairRef, id:String, lastUpdate:DateTime) =
-    Correlation(null, pair.key, pair.domain, id, null, null, lastUpdate, new DateTime, null, null, null, true)
+    Correlation(null, pair.key, pair.domain, id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
   def asDeleted(id:VersionID, lastUpdate:DateTime) =
-    Correlation(null, id.pair.key, id.pair.domain, id.id, null, null, lastUpdate, new DateTime, null, null, null, true)
+    Correlation(null, id.pair.key, id.pair.domain, id.id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
 }

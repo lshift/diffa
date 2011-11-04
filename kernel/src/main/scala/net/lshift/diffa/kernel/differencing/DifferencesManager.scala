@@ -50,6 +50,12 @@ trait DifferencesManager {
   def unignoreDifference(domain:String, seqId:String):DifferenceEvent
 
   /**
+   * Retrieves the version number of the last correlation to get transferred to the diff store.
+   * This version number is global to the pair definition and can be used as a synchonization checkpoint.
+   */
+  def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
+
+  /**
    *  Retrieves all events known to this domain in the as tiles according to the given zoom level. Will only include unmatched events.
    *  @throws MissingObjectException if the requested domain does not exist
    */
@@ -106,7 +112,12 @@ trait DifferenceWriter {
   /**
    * Records a mismatch.
    */
-  def writeMismatch(id:VersionID, lastUpdated:DateTime, upstreamVsn:String, downstreamVsn:String, origin:MatchOrigin)
+  def writeMismatch(id:VersionID, lastUpdated:DateTime, upstreamVsn:String, downstreamVsn:String, origin:MatchOrigin, storeVersion:Long)
+
+  /**
+   * Indicates that the following correlations are tombstones and differences associated with them can be deleted
+   */
+  def evictTombstones(tombstones:Iterable[Correlation])
 
   /**
    * Aborts this difference writer. Any locks held by this writer will be released (as per the close method), but no

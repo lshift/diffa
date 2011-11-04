@@ -31,9 +31,12 @@ import collection.mutable.HashSet
 import scala.collection.JavaConversions._
 import system.{HibernateSystemConfigStore, SystemConfigStore}
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
-import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
+import org.hibernate.cfg.{Configuration => HibernateConfig}
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
 
 /**
  * Test cases for the Configuration frontend.
@@ -49,9 +52,9 @@ class ConfigurationTest {
   private val pairPolicyClient = createMock(classOf[PairPolicyClient])
 
   // TODO This is a strange mixture of mock and real objects
-  private val domainConfigStore: DomainConfigStore = HibernateDomainConfigStoreTest.domainConfigStore
-  private val sf = HibernateDomainConfigStoreTest.domainConfigStore.sessionFactory
-  private val systemConfigStore = new HibernateSystemConfigStore(sf)
+  private val pairCache = new PairCache(new CacheManager())
+  private val systemConfigStore = new HibernateSystemConfigStore(ConfigurationTest.sessionFactory, pairCache)
+  private val domainConfigStore = new HibernateDomainConfigStore(ConfigurationTest.sessionFactory, pairCache)
 
   private val configuration = new Configuration(domainConfigStore,
                                                 systemConfigStore,
@@ -91,7 +94,7 @@ class ConfigurationTest {
   @Test
   def shouldGenerateExceptionWhenInvalidConfigurationIsApplied() {
     val e1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234/scan", contentType = "application/json",
-          inboundUrl = "http://inbound", inboundContentType = "application/xml")
+          inboundUrl = "http://inbound")
     val e2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan", contentType = "application/json")
     val conf = new DiffaConfig(
       endpoints = Set(e1, e2),
@@ -117,7 +120,7 @@ class ConfigurationTest {
     systemConfigStore.createOrUpdateUser(User(name = "def"))
 
     val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234", contentType = "application/json",
-                inboundUrl = "http://inbound", inboundContentType = "application/xml",
+                inboundUrl = "http://inbound",
                 categories = Map(
                   "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
                   "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
@@ -134,7 +137,11 @@ class ConfigurationTest {
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?"),
         PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?")),
       repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair", "ab")),
-      escalations = Set(EscalationDef("Resend Missing", "ab", "Resend Sauce", "repair", "downstream-missing", "scan"))
+      reports = Set(PairReportDef("Bulk Send Differences", "ab", "differences", "http://location:5432/diffhandler")),
+      escalations = Set(
+        EscalationDef("Resend Missing", "ab", "Resend Sauce", "repair", "downstream-missing", "scan"),
+        EscalationDef("Report Differences", "ab", "Bulk Send Differences", "report", "scan-completed")
+      )
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
@@ -171,7 +178,7 @@ class ConfigurationTest {
 
       // upstream1 is kept but changed
     val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:6543/scan", contentType = "application/json",
-          inboundUrl = "http://inbound", inboundContentType = "application/xml",
+          inboundUrl = "http://inbound",
           categories = Map(
             "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
             "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
@@ -195,7 +202,8 @@ class ConfigurationTest {
         PairDef("ad", "same", 5, "upstream1", "downstream2")),
       // name of repair action is changed
       repairActions = Set(RepairActionDef("Resend Source", "resend", "pair", "ab")),
-      escalations = Set(EscalationDef("Resend Another Missing", "ab", "Resend Source", "repair", "downstream-missing", "scan"))
+      escalations = Set(EscalationDef("Resend Another Missing", "ab", "Resend Source", "repair", "downstream-missing", "scan")),
+      reports = Set(PairReportDef("Bulk Send Reports Elsewhere", "ab", "differences", "http://location:5431/diffhandler"))
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
@@ -278,5 +286,26 @@ class ConfigurationTest {
       def matches(argument: AnyRef) = argument.asInstanceOf[Pair].key == key
     })
     null
+  }
+}
+object ConfigurationTest {
+  private lazy val config =
+      new HibernateConfig().
+        addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+        addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
+        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/configTest")).
+        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
+        setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
+        setProperty("hibernate.generate_statistics", "true").
+        setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
+                                                               // otherwise the preparation step will not get committed
+
+  lazy val sessionFactory = {
+    val sf = config.buildSessionFactory
+    (new HibernateConfigStorePreparationStep).prepare(sf, config)
+    sf
   }
 }

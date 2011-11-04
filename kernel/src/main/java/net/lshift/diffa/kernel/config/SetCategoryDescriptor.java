@@ -45,6 +45,19 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public boolean isRefinement(CategoryDescriptor other) {
+    return other instanceof SetCategoryDescriptor &&
+      this.values.containsAll(((SetCategoryDescriptor) other).values);
+  }
+
+  @Override
+  public CategoryDescriptor applyRefinement(CategoryDescriptor refinement) {
+    if (!isRefinement(refinement)) throw new IllegalArgumentException(refinement + " is not a refinement of " + this);
+
+    return refinement;
+  }
+
+  @Override
   public String toString() {
     return "SetCategoryDescriptor{" +
       "values=" + values +

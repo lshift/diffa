@@ -23,7 +23,7 @@ import net.lshift.diffa.kernel.config.Endpoint
 import collection.mutable.HashMap
 import com.rabbitmq.messagepatterns.unicast.ReceivedMessage
 import org.slf4j.LoggerFactory
-import net.lshift.diffa.kernel.participants.{EventFormatMapperManager, InboundEndpointFactory, InboundEndpointManager, ParticipantFactory}
+import net.lshift.diffa.kernel.participants.{InboundEndpointFactory, InboundEndpointManager, ParticipantFactory}
 import net.lshift.diffa.kernel.lifecycle.AgentLifecycleAware
 
 /**
@@ -34,7 +34,6 @@ class JsonAmqpMessagingRegistrar(connectorHolder: ConnectorHolder,
                                  inboundEndpointManager: InboundEndpointManager,
                                  protocolMapper: ProtocolMapper,
                                  participantFactory: ParticipantFactory,
-                                 eventFormatMapperManager: EventFormatMapperManager,
                                  changes: Changes,
                                  timeoutMillis: Long) {
 
@@ -46,11 +45,10 @@ class JsonAmqpMessagingRegistrar(connectorHolder: ConnectorHolder,
     val consumers = new HashMap[String, AmqpConsumer]
 
     def canHandleInboundEndpoint(inboundUrl: String, contentType: String) =
-      inboundUrl.startsWith("amqp://") && eventFormatMapperManager.lookup(contentType).isDefined
+      inboundUrl.startsWith("amqp://")
 
     def ensureEndpointReceiver(e: Endpoint) {
       log.info("Starting consumer for endpoint: %s".format(e))
-      val eventFormatMapper = eventFormatMapperManager.lookup(e.inboundContentType).get
 
       // handler only has one endpoint, which is the queue that it consumes from
       object ChangesEndpointMapper extends EndpointMapper {
@@ -60,7 +58,7 @@ class JsonAmqpMessagingRegistrar(connectorHolder: ConnectorHolder,
       val c = new AmqpConsumer(connectorHolder.connector,
                                AmqpQueueUrl.parse(e.inboundUrl).queue,
                                ChangesEndpointMapper,
-                               new ChangesHandler(changes, e.domain.name, e.name, eventFormatMapper))
+                               new ChangesHandler(changes, e.domain.name, e.name))
       consumers.put(e.name, c)
       c.start()
     }

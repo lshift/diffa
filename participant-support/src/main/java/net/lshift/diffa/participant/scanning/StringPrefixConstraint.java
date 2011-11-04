@@ -31,6 +31,10 @@ public class StringPrefixConstraint extends AbstractScanConstraint {
     return prefix;
   }
 
+  public boolean contains(String value) {
+    return value.startsWith(prefix);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

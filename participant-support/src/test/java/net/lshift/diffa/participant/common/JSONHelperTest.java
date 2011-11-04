@@ -81,6 +81,18 @@ public class JSONHelperTest {
   }
 
   @Test
+  public void shouldRoundtripFormattedEntity() throws Exception {
+    ScanResultEntry entry = ScanResultEntry.forEntity("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2"));
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JSONHelper.writeQueryResult(baos, Arrays.asList(entry));
+    String formatted = new String(baos.toByteArray(), "UTF-8");
+    ScanResultEntry[] deserialised = deserialiseResult(formatted);
+
+    assertEquals(1, deserialised.length);
+    assertEquals(entry, deserialised[0]);
+  }
+
+  @Test
   public void shouldRoundtripProcessingResponseWithoutAttributes() throws Exception {
     ProcessingResponse resp = new ProcessingResponse("id1", "uv1", "dv1");
     String respJ = serialiseResponse(resp);

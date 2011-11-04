@@ -33,6 +33,10 @@ public class SetConstraint extends AbstractScanConstraint {
     return values;
   }
 
+  public boolean contains(String value) {
+    return values.contains(value);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

@@ -24,6 +24,7 @@ import scala.collection.JavaConversions._
 import scala.collection.Map
 import org.hibernate._
 import java.io.Closeable
+import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 
 /**
  * Mixin providing a bunch of useful query utilities for stores.
@@ -169,6 +170,13 @@ trait HibernateQueryUtils {
     singleQuery[Domain](s, "domainByName", Map("domain_name" -> name), "domain %s".format(name))
   })
 
+  def removeDomainDifferences(domain:String) = sessionFactory.withSession(s => {
+    // TODO Maybe this should be integrated with HibernateSystemConfigStore:deleteDomain/1
+    executeUpdate(s, "removeDomainCheckpoints", Map("domain_name" -> domain))
+    executeUpdate(s, "removeDomainDiffs", Map("domain" -> domain))
+    executeUpdate(s, "removeDomainPendingDiffs", Map("domain" -> domain))
+  })
+
   /**
    * This is un-protected call to set a configuration option.
    * It is up to the calling context to establish this is authorized.
@@ -199,6 +207,18 @@ trait HibernateQueryUtils {
     }
   })
 
+  def getStoreCheckpoint(pair:DiffaPairRef) = sessionFactory.withSession(s => {
+    singleQueryOpt[StoreCheckpoint](s, "storeCheckpointByPairAndDomain",
+      Map("pair_key" -> pair.key, "domain_name" -> pair.domain))
+  })
+
+  def deleteStoreCheckpoint(pair:DiffaPairRef) = sessionFactory.withSession(s => {
+    getStoreCheckpoint(pair) match {
+      case Some(x) => s.delete(x)
+      case None    => // nothing to do
+    }
+  })
+
   def getEndpoint(s: Session, domain:String, name: String) = getOrFail(s, classOf[Endpoint], DomainScopedName(name, Domain(name = domain)), "endpoint")
 
   def getUser(s: Session, name: String) = singleQuery[User](s, "userByName", Map("name" -> name), "user %s".format(name))
@@ -214,6 +234,11 @@ trait HibernateQueryUtils {
     singleQuery[Escalation](s, "escalationsByNameAndPair",
                             Map("name" -> name, "pair_key" -> pairKey, "domain_name" -> domain),
                             "esclation %s for pair %s in domain %s".format(name, pairKey, domain))
+
+  def getReport(s: Session, domain:String, name: String, pairKey: String) =
+    singleQuery[PairReport](s, "reportsByNameAndPair",
+                            Map("name" -> name, "pair_key" -> pairKey, "domain_name" -> domain),
+                            "report %s for pair %s in domain %s".format(name, pairKey, domain))
 
   def listPairsInDomain(domain:String) = sessionFactory.withSession(s => listQuery[DiffaPair](s, "pairsByDomain", Map("domain_name" -> domain)))
 

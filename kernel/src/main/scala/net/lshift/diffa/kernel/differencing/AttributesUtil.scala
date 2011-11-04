@@ -18,6 +18,9 @@ package net.lshift.diffa.kernel.differencing
 
 import org.joda.time.format.ISODateTimeFormat
 import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.participant.scanning._
+import scala.Option._
+import scala.collection.JavaConversions._
 
 /**
  * Utility for working with attribute maps.
@@ -39,7 +42,16 @@ object AttributesUtil {
     (categories.keys.toSeq.sorted, attrs).zip.map { case(name, value) => name -> asTyped(name, value, categories) }.toMap
   }
   def toTypedMap(categories:Map[String, CategoryDescriptor], attrs:Map[String, String]):Map[String, TypedAttribute] = {
-    categories.keys.map { name => name -> asTyped(name, attrs(name), categories) }.toMap
+    categories.keys.map { name =>
+      attrs.get(name) match {
+        case None    => None
+        case Some(a) => Some(name -> asTyped(name, a, categories))
+      }
+    }.flatten.toMap
+  }
+
+  def toUntypedMap(attrs:Map[String, TypedAttribute]) = {
+    attrs.map { case (k, v) => k -> v.value }.toMap
   }
 
   def asTyped(name:String, value:String, categories:Map[String, CategoryDescriptor]) = {
@@ -48,5 +60,55 @@ object AttributesUtil {
       case r:RangeCategoryDescriptor => RangeCategoryParser.typedAttribute(r, value)
       case p:PrefixCategoryDescriptor => StringAttribute(value)
     }
+  }
+
+  /**
+   * Examines the provided attributes, and ensures that attributes exist for each of the
+   * configured categories.
+   */
+  def detectMissingAttributes(categories:Map[String, CategoryDescriptor], attrs:Map[String, String]):Map[String, String] = {
+    categories.flatMap {
+      case (name, categoryType) => {
+        attrs.get(name) match {
+          case None => Some(name -> "property is missing")
+          case Some(v) => None
+        }
+      }
+    }.toMap
+  }
+
+  def detectOutsideConstraints(constraints:Seq[ScanConstraint], attrs:Map[String, TypedAttribute]):Map[String, String] = {
+    val results:Seq[(String, String)] = constraints.flatMap(constraint =>
+      attrs.get(constraint.getAttributeName) match {
+        case None => None   // Missing attributes should be detected with `detectMissingAttributes`
+        case Some(v) =>
+          constraint match {
+            case s:SetConstraint   =>
+              if (s.contains(v.value)) {
+                None
+              } else {
+                Some(constraint.getAttributeName -> (v.value + " is not a member of " + s.getValues.toSet))
+              }
+            case r:RangeConstraint =>
+              val valid = r match {
+                case i:IntegerRangeConstraint => i.contains(v.asInstanceOf[IntegerAttribute].int)
+                case t:TimeRangeConstraint => t.contains(v.asInstanceOf[DateTimeAttribute].date)
+                case d:DateRangeConstraint => d.contains(v.asInstanceOf[DateAttribute].date)
+              }
+              if (valid) {
+                None
+              } else {
+                Some(constraint.getAttributeName -> "%s is not in range %s -> %s".format(v.value, r.getStartText, r.getEndText))
+              }
+            case p:StringPrefixConstraint =>
+              if (p.contains(v.value)) {
+                None
+              } else {
+                Some(constraint.getAttributeName -> (v.value + " does not have the prefix " + p.getPrefix))
+              }
+          }
+      }
+    )
+    results.toMap[String, String]
   }
 }

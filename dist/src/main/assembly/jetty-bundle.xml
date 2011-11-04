@@ -89,7 +89,7 @@
       <useStrictFiltering>true</useStrictFiltering>
       <includes>
         <include>commons-dbcp:commons-dbcp</include>
-        <include>org.apache.derby:derby</include>
+        <include>org.hsqldb:hsqldb</include>
         <include>javax.mail:mail</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>

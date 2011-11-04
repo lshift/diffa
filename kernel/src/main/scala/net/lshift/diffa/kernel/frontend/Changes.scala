@@ -21,13 +21,17 @@ import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.events._
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.DomainConfigStore
+import net.lshift.diffa.kernel.differencing.AttributesUtil
+import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.diag.DiagnosticsManager
 
 /**
  * Front-end for reporting changes.
  */
 class Changes(val domainConfig:DomainConfigStore,
               val changeEventClient:PairPolicyClient,
-              val mm:MatchingManager) {
+              val mm:MatchingManager,
+              val diagnostics:DiagnosticsManager) {
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
   /**
@@ -45,17 +49,37 @@ class Changes(val domainConfig:DomainConfigStore,
           DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, id), attributes, lastUpdate, uvsn, dvsn)
       }
 
-      // TODO: Write a test to enforce that the matching manager processes first. This is necessary to ensure
-      //    that the DifferencesManager doesn't emit spurious events.
-
-      // If there is a matcher available, notify it first
-      mm.getMatcher(pair.asRef) match {
-        case None =>
-        case Some(matcher) => matcher.onChange(pairEvt, () => {})
+      // Validate that the entities provided meet the constraints of the endpoint
+      val endpoint = evt match {
+        case u:UpstreamChangeEvent => pair.upstream
+        case d:DownstreamChangeEvent => pair.downstream
+        case d:DownstreamCorrelatedChangeEvent => pair.downstream
       }
 
-      // Propagate the change event to the corresponding policy
-      changeEventClient.propagateChangeEvent(pairEvt)
+      val endpointCategories = endpoint.categories.toMap
+      val attrsMap = AttributesUtil.toMap(endpointCategories.keys, pairEvt.attributes)
+      val typedAttrsMap = AttributesUtil.toTypedMap(endpointCategories, attrsMap)
+      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, attrsMap) ++
+        AttributesUtil.detectOutsideConstraints(endpoint.initialConstraints(None), typedAttrsMap)
+
+      if (issues.size > 0) {
+        log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)
+        diagnostics.logPairExplanation(pair.asRef, "Version Policy",
+          "The result %s was dropped since it didn't meet the request constraints. Identified issues were (%s)".format(
+            pairEvt, issues.map { case (k, v) => k + ": " + v }.mkString(", ")))
+      } else {
+        // TODO: Write a test to enforce that the matching manager processes first. This is necessary to ensure
+        //    that the DifferencesManager doesn't emit spurious events.
+
+        // If there is a matcher available, notify it first
+        mm.getMatcher(pair.asRef) match {
+          case None =>
+          case Some(matcher) => matcher.onChange(pairEvt, () => {})
+        }
+
+        // Propagate the change event to the corresponding policy
+        changeEventClient.propagateChangeEvent(pairEvt)
+      }
     })
   }
 }

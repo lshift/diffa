@@ -5,14 +5,18 @@ import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
 import org.junit.Test
 import org.junit.Assert._
-import net.lshift.diffa.kernel.config.{ConfigValidationException, HibernateDomainConfigStoreTest}
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import org.hibernate.cfg.{Configuration => HibernateConfig}
+import net.lshift.diffa.kernel.config._
 
 /**
  * Test cases for apply System Configuration.
  */
 class SystemConfigurationTest {
-  private val sf = HibernateDomainConfigStoreTest.domainConfigStore.sessionFactory
-  private val systemConfigStore = new HibernateSystemConfigStore(sf)
+
+  private val pairCache = new PairCache(new CacheManager())
+  private val systemConfigStore = new HibernateSystemConfigStore(SystemConfigurationTest.sessionFactory,pairCache)
 
   private val differencesManager = createMock("differencesManager", classOf[DifferencesManager])
 
@@ -57,5 +61,27 @@ class SystemConfigurationTest {
   def shouldRejectUserDefinitionWithoutPassword() {
     systemConfiguration.createOrUpdateUser(
       UserDef(name = validUserDef.name, email = validUserDef.email, superuser = validUserDef.superuser, password = null))
+  }
+}
+
+object SystemConfigurationTest {
+  private lazy val config =
+      new HibernateConfig().
+        addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+        addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
+        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/systemConfigTest")).
+        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
+        setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
+        setProperty("hibernate.generate_statistics", "true").
+        setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
+                                                               // otherwise the preparation step will not get committed
+
+  lazy val sessionFactory = {
+    val sf = config.buildSessionFactory
+    (new HibernateConfigStorePreparationStep).prepare(sf, config)
+    sf
   }
 }

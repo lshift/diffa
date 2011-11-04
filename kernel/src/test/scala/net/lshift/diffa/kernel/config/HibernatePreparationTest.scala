@@ -20,8 +20,7 @@ import org.junit.runner.RunWith
 import org.junit.Assert._
 import net.lshift.diffa.kernel.util.SessionHelper._
 import org.slf4j.LoggerFactory
-import org.hibernate.dialect.{DerbyDialect, Dialect}
-import org.hibernate.mapping.{ForeignKey, Column, Table, PrimaryKey}
+import org.hibernate.dialect.Dialect
 import org.hibernate.cfg.{Configuration, Environment}
 import org.hibernate.jdbc.Work
 import scala.collection.JavaConversions._
@@ -31,7 +30,7 @@ import java.io.{File, InputStream}
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theory, Theories}
 import java.sql._
-import net.lshift.diffa.kernel.util.DerbyHelper
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
 
 /**
  * Test cases for ensuring that preparation steps apply to database schemas at various levels, and allow us to upgrade
@@ -41,8 +40,6 @@ import net.lshift.diffa.kernel.util.DerbyHelper
 class HibernatePreparationTest {
 
   val log = LoggerFactory.getLogger(getClass)
-
-  val genericConfig = new Configuration().setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect")
 
   // The Hibernate validateSchema method won't check for too-many tables being present, presumably since this won't
   // adversely affect it's operation. Since we do care that we delete some objects, we'll have a specific ban-list of
@@ -74,9 +71,11 @@ class HibernatePreparationTest {
     val config = new Configuration().
         addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
         addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-        setProperty("hibernate.connection.url", "jdbc:derby:target/configStore-" + startVersion.startName + ";create=true").
-        setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver").
+        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("configStore-" + startVersion.startName)).
+        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
         setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory")
     val sf = config.buildSessionFactory
     val dialect = Dialect.getDialect(config.getProperties)
@@ -117,8 +116,6 @@ class HibernatePreparationTest {
     // Ensure we can run the upgrade again cleanly
     (new HibernateConfigStorePreparationStep).prepare(sf, config)
 
-    // Shut down the database
-    DerbyHelper.shutdown(dbDir)
   }
 
   /**
@@ -132,9 +129,11 @@ class HibernatePreparationTest {
       val config = new Configuration().
           addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
           addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-          setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-          setProperty("hibernate.connection.url", "jdbc:derby:target/configStore-export;create=true").
-          setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver")
+          setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+          setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("configStore-export")).
+          setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+          setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+          setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD)
 
       val exporter = new SchemaExport(config)
       exporter.setOutputFile("target/current-schema.sql")
@@ -180,6 +179,13 @@ object HibernatePreparationTest {
   @DataPoint def v5 = StartingDatabaseVersion("v5")
   @DataPoint def v6 = StartingDatabaseVersion("v6")
   @DataPoint def v7 = StartingDatabaseVersion("v7")
+  @DataPoint def v8 = StartingDatabaseVersion("v8")
+  @DataPoint def v9 = StartingDatabaseVersion("v9")
+  @DataPoint def v10 = StartingDatabaseVersion("v10")
+  @DataPoint def v11 = StartingDatabaseVersion("v11")
+  @DataPoint def v12 = StartingDatabaseVersion("v12")
+  @DataPoint def v13 = StartingDatabaseVersion("v13")
+  @DataPoint def v14 = StartingDatabaseVersion("v14")
 }
 
 case class StartingDatabaseVersion(startName:String)

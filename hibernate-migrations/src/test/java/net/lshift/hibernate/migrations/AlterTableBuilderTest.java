@@ -18,6 +18,7 @@ package net.lshift.hibernate.migrations;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Types;
 
 import static net.lshift.hibernate.migrations.HibernateHelper.mockExecutablePreparedStatement;
@@ -50,12 +51,20 @@ public class AlterTableBuilderTest {
   public void shouldGenerateAddColumn() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
     mb.alterTable("foo").addColumn("bar", Types.VARCHAR, 255, false, "baz");
+    verifyMigrationBuilder(mb, "alter table foo add column bar varchar(255) default 'baz' not null");
+  }
 
+  @Test
+  public void shouldGenerateAlterColumn() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").alterColumn("bar", Types.VARCHAR, 1024, false, "baz");
+    verifyMigrationBuilder(mb, "alter table foo alter column bar varchar(1024) default 'baz' not null");
+  }
+
+  private static void verifyMigrationBuilder(MigrationBuilder mb, String sql) throws SQLException {
     Connection conn = createStrictMock(Connection.class);
-    expect(conn.prepareStatement("alter table foo add column bar varchar(255) not null default 'baz'")).
-        andReturn(mockExecutablePreparedStatement());
+    expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatement());
     replay(conn);
-
     mb.apply(conn);
     verify(conn);
   }

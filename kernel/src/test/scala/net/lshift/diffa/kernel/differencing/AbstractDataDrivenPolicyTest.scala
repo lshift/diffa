@@ -60,10 +60,12 @@ abstract class AbstractDataDrivenPolicyTest {
   val diagnostics = createStrictMock("diagnostics", classOf[DiagnosticsManager])
 
   val writer = createMock("writer", classOf[LimitedVersionCorrelationWriter])
+  val extendedWriter = createMock("extendedWriter", classOf[ExtendedVersionCorrelationWriter])
   val store = createMock("versionStore", classOf[VersionCorrelationStore])
   val stores = new VersionCorrelationStoreFactory {
     def apply(pair: DiffaPairRef) = store
     def remove(pair: DiffaPairRef) {}
+    def close(pair: DiffaPairRef) {}
     def close {}
   }
 
@@ -95,8 +97,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -126,8 +128,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -166,8 +168,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -206,27 +208,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, writer, usMock, dsMock, listener, feedbackHandle)
-
-    verifyAll
-  }
-
-  /**
-   * Scenario for replaying unmatched differences at the completion of a scan.
-   */
-  @Theory
-  def shouldWriteMismatchEventsBasedOnResultsOfStore(scenario:Scenario) {
-    setupStubs(scenario)
-
-    // TODO: Actually generate some mismatched version data?
-    val us = scenario.pair.upstream.defaultConstraints
-    val ds = scenario.pair.downstream.defaultConstraints
-    expect(store.unmatchedVersions(EasyMock.eq(us), EasyMock.eq(ds))).andReturn(Seq())
-
-    replayAll
-
-    policy.replayUnmatchedDifferences(scenario.pair, diffWriter, TriggeredByScan)
+    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }

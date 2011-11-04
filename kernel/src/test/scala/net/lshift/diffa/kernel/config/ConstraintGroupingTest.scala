@@ -29,7 +29,7 @@ class ConstraintGroupingTest {
   @Theory
   def shouldGroupConstraintsForEndpoint(expectation:GroupExpectation) = {
     val endpoint = new Endpoint{categories = expectation.categories}
-    assertEquals(expectation.grouped.map(s => s.toSet).toSet, endpoint.groupedConstraints.map(s => s.toSet).toSet)
+    assertEquals(expectation.grouped.map(s => s.toSet).toSet, endpoint.groupedConstraints(None).map(s => s.toSet).toSet)
   }
 }
 

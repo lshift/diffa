@@ -70,9 +70,6 @@ public class SQLStringHelpers {
     buffer.append(col.getQuotedName(dialect)).append(" ");
     buffer.append(getTypeName(dialect, col));
 
-    if (!col.isNullable()) {
-      buffer.append(" not null");
-    }
     if (!newTable && col.getDefaultValue() == null && !col.isNullable()) {
       throw new IllegalArgumentException("Cannot have a null default value for a non-nullable column when altering a table: " + col);
     }
@@ -88,6 +85,11 @@ public class SQLStringHelpers {
       buffer.append(defaultQuote);
       buffer.append(col.getDefaultValue());
       buffer.append(defaultQuote);
+    }
+
+    // HSQL Doesn't like the not null coming before the default stanza
+    if (!col.isNullable()) {
+      buffer.append(" not null");
     }
 
     return buffer.toString();

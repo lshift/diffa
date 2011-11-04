@@ -1,29 +1,38 @@
 package net.lshift.diffa.kernel.diag
 
-import org.junit.Test
 import org.junit.Assert._
 import org.hamcrest.CoreMatchers._
+import org.hamcrest.number.OrderingComparison._
 import org.joda.time.DateTime
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.util.HamcrestDateTimeHelpers._
 import net.lshift.diffa.kernel.differencing.{PairScanState}
 import net.lshift.diffa.kernel.frontend.FrontendConversions
-import net.lshift.diffa.kernel.config.Endpoint._
-import net.lshift.diffa.kernel.config.{Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
+import org.junit.{Before, Test}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
+import java.io.{FileInputStream, File}
+import org.apache.commons.io.{IOUtils, FileDeleteStrategy}
+import java.util.zip.ZipInputStream
 
 class LocalDiagnosticsManagerTest {
   val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
 
-  val diagnostics = new LocalDiagnosticsManager(domainConfigStore)
+  val explainRoot = new File("target/explain")
+  val diagnostics = new LocalDiagnosticsManager(domainConfigStore, explainRoot.getPath)
 
   val domainName = "domain"
   val domain = Domain(name=domainName)
 
-  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes", inboundContentType = "application/json")
-  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes", inboundContentType = "application/json")
+  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes")
+  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes")
 
   val pair1 = DiffaPair(key = "pair1", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
   val pair2 = DiffaPair(key = "pair2", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
+
+  @Before
+  def cleanupExplanations() {
+    FileDeleteStrategy.FORCE.delete(explainRoot)
+  }
 
   @Test
   def shouldAcceptAndStoreLogEventForPair() {
@@ -46,7 +55,7 @@ class LocalDiagnosticsManagerTest {
   }
 
   @Test
-  def shouldTrackStateOfPairsWithinDomain {
+  def shouldTrackStateOfPairsWithinDomain() {
     expect(domainConfigStore.listPairs(domainName)).
         andStubReturn(Seq(FrontendConversions.toPairDef(pair1), FrontendConversions.toPairDef(pair2)))
     replayAll()
@@ -74,7 +83,7 @@ class LocalDiagnosticsManagerTest {
   }
 
   @Test
-  def shouldNotReportStateOfDeletedPairs {
+  def shouldNotReportStateOfDeletedPairs() {
     // Wire up pair1 and pair2 to exist, and provide a status
     expect(domainConfigStore.listPairs(domainName)).
         andStubReturn(Seq(FrontendConversions.toPairDef(pair1), FrontendConversions.toPairDef(pair2)))
@@ -90,6 +99,128 @@ class LocalDiagnosticsManagerTest {
     replayAll()
     diagnostics.onDeletePair(pair1.asRef)
     assertEquals(Map("pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain(domainName))
+  }
+  
+  @Test
+  def shouldNotGenerateAnyOutputWhenCheckpointIsCalledOnASilentPair() {
+    diagnostics.checkpointExplanations(DiffaPairRef("quiet", "domain"))
+
+    val pairDir = new File(explainRoot, "domain/quiet")
+    if (pairDir.exists())
+      assertEquals(0, pairDir.listFiles().length)
+  }
+
+  @Test
+  def shouldGenerateOutputWhenExplanationsHaveBeenLogged() {
+    val pair = DiffaPairRef("explained", "domain")
+
+    diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
+    diagnostics.checkpointExplanations(pair)
+
+    val pairDir = new File(explainRoot, "domain/explained")
+    val zips = pairDir.listFiles()
+
+    assertEquals(1, zips.length)
+    assertTrue(zips(0).getName.endsWith(".zip"))
+
+    val zis = new ZipInputStream(new FileInputStream(zips(0)))
+    val entry = zis.getNextEntry
+    assertEquals("explain.log", entry.getName)
+
+    val content = IOUtils.toString(zis)
+    assertTrue(content.contains("[Test Case] Diffa did something"))
+  }
+
+  @Test
+  def shouldIncludeContentsOfObjectsAdded() {
+    val pair = DiffaPairRef("explainedobj", "domain")
+
+    diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
+      os.write("{a: 1}".getBytes("UTF-8"))
+    })
+    diagnostics.checkpointExplanations(pair)
+
+    val pairDir = new File(explainRoot, "domain/explainedobj")
+    val zips = pairDir.listFiles()
+
+    assertEquals(1, zips.length)
+    assertTrue(zips(0).getName.endsWith(".zip"))
+
+    val zis = new ZipInputStream(new FileInputStream(zips(0)))
+
+    var entry = zis.getNextEntry
+    while (entry != null && entry.getName != "upstream.123.json") entry = zis.getNextEntry
+
+    if (entry == null) fail("Could not find entry upstream.123.json")
+
+    val content = IOUtils.toString(zis)
+    assertEquals("{a: 1}", content)
+  }
+
+  @Test
+  def shouldAddLogMessageIndicatingObjectWasAttached() {
+    val pair = DiffaPairRef("explainedobj", "domain")
+
+    diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
+      os.write("{a: 1}".getBytes("UTF-8"))
+    })
+    diagnostics.checkpointExplanations(pair)
+
+    val pairDir = new File(explainRoot, "domain/explainedobj")
+    val zips = pairDir.listFiles()
+
+    assertEquals(1, zips.length)
+    assertTrue(zips(0).getName.endsWith(".zip"))
+
+    val zis = new ZipInputStream(new FileInputStream(zips(0)))
+
+    var entry = zis.getNextEntry
+    while (entry != null && entry.getName != "explain.log") entry = zis.getNextEntry
+
+    if (entry == null) fail("Could not find entry explain.log")
+
+    val content = IOUtils.toString(zis)
+    assertTrue(content.contains("[Test Case] Attached object upstream.123.json"))
+  }
+
+  @Test
+  def shouldCreateMultipleOutputsWhenMultipleNonQuietRunsHaveBeenMade() {
+    val pair = DiffaPairRef("explained", "domain")
+
+    diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
+    diagnostics.checkpointExplanations(pair)
+
+    diagnostics.logPairExplanation(pair, "Test Case" , "Diffa did something else")
+    diagnostics.checkpointExplanations(pair)
+
+    val pairDir = new File(explainRoot, "domain/explained")
+    val zips = pairDir.listFiles()
+
+    assertEquals(2, zips.length)
+  }
+
+  @Test
+  def shouldKeepNumberOfExplanationFilesUnderControl() {
+    val pair = DiffaPairRef("controlled", "domain")
+
+    for (i <- 1 until 100) {
+      diagnostics.logPairExplanation(pair, "Test Case", i.toString)
+      diagnostics.checkpointExplanations(pair)
+    }
+
+    val pairDir = new File(explainRoot, "domain/controlled")
+    val zips = pairDir.listFiles()
+
+    assertEquals(20, zips.length)
+    zips.foreach(z => {
+      val zipInputStream = new ZipInputStream(new FileInputStream(z))
+      zipInputStream.getNextEntry
+      val content = IOUtils.toString(zipInputStream)
+      zipInputStream.close()
+
+      val entryNum = content.trim().split(" ").last
+      assertThat(new Integer(entryNum), is(greaterThanOrEqualTo(new Integer(80))))
+    })
   }
 
   def replayAll() { replay(domainConfigStore) }

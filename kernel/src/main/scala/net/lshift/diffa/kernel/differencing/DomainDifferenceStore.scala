@@ -72,6 +72,11 @@ trait DomainDifferenceStore {
   def addMatchedEvent(id:VersionID, vsn:String):DifferenceEvent
 
   /**
+   * Removes the events identified by these versions from the store
+   */
+  def removeEvents(events:Iterable[VersionID])
+
+  /**
    * Indicates that all differences in the cache older than the given date should be marked as matched. This is generally
    * invoked upon a scan being completed, and allows for events that have disappeared to be removed.
    */
@@ -91,15 +96,42 @@ trait DomainDifferenceStore {
   def unignoreEvent(domain:String, seqId:String): DifferenceEvent
 
   /**
+   * Returns the last correlation version that was transferred to the diffs store
+   */
+  def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
+
+  /**
+   * Removes the entry for the latest correlation store that was recorded with the diffs store.
+   */
+  def removeLatestRecordedVersion(pair:DiffaPairRef)
+
+  /**
+   * Registers the latest correlation store version with the diff store.
+   */
+  def recordLatestVersion(pair:DiffaPairRef, version:Long)
+
+  /**
    * Retrieves all unmatched events in the domain that have been added to the cache where their detection timestamp
    * falls within the specified period
    */
   def retrieveUnmatchedEvents(domain:String, interval:Interval) : Seq[DifferenceEvent]
 
   /**
+   * Streams all unmatched events for the given pair to a provided handler.
+   */
+  def streamUnmatchedEvents(pairRef:DiffaPairRef, handler:(ReportedDifferenceEvent) => Unit)
+
+  /**
    * Applies a closure to all unmatched events for the given pair whose detection timestamp falls into the supplied time bound
    */
+  @Deprecated
   def retrieveUnmatchedEvents(domain:DiffaPairRef, interval:Interval, f:ReportedDifferenceEvent => Unit)
+
+  /**
+   * Returns an aggregate of all unmatched events for the given pair whose detection timestamp falls into the supplied time bound.
+   * The results are grouped by date intervals according to the desired zoom level.
+   */
+  def aggregateUnmatchedEvents(pair:DiffaPairRef, interval:Interval, zoomLevel:Int) : Seq[AggregateEvents]
 
   /**
    * Retrieves all unmatched events that have been added to the cache that have a detection time within the specified
@@ -150,6 +182,11 @@ case class TileGroup(
 
 case class EventOptions(
   includeIgnored:Boolean = false    // Whether ignored events should be included in the response
+)
+
+case class AggregateEvents(
+  interval:Interval,
+  count:Int
 )
 
 case class ReportedDifferenceEvent(

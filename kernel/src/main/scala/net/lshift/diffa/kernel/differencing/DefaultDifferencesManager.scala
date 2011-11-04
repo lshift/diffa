@@ -66,17 +66,27 @@ class DefaultDifferencesManager(
   def createDifferenceWriter(domain:String, pair:String, overwrite: Boolean) = new DifferenceWriter {
     // Record when we started the write so all differences can be tagged
     val writerStart = new DateTime
-
-    def writeMismatch(id: VersionID, lastUpdate: DateTime, upstreamVsn: String, downstreamVsn: String, origin: MatchOrigin) {
-      onMismatch(id, lastUpdate, upstreamVsn, downstreamVsn, origin, Unfiltered)
+    val pairRef = DiffaPairRef(pair,domain)
+    var latestStoreVersion:Long = domainDifferenceStore.lastRecordedVersion(pairRef) match {
+      case Some(version) => version
+      case None          => 0L
     }
+
+    def writeMismatch(id: VersionID, lastUpdate: DateTime, upstreamVsn: String, downstreamVsn: String, origin: MatchOrigin, storeVersion:Long) {
+      onMismatch(id, lastUpdate, upstreamVsn, downstreamVsn, origin, Unfiltered)
+      if (storeVersion > latestStoreVersion) {
+        latestStoreVersion = storeVersion
+      }
+    }
+
+    def evictTombstones(tombstones:Iterable[Correlation]) = domainDifferenceStore.removeEvents(tombstones.map(_.asVersionID))
 
     def abort() {
       // Nothing to do
     }
 
     def close() {
-      domainDifferenceStore.matchEventsOlderThan(DiffaPairRef(domain = domain, key = pair), writerStart)
+      domainDifferenceStore.recordLatestVersion(pairRef, latestStoreVersion)
     }
   }
 
@@ -107,6 +117,8 @@ class DefaultDifferencesManager(
   def unignoreDifference(domain:String, seqId:String) = {
     domainDifferenceStore.unignoreEvent(domain, seqId)
   }
+
+  def lastRecordedVersion(pair:DiffaPairRef) = domainDifferenceStore.lastRecordedVersion(pair)
 
   def retrieveAllEventsInInterval(domain:String, interval:Interval) =
     domainDifferenceStore.retrieveUnmatchedEvents(domain, interval)
@@ -273,16 +285,16 @@ class DefaultDifferencesManager(
   def upgradePending(id:VersionID) {
     val evt = domainDifferenceStore.upgradePendingUnmatchedEvent(id)
     if (evt != null) {
-      log.debug("Processing upgrade from pending to unmatched for " + id)
+      log.trace("Processing upgrade from pending to unmatched for " + id)
       differenceListener.onMismatch(id, evt.detectedAt, evt.upstreamVsn, evt.downstreamVsn, LiveWindow, MatcherFiltered)
     } else {
-      log.debug("Skipped upgrade from pending to unmatched for " + id + " as the event was not pending")
+      log.trace("Skipped upgrade from pending to unmatched for " + id + " as the event was not pending")
     }
   }
   def cancelPending(id:VersionID, vsn:String) {
     val wasDeleted = domainDifferenceStore.cancelPendingUnmatchedEvent(id, vsn)
     if (wasDeleted) {
-      log.debug("Cancelling pending event for " + id)
+      log.trace("Cancelling pending event for " + id)
     }
   }
 }

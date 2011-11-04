@@ -13,26 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.diffa.agent.rest
 
-package net.lshift.diffa.kernel.participants
-
-import scala.collection.mutable.HashMap
-import org.slf4j.LoggerFactory
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.CacheWrapper
 
 /**
- * Provides a registry for EventFormatMapper instances.
+ * Very simple generic read through cache
  */
-class EventFormatMapperManager {
+class ReadThroughCache[K,V](cacheManager:CacheManager, name:String) {
 
-  private val log = LoggerFactory.getLogger(getClass)
+  private val cachedPairs = new CacheWrapper[K,V](name, cacheManager)
 
-  private val mappers = HashMap[String, EventFormatMapper]()
-
-  def registerMapper(mapper: EventFormatMapper) = {
-    log.debug("Registered mapper for content type: %s [%s]".format(mapper.contentType, mapper))
-    mappers.put(mapper.contentType, mapper)
-  }
-
-  def lookup(contentType: String) =
-    mappers.get(contentType)
+  def readThrough(key:K, f:() => V) = cachedPairs.readThrough(key,f)
 }

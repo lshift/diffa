@@ -64,18 +64,44 @@
       <key-property name="name" type="string" />
       <key-many-to-one name="domain" class="Domain" column="domain" lazy="false" />
     </composite-id>
-    <property name="scanUrl" column="scan_url" type="string" not-null="false" unique="false"/>
-    <property name="contentRetrievalUrl" column="content_retrieval_url" type="string" not-null="false" unique="false"/>
-    <property name="versionGenerationUrl" column="version_generation_url" type="string" not-null="false" unique="false"/>
-    <property name="inboundUrl" column="inbound_url" type="string" not-null="false" unique="false"/>
+    <property name="scanUrl" column="scan_url" type="string" not-null="false" unique="false" length="1024"/>
+    <property name="contentRetrievalUrl" column="content_retrieval_url" type="string" not-null="false" unique="false" length="1024"/>
+    <property name="versionGenerationUrl" column="version_generation_url" type="string" not-null="false" unique="false" length="1024"/>
+    <property name="inboundUrl" column="inbound_url" type="string" not-null="false" unique="false" length="1024"/>
     <property name="contentType" column="content_type" type="string" not-null="true"/>
-    <property name="inboundContentType" column="inbound_content_type" type="string" not-null="false"/>
     <map name="categories" lazy="false" cascade="all">
       <key>
         <column name="id"/>
         <column name="domain"/>
       </key>
       <index column="name" type="string"/>
+      <many-to-many column="category_descriptor_id" class="CategoryDescriptor"/>
+    </map>
+    <set name="views" inverse="true" lazy="false">
+      <key>
+        <column name="endpoint"/>
+        <column name="domain"/>
+      </key>
+      <one-to-many class="EndpointView"/>
+    </set>
+  </class>
+
+  <class name="EndpointView" table="endpoint_views" abstract="false">
+    <cache usage="read-write"/>
+    <composite-id mapped="true" class="net.lshift.diffa.kernel.config.EndpointScopedName">
+      <key-property name="name" type="string" />
+      <key-many-to-one name="endpoint" class="Endpoint" lazy="false">
+        <column name="endpoint" />
+        <column name="domain" />
+      </key-many-to-one>
+    </composite-id>
+    <map name="categories" lazy="false" cascade="all">
+      <key>
+        <column name="name"/>
+        <column name="endpoint"/>
+        <column name="domain"/>
+      </key>
+      <index column="category_name" type="string"/>
       <many-to-many column="category_descriptor_id" class="CategoryDescriptor"/>
     </map>
   </class>
@@ -96,6 +122,26 @@
     </many-to-one>
     <property name="versionPolicyName" type="string" column="version_policy_name" not-null="false"/>
     <property name="matchingTimeout" type="int" column="matching_timeout" not-null="false"/>
+    <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
+    <property name="allowManualScans" type="boolean" column="allow_manual_scans" not-null="false"/>
+    <set name="views" inverse="true" lazy="false">
+      <key>
+        <column name="pair"/>
+        <column name="domain"/>
+      </key>
+      <one-to-many class="PairView"/>
+    </set>
+  </class>
+
+  <class name="PairView" table="pair_views" abstract="false">
+    <cache usage="read-write"/>
+    <composite-id mapped="true">
+      <key-property name="name" type="string" />
+      <key-many-to-one name="pair" class="Pair" lazy="false">
+        <column name="pair" />
+        <column name="domain" />
+      </key-many-to-one>
+    </composite-id>
     <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
   </class>
 
@@ -160,10 +206,23 @@
     <property name="action" type="string" column="action" not-null="true" />
     <property name="actionType" type="string" column="action_type" not-null="true"/>
     <property name="event" type="string" column="event" not-null="true"/>
-    <property name="origin" type="string" column="origin" not-null="true"/>
+    <property name="origin" type="string" column="origin" not-null="false"/>
   </class>
 
-  <query name="userByName">
+  <class name="PairReport" table="pair_reports" abstract="false">
+    <cache usage="read-write"/>
+    <composite-id mapped="true">
+      <key-property name="name" type="string" column="name" />
+      <key-many-to-one name="pair" class="Pair" lazy="false">
+        <column name="pair_key" />
+        <column name="domain" />
+      </key-many-to-one>
+    </composite-id>
+    <property name="reportType" type="string" column="report_type" not-null="true" />
+    <property name="target" type="string" column="target" not-null="true" length="1024" />
+  </class>
+
+  <query name="userByName" cacheable="true">
     select u from User u where u.name = :name
   </query>
 
@@ -198,87 +257,126 @@
   </query>
 
   <!-- Queries by user -->
-  <query name="membersByUser">
+  <query name="membersByUser" cacheable="true">
     select m from Member m where m.user.name = :user_name
   </query>
 
 
   <!-- Queries by endpoint -->
-  <query name="pairsByEndpoint">
+  <query name="pairsByEndpoint" cacheable="true">
     select p from Pair p
     where
       p.domain.name = :domain_name and
       (p.upstream.name = :endpoint_name or p.downstream.name = :endpoint_name)
   </query>
 
+  <query name="endpointViewsByEndpoint" cacheable="true">
+    select v from EndpointView v
+    where
+      v.endpoint.domain.name = :domain_name and
+      v.endpoint.name = :endpoint_name
+  </query>
+
   <!-- Queries by domain only -->
 
-  <query name="membersByDomain">
+  <query name="membersByDomain" cacheable="true">
     select m from Member m where m.domain.name = :domain_name
   </query>
 
-  <query name="domainByName">
+  <query name="domainByName" cacheable="true">
     select d from Domain d where d.name = :domain_name
   </query>
 
-  <query name="pairsByDomain">
+  <query name="pairsByDomain" cacheable="true">
     select p from Pair p where p.domain.name = :domain_name
   </query>
 
-  <query name="endpointsByDomain">
+  <query name="pairViewsByDomain" cacheable="true">
+    select v from PairView v where v.pair.domain.name = :domain_name
+  </query>
+
+  <query name="endpointsByDomain" cacheable="true">
     select e from Endpoint e where e.domain.name = :domain_name
   </query>
 
-  <query name="escalationsByDomain">
+  <query name="endpointViewsByDomain" cacheable="true">
+    select v from EndpointView v where v.endpoint.domain.name = :domain_name
+  </query>
+
+  <query name="escalationsByDomain" cacheable="true">
     select e from Escalation e
     join e.pair as p
     join p.domain as d with d.name = :domain_name
   </query>
 
-  <query name="repairActionsByDomain">
+  <query name="reportsByDomain" cacheable="true">
+    select r from PairReport r
+    join r.pair as p
+    join p.domain as d with d.name = :domain_name
+  </query>
+
+  <query name="repairActionsByDomain" cacheable="true">
     select a from RepairAction a
     join a.pair as p
     join p.domain as d with d.name = :domain_name
   </query>
 
-  <query name="configOptionsByDomain">
+  <query name="configOptionsByDomain" cacheable="true">
     select o from ConfigOption o where o.domain.name = :domain_name
   </query>
 
   <!-- Query by pair with domain -->
 
-  <query name="repairActionsByPair">
+  <query name="repairActionsByPair" cacheable="true">
     select a from RepairAction a
     join a.pair as p with p.key = :pair_key
     join p.domain as d with d.name = :domain_name
   </query>
 
-  <query name="escalationsByPair">
+  <query name="escalationsByPair" cacheable="true">
     select e from Escalation e
     join e.pair as p with p.key = :pair_key
     join p.domain as d with d.name = :domain_name
   </query>
 
+  <query name="reportsByPair" cacheable="true">
+    select r from PairReport r
+    join r.pair as p with p.key = :pair_key
+    join p.domain as d with d.name = :domain_name
+  </query>
+
   <!-- Query by pair with domain and key -->
 
-  <query name="repairActionsByNameAndPair">
+  <query name="repairActionsByNameAndPair" cacheable="true">
     select a from RepairAction a
     join a.pair as p with p.key = :pair_key
     join p.domain as d with d.name = :domain_name
     where a.name = :name
   </query>
 
-  <query name="escalationsByNameAndPair">
+  <query name="escalationsByNameAndPair" cacheable="true">
     select e from Escalation e
     join e.pair as p with p.key = :pair_key
     join p.domain as d with d.name = :domain_name
     where e.name = :name
   </query>
 
-  <query name="configOptionByNameAndKey">
+  <query name="reportsByNameAndPair" cacheable="true">
+    select r from PairReport r
+    join r.pair as p with p.key = :pair_key
+    join p.domain as d with d.name = :domain_name
+    where r.name = :name
+  </query>
+
+  <query name="configOptionByNameAndKey" cacheable="true">
     select o.value from ConfigOption o
     where o.key = :key
     and o.domain.name = :domain_name
+  </query>
+
+  <query name="pairViewsByPair" cacheable="true">
+    select v from PairView v
+    where v.pair.domain.name = :domain_name and v.pair.key = :pair_key
   </query>
 
 </hibernate-mapping>

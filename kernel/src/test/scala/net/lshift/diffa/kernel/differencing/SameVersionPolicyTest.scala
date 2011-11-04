@@ -98,8 +98,8 @@ class SameVersionPolicyTest extends AbstractPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(pair, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(pair, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(pair, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(pair, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }

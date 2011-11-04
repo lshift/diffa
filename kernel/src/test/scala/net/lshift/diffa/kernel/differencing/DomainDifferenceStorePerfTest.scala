@@ -11,6 +11,8 @@ import java.io.File
 import org.joda.time.{Interval, DateTime}
 import org.junit.{Ignore, Test}
 import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import org.hibernate.dialect.Dialect
 
 /**
  * Performance test for the domain cache.
@@ -198,9 +200,11 @@ object DomainDifferenceStorePerfTest {
     new Configuration().
       addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
       addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-      setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-      setProperty("hibernate.connection.url", "jdbc:derby:target/domain-cache-perf;create=true").
-      setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver").
+      setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+      setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/domain-cache-perf")).
+      setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+      setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+      setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
       setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
       setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
                                                              // otherwise the preparation step will not get committed
@@ -213,6 +217,6 @@ object DomainDifferenceStorePerfTest {
   }
 
   lazy val cacheManager = new CacheManager()
-
-  lazy val diffStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager)
+  lazy val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
+  lazy val diffStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect)
 }

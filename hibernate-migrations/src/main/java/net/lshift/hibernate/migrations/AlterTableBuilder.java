@@ -54,14 +54,24 @@ public class AlterTableBuilder extends TraceableMigrationElement {
   }
 
   public AlterTableBuilder addColumn(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
+    Column col = buildColumnDefinition(name, sqlType, length, nullable, defaultVal);
+    alterFragments.add("add column " + generateColumnString(dialect, col, false));
+    return this;
+  }
+
+  public AlterTableBuilder alterColumn(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
+    Column col = buildColumnDefinition(name, sqlType, length, nullable, defaultVal);
+    alterFragments.add("alter column " + generateColumnString(dialect, col, false));
+    return this;
+  }
+
+  private static Column buildColumnDefinition(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
     Column col = new Column(name);
     col.setSqlTypeCode(sqlType);
     col.setNullable(nullable);
     col.setLength(length);
     col.setDefaultValue(defaultVal != null ? defaultVal.toString() : null);
-
-    alterFragments.add("add column " + generateColumnString(dialect, col, false));
-    return this;
+    return col;
   }
 
   public AlterTableBuilder addForeignKey(String name, String columnName, String referencedTable, String referencedColumn) {

@@ -44,23 +44,4 @@ object RangeCategoryParser {
       log.warn("Casting value %s (which has the configured type %s) to a string".format(value,t))
       StringAttribute(value)
   }
-
-  // TODO Timezone handling may not be quite correct
-  def buildConstraint(name:String, descriptor:RangeCategoryDescriptor) = descriptor.dataType match {
-    case "int"      => new IntegerRangeConstraint(name, parseInt(descriptor.lower), parseInt(descriptor.upper))
-    case "datetime" => {
-      try {
-        // Attempt to parse a yyyy-MM-dd format and widen
-        val lower = dateFormatter.parseDateTime(descriptor.lower)
-        val upper = dateFormatter.parseDateTime(descriptor.upper).plusDays(1).minusMillis(1)
-        new TimeRangeConstraint(name, lower, upper)
-      }
-      catch {
-        // The format is not yyyy-MM-dd, so don't widen
-        case e:IllegalArgumentException =>
-          new TimeRangeConstraint(name, parseDateTime(descriptor.lower), parseDateTime(descriptor.upper))
-      }
-    }
-    case "date"     => new DateRangeConstraint(name, parseDate(descriptor.lower), parseDate(descriptor.upper))
-  }
 }

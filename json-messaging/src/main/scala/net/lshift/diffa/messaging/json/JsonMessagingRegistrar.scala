@@ -27,7 +27,6 @@ import net.lshift.diffa.kernel.participants._
  */
 class JsonMessagingRegistrar(val protocolMapper:ProtocolMapper,
                              val participantFactory:ParticipantFactory,
-                             val eventFormatMapperManager:EventFormatMapperManager,
                              val changes:Changes)
   extends AgentLifecycleAware {
 

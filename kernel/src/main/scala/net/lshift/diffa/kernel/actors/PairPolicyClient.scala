@@ -41,8 +41,9 @@ trait PairPolicyClient {
    * Scans the participants belonging to the given pair, then generates a different report.
    * Activities are performed on the underlying policy in a thread safe manner, allowing multiple
    * concurrent operations to be submitted safely against the same pair concurrently.
+   * @param scanView the view of the participants that should be used when running the scan.
    */
-  def scanPair(pair:DiffaPairRef) : Unit
+  def scanPair(pair:DiffaPairRef, scanView:Option[String]) : Unit
 
   /**
    * Cancels any scan operation that may be in process.

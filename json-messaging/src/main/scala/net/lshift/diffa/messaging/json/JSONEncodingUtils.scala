@@ -18,6 +18,10 @@ package net.lshift.diffa.messaging.json
 
 import org.codehaus.jackson.map.ObjectMapper
 import net.lshift.diffa.kernel.frontend.wire._
+import org.codehaus.jackson.`type`.TypeReference
+
+import java.util.List
+import scala.collection.JavaConversions._
 
 /**
  * Standard utilities for JSON encoding.
@@ -47,6 +51,21 @@ object JSONEncodingUtils {
 
   def deserializeEvent(wire:String) : WireEvent = mapper.readValue(wire, classOf[WireEvent])
   def serializeEvent(event:WireEvent) = mapper.writeValueAsString(event)
+
+  def deserializeEventList(wire:String): Seq[WireEvent] =
+    asScalaBuffer(mapper.readValue(wire, new TypeReference[List[WireEvent]]() {}))
+
+  def maybeDeserializeEventList(event: String) : Seq[WireEvent] = {
+    if (event.startsWith("[")) {
+      deserializeEventList(event)
+    }
+    else {
+      Seq(JSONEncodingUtils.deserializeEvent(event))
+    }
+  }
+
+  def serializeEventList(events:Seq[WireEvent]) =
+    mapper.writeValueAsString(seqAsJavaList(events))
 
   def serializeEmptyResponse() = "{}"
 

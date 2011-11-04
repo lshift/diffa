@@ -18,12 +18,14 @@ package net.lshift.diffa.kernel.escalation
 
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.DomainConfigStore
 import net.lshift.diffa.kernel.config.EscalationEvent._
+import net.lshift.diffa.kernel.config.EscalationActionType._
 import net.lshift.diffa.kernel.client.{ActionableRequest, ActionsClient}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import net.lshift.diffa.kernel.differencing._
+import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.reporting.ReportManager
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -42,9 +44,11 @@ import net.lshift.diffa.kernel.differencing._
  * through configurable steps.
  */
 class EscalationManager(val config:DomainConfigStore,
-                        val actionsClient:ActionsClient)
+                        val actionsClient:ActionsClient,
+                        val reportManager:ReportManager)
     extends DifferencingListener
-    with AgentLifecycleAware {
+    with AgentLifecycleAware
+    with PairScanListener {
 
   val log = LoggerFactory.getLogger(getClass)
 
@@ -53,6 +57,7 @@ class EscalationManager(val config:DomainConfigStore,
    */
   override def onAgentInstantiationCompleted(nc: NotificationCentre) {
     nc.registerForDifferenceEvents(this, MatcherFiltered)
+    nc.registerForPairScanEvents(this)
   }
 
   def onMatch(id: VersionID, vsn: String, origin: MatchOrigin) = ()
@@ -64,19 +69,38 @@ class EscalationManager(val config:DomainConfigStore,
                  origin: MatchOrigin, level:DifferenceFilterLevel) = origin match {
     case TriggeredByScan => {
       DifferenceUtils.differenceType(upstreamVsn, downstreamVsn) match {
-        case UpstreamMissing     => escalateByEventType(id, UPSTREAM_MISSING)
-        case DownstreamMissing   => escalateByEventType(id, DOWNSTREAM_MISSING)
-        case ConflictingVersions => escalateByEventType(id, MISMATCH)
+        case UpstreamMissing     => escalateEntityEvent(id, UPSTREAM_MISSING)
+        case DownstreamMissing   => escalateEntityEvent(id, DOWNSTREAM_MISSING)
+        case ConflictingVersions => escalateEntityEvent(id, MISMATCH)
       }
     }
     case _               => // ignore this for now
   }
 
-  def escalateByEventType(id: VersionID, eventType:String) = {
-    val escalations = config.listEscalationsForPair(id.pair.domain, id.pair.key).filter(_.event == eventType)
-    escalations.foreach( e => {
+
+  def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) {
+    scanState match {
+      case PairScanState.FAILED     => escalatePairEvent(pair, SCAN_FAILED)
+      case PairScanState.UP_TO_DATE => escalatePairEvent(pair, SCAN_COMPLETED)
+      case _                        => // Not interesting
+    }
+  }
+
+  def escalateEntityEvent(id: VersionID, eventType:String) = {
+    findEscalations(id.pair, eventType, REPAIR).foreach(e => {
       val result = actionsClient.invoke(ActionableRequest(id.pair.key, id.pair.domain, e.action, id.id))
       log.debug("Escalation result for action [%s] using %s is %s".format(e.name, id, result))
     })
   }
+
+  def escalatePairEvent(pair: DiffaPairRef, eventType:String) = {
+    findEscalations(pair, eventType, REPORT).foreach(e => {
+      log.debug("Escalating pair event as report %s".format(e.name))
+      reportManager.executeReport(pair, e.action)
+    })
+  }
+
+  def findEscalations(pair: DiffaPairRef, eventType:String, actionTypes:String*) =
+    config.listEscalationsForPair(pair.domain, pair.key).
+      filter(e => e.event == eventType && actionTypes.contains(e.actionType))
 }

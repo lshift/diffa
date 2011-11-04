@@ -31,9 +31,9 @@ public class HibernateHelper {
   public static Configuration configuration() {
     if (config == null) {
       config = new Configuration().
-        setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-        setProperty("hibernate.connection.url", "jdbc:derby:target/data;create=true").
-        setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver");
+        setProperty("hibernate.dialect", "org.hibernate.dialect.HSQLDialect").
+        setProperty("hibernate.connection.url", "jdbc:hsqldb:mem").
+        setProperty("hibernate.connection.driver_class", "org.hsqldb.jdbc.JDBCDriver");
     }
 
     return config;

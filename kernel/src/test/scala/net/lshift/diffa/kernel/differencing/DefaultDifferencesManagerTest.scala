@@ -58,8 +58,8 @@ class DefaultDifferencesManagerTest {
   val domain1 = Domain(name=domainName)
   val domain2 = Domain(name=domainName2)
 
-  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes", inboundContentType = "application/json")
-  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes", inboundContentType = "application/json")
+  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes")
+  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes")
 
   val pair1 = DiffaPair(key = "pair1", domain = domain1, versionPolicyName = "policy", upstream = u, downstream = d)
   val pair2 = DiffaPair(key = "pair2", domain = domain1, versionPolicyName = "policy", upstream = u, downstream = d, matchingTimeout = 5)
@@ -143,7 +143,7 @@ class DefaultDifferencesManagerTest {
       expect(pairPolicyClient.difference(p.asRef)).atLeastOnce
     })
     pairs.foreach(p => {
-      expect(pairPolicyClient.scanPair(p.asRef)).atLeastOnce
+      expect(pairPolicyClient.scanPair(p.asRef, None)).atLeastOnce
     })
 
     replay(pairPolicyClient)

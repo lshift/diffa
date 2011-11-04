@@ -13,17 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.diffa.agent.rest
 
-package net.lshift.diffa.messaging.json
-
-import net.lshift.diffa.kernel.participants.EventFormatMapper
+import net.sf.ehcache.CacheManager
 
 /**
- * Default mapper for events in Diffa's native JSON format.
+ * Typed implementation of a generic cache to solve autowire by type resolution.
  */
-class DefaultEventFormatMapper extends EventFormatMapper {
-
-  val contentType = "application/json"
-
-  def map(event: String, endpoint:String) = Seq(JSONEncodingUtils.deserializeEvent(event))
-}
+class DomainSequenceCache(manager:CacheManager, name:String) extends ReadThroughCache[String, String](manager, name)

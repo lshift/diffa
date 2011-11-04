@@ -38,7 +38,6 @@ class DocExamplesFactory {
                            contentType = "application/json",
                            contentRetrievalUrl = "http://acme.com/upstream/node-content",
                            inboundUrl = "http://diff.io/domain/changes",
-                           inboundContentType = "application/json",
                            categories = Map("bizDate" -> categoryDescriptor))
 
   val pair = PairDef(key = "pairKey", upstreamName = "upstream", downstreamName = "downstream",

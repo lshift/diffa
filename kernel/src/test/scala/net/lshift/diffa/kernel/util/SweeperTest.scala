@@ -16,13 +16,13 @@
 package net.lshift.diffa.kernel.util
 
 import org.junit.Assert._
-import org.junit.Test
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
 import net.lshift.diffa.kernel.differencing.DomainDifferenceStore
 import org.joda.time.DateTime
 import org.easymock.IAnswer
 import java.util.concurrent.{TimeUnit, CountDownLatch}
+import org.junit.{After, Test}
 
 /**
  * Test cases for the Sweeper.
@@ -54,5 +54,10 @@ class SweeperTest {
 
     val duration = (System.currentTimeMillis() - startTime);
     assertTrue(duration + "ms was not at least 2s", duration > 2000)
+  }
+
+  @After
+  def cleanup() {
+    sweeper.shutdown()
   }
 }

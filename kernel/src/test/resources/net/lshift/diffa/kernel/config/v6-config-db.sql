@@ -12,7 +12,7 @@ create table repair_actions (name varchar(255) not null, pair_key varchar(255) n
 create table set_category_descriptor (id integer not null, primary key (id));
 create table set_constraint_values (value_id integer not null, value_name varchar(255) not null, primary key (value_id, value_name));
 create table system_config_options (opt_key varchar(255) not null, opt_val varchar(255), primary key (opt_key));
-create table users (name varchar(255) not null, email varchar(255), password_enc varchar(255), superuser smallint, primary key (name));
+create table users (name varchar(255) not null, email varchar(255), password_enc varchar(255), superuser bit, primary key (name));
 create table schema_version (version integer not null, primary key (version));
 alter table config_options add constraint FK80C74EA1C3C204DC foreign key (domain) references domains;
 alter table endpoint add constraint FK67C71D95C3C204DC foreign key (domain) references domains;

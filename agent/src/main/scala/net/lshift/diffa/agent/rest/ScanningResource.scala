@@ -25,6 +25,7 @@ import javax.ws.rs._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
 import org.slf4j.{LoggerFactory, Logger}
+import net.lshift.diffa.docgen.annotations.OptionalParams.OptionalParam
 
 class ScanningResource(val pairPolicyClient:PairPolicyClient,
                        val config:Configuration,
@@ -46,8 +47,9 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @Path("/pairs/{pairKey}/scan")
   @Description("Starts a scan for the given pair.")
   @MandatoryParams(Array(new MandatoryParam(name="pairKey", datatype="string", description="Pair Key")))
-  def startScan(@PathParam("pairKey") pairKey:String) = {
-    pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain))
+  @OptionalParam(name = "view", datatype="string", description="Child View to Scan")
+  def startScan(@PathParam("pairKey") pairKey:String, @FormParam("view") view:String) = {
+    pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), if (view != null) Some(view) else None)
     Response.status(Response.Status.ACCEPTED).build
   }
 
@@ -56,7 +58,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @Description("Forces Diffa to execute a scan operation for every configured pair within this domain.")
   def scanAllPairings = {
     log.info("Initiating scan of all known pairs")
-    domainConfigStore.listPairs(domain).foreach(p => pairPolicyClient.scanPair(DiffaPairRef(p.key, domain)))
+    domainConfigStore.listPairs(domain).foreach(p => pairPolicyClient.scanPair(DiffaPairRef(p.key, domain), None))
 
     Response.status(Response.Status.ACCEPTED).build
   }

@@ -85,13 +85,18 @@
     <env-entry-type>java.lang.String</env-entry-type>
   </env-entry>
   <env-entry>
+    <env-entry-name>diffaExplainDir</env-entry-name>
+    <env-entry-value>target/webapp-data/explain</env-entry-value>
+    <env-entry-type>java.lang.String</env-entry-type>
+  </env-entry>
+  <env-entry>
     <env-entry-name>diffaCustomRoot</env-entry-name>
     <env-entry-value>__context__</env-entry-value>
     <env-entry-type>java.lang.String</env-entry-type>
   </env-entry>
   <env-entry>
     <env-entry-name>diffaHibernateDialect</env-entry-name>
-    <env-entry-value>org.hibernate.dialect.DerbyDialect</env-entry-value>
+    <env-entry-value>org.hibernate.dialect.HSQLDialect</env-entry-value>
     <env-entry-type>java.lang.String</env-entry-type>
   </env-entry>
 </web-app>

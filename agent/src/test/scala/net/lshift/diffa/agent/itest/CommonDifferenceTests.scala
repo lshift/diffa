@@ -189,6 +189,46 @@ trait CommonDifferenceTests {
     assertFalse("Expected to find differences in range: %s -> %s".format(yearAgo, nextYear),diffs.isEmpty)
   }
 
+  /**
+   * Create a setup where there are two differences, but then run a scan with a view that will only see one of them.
+   * The list of differences should only include the difference within the viewed range.
+   */
+  @Test
+  def shouldNotScanOutsideViewBounds {
+    runScanAndWaitForCompletion(yearAgo, nextYear)
+    env.upstream.addEntity("abc", datetime = yesterday, someString = "ss", body = "abcdef", lastUpdated = new DateTime)
+    env.upstream.addEntity("def", datetime = yesterday, someString = "tt", body = "abcdef", lastUpdated = new DateTime)
+    runScanAndWaitForCompletion(yearAgo, nextYear, view = Some("tt-only"))
+
+    val events = pollForAllDifferences(yearAgo, nextYear)
+    assertEquals(1, events.length)
+    assertEquals("def", events(0).objId.id)
+  }
+
+  @Test
+  def shouldIgnoreRealtimeChangesThatDontConformToConstraints {
+
+    // someString is configured to be a string prefix category that only accepts 'ss' or 'tt'
+
+    runScanAndWaitForCompletion(yearAgo, today)
+    env.addAndNotifyUpstream("abc", "abcdef", someDate = yesterday, someString = "abcdef")
+
+    val diffs = pollForAllDifferences(yearAgo, nextYear)
+
+    assertTrue("Expected not to find differences for realtime event", diffs.isEmpty)
+  }
+
+  @Test
+  def shouldIgnoreScanChangesThatDontConformToConstraints {
+
+    // someString is configured to be a string prefix category that only accepts 'ss'
+
+    env.upstream.addEntity("abc", datetime = today, someString = "abcdef", lastUpdated = new DateTime, body = "abcdef")
+    val diffs = getReport(yearAgo, nextYear)
+
+    assertTrue("Expected not to find differences in scan", diffs.isEmpty)
+  }
+
   @Test
   def shouldPageDifferences = {
     val start = new DateTime
@@ -306,8 +346,8 @@ trait CommonDifferenceTests {
     }
   }
 
-  def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 30, wait:Int = 100) {
-    env.scanningClient.startScan(env.pairKey)
+  def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 30, wait:Int = 100, view:Option[String] = None) {
+    env.scanningClient.startScan(env.pairKey, view = view)
 
     waitForScanStatus(env.pairKey, PairScanState.UP_TO_DATE, n, wait)
   }

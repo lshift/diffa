@@ -36,6 +36,8 @@
     <constructor-arg ref="upstreamPart" />
   </bean>
 
+  <bean name="reportsController" class="net.lshift.diffa.participants.web.ReportsListenerController" />
+
   <bean id="htmlMediaType" class="org.springframework.http.MediaType">
     <constructor-arg value="text" />
     <constructor-arg value="html" />

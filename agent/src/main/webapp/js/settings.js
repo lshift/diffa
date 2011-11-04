@@ -52,6 +52,8 @@ Diffa.Models.Pair = Backbone.Model.extend({
     this.bind("change:selected", function(pair) {
       if (pair.get('selected')) {
         self.fetchActions();
+        self.fetchReports();
+        self.fetchFullDetails();
 
         self.logPollIntervalId = window.setInterval(self.syncLog, Diffa.Config.LogPollInterval);
         self.syncLog();
@@ -75,6 +77,21 @@ Diffa.Models.Pair = Backbone.Model.extend({
     });
   },
 
+  fetchReports: function() {
+    var self = this;
+    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/reports/' + this.id, function(reports) {
+      self.set({reports: reports});
+    });
+  },
+
+  fetchFullDetails: function() {
+    var self = this;
+    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/config/pairs/' + this.id, function(pairInfo) {
+      self.set(pairInfo);
+      self.set({fullContent: true})
+    });
+  },
+
   syncLog: function() {
     var self = this;
     $.getJSON(API_BASE + "/" + Diffa.currentDomain + "/diagnostics/" + this.id + "/log", function(logEntries) {
@@ -82,13 +99,18 @@ Diffa.Models.Pair = Backbone.Model.extend({
     });
   },
 
-  startScan: function() {
+  startScan: function(view) {
     var self = this;
-
+    var data = {};
+    if (view) {
+      data.view = view;
+    }
+    
     this.set({state: 'REQUESTING'});
     $.ajax({
       url: API_BASE + "/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
       type: "POST",
+      data: data,
       success: function() {
         self.set({state: 'SCANNING'});
       },
@@ -109,6 +131,18 @@ Diffa.Models.Pair = Backbone.Model.extend({
       },
       error: function(jqXHR, textStatus, errorThrown) {
         alert("Error in scan cancellation request: " + errorThrown);
+      }
+    });
+  },
+
+  runReport: function(name) {
+    var self = this;
+    
+    $.ajax({
+      url: API_BASE + "/" + Diffa.currentDomain + "/reports/" + this.id + "/" + name,
+      type: "POST",
+      error: function(jqXHR, textStatus, errorThrown) {
+        alert("Error in report request: " + errorThrown);
       }
     });
   }
@@ -291,8 +325,9 @@ Diffa.Views.PairControls = Diffa.Views.PairSelectionView.extend({
 
     _.bindAll(this, "render");
 
-    this.model.bind('change:selected', this.maybeRender);
-    this.model.bind('change:state',    this.maybeRender);
+    this.model.bind('change:selected',    this.maybeRender);
+    this.model.bind('change:state',       this.maybeRender);
+    this.model.bind('change:fullContent', this.maybeRender);
 
     this.maybeRender();
   },
@@ -303,11 +338,37 @@ Diffa.Views.PairControls = Diffa.Views.PairSelectionView.extend({
     var currentState = currentPair.get('state');
     var scanIsRunning = (currentState == "REQUESTING" || currentState == "SCANNING");
 
-    var scanButton = this.$('#pair-controls .scan-button');
+    var pairScanButton = this.$('#pair-controls .pair-scan-button');
+    var scanButtons = this.$('#pair-controls .scan-button');
     var cancelButton = this.$('#pair-controls .cancel-button');
 
-    $(scanButton).toggle(!scanIsRunning);
     $(cancelButton).toggle(scanIsRunning);
+
+    this.$('#pair-controls .view-scan-button').remove();
+    if (currentPair.get('fullContent')) {
+      // The presence of 'fullContent' indicates that the full data has been loaded
+      var views = _.sortBy(currentPair.get('views'), function(v) { return v.name; });
+
+      // Render scan buttons only if we're not currently doing a scan
+      if (!scanIsRunning) {
+        _.each(views, function(view) {
+          $('<button class="repair scan-button view-scan-button">Scan ' + view.name + '</button>').
+            appendTo($('#pair-controls')).
+            click(function(e) {
+              e.preventDefault();
+              currentPair.startScan(view.name);
+            });
+        });
+      }
+
+      // Only show the pair scan button if we're not scanning and we allow manual scans
+      var allowManualScans = (currentPair.get('allowManualScans') !== false);
+      $(pairScanButton).toggle(!scanIsRunning && allowManualScans);
+    } else {
+      $(scanButtons).hide();      // Don't show scan buttons till we know if they're allowed
+    }
+
+    this.el.show();
   },
 
   startScan: function() {
@@ -321,7 +382,7 @@ Diffa.Views.PairControls = Diffa.Views.PairSelectionView.extend({
   }
 });
 
-Diffa.Views.PairRepairs = Diffa.Views.PairSelectionView.extend({
+Diffa.Views.PairControlSet = Diffa.Views.PairSelectionView.extend({
   el: $('#pair-actions'),
 
   initialize: function() {
@@ -330,29 +391,58 @@ Diffa.Views.PairRepairs = Diffa.Views.PairSelectionView.extend({
     _.bindAll(this, "render");
 
     this.model.bind('change:selected', this.maybeRender);
-    this.model.bind('change:actions',  this.maybeRender);
+    this.model.bind('change:' + this.controlSet,  this.maybeRender);
 
     this.maybeRender();
   },
 
   render: function() {
     var self = this;
-    var repairs = $('#pair-repairs');
 
-    this.$('#pair-repairs button').remove();
+    $(this.panelEl).find('button').remove();
 
     var currentPair = self.model.get(self.currentPairKey);
-    var currentActions = currentPair.get('actions');
+    var currentControls = currentPair.get(self.controlSet);
 
-    // Only show the loading flower if we don't have actions loaded
-    this.$('#pair-repairs .loading').toggle(currentActions == null);
+    // Only show the loading flower if we don't have items loaded
+    $(this.panelEl).find('.loading').toggle(currentControls == null);
 
-    if (currentActions != null) {
-      _.each(currentActions, function(action) {
-        appendActionButtonToContainer(repairs, action, self.model.get(self.currentPairKey), null, null);
+    if (currentControls != null)
+      this.renderPanel(currentPair, currentControls);
+
+    // Only show ourselves if we're still loading or have content
+    $(this.panelEl).toggle(currentControls == null || currentControls.length > 0);
+  }
+});
+
+Diffa.Views.PairRepairs = Diffa.Views.PairControlSet.extend({
+  panelEl: $('#pair-repairs'),
+  controlSet: 'actions',
+
+  renderPanel: function(currentPair, currentActions) {
+    var self = this;
+
+    _.each(currentActions, function(action) {
+      appendActionButtonToContainer(self.panelEl, action, self.model.get(self.currentPairKey), null, null);
+    });
+  }
+});
+
+Diffa.Views.PairReports = Diffa.Views.PairControlSet.extend({
+  panelEl: $('#pair-reports'),
+  controlSet: 'reports',
+
+  renderPanel: function(currentPair, currentReports) {
+    var self = this;
+
+    _.each(currentReports, function(report) {
+      $('<button class="repair">Run ' + report.name +  ' Report</button>').
+        appendTo(self.panelEl).
+        click(function(e) {
+          e.preventDefault();
+          currentPair.runReport(report.name);
+        });
       });
-    }
-    this.el.show();
   }
 });
 
@@ -403,6 +493,7 @@ Diffa.PairsCollection = new Diffa.Collections.Pairs();
 Diffa.PairListView = new Diffa.Views.PairList({model: Diffa.PairsCollection});
 Diffa.PairControlsView =  new Diffa.Views.PairControls({model: Diffa.PairsCollection});
 Diffa.PairRepairsView =  new Diffa.Views.PairRepairs({model: Diffa.PairsCollection});
+Diffa.PairReportsView =  new Diffa.Views.PairReports({model: Diffa.PairsCollection});
 Diffa.PairLogView =  new Diffa.Views.PairLog({model: Diffa.PairsCollection});
 Backbone.history.start();
 

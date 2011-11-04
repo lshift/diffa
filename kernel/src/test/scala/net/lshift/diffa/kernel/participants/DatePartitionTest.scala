@@ -20,7 +20,8 @@ import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.kernel.config.{DateTimeTypeDescriptor, DateTypeDescriptor}
 import net.lshift.diffa.participant.scanning.{InvalidAttributeValueException, DateRangeConstraint, TimeRangeConstraint}
-import org.joda.time.{DateTimeZone, LocalDate, DateTime}
+import org.junit.experimental.theories.DataPoint
+import org.joda.time.{DateTime, DateTimeZone, LocalDate}
 
 class DatePartitionTest {
 
@@ -92,6 +93,50 @@ class DatePartitionTest {
       MonthlyCategoryFunction("bizDate", DateDataType).constrain(Some(previous), "1991-02"))
     assertEquals(new DateRangeConstraint("bizDate", new LocalDate(1991,3,1), new LocalDate(1991,3,31)),
       MonthlyCategoryFunction("bizDate", DateDataType).constrain(Some(previous), "1991-03"))
+  }
+
+  @Test
+  def halfOpenDateRangeShouldOnlyAcceptValuesGreaterThanTheDefinedBound = {
+    val unboundedUpper = new DateRangeConstraint("bizDate", new LocalDate(1991,2,2), null)
+    assertTrue(unboundedUpper.contains(new LocalDate(1991,2,3)))
+    assertFalse(unboundedUpper.contains(new LocalDate(1991,2,1)))
+  }
+
+  @Test
+  def halfOpenDateRangeShouldOnlyAcceptValuesLessThanTheDefinedBound = {
+    val unboundedLower = new DateRangeConstraint("bizDate", null, new LocalDate(1991,2,2))
+    assertTrue(unboundedLower.contains(new LocalDate(1991,2,1)))
+    assertFalse(unboundedLower.contains(new LocalDate(1991,2,3)))
+  }
+
+  @Test
+  def completelyUnboundDateRangeShouldAcceptAnyValue = {
+    val unbounded = new DateRangeConstraint("bizDate", null.asInstanceOf[LocalDate], null)
+    assertTrue(unbounded.contains(new LocalDate(1991,2,1)))
+    val unboundedAsString = new DateRangeConstraint("bizDate", null.asInstanceOf[String], null)
+    assertTrue(unboundedAsString.contains(new LocalDate(1991,2,1)))
+  }
+
+  @Test
+  def halfOpenTimeRangeShouldOnlyAcceptValuesGreaterThanTheDefinedBound = {
+    val unboundedUpper = new TimeRangeConstraint("bizTime", new DateTime(1991,2,2,15,8,9,0), null)
+    assertTrue(unboundedUpper.contains(new DateTime(1991,2,2,15,9,0,0)))
+    assertFalse(unboundedUpper.contains(new DateTime(1991,2,2,15,7,0,0)))
+  }
+
+  @Test
+  def halfOpenTimeRangeShouldOnlyAcceptValuesLessThanTheDefinedBound = {
+    val unboundedLower = new TimeRangeConstraint("bizTime", null, new DateTime(1991,2,2,15,8,9,0))
+    assertTrue(unboundedLower.contains(new DateTime(1991,2,2,15,7,9,0)))
+    assertFalse(unboundedLower.contains(new DateTime(1991,2,2,15,9,9,0)))
+  }
+
+  @Test
+  def completelyUnboundTimeRangeShouldAcceptAnyValue = {
+    val unbounded = new TimeRangeConstraint("bizTime", null.asInstanceOf[DateTime], null)
+    assertTrue(unbounded.contains(new DateTime(1991,2,1,0,0,0,0)))
+    val unboundedAsString = new TimeRangeConstraint("bizTime", null.asInstanceOf[String], null)
+    assertTrue(unboundedAsString.contains(new DateTime(1991,2,1,0,0,0,0)))
   }
 
   @Test(expected=classOf[InvalidAttributeValueException])

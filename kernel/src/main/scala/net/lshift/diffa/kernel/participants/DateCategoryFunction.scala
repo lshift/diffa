@@ -74,7 +74,7 @@ abstract class DateCategoryFunction(attrName:String, dataType:DateCategoryDataTy
   /**
    * Select the later of the two dates, since we don't want to widen a lower bound.
    */
-  def combineLower(existing:LocalDate, newDate:LocalDate) = if (newDate != null && existing.compareTo(newDate) > 0) {
+  def combineLower(existing:LocalDate, newDate:LocalDate) = if (newDate != null && existing != null && existing.compareTo(newDate) > 0) {
       existing
     } else {
       newDate
@@ -83,7 +83,7 @@ abstract class DateCategoryFunction(attrName:String, dataType:DateCategoryDataTy
   /**
    * Select the earlier of the two dates, since we don't want to widen an upper bound.
    */
-  def combineUpper(existing:LocalDate, newDate:LocalDate) = if (newDate != null && existing.compareTo(newDate) < 0) {
+  def combineUpper(existing:LocalDate, newDate:LocalDate) = if (newDate != null && existing != null && existing.compareTo(newDate) < 0) {
       existing
     } else {
       newDate
@@ -92,7 +92,7 @@ abstract class DateCategoryFunction(attrName:String, dataType:DateCategoryDataTy
   /**
    * Select the later of the two times, since we don't want to widen a lower bound.
    */
-  def combineLower(existing:DateTime, newDate:DateTime) = if (newDate != null && existing.compareTo(newDate) > 0) {
+  def combineLower(existing:DateTime, newDate:DateTime) = if (newDate != null && existing != null  && existing.compareTo(newDate) > 0) {
       existing
     } else {
       newDate
@@ -101,7 +101,7 @@ abstract class DateCategoryFunction(attrName:String, dataType:DateCategoryDataTy
   /**
    * Select the earlier of the two dates, since we don't want to widen an upper bound.
    */
-  def combineUpper(existing:DateTime, newDate:DateTime) = if (newDate != null && existing.compareTo(newDate) < 0) {
+  def combineUpper(existing:DateTime, newDate:DateTime) = if (newDate != null && existing != null && existing.compareTo(newDate) < 0) {
       existing
     } else {
       newDate

@@ -18,7 +18,6 @@ package net.lshift.diffa.kernel.config
 
 import org.junit.Assert._
 import org.hibernate.cfg.Configuration
-import net.lshift.diffa.kernel.util.MissingObjectException
 import org.hibernate.exception.ConstraintViolationException
 import org.junit.{Test, Before}
 import scala.collection.Map
@@ -28,13 +27,17 @@ import scala.collection.JavaConversions._
 import system.{HibernateSystemConfigStore, SystemConfigStore}
 import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.SessionHelper._
-import net.lshift.diffa.kernel.frontend.{RepairActionDef, PairDef, EndpointDef, EscalationDef}
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
+import net.lshift.diffa.kernel.frontend._
+import org.hibernate.dialect.Dialect
 
 class HibernateDomainConfigStoreTest {
 
   private lazy val domainConfigStore: DomainConfigStore = HibernateDomainConfigStoreTest.domainConfigStore
   private lazy val sessionFactory = HibernateDomainConfigStoreTest.sessionFactory
-  private lazy val systemConfigStore: SystemConfigStore = new HibernateSystemConfigStore(sessionFactory)
+  private lazy val pairCache = HibernateDomainConfigStoreTest.pairCache
+  private lazy val systemConfigStore: SystemConfigStore = new HibernateSystemConfigStore(sessionFactory,pairCache)
 
   val dateCategoryName = "bizDate"
   val dateCategoryLower = new DateTime(1982,4,5,12,13,9,0).toString()
@@ -56,11 +59,14 @@ class HibernateDomainConfigStoreTest {
   val domainName = "domain"
   val domain = new Domain(domainName)
 
+  val setView = EndpointViewDef(name = "a-only", categories = Map(dateCategoryName -> new SetCategoryDescriptor(Set("a"))))
+
   val upstream1 = new EndpointDef(name = "TEST_UPSTREAM", scanUrl = "testScanUrl1", contentType = "application/json",
                                   categories = dateRangeCategoriesMap)
   val upstream2 = new EndpointDef(name = "TEST_UPSTREAM_ALT", scanUrl = "testScanUrl2",
                                   contentRetrievalUrl = "contentRetrieveUrl1", contentType = "application/json",
-                                  categories = setCategoriesMap)
+                                  categories = setCategoriesMap,
+                                  views = Seq(setView))
 
   val downstream1 = new EndpointDef(name = "TEST_DOWNSTREAM", scanUrl = "testScanUrl3",
                                     contentType = "application/json", categories = intRangeCategoriesMap)
@@ -73,7 +79,7 @@ class HibernateDomainConfigStoreTest {
   val versionPolicyName2 = "TEST_VPNAME_ALT"
   val pairKey = "TEST_PAIR"
   val pairDef = new PairDef(pairKey, versionPolicyName1, matchingTimeout, upstream1.name,
-    downstream1.name)
+    downstream1.name, views = Seq(PairViewDef(name = "a-only")))
 
   val pair = DiffaPair(key = pairKey, domain = domain)
 
@@ -114,13 +120,41 @@ class HibernateDomainConfigStoreTest {
     assertEquals(count, endpoints.length)
     assertEquals(e.name, endpoints(offset).name)
     assertEquals(e.inboundUrl, endpoints(offset).inboundUrl)
-    assertEquals(e.inboundContentType, endpoints(offset).inboundContentType)
     assertEquals(e.scanUrl, endpoints(offset).scanUrl)
     assertEquals(e.contentRetrievalUrl, endpoints(offset).contentRetrievalUrl)
     assertEquals(e.versionGenerationUrl, endpoints(offset).versionGenerationUrl)
   }
 
   def exists (e:EndpointDef, count:Int) : Unit = exists(e, count, count - 1)
+
+  @Test
+  def pairsShouldCache = {
+
+    declareAll()
+
+    val initialCount = sessionFactory.getStatistics.getQueryExecutionCount
+
+    // This call should be read through from the DB
+    domainConfigStore.listPairs(domainName)
+    assertEquals("Should have generated cache miss", initialCount + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+
+    // This call should be cached
+    domainConfigStore.listPairs(domainName)
+    assertEquals("Should have generated cache hit", initialCount + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+
+    provokeCacheInvalidation(() => domainConfigStore.createOrUpdateEndpoint(domainName, upstream1))
+    provokeCacheInvalidation(() => domainConfigStore.createOrUpdatePair(domainName, pairDef))
+    provokeCacheInvalidation(() => domainConfigStore.deletePair(domainName, pairKey))
+    provokeCacheInvalidation(() => domainConfigStore.deleteEndpoint(domainName, upstream1.name))
+
+    // This should invalidate the pair cache
+    def provokeCacheInvalidation[T](f:() => T) = {
+      f()
+      val countAfterOperation = sessionFactory.getStatistics.getQueryExecutionCount
+      domainConfigStore.listPairs(domainName)
+      assertEquals("Should have generated cache hit", countAfterOperation + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+    }
+  }
 
   @Test
   def domainShouldBeDeletable = {
@@ -246,8 +280,9 @@ class HibernateDomainConfigStoreTest {
         
     // Change its name
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = upstreamRenamed,
-                                                                     scanUrl = upstream1.scanUrl, contentType = "application/json",
-                                                                     inboundUrl = "changes", inboundContentType = "application/json"))
+                                                                     scanUrl = upstream1.scanUrl,
+                                                                     contentType = "application/json",
+                                                                     inboundUrl = "changes"))
 
     val retrieved = domainConfigStore.getEndpointDef(domainName, upstreamRenamed)
     assertEquals(upstreamRenamed, retrieved.name)
@@ -264,7 +299,7 @@ class HibernateDomainConfigStoreTest {
     }
 
     domainConfigStore.createOrUpdatePair(domainName, PairDef(pairRenamed, versionPolicyName2, Pair.NO_MATCHING,
-      downstream1.name, upstream1.name, "0 0 * * * ?"))
+      downstream1.name, upstream1.name, "0 0 * * * ?", allowManualScans = false))
     
     val retrieved = domainConfigStore.getPairDef(domainName, pairRenamed)
     assertEquals(pairRenamed, retrieved.key)
@@ -272,6 +307,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(upstream1.name, retrieved.downstreamName)
     assertEquals(versionPolicyName2, retrieved.versionPolicyName)
     assertEquals("0 0 * * * ?", retrieved.scanCronSpec)
+    assertEquals(false, retrieved.allowManualScans)
     assertEquals(Pair.NO_MATCHING, retrieved.matchingTimeout)
   }
 
@@ -355,8 +391,7 @@ class HibernateDomainConfigStoreTest {
     systemConfigStore.createOrUpdateDomain(domain)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = upstream1.name, scanUrl = "DIFFERENT_URL",
-                                                                     contentType = "application/json", inboundUrl = "changes",
-                                                                     inboundContentType = "application/json"))
+                                                                     contentType = "application/json", inboundUrl = "changes"))
     assertEquals(1, domainConfigStore.listEndpoints(domainName).length)
     assertEquals("DIFFERENT_URL", domainConfigStore.getEndpointDef(domainName, upstream1.name).scanUrl)
   }
@@ -397,6 +432,31 @@ class HibernateDomainConfigStoreTest {
     assertEquals(1, descriptor.prefixLength)
     assertEquals(3, descriptor.maxLength)
     assertEquals(1, descriptor.step)
+  }
+
+  @Test
+  def shouldStoreViewsOnEndpoints = {
+    declareAll
+    val endpoint = domainConfigStore.getEndpointDef(domainName, upstream2.name)
+    assertNotNull(endpoint.views)
+    assertEquals(1, endpoint.views.length)
+
+    val view = endpoint.views(0)
+    assertEquals("a-only", view.name)
+    assertNotNull(view.categories)
+    val descriptor = view.categories(dateCategoryName).asInstanceOf[SetCategoryDescriptor]
+    assertEquals(Set("a"), descriptor.values.toSet)
+  }
+
+  @Test
+  def shouldStoreViewsOnPairs = {
+    declareAll
+    val pair = domainConfigStore.getPairDef(domainName, pairKey)
+    assertNotNull(pair.views)
+    assertEquals(1, pair.views.length)
+
+    val view = pair.views(0)
+    assertEquals("a-only", view.name)
   }
 
   @Test
@@ -509,10 +569,13 @@ object HibernateDomainConfigStoreTest {
       new Configuration().
         addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
         addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", "org.hibernate.dialect.DerbyDialect").
-        setProperty("hibernate.connection.url", "jdbc:derby:target/domainConfigStore;create=true").
-        setProperty("hibernate.connection.driver_class", "org.apache.derby.jdbc.EmbeddedDriver").
+        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/domainConfigStore")).
+        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
         setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
+        setProperty("hibernate.generate_statistics", "true").
         setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
                                                                // otherwise the preparation step will not get committed
 
@@ -522,8 +585,12 @@ object HibernateDomainConfigStoreTest {
     sf
   }
 
-  lazy val domainConfigStore = new HibernateDomainConfigStore(sessionFactory)
-  lazy val systemConfigStore = new HibernateSystemConfigStore(sessionFactory)
+  lazy val cacheManager = new CacheManager()
+  lazy val pairCache = new PairCache(cacheManager)
+  val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
+
+  lazy val domainConfigStore = new HibernateDomainConfigStore(sessionFactory, pairCache)
+  lazy val systemConfigStore = new HibernateSystemConfigStore(sessionFactory, pairCache)
 
   def clearAllConfig = {
     try {
