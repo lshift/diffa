@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.scheduler
 
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 /**
  * Trait to be implemented by Scan Scheduler implementations.
  */

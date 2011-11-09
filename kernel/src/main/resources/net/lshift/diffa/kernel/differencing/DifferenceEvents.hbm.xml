@@ -64,7 +64,7 @@
 
   <class name="StoreCheckpoint" table="store_checkpoints">
     <composite-id mapped="true">
-      <key-many-to-one name="pair" class="net.lshift.diffa.kernel.config.Pair" lazy="false">
+      <key-many-to-one name="pair" class="net.lshift.diffa.kernel.config.DiffaPair" lazy="false">
         <column name="pair" />
         <column name="domain" />
       </key-many-to-one>

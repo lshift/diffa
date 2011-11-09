@@ -28,7 +28,7 @@ import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.participant.common.JSONHelper
 import java.io.PrintWriter
 import collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
 
 /**
  * Standard behaviours supported by scanning version policies.

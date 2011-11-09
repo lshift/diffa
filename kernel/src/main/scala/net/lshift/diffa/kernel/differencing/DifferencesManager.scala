@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.participants.ParticipantType
 import org.joda.time.{Interval, DateTime}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef}
 import java.util.HashMap
 
 /**

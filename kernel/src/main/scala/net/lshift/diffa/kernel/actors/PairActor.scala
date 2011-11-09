@@ -31,7 +31,7 @@ import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
-import net.lshift.diffa.kernel.config.{Endpoint, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Endpoint, DiffaPair}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.

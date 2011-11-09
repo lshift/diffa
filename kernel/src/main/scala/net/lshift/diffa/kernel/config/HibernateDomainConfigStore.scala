@@ -20,7 +20,6 @@ import net.lshift.diffa.kernel.util.SessionHelper._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.HibernateQueryUtils
 import net.lshift.diffa.kernel.frontend._
 
@@ -52,7 +51,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
     val endpoint = getEndpoint(s, domain, name)
 
     // Remove all pairs that reference the endpoint
-    s.createQuery("FROM Pair WHERE upstream = :endpoint OR downstream = :endpoint").
+    s.createQuery("FROM DiffaPair WHERE upstream = :endpoint OR downstream = :endpoint").
             setString("endpoint", name).list.foreach(p => deletePairInSession(s, domain, p.asInstanceOf[DiffaPair]))
 
     endpoint.views.foreach(s.delete(_))
@@ -82,7 +81,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
     pairCache.invalidate(domain)
 
     val dom = getDomain(domain)
-    val toUpdate = new Pair(p.key, dom, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
+    val toUpdate = DiffaPair(p.key, dom, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
     s.saveOrUpdate(toUpdate)
 
     // Update the view definitions
@@ -103,10 +102,10 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   // TODO This read through cache should not be necessary when the 2L cache miss issue is resolved
   def listPairs(domain:String) = pairCache.readThrough(domain, () => listPairsFromPersistence(domain))
 
-  def listPairsFromPersistence(domain:String) = sessionFactory.withSession(s => listQuery[Pair](s, "pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_)))
+  def listPairsFromPersistence(domain:String) = sessionFactory.withSession(s => listQuery[DiffaPair](s, "pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_)))
 
   def listPairsForEndpoint(domain:String, endpoint:String) = sessionFactory.withSession(s =>
-    listQuery[Pair](s, "pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint)))
+    listQuery[DiffaPair](s, "pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint)))
 
   def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] =
     sessionFactory.withSession(s => {

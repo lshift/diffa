@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.events.VersionID._
 import net.lshift.diffa.kernel.config.DiffaPairRef._
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.VersionID
-import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
 
 /**
  * Provides some generic routines to maintain the correlation and diff stores.

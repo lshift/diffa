@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, DiffaPair}
 import org.joda.time.{DateTime, Interval}
 
 /**
@@ -135,13 +135,13 @@ class DefaultDifferencesManager(
       case ParticipantType.UPSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.upstreamVsn != null},
-                      {p:net.lshift.diffa.kernel.config.Pair => p.upstream},
+                      {p:DiffaPair => p.upstream},
                       {e:Endpoint => participantFactory.createUpstreamParticipant(e)})
       }
       case ParticipantType.DOWNSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.downstreamVsn != null},
-                      {p:net.lshift.diffa.kernel.config.Pair => p.downstream},
+                      {p:DiffaPair => p.downstream},
                       {e:Endpoint => participantFactory.createDownstreamParticipant(e)})
       }
     }
@@ -151,7 +151,7 @@ class DefaultDifferencesManager(
   // -> the participant factory call is probably low hanging fruit for refactoring
   def withValidEvent(domain:String, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
-                     resolve:(net.lshift.diffa.kernel.config.Pair) => String,
+                     resolve:(DiffaPair) => String,
                      p:(Endpoint) => Participant): String = {
     val event = domainDifferenceStore.getEvent(domain, evtSeqId)
     check(event) match {

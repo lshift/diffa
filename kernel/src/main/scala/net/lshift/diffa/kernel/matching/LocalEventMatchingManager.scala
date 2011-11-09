@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.matching
 
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, DiffaPair}
 
 /**
  * Keeps track of and updates Local event matchers for pair entries from DomainConfigStore.

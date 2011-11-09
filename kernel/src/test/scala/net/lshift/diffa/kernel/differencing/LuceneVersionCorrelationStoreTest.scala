@@ -34,7 +34,7 @@ import org.easymock.EasyMock
 import org.joda.time.{LocalDate, DateTime}
 import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 

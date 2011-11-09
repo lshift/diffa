@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel.config.system
 
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.config.{Member, DiffaPairRef, User, Endpoint, Domain, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Member, DiffaPairRef, User, Endpoint, Domain, DiffaPair}
 
 /**
  * Copyright (C) 2010-2011 LShift Ltd.

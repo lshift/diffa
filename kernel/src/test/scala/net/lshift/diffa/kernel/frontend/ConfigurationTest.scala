@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
 import org.easymock.IArgumentMatcher
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.frontend.DiffaConfig._
 import collection.mutable.HashSet
 import scala.collection.JavaConversions._
@@ -280,10 +280,10 @@ class ConfigurationTest {
   private def replayAll = replay(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def verifyAll = verify(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def resetAll = reset(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
-  private def pairInstance(key:String):Pair = {
+  private def pairInstance(key:String):DiffaPair = {
     reportMatcher(new IArgumentMatcher {
       def appendTo(buffer: StringBuffer) = buffer.append("pair with key " + key)
-      def matches(argument: AnyRef) = argument.asInstanceOf[Pair].key == key
+      def matches(argument: AnyRef) = argument.asInstanceOf[DiffaPair].key == key
     })
     null
   }

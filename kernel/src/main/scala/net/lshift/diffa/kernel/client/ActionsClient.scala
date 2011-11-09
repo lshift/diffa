@@ -20,7 +20,7 @@ import reflect.BeanProperty
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import net.lshift.diffa.kernel.config.RepairAction._
 import net.lshift.diffa.kernel.frontend.RepairActionDef
-import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPairRef
 
 /**
  * Interface supported by clients capable of listing and invoking actions for pairs.

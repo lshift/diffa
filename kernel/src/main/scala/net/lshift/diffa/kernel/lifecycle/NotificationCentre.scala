@@ -18,10 +18,9 @@ package net.lshift.diffa.kernel.lifecycle
 
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef}
 import net.lshift.diffa.kernel.differencing._
 import collection.mutable.{ListBuffer}
-import collection.immutable.HashSet
 
 /**
  * Central system component for subscribing to notifications. To prevent dependency loops, consumer components should not

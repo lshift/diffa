@@ -25,7 +25,7 @@ import io.Source
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.frontend.PairDef
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction, Pair => DiffaPair, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction, DiffaPair, DomainConfigStore}
 
 /**
  * This is a conduit to the actions that are provided by participants

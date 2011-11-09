@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.actors
 
 import net.jcip.annotations.ThreadSafe
 import net.lshift.diffa.kernel.events.PairChangeEvent
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPairRef
 
 /**
  * This is a thread safe entry point to an underlying version policy.

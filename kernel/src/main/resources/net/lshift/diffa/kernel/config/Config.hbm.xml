@@ -106,7 +106,7 @@
     </map>
   </class>
 
-  <class name="Pair" table="pair" abstract="false">
+  <class name="DiffaPair" table="pair" abstract="false">
     <cache usage="read-write"/>
     <composite-id mapped="true" class="net.lshift.diffa.kernel.config.DomainScopedKey">
       <key-property name="key" type="string" column="pair_key" />
@@ -131,7 +131,7 @@
     <cache usage="read-write"/>
     <composite-id mapped="true">
       <key-property name="name" type="string" />
-      <key-many-to-one name="pair" class="Pair" lazy="false">
+      <key-many-to-one name="pair" class="DiffaPair" lazy="false">
         <column name="pair" />
         <column name="domain" />
       </key-many-to-one>
@@ -179,7 +179,7 @@
     <cache usage="read-write"/>
     <composite-id mapped="true">
       <key-property name="name" type="string" column="name" />
-      <key-many-to-one name="pair" class="Pair" lazy="false">
+      <key-many-to-one name="pair" class="DiffaPair" lazy="false">
         <column name="pair_key" />
         <column name="domain" />
       </key-many-to-one>
@@ -192,7 +192,7 @@
     <cache usage="read-write"/>
     <composite-id mapped="true">
       <key-property name="name" type="string" column="name" />
-      <key-many-to-one name="pair" class="Pair" lazy="false">
+      <key-many-to-one name="pair" class="DiffaPair" lazy="false">
         <column name="pair_key" />
         <column name="domain" />
       </key-many-to-one>
@@ -207,7 +207,7 @@
     <cache usage="read-write"/>
     <composite-id mapped="true">
       <key-property name="name" type="string" column="name" />
-      <key-many-to-one name="pair" class="Pair" lazy="false">
+      <key-many-to-one name="pair" class="DiffaPair" lazy="false">
         <column name="pair_key" />
         <column name="domain" />
       </key-many-to-one>
@@ -231,7 +231,7 @@
   </query>
 
   <query name="allPairs">
-    select p from Pair p
+    select p from DiffaPair p
   </query>
 
   <query name="allDomains">
@@ -258,7 +258,7 @@
 
   <!-- Queries by endpoint -->
   <query name="pairsByEndpoint" cacheable="true">
-    select p from Pair p
+    select p from DiffaPair p
     where
       p.domain.name = :domain_name and
       (p.upstream = :endpoint_name or p.downstream = :endpoint_name)
@@ -282,7 +282,7 @@
   </query>
 
   <query name="pairsByDomain" cacheable="true">
-    select p from Pair p where p.domain.name = :domain_name
+    select p from DiffaPair p where p.domain.name = :domain_name
   </query>
 
   <query name="pairViewsByDomain" cacheable="true">

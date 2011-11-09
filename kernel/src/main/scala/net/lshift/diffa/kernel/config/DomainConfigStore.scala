@@ -38,7 +38,7 @@ trait DomainConfigStore {
   def createOrUpdatePair(domain:String, pairDef: PairDef) : Unit
   def deletePair(domain:String, key: String) : Unit
   def listPairs(domain:String) : Seq[PairDef]
-  def listPairsForEndpoint(domain:String, endpoint:String) : Seq[Pair]
+  def listPairsForEndpoint(domain:String, endpoint:String) : Seq[DiffaPair]
 
   def createOrUpdateRepairAction(domain:String, action: RepairActionDef) : Unit
   def deleteRepairAction(domain:String, name: String, pairKey: String) : Unit
@@ -165,13 +165,13 @@ case class EndpointView(
   override def hashCode = 31 * (31 + name.hashCode) + categories.hashCode
 }
 
-case class Pair(
+case class DiffaPair(
   @BeanProperty var key: String = null,
   @BeanProperty var domain: Domain = null,
   @BeanProperty var upstream: String = null,
   @BeanProperty var downstream: String = null,
   @BeanProperty var versionPolicyName: String = null,
-  @BeanProperty var matchingTimeout: Int = Pair.NO_MATCHING,
+  @BeanProperty var matchingTimeout: Int = DiffaPair.NO_MATCHING,
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
   @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView]) {
@@ -183,8 +183,8 @@ case class Pair(
   def asRef = DiffaPairRef(key,domain.name)
 
   override def equals(that:Any) = that match {
-    case p:Pair => p.key == key && p.domain == domain
-    case _      => false
+    case p:DiffaPair => p.key == key && p.domain == domain
+    case _           => false
   }
 
   // TODO This looks a bit strange
@@ -196,7 +196,7 @@ case class PairView(
   @BeanProperty var scanCronSpec:String = null
 ) {
   // Not wanted in equals, hashCode or toString
-  @BeanProperty var pair:Pair = null
+  @BeanProperty var pair:DiffaPair = null
 
   def this() = this(name = null)
 
@@ -211,7 +211,7 @@ case class PairView(
 
 case class PairReport(
   @BeanProperty var name:String = null,
-  @BeanProperty var pair: Pair = null,
+  @BeanProperty var pair: DiffaPair = null,
   @BeanProperty var reportType:String = null,
   @BeanProperty var target:String = null
 ) {
@@ -234,11 +234,11 @@ case class DiffaPairRef(@BeanProperty var key: String = null,
 
   def identifier = "%s/%s".format(domain,key)
 
-  def toInternalFormat = Pair(key = key, domain = Domain(name = domain))
+  def toInternalFormat = DiffaPair(key = key, domain = Domain(name = domain))
 
 }
 
-object Pair {
+object DiffaPair {
   val NO_MATCHING = null.asInstanceOf[Int]
   def fromIdentifier(id:String) = {
     val Array(domain,key) = id.split("/")
@@ -269,7 +269,7 @@ case class RepairAction(
   @BeanProperty var name: String = null,
   @BeanProperty var url: String = null,
   @BeanProperty var scope: String = null,
-  @BeanProperty var pair: Pair = null
+  @BeanProperty var pair: DiffaPair = null
 ) {
   import RepairAction._
 
@@ -297,7 +297,7 @@ object RepairAction {
  */
 case class Escalation (
   @BeanProperty var name: String = null,
-  @BeanProperty var pair: Pair = null,
+  @BeanProperty var pair: DiffaPair = null,
   @BeanProperty var action: String = null,
   @BeanProperty var actionType: String = null,
   @BeanProperty var event: String = null,
@@ -400,7 +400,7 @@ case class EndpointScopedName(@BeanProperty var name:String = null,
  * Provides a Pair Scoped name for an entity.
  */
 case class PairScopedName(@BeanProperty var name:String = null,
-                          @BeanProperty var pair:Pair = null) extends java.io.Serializable
+                          @BeanProperty var pair:DiffaPair = null) extends java.io.Serializable
 {
   def this() = this(name = null)
 }

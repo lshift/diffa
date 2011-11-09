@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.Domain
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.differencing._

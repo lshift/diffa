@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.matching
 
 import java.io.Closeable
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, DiffaPair}
 
 /**
  * Keeps track of event matchers and updates them upon receiving a notification of changes in DomainConfigStore.

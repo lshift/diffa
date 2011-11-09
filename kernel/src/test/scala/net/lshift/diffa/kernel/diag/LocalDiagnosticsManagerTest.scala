@@ -9,7 +9,7 @@ import net.lshift.diffa.kernel.util.HamcrestDateTimeHelpers._
 import net.lshift.diffa.kernel.differencing.{PairScanState}
 import net.lshift.diffa.kernel.frontend.FrontendConversions
 import org.junit.{Before, Test}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, Domain, DiffaPair}
 import java.io.{FileInputStream, File}
 import org.apache.commons.io.{IOUtils, FileDeleteStrategy}
 import java.util.zip.ZipInputStream

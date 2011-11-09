@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import org.junit.runner.RunWith
 import net.lshift.diffa.kernel.config._
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theories, Theory}
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.reporting.ReportManager
 import net.lshift.diffa.kernel.differencing._

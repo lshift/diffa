@@ -29,7 +29,7 @@ import net.lshift.diffa.kernel.actors.PairPolicyClient
 import org.junit.Assert._
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 import net.lshift.diffa.kernel.config.{HibernateDomainConfigStoreTest, DomainConfigStore, DiffaPairRef}
-import net.lshift.diffa.kernel.config.{Domain,Endpoint,Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Domain,Endpoint,DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.config.system.{HibernateSystemConfigStoreTest, SystemConfigStore}
 import net.sf.ehcache.CacheManager

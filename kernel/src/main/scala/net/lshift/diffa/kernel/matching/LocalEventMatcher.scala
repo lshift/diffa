@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.events._
 import collection.mutable.{HashMap, LinkedHashMap, ListBuffer}
 import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPair}
 
 /**
  * Local, in memory, event matcher.

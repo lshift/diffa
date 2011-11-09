@@ -37,7 +37,7 @@ import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.junit.Assume._
 import java.util.HashMap
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 
 /**
@@ -332,7 +332,7 @@ object AbstractDataDrivenPolicyTest {
   val domain = Domain(name="domain")
 
   @DataPoint def noCategoriesScenario = Scenario(
-    Pair(key = "ab", domain = domain),
+    DiffaPair(key = "ab", domain = domain),
     Endpoint(categories = new HashMap[String, CategoryDescriptor]),
     Endpoint(categories = new HashMap[String, CategoryDescriptor]),
       EntityTx(Seq(),
@@ -347,7 +347,7 @@ object AbstractDataDrivenPolicyTest {
    * Should any body ask for this, this behavior be may re-instated at some point.
    */
   @DataPoint def setOnlyScenario = Scenario(
-    Pair(key = "ab", domain = domain),
+    DiffaPair(key = "ab", domain = domain),
     Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C")))),
     Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C")))),
       EntityTx(Seq(new SetConstraint("someString", Set("A"))),
@@ -365,7 +365,7 @@ object AbstractDataDrivenPolicyTest {
     )
 
   @DataPoint def dateTimesOnlyScenario = Scenario(
-    Pair(key = "ab", domain = domain),
+    DiffaPair(key = "ab", domain = domain),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor)),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(),
@@ -406,7 +406,7 @@ object AbstractDataDrivenPolicyTest {
 
 
   @DataPoint def datesOnlyScenario = Scenario(
-    Pair(key = "xy", domain = domain),
+    DiffaPair(key = "xy", domain = domain),
     Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor)),
     Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDate", DateDataType)), Seq(),
@@ -449,7 +449,7 @@ object AbstractDataDrivenPolicyTest {
    *  values but uses a full DateTime data type during its descent.
    */
   @DataPoint def yy_MM_dddd_dateTimesOnlyScenario = Scenario(
-    Pair(key = "tf", domain = domain),
+    DiffaPair(key = "tf", domain = domain),
     Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor)),
     Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(dateTimeRange("bizDateTime", START_2023_FULL, END_2023_FULL)),
@@ -466,7 +466,7 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def integersOnlyScenario = Scenario(
-    Pair(key = "bc", domain = domain),
+    DiffaPair(key = "bc", domain = domain),
     Endpoint(categories = Map("someInt" -> intCategoryDescriptor)),
     Endpoint(categories = Map("someInt" -> intCategoryDescriptor)),
     AggregateTx(Seq(thousands("someInt")), Seq(),
@@ -504,7 +504,7 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def stringsOnlyScenario = Scenario(
-    Pair(key = "bc", domain = domain),
+    DiffaPair(key = "bc", domain = domain),
     Endpoint(categories = Map("someString" -> stringCategoryDescriptor)),
     Endpoint(categories = Map("someString" -> stringCategoryDescriptor)),
     AggregateTx(Seq(oneCharString("someString")), Seq(),
@@ -542,7 +542,7 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def integersAndDateTimesScenario = Scenario(
-    Pair(key = "ab", domain = domain),
+    DiffaPair(key = "ab", domain = domain),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor)),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType), thousands("someInt")), Seq(),
@@ -587,7 +587,7 @@ object AbstractDataDrivenPolicyTest {
    */
 
   @DataPoint def setAndDateTimesScenario = Scenario(
-    Pair(key = "gh", domain = domain),
+    DiffaPair(key = "gh", domain = domain),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B")))),
     Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B")))),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(new SetConstraint("someString",Set("A"))),

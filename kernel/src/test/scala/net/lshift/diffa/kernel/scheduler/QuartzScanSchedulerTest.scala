@@ -26,7 +26,7 @@ import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.easymock.{EasyMock, IAnswer}
-import net.lshift.diffa.kernel.config.{PairView, DiffaPairRef, Domain, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{PairView, DiffaPairRef, Domain, DiffaPair}
 import scala.collection.JavaConversions._
 
 /**
