@@ -21,9 +21,7 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.dialect.Dialect;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 

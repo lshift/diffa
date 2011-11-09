@@ -26,11 +26,12 @@ import org.hibernate.jdbc.Work
 import scala.collection.JavaConversions._
 import org.junit.Test
 import org.hibernate.tool.hbm2ddl.{SchemaExport, DatabaseMetadata}
-import java.io.{File, InputStream}
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theory, Theories}
 import java.sql._
-import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import java.io.{PrintWriter, FileWriter, File, InputStream}
+import org.easymock.EasyMock._
+import net.lshift.diffa.kernel.util.{EasyMockScalaUtils, DatabaseEnvironment}
 
 /**
  * Test cases for ensuring that preparation steps apply to database schemas at various levels, and allow us to upgrade
@@ -136,9 +137,31 @@ class HibernatePreparationTest {
           setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD)
 
       val exporter = new SchemaExport(config)
-      exporter.setOutputFile("target/current-schema.sql")
+      val outputFile = "target/current-schema.sql"
+      exporter.setOutputFile(outputFile)
       exporter.setDelimiter(";")
       exporter.execute(false, false, false, true);
+
+      val prepStep = new HibernateConfigStorePreparationStep
+      val freshStep = new FreshMigrationStep(prepStep.migrationSteps.last.versionId)
+      val freshMigration = freshStep.createMigration(config)
+
+      val mockConn = createStrictMock(classOf[Connection])
+      val mockPreparedStatement = createNiceMock(classOf[PreparedStatement])
+      expect(mockPreparedStatement.execute()).andStubReturn(true)
+      expect(mockConn.prepareStatement(EasyMockScalaUtils.anyString)).andStubReturn(mockPreparedStatement)
+      replay(mockConn, mockPreparedStatement);
+
+      freshMigration.apply(mockConn)
+      println(freshMigration.getStatements.toSeq)
+
+      val outputWriter = new PrintWriter(new FileWriter(outputFile, true))
+      try {
+        freshMigration.getStatements.foreach(s => outputWriter.println(s))
+      } finally {
+        outputWriter.flush()
+        outputWriter.close()
+      }
     }
   }
 
@@ -186,6 +209,7 @@ object HibernatePreparationTest {
   @DataPoint def v12 = StartingDatabaseVersion("v12")
   @DataPoint def v13 = StartingDatabaseVersion("v13")
   @DataPoint def v14 = StartingDatabaseVersion("v14")
+  @DataPoint def v15 = StartingDatabaseVersion("v15")
 }
 
 case class StartingDatabaseVersion(startName:String)

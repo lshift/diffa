@@ -52,7 +52,8 @@ class HibernateConfigStorePreparationStep
     ReviseUrlLengthMigrationStep,
     AddEndpointViewsMigrationStep,
     AddAllowManualScanFlagToPairStep,
-    AddPairReportsStep
+    AddPairReportsStep,
+    ReferenceEndpointsByNameOnlyStep
   )
 
   def prepare(sf: SessionFactory, config: Configuration) {
@@ -199,6 +200,9 @@ class FreshMigrationStep(currentMaxVersionId:Int) extends HibernateMigrationStep
 
     // Also need to add foreign key constraint from diffs.pair to pair.pair_key
     AddPersistentDiffsMigrationStep.addForeignKeyConstraintForPairColumnOnDiffsTables(freshMigration)
+
+    // Add a foreign key constraint from the pair to endpoints
+    ReferenceEndpointsByNameOnlyStep.createForeignKeyConstraints(freshMigration)
 
     // Add the schema version table
     AddSchemaVersionMigrationStep.defineTableAndInitialEntry(freshMigration, versionId)
@@ -556,5 +560,29 @@ object AddPairReportsStep extends HibernateMigrationStep {
       alterColumn("origin", Types.VARCHAR, 255, true, null)
 
     migration
+  }
+}
+
+object ReferenceEndpointsByNameOnlyStep extends HibernateMigrationStep {
+  def versionId = 15
+  def createMigration(config: Configuration) = {
+    val migration = new MigrationBuilder(config)
+
+    // Remove the existing constraints on domain/endpoint pairs, and then remove the endpoint domain columns
+    migration.alterTable("pair").
+      dropConstraint("FK3462DAF68A3C7").
+      dropConstraint("FK3462DAF2DA557F").
+      dropColumn("dep_domain").
+      dropColumn("uep_domain")
+
+    createForeignKeyConstraints(migration)
+
+    migration
+  }
+
+  def createForeignKeyConstraints(migration:MigrationBuilder) {
+    migration.alterTable("pair").
+      addForeignKey("FK3462DAF68A3C7", Array("upstream", "domain"), "endpoint", Array("name", "domain")).
+      addForeignKey("FK3462DAF2DA557F", Array("downstream", "domain"), "endpoint", Array("name", "domain"))
   }
 }
