@@ -42,24 +42,24 @@ class Changes(val domainConfig:DomainConfigStore,
   def onChange(domain:String, endpoint:String, evt:ChangeEvent) {
     log.debug("Received change event for %s %s: %s".format(domain, endpoint, evt))
 
+    val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
+    val evtAttributes = targetEndpoint.schematize(evt.getAttributes.toMap)
+
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
-      val pairEvt = if (pair.upstream.name == endpoint) {
-        UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getVersion)
+      val pairEvt = if (pair.upstream == endpoint) {
+        UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getVersion)
       } else {
         if (pair.versionPolicyName == "same" || evt.getParentVersion == null) {
-          DownstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getVersion)
+          DownstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getVersion)
         } else {
-          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getParentVersion, evt.getVersion)
+          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getParentVersion, evt.getVersion)
         }
       }
 
       // Validate that the entities provided meet the constraints of the endpoint
-      val targetEndpoint = if (pair.upstream.name == endpoint) { pair.upstream } else { pair.downstream }
-
       val endpointCategories = targetEndpoint.categories.toMap
-      val typedAttrsMap = targetEndpoint.schematize(pairEvt.attributes)
-      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, pairEvt.attributes) ++
-        AttributesUtil.detectOutsideConstraints(targetEndpoint.initialConstraints(None), typedAttrsMap)
+      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, evt.getAttributes.toMap) ++
+        AttributesUtil.detectOutsideConstraints(targetEndpoint.initialConstraints(None), evtAttributes)
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)

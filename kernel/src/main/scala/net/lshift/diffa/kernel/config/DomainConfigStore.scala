@@ -57,6 +57,7 @@ trait DomainConfigStore {
   def listReportsForPair(domain:String, key: String) : Seq[PairReportDef]
 
   def getEndpointDef(domain:String, name: String) : EndpointDef
+  def getEndpoint(domain:String, name: String) : Endpoint
   def getPairDef(domain:String, key: String) : PairDef
 
   def getRepairActionDef(domain:String, name: String, pairKey: String): RepairActionDef
@@ -167,8 +168,8 @@ case class EndpointView(
 case class Pair(
   @BeanProperty var key: String = null,
   @BeanProperty var domain: Domain = null,
-  @BeanProperty var upstream: Endpoint = null,
-  @BeanProperty var downstream: Endpoint = null,
+  @BeanProperty var upstream: String = null,
+  @BeanProperty var downstream: String = null,
   @BeanProperty var versionPolicyName: String = null,
   @BeanProperty var matchingTimeout: Int = Pair.NO_MATCHING,
   @BeanProperty var scanCronSpec: String = null,

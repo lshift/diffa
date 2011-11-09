@@ -52,8 +52,8 @@ class PairActorTest {
   pair.key = pairKey
   pair.domain = Domain(name = domainName)
   pair.versionPolicyName = policyName
-  pair.upstream = upstream
-  pair.downstream = downstream
+  pair.upstream = upstream.name
+  pair.downstream = downstream.name
 
   val pairRef = pair.asRef
 
@@ -85,6 +85,8 @@ class PairActorTest {
 
   val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
   expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(FrontendConversions.toPairDef(pair)))
+  expect(domainConfigStore.getEndpoint(domainName, upstream.name)).andStubReturn(upstream)
+  expect(domainConfigStore.getEndpoint(domainName, downstream.name)).andStubReturn(downstream)
   replay(domainConfigStore)
 
   val writer = createMock("writer", classOf[ExtendedVersionCorrelationWriter])
@@ -131,12 +133,12 @@ class PairActorTest {
   }
 
   def expectUpstreamScan() = {
-    expect(versionPolicy.scanUpstream(EasyMock.eq(pair), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
+    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef), EasyMock.eq(upstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
                                       EasyMock.eq(us), EasyMock.isA(classOf[DifferencingListener]),
                                       EasyMock.isA(classOf[FeedbackHandle])))
   }
   def expectDownstreamScan() = {
-    expect(versionPolicy.scanDownstream(EasyMock.eq(pair), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
+    expect(versionPolicy.scanDownstream(EasyMock.eq(pairRef), EasyMock.eq(downstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
                                         EasyMock.eq(us), EasyMock.eq(ds), EasyMock.isA(classOf[DifferencingListener]),
                                         EasyMock.isA(classOf[FeedbackHandle])))
   }
@@ -231,7 +233,8 @@ class PairActorTest {
       }
     })
 
-    expect(versionPolicy.scanUpstream(EasyMock.eq(pair),
+    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef),
+           EasyMock.eq(upstream),
            EasyMock.eq(None),
            EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
            EasyMock.eq(us),
@@ -244,7 +247,8 @@ class PairActorTest {
         Thread.sleep(1000)
       }
     })
-    expect(versionPolicy.scanDownstream(EasyMock.eq(pair),
+    expect(versionPolicy.scanDownstream(EasyMock.eq(pairRef),
+           EasyMock.eq(downstream),
            EasyMock.eq(None),
            EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
            EasyMock.eq(us), EasyMock.eq(ds),
@@ -362,7 +366,7 @@ class PairActorTest {
 
     expectFailingScan(downstreamHandler = new IAnswer[Unit] {
       def answer() {
-        val feedbackHandle = EasyMock.getCurrentArguments()(6).asInstanceOf[FeedbackHandle]
+        val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
         awaitFeedbackHandleCancellation(feedbackHandle)
         wasMarkedAsCancelled.set(feedbackHandle.isCancelled)
       }
@@ -381,10 +385,10 @@ class PairActorTest {
 
     expectFailingScan(downstreamHandler = new IAnswer[Unit] {
       def answer() {
-        val feedbackHandle = EasyMock.getCurrentArguments()(6).asInstanceOf[FeedbackHandle]
+        val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
         awaitFeedbackHandleCancellation(feedbackHandle)
 
-        val writer = EasyMock.getCurrentArguments()(2).asInstanceOf[LimitedVersionCorrelationWriter]
+        val writer = EasyMock.getCurrentArguments()(3).asInstanceOf[LimitedVersionCorrelationWriter]
         try {
           writer.clearDownstreamVersion(VersionID(DiffaPairRef("p1","domain"), "abc"))
           proxyDidGenerateException.set(false)
@@ -422,7 +426,7 @@ class PairActorTest {
       downstreamHandler = new IAnswer[Unit] {
           def answer() {
             if (secondScanIsRunning.get(waitForSecondScanToStartDelay).isDefined) {
-              val writer = EasyMock.getCurrentArguments()(2).asInstanceOf[LimitedVersionCorrelationWriter]
+              val writer = EasyMock.getCurrentArguments()(3).asInstanceOf[LimitedVersionCorrelationWriter]
               try {
                 writer.clearDownstreamVersion(VersionID(DiffaPairRef("p1","domain"), "abc"))
                 proxyDidGenerateException.set(false)

@@ -375,12 +375,10 @@ class HibernateDomainConfigStoreTest {
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, downstream1)
 
-      // TODO: We should probably get an exception indicating that the constraint was null, not that the object
-      //       we're linking to is missing.
-    expectMissingObject("endpoint") {
+    expectNullPropertyException("upstream") {
       domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, Pair.NO_MATCHING, null, downstream1.name))
     }
-    expectMissingObject("endpoint") {
+    expectNullPropertyException("downstream") {
       domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, Pair.NO_MATCHING, upstream1.name, null))
     }
   }
@@ -551,6 +549,21 @@ class HibernateDomainConfigStoreTest {
       case e:MissingObjectException => assertTrue(
         "Missing Object Exception for wrong object. Expected for " + name + ", got msg: " + e.getMessage,
         e.getMessage.contains(name))
+    }
+  }
+
+  private def expectNullPropertyException(name:String)(f: => Unit) {
+    try {
+      f
+      fail("Expected PropertyValueException")
+    } catch {
+      case e:org.hibernate.PropertyValueException =>
+        assertTrue(
+          "PropertyValueException for wrong object. Expected null error for " + name + ", got msg: " + e.getMessage,
+          e.getMessage.contains("not-null property references a null or transient value"))
+        assertTrue(
+          "PropertyValueException for wrong object. Expected for field " + name + ", got msg: " + e.getMessage,
+          e.getMessage.contains(name))
     }
   }
 

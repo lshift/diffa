@@ -112,14 +112,8 @@
       <key-property name="key" type="string" column="pair_key" />
       <key-many-to-one name="domain" class="Domain" column="domain" lazy="false" />
     </composite-id>
-    <many-to-one name="upstream" class="Endpoint" not-null="true" lazy="false" fetch="join">
-      <column name="upstream" />
-      <column name="uep_domain" />
-    </many-to-one>
-    <many-to-one name="downstream" class="Endpoint" not-null="true" lazy="false" fetch="join">
-      <column name="downstream" />
-      <column name="dep_domain" />
-    </many-to-one>
+    <property name="upstream" type="string" column="upstream" not-null="true"/>
+    <property name="downstream" type="string" column="downstream" not-null="true" />
     <property name="versionPolicyName" type="string" column="version_policy_name" not-null="false"/>
     <property name="matchingTimeout" type="int" column="matching_timeout" not-null="false"/>
     <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
@@ -267,7 +261,7 @@
     select p from Pair p
     where
       p.domain.name = :domain_name and
-      (p.upstream.name = :endpoint_name or p.downstream.name = :endpoint_name)
+      (p.upstream = :endpoint_name or p.downstream = :endpoint_name)
   </query>
 
   <query name="endpointViewsByEndpoint" cacheable="true">

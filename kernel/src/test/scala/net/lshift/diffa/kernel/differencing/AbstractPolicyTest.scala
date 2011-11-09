@@ -83,7 +83,9 @@ abstract class AbstractPolicyTest {
   val dateCategoryDescriptor = new RangeCategoryDescriptor("datetime")
   val intCategoryDescriptor = new RangeCategoryDescriptor("int")
 
-  val pair = new DiffaPair(key=pairKey, domain=domain, upstream=new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor)), downstream=new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor)))
+  val upstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
+  val downstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
+  val pair = new DiffaPair(key=pairKey, domain=domain, upstream=upstream.name, downstream=downstream.name)
 
   expect(systemConfigStore.getPair(domainName,pairKey)).andReturn(pair).anyTimes
   replay(systemConfigStore)
@@ -175,7 +177,6 @@ abstract class AbstractPolicyTest {
     shouldStoreDownstreamChangesToCorrelationStoreAndNotifyDifferencesManager(
       upstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
       downstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
-      attributes = bizDateStrMap(JUL_8_2010_2),
       downstreamAttributes = bizDateMap(JUL_8_2010_2))
 
   @Test
@@ -183,7 +184,6 @@ abstract class AbstractPolicyTest {
     shouldStoreDownstreamChangesToCorrelationStoreAndNotifyDifferencesManager(
       upstreamCategories = Map("someInt" -> intCategoryDescriptor),
       downstreamCategories = Map("someInt" -> intCategoryDescriptor),
-      attributes = Map("someInt" -> "1234"),
       downstreamAttributes = Map("someInt" -> IntegerAttribute(1234)))
 
   @Test
@@ -191,7 +191,6 @@ abstract class AbstractPolicyTest {
     shouldStoreDownstreamCorrelatedChangesToCorrelationStoreAndNotifyDifferencesManager(
       upstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
       downstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
-      attributes = bizDateStrMap(JUL_8_2010_2),
       downstreamAttributes = bizDateMap(JUL_8_2010_2))
 
   @Test
@@ -199,7 +198,6 @@ abstract class AbstractPolicyTest {
     shouldStoreDownstreamCorrelatedChangesToCorrelationStoreAndNotifyDifferencesManager(
       upstreamCategories = Map("someInt" -> intCategoryDescriptor),
       downstreamCategories = Map("someInt" -> intCategoryDescriptor),
-      attributes = Map("someInt" -> "1234"),
       downstreamAttributes = Map("someInt" -> IntegerAttribute(1234)))
 
   @Test
@@ -207,7 +205,6 @@ abstract class AbstractPolicyTest {
     shouldRaiseMatchEventWhenDownstreamCausesMatchOfUpstream(
       upstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
       downstreamCategories = Map("bizDate" -> dateCategoryDescriptor),
-      attributes = bizDateStrMap(JUL_8_2010_2),
       downstreamAttributes = bizDateMap(JUL_8_2010_2))
 
   @Test
@@ -215,7 +212,6 @@ abstract class AbstractPolicyTest {
     shouldRaiseMatchEventWhenDownstreamCausesMatchOfUpstream(
       upstreamCategories = Map("someInt" -> intCategoryDescriptor),
       downstreamCategories = Map("someInt" -> intCategoryDescriptor),
-      attributes = Map("someInt" -> "1234"),
       downstreamAttributes = Map("someInt" -> IntegerAttribute(1234)))
 
   /**
@@ -234,18 +230,17 @@ abstract class AbstractPolicyTest {
     listener.onMismatch(VersionID(pair.asRef, "id1"), update, "vsn1", null, LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, UpstreamPairChangeEvent(VersionID(pair.asRef, "id1"), toStrMap(attrs), observationDate, "vsn1"))
+    policy.onChange(writer, UpstreamPairChangeEvent(VersionID(pair.asRef, "id1"), attrs, observationDate, "vsn1"))
     verifyAll
   }
 
   protected def shouldStoreDownstreamChangesToCorrelationStoreAndNotifyDifferencesManager(
     upstreamCategories: Map[String, CategoryDescriptor],
     downstreamCategories: Map[String, CategoryDescriptor],
-    attributes: Map[String, String],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
-    pair.upstream.categories = upstreamCategories
-    pair.downstream.categories = downstreamCategories
+    upstream.categories = upstreamCategories
+    downstream.categories = downstreamCategories
     val timestamp = new DateTime
 
     expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1", "vsn1")).
@@ -253,43 +248,41 @@ abstract class AbstractPolicyTest {
     listener.onMismatch(VersionID(pair.asRef, "id1"), JUL_8_2010_2, null, "vsn1", LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1"))
+    policy.onChange(writer, DownstreamPairChangeEvent(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1"))
     verifyAll
   }
 
   protected def shouldStoreDownstreamCorrelatedChangesToCorrelationStoreAndNotifyDifferencesManager(
     upstreamCategories: Map[String, CategoryDescriptor],
     downstreamCategories: Map[String, CategoryDescriptor],
-    attributes: Map[String, String],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
-    pair.upstream.categories = upstreamCategories
-    pair.downstream.categories = downstreamCategories
+    upstream.categories = upstreamCategories
+    downstream.categories = downstreamCategories
     val timestamp = new DateTime
     expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1", "vsn2")).
       andReturn(new Correlation(null, pair.asRef, "id1", null, toStrMap(downstreamAttributes), JUL_8_2010_2, timestamp, null, "vsn1", "vsn1", false))
     listener.onMismatch(VersionID(pair.asRef, "id1"), JUL_8_2010_2, null, "vsn1", LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1", "vsn2"))
+    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1", "vsn2"))
     verifyAll
   }
 
   protected def shouldRaiseMatchEventWhenDownstreamCausesMatchOfUpstream(
     upstreamCategories: Map[String, CategoryDescriptor],
     downstreamCategories: Map[String, CategoryDescriptor],
-    attributes: Map[String, String],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
-    pair.upstream.categories = upstreamCategories
-    pair.downstream.categories = downstreamCategories
+    upstream.categories = upstreamCategories
+    downstream.categories = downstreamCategories
     val timestamp = new DateTime
     expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1", "vsn2")).
       andReturn(new Correlation(null, pair.asRef, "id1", null, toStrMap(downstreamAttributes), JUL_8_2010_2, timestamp, "vsn1", "vsn1", "vsn2", true))
     listener.onMatch(VersionID(pair.asRef, "id1"), "vsn1", LiveWindow); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1", "vsn2"))
+    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), downstreamAttributes, JUL_8_2010_2, "vsn1", "vsn2"))
     verifyAll
   }
 

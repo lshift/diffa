@@ -17,26 +17,27 @@
 package net.lshift.diffa.kernel.events
 
 import org.joda.time.DateTime
+import net.lshift.diffa.kernel.differencing.TypedAttribute
 
 /**
  * Base inherited by the various types of events
  */
 abstract class PairChangeEvent {
   def id:VersionID
-  def attributes:Map[String, String]
+  def attributes:Map[String, TypedAttribute]
   def lastUpdate:DateTime
 }
 
 /**
  * Event indicating that a change has occurred within an upstream system.
  */
-case class UpstreamPairChangeEvent(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, vsn:String)
+case class UpstreamPairChangeEvent(id:VersionID, attributes:Map[String, TypedAttribute], lastUpdate:DateTime, vsn:String)
   extends PairChangeEvent
 
 /**
  * Event indicating that a change has occurred within a downstream system.
  */
-case class DownstreamPairChangeEvent(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, vsn:String)
+case class DownstreamPairChangeEvent(id:VersionID, attributes:Map[String, TypedAttribute], lastUpdate:DateTime, vsn:String)
   extends PairChangeEvent
 
 /**
@@ -44,5 +45,5 @@ case class DownstreamPairChangeEvent(id:VersionID, attributes:Map[String, String
  * change indicates that the change occurring in the downstream did not result in the same content being at the
  * downstream, but provides details on correlating the version information between the systems.
  */
-case class DownstreamCorrelatedPairChangeEvent(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, upstreamVsn:String, downstreamVsn:String)
+case class DownstreamCorrelatedPairChangeEvent(id:VersionID, attributes:Map[String, TypedAttribute], lastUpdate:DateTime, upstreamVsn:String, downstreamVsn:String)
   extends PairChangeEvent

@@ -26,8 +26,8 @@ class LocalDiagnosticsManagerTest {
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes")
 
-  val pair1 = DiffaPair(key = "pair1", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
-  val pair2 = DiffaPair(key = "pair2", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
+  val pair1 = DiffaPair(key = "pair1", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
+  val pair2 = DiffaPair(key = "pair2", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
 
   @Before
   def cleanupExplanations() {

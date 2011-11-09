@@ -47,8 +47,8 @@ class SameVersionPolicyTest extends AbstractPolicyTest {
     shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipant(integerCategoryData)
 
   protected def shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipant(testData: PolicyTestData) {
-    pair.upstream.categories = testData.upstreamCategories
-    pair.downstream.categories = testData.downstreamCategories
+    upstream.categories = testData.upstreamCategories
+    downstream.categories = testData.downstreamCategories
     val timestamp = new DateTime
     // Expect only a top-level scan for the upstream, but a full scan for the downstream
     expectUpstreamAggregateScan(testData.bucketing(0), testData.constraints(0),
@@ -98,8 +98,8 @@ class SameVersionPolicyTest extends AbstractPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(pair, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(pair, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(pair.asRef, upstream, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(pair.asRef, downstream, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }

@@ -151,14 +151,15 @@ class DefaultDifferencesManager(
   // -> the participant factory call is probably low hanging fruit for refactoring
   def withValidEvent(domain:String, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
-                     resolve:(net.lshift.diffa.kernel.config.Pair) => Endpoint,
+                     resolve:(net.lshift.diffa.kernel.config.Pair) => String,
                      p:(Endpoint) => Participant): String = {
     val event = domainDifferenceStore.getEvent(domain, evtSeqId)
     check(event) match {
       case true  => {
        val id = event.objId
        val pair = systemConfig.getPair(id.pair.domain, id.pair.key)
-       val endpoint = resolve(pair)
+       val endpointName = resolve(pair)
+       val endpoint = domainConfig.getEndpoint(domain, endpointName)
        if (!participants.contains(endpoint)) {
          participants(endpoint) = p(endpoint)
        }

@@ -145,10 +145,10 @@ class ConfigurationTest {
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
 
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
@@ -207,13 +207,13 @@ class ConfigurationTest {
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ad = DiffaPair(key = "ad", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", upstream = ep1.name, downstream = ep2.name)
 
     expect(pairManager.stopActor(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(pairManager.startActor(pairInstance("ab"))).once

@@ -53,8 +53,8 @@ object FrontendConversions {
     key = p.key,
     versionPolicyName = p.versionPolicyName,
     matchingTimeout = p.matchingTimeout,
-    upstreamName = p.upstream.name,
-    downstreamName = p.downstream.name,
+    upstreamName = p.upstream,
+    downstreamName = p.downstream,
     scanCronSpec = p.scanCronSpec,
     allowManualScans = p.allowManualScans,
     views = p.views.map(v => toPairViewDef(v)).toList)
