@@ -19,6 +19,8 @@ package net.lshift.diffa.messaging.json
 
 import net.lshift.diffa.kernel.frontend.Changes
 import JSONEncodingUtils._
+import net.lshift.diffa.participant.common.JSONHelper
+import java.io.ByteArrayInputStream
 
 /**
  * Protocol handler for change requests.
@@ -29,8 +31,10 @@ class ChangesHandler(val frontend: Changes,
                      val endpoint:String) extends AbstractJSONHandler {
 
   protected val endpoints = Map(
-    "changes" -> skeleton((maybeDeserializeEventList( _:String )
-                             .foreach { wireEvent => frontend.onChange(domain, endpoint, wireEvent.toKernelEvent) })
-                           andThen (_ => serializeEmptyResponse()))
+    "changes" -> skeleton(s => {
+      JSONHelper.readChangeEvents(new ByteArrayInputStream(s.getBytes("UTF-8")))
+                             .foreach { evt => frontend.onChange(domain, endpoint, evt) }
+      serializeEmptyResponse()
+    })
   )
 }

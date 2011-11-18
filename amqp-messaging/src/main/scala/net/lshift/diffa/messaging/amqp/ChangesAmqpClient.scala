@@ -18,10 +18,10 @@ package net.lshift.diffa.messaging.amqp
 
 import com.rabbitmq.messagepatterns.unicast.Connector
 import net.lshift.diffa.kernel.client.ChangesClient
-import net.lshift.diffa.kernel.events._
-import net.lshift.diffa.kernel.frontend.wire.WireEvent
-import net.lshift.diffa.messaging.json.JSONEncodingUtils._
 import org.slf4j.LoggerFactory
+import net.lshift.diffa.participant.changes.ChangeEvent
+import java.io.ByteArrayOutputStream
+import net.lshift.diffa.participant.common.JSONHelper
 
 /**
  * RPC client wrapper for clients to report change events to the diffa agent using JSON over AMQP.
@@ -36,12 +36,9 @@ class ChangesAmqpClient(connector: Connector,
   private val log = LoggerFactory.getLogger(getClass)
 
   def onChangeEvent(evt: ChangeEvent) {
-    val wire = evt match {
-      case us: UpstreamChangeEvent              => WireEvent.toWire(us)
-      case ds: DownstreamChangeEvent            => WireEvent.toWire(ds)
-      case dsc: DownstreamCorrelatedChangeEvent => WireEvent.toWire(dsc)
-    }
-    val payload = serializeEvent(wire)
+    val baos = new ByteArrayOutputStream
+    JSONHelper.writeChangeEvent(baos, evt)
+    val payload = new String(baos.toByteArray, "UTF-8")
     if (log.isDebugEnabled) {
       log.debug("onChangeEvent: %s".format(payload))
     }

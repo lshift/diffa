@@ -20,8 +20,8 @@ import javax.ws.rs.core.Response
 import net.lshift.diffa.docgen.annotations.{MandatoryParams, OptionalParams, Description}
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam._
-import net.lshift.diffa.kernel.frontend.wire.WireEvent
 import javax.ws.rs._
+import net.lshift.diffa.participant.changes.ChangeEvent
 
 /**
  * Resource allowing participants to provide details of changes that have occurred.
@@ -32,8 +32,8 @@ class ChangesResource(changes:Changes, domain:String) {
   @Consumes(Array("application/json"))
   @Description("Submits a change for the given endpoint within a domain")
   @MandatoryParams(Array(new MandatoryParam(name="endpoint", datatype="string", description="Endpoint Identifier")))
-  def submitChange(@PathParam("endpoint") endpoint: String, e:WireEvent) = {
-    changes.onChange(domain, endpoint, e.toKernelEvent)
+  def submitChange(@PathParam("endpoint") endpoint: String, e:ChangeEvent) = {
+    changes.onChange(domain, endpoint, e)
     
     Response.status(Response.Status.ACCEPTED).`type`("text/plain").build()
   }

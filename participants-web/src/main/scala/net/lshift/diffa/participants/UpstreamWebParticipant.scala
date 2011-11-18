@@ -19,8 +19,9 @@ package net.lshift.diffa.participants
 import net.lshift.diffa.kernel.participants.UpstreamMemoryParticipant
 import org.joda.time.DateTime
 import java.lang.String
-import net.lshift.diffa.kernel.events.UpstreamChangeEvent
 import org.apache.commons.codec.digest.DigestUtils
+import net.lshift.diffa.participant.changes.ChangeEvent
+import scala.collection.JavaConversions._
 
 /**
  * An implementation of the UpstreamParticipant using the MemoryParticipant base, whereby the body is the version
@@ -33,13 +34,13 @@ class UpstreamWebParticipant(val epName:String, val agentRoot:String, val domain
   override def addEntity(id: String, someDate:DateTime, someString:String, lastUpdated:DateTime, body: String) = {
     super.addEntity(id, someDate, someString, lastUpdated, body)
 
-    changesClient.onChangeEvent(UpstreamChangeEvent(id, Seq(someDate.toString, someString), lastUpdated, uvsnGen(body)))
+    changesClient.onChangeEvent(ChangeEvent.forChange(id, uvsnGen(body), lastUpdated, Map("someDate" -> someDate.toString(), "someString" -> someString)))
   }
 
 
   override def removeEntity(id: String) = {
     super.removeEntity(id)
 
-    changesClient.onChangeEvent(UpstreamChangeEvent(id, Seq(), new DateTime, null))
+    changesClient.onChangeEvent(ChangeEvent.forChange(id, null, new DateTime))
   }
 }

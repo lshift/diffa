@@ -24,6 +24,7 @@ import net.lshift.diffa.kernel.config.DomainConfigStore
 import net.lshift.diffa.kernel.differencing.AttributesUtil
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
+import net.lshift.diffa.participant.changes.ChangeEvent
 
 /**
  * Front-end for reporting changes.
@@ -42,25 +43,23 @@ class Changes(val domainConfig:DomainConfigStore,
     log.debug("Received change event for %s %s: %s".format(domain, endpoint, evt))
 
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
-      val pairEvt = evt match {
-        case UpstreamChangeEvent(id, attributes, lastUpdate, vsn) => UpstreamPairChangeEvent(VersionID(pair.asRef, id), attributes, lastUpdate, vsn)
-        case DownstreamChangeEvent(id, attributes, lastUpdate, vsn) => DownstreamPairChangeEvent(VersionID(pair.asRef, id), attributes, lastUpdate, vsn)
-        case DownstreamCorrelatedChangeEvent(id, attributes, lastUpdate, uvsn, dvsn) =>
-          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, id), attributes, lastUpdate, uvsn, dvsn)
+      val pairEvt = if (pair.upstream.name == endpoint) {
+        UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getVersion)
+      } else {
+        if (pair.versionPolicyName == "same" || evt.getParentVersion == null) {
+          DownstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getVersion)
+        } else {
+          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, evt.getId), evt.getAttributes.toMap, evt.getLastUpdated, evt.getParentVersion, evt.getVersion)
+        }
       }
 
       // Validate that the entities provided meet the constraints of the endpoint
-      val endpoint = evt match {
-        case u:UpstreamChangeEvent => pair.upstream
-        case d:DownstreamChangeEvent => pair.downstream
-        case d:DownstreamCorrelatedChangeEvent => pair.downstream
-      }
+      val targetEndpoint = if (pair.upstream.name == endpoint) { pair.upstream } else { pair.downstream }
 
-      val endpointCategories = endpoint.categories.toMap
-      val attrsMap = AttributesUtil.toMap(endpointCategories.keys, pairEvt.attributes)
-      val typedAttrsMap = AttributesUtil.toTypedMap(endpointCategories, attrsMap)
-      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, attrsMap) ++
-        AttributesUtil.detectOutsideConstraints(endpoint.initialConstraints(None), typedAttrsMap)
+      val endpointCategories = targetEndpoint.categories.toMap
+      val typedAttrsMap = targetEndpoint.schematize(pairEvt.attributes)
+      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, pairEvt.attributes) ++
+        AttributesUtil.detectOutsideConstraints(targetEndpoint.initialConstraints(None), typedAttrsMap)
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)

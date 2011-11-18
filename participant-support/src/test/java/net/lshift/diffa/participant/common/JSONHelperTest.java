@@ -15,6 +15,7 @@
  */
 package net.lshift.diffa.participant.common;
 
+import net.lshift.diffa.participant.changes.ChangeEvent;
 import net.lshift.diffa.participant.correlation.ProcessingResponse;
 import net.lshift.diffa.participant.scanning.ScanResultEntry;
 import org.codehaus.jackson.JsonNode;
@@ -64,7 +65,7 @@ public class JSONHelperTest {
   public void shouldSerialiseSingleEntityWithAttributes() throws Exception {
     String single = serialiseResult(Arrays.asList(
       ScanResultEntry.forEntity("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC),
-          generateAttributes("a1v1", "a2v2"))));
+        generateAttributes("a1v1", "a2v2"))));
     assertJSONEquals(
       "[{\"id\":\"id1\",\"attributes\":{\"a1\":\"a1v1\",\"a2\":\"a2v2\"},\"version\":\"v1\",\"lastUpdated\":\"2011-06-05T15:03:00.000Z\"}]",
       single);
@@ -110,6 +111,58 @@ public class JSONHelperTest {
     assertEquals(resp, deserialized);
   }
 
+  @Test
+  public void shouldSerialiseEmptyChangeList() throws Exception {
+    String emptyRes = serialiseEvents(new ArrayList<ChangeEvent>());
+    assertJSONEquals("[]", emptyRes);
+  }
+
+  @Test
+  public void shouldSerialiseSingleEventWithNoAttributes() throws Exception {
+    String single = serialiseEvent(
+      ChangeEvent.forChange("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC)));
+    assertJSONEquals("{\"id\":\"id1\",\"version\":\"v1\",\"lastUpdated\":\"2011-06-05T15:03:00.000Z\"}", single);
+  }
+
+  @Test
+  public void shouldRoundtripSingleEventWithNoAttributes() throws Exception {
+    ChangeEvent event =
+      ChangeEvent.forChange("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC));
+    String single = serialiseEvent(event);
+    ChangeEvent[] deserialised = deserialiseEvents(single);
+
+    assertEquals(1, deserialised.length);
+    assertEquals(event, deserialised[0]);
+  }
+
+  @Test
+  public void shouldSerialiseEventListWithAttributes() throws Exception {
+    String list = serialiseEvents(Arrays.asList(
+      ChangeEvent.forChange("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2")),
+      ChangeEvent.forTriggeredChange("id2", "v2", "uv1", new DateTime(2012, 7, 6, 16, 4, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2"))
+    ));
+    assertJSONEquals(
+      "[" +
+        "{\"id\":\"id1\",\"attributes\":{\"a1\":\"a1v1\",\"a2\":\"a2v2\"},\"version\":\"v1\",\"lastUpdated\":\"2011-06-05T15:03:00.000Z\"}," +
+        "{\"id\":\"id2\",\"attributes\":{\"a1\":\"a1v1\",\"a2\":\"a2v2\"},\"version\":\"v2\",\"lastUpdated\":\"2012-07-06T16:04:00.000Z\",\"parentVersion\":\"uv1\"}" +
+      "]",
+      list);
+  }
+
+  @Test
+  public void shouldRoundtripEventListWithAttributes() throws Exception {
+    ChangeEvent e1 = ChangeEvent.forChange("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2"));
+    ChangeEvent e2 = ChangeEvent.forTriggeredChange("id2", "v2", "uv2", new DateTime(2012, 7, 6, 16, 4, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2"));
+
+    String list = serialiseEvents(Arrays.asList(e1, e2));
+    ChangeEvent[] deserialised = deserialiseEvents(list);
+
+    assertEquals(2, deserialised.length);
+    assertEquals(e1, deserialised[0]);
+    assertEquals(e2, deserialised[1]);
+  }
+
+
   private static String serialiseResult(Iterable<ScanResultEntry> entries) throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     JSONHelper.writeQueryResult(baos, entries);
@@ -124,6 +177,19 @@ public class JSONHelperTest {
     return new String(baos.toByteArray(), "UTF-8");
   }
 
+  private static String serialiseEvent(ChangeEvent event) throws Exception {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JSONHelper.writeChangeEvent(baos, event);
+
+    return new String(baos.toByteArray(), "UTF-8");
+  }
+  private static String serialiseEvents(Iterable<ChangeEvent> events) throws Exception {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JSONHelper.writeChangeEvents(baos, events);
+
+    return new String(baos.toByteArray(), "UTF-8");
+  }
+
   private static ScanResultEntry[] deserialiseResult(String s) throws Exception {
     ByteArrayInputStream bais = new ByteArrayInputStream(s.getBytes("UTF-8"));
     return JSONHelper.readQueryResult(new ByteArrayInputStream(s.getBytes("UTF-8")));
@@ -133,6 +199,12 @@ public class JSONHelperTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(s.getBytes("UTF-8"));
     return JSONHelper.readProcessingResponse(new ByteArrayInputStream(s.getBytes("UTF-8")));
   }
+
+  private static ChangeEvent[] deserialiseEvents(String s) throws Exception {
+    ByteArrayInputStream bais = new ByteArrayInputStream(s.getBytes("UTF-8"));
+    return JSONHelper.readChangeEvents(new ByteArrayInputStream(s.getBytes("UTF-8")));
+  }
+
 
   private static Map<String, String> generateAttributes(String a1, String a2) {
     Map<String, String> result = new HashMap<String, String>();

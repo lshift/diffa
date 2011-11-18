@@ -17,9 +17,9 @@
 package net.lshift.diffa.messaging.json
 
 import net.lshift.diffa.kernel.client.ChangesClient
-import net.lshift.diffa.kernel.events.{UpstreamChangeEvent, DownstreamChangeEvent, DownstreamCorrelatedChangeEvent, ChangeEvent}
-import JSONEncodingUtils._
-import net.lshift.diffa.kernel.frontend.wire.WireEvent._
+import net.lshift.diffa.participant.changes.ChangeEvent
+import java.io.ByteArrayOutputStream
+import net.lshift.diffa.participant.common.JSONHelper
 
 /**
  * JSON-over-REST client for the changes endpoint.
@@ -29,11 +29,8 @@ class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, us
         with ChangesClient {
 
   def onChangeEvent(evt:ChangeEvent) {
-    val wire = evt match {
-      case us:UpstreamChangeEvent => toWire(us)
-      case ds:DownstreamChangeEvent => toWire(ds)
-      case dsc:DownstreamCorrelatedChangeEvent => toWire(dsc)
-    }
-    submit(endpoint, serializeEvent(wire))
+    val baos = new ByteArrayOutputStream
+    JSONHelper.writeChangeEvent(baos, evt)
+    submit(endpoint, new String(baos.toByteArray, "UTF-8"))
   }
 }

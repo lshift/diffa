@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2011 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package net.lshift.diffa.kernel.client
-
-import net.lshift.diffa.participant.changes.ChangeEvent
+package net.lshift.hibernate.migrations.dialects;
 
 /**
- * Interface supported by clients capable of reporting change events to the diffa agent.
+ * Extension to the Oracle Dialect, providing additional Oracle-specific SQL information.
  */
-trait ChangesClient {
-  /**
-   * Reports a change with the given details to the agent.
-   */
-  def onChangeEvent(evt:ChangeEvent)
+public class OracleDialectExtension extends DialectExtension {
+
+  @Override
+  public String alterColumnString() {
+    return "modify";
+  }
+
+  @Override
+  public String addColumnString() {
+    return "add";
+  }
+
+  @Override
+  public boolean shouldBracketAlterColumnStatement() {
+    return true;
+  }
 }

@@ -16,7 +16,6 @@
 
 package net.lshift.diffa.agent.itest.support
 
-import net.lshift.diffa.kernel.events.{DownstreamCorrelatedChangeEvent, DownstreamChangeEvent, UpstreamChangeEvent}
 import net.lshift.diffa.kernel.participants.{UpstreamMemoryParticipant, DownstreamMemoryParticipant, UpstreamParticipant, DownstreamParticipant}
 import net.lshift.diffa.kernel.client._
 import net.lshift.diffa.kernel.util.Placeholders
@@ -34,6 +33,7 @@ import net.lshift.diffa.agent.client._
 import java.util.List
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanConstraint}
 import net.lshift.diffa.kernel.frontend._
+import net.lshift.diffa.participant.changes.ChangeEvent
 
 /**
  * An assembled environment consisting of a downstream and upstream participant. Provides a factory for the
@@ -177,7 +177,7 @@ class TestEnvironment(val pairKey: String,
     val attributes = pack(someDate = someDate, someString = someString)
 
     upstream.addEntity(id, someDate, someString, Placeholders.dummyLastUpdated, content)
-    upstreamChangesClient.onChangeEvent(new UpstreamChangeEvent(id, AttributesUtil.toSeq(attributes), Placeholders.dummyLastUpdated, versionForUpstream(content)))
+    upstreamChangesClient.onChangeEvent(ChangeEvent.forChange(id, versionForUpstream(content), Placeholders.dummyLastUpdated, attributes))
   }
   def addAndNotifyDownstream(id:String, content:String, someDate:DateTime, someString:String) {
     val attributes = pack(someDate = someDate, someString = someString)
@@ -185,10 +185,10 @@ class TestEnvironment(val pairKey: String,
     downstream.addEntity(id, someDate, someString, Placeholders.dummyLastUpdated, content)
     versionScheme match {
       case SameVersionScheme =>
-        downstreamChangesClient.onChangeEvent(new DownstreamChangeEvent(id, AttributesUtil.toSeq(attributes), Placeholders.dummyLastUpdated, versionForDownstream(content)))
+        downstreamChangesClient.onChangeEvent(ChangeEvent.forChange(id, versionForDownstream(content), Placeholders.dummyLastUpdated, attributes))
       case CorrelatedVersionScheme =>
-        downstreamChangesClient.onChangeEvent(new DownstreamCorrelatedChangeEvent(id, AttributesUtil.toSeq(attributes), Placeholders.dummyLastUpdated,
-          versionForUpstream(content), versionForDownstream(content)))
+        downstreamChangesClient.onChangeEvent(ChangeEvent.forTriggeredChange(id,
+          versionForUpstream(content), versionForDownstream(content), Placeholders.dummyLastUpdated, attributes))
     }
   }
 

@@ -15,6 +15,8 @@
  */
 package net.lshift.hibernate.migrations;
 
+import net.lshift.hibernate.migrations.dialects.DialectExtension;
+import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.dialect.Dialect;
 
@@ -30,6 +32,7 @@ import java.util.List;
  */
 public class MigrationBuilder {
   private final Dialect dialect;
+  private final DialectExtension dialectExtension;
   private final List<MigrationElement> elements;
   private final Configuration config;
   private final List<String> statements;
@@ -37,6 +40,7 @@ public class MigrationBuilder {
   public MigrationBuilder(Configuration config) {
     this.config = config;
     this.dialect = Dialect.getDialect(config.getProperties());
+    this.dialectExtension = DialectExtensionSelector.select(this.dialect);
     this.elements = new ArrayList<MigrationElement>();
     this.statements = new ArrayList<String>();
   }
@@ -54,7 +58,7 @@ public class MigrationBuilder {
   }
 
   public AlterTableBuilder alterTable(String table) {
-    return register(new AlterTableBuilder(config, dialect, table));
+    return register(new AlterTableBuilder(config, dialect, dialectExtension, table));
   }
 
   public DropTableBuilder dropTable(String table) {

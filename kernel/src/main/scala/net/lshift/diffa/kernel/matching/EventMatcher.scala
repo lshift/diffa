@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.matching
 
-import net.lshift.diffa.kernel.events.{PairChangeEvent, VersionID, ChangeEvent}
+import net.lshift.diffa.kernel.events.{PairChangeEvent, VersionID}
 
 /**
  * Trait supported by classes that can analyse streams to provide realtime warnings of likely

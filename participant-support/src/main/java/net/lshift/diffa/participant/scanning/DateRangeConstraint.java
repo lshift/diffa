@@ -64,13 +64,33 @@ public class DateRangeConstraint extends AbstractScanConstraint implements Range
   }
 
   @Override
+  public boolean hasLowerBound() {
+    return start != null;
+  }
+
+  @Override
+  public boolean hasUpperBound() {
+    return end != null;
+  }
+
+  @Override
   public String getStartText() {
-    return start.toString(formatter);
+    if (start == null) {
+      return null;
+    }
+    else {
+      return start.toString(formatter);
+    }
   }
 
   @Override
   public String getEndText() {
-    return end.toString(formatter);
+    if (end == null) {
+      return null;
+    }
+    else {
+      return end.toString(formatter);
+    }
   }
 
   private static LocalDate maybeParse(String dateStr) {

@@ -4,7 +4,7 @@
 
   <groupId>net.lshift.diffa</groupId>
   <artifactId>diffa-parent</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
 
   <name>LShift Diffa Parent POM</name>
 
@@ -27,7 +27,7 @@
     <buildVersion>${project.version}</buildVersion>    <!-- Can be overridden via -D -->
     <diffa.build.number>${project.version}</diffa.build.number> <!-- Must be overridden on CI server via -D -->
 
-    <scala.version>2.9.0-1</scala.version>
+    <scala.version>2.9.1</scala.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
     <spring.version>3.0.6.RELEASE</spring.version>
 
@@ -51,7 +51,7 @@
     <logback.version>0.9.28</logback.version>
     <akka.version>1.2</akka.version>
     <quartz.version>2.1.0</quartz.version>
-    <ehcache.version>2.4.5</ehcache.version>
+    <ehcache.version>2.4.6</ehcache.version>
   </properties>
 
   <scm>
@@ -350,7 +350,7 @@
     <dependency>
       <groupId>net.lshift</groupId>
       <artifactId>hibernate-migrations</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>1.1-SNAPSHOT</version>
     </dependency>
 
     <dependency>

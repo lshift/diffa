@@ -37,7 +37,7 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   private final String name;
   private final List<String> primaryKeys;
   private final List<Column> columns;
-  private boolean identityCol = false;
+  private boolean useNativeIdentityGenerator = false;
 
   public CreateTableBuilder(Dialect dialect, String name, String... primaryKeys) {
     this.dialect = dialect;
@@ -51,9 +51,7 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   //
 
   public CreateTableBuilder withNativeIdentityGenerator() {
-    if (dialect.supportsIdentityColumns()) {
-      identityCol = true;
-    }
+    useNativeIdentityGenerator = true;
     return this;
   }
 
@@ -87,7 +85,7 @@ public class CreateTableBuilder extends TraceableMigrationElement {
 
     for (Column col : columns) {
       if (primaryKeys.contains(col.getName())) {
-        if (identityCol) {
+        if (useNativeIdentityGenerator && dialect.supportsIdentityColumns()) {
           buffer.append(generateIdentityColumnString(dialect, col));
         } else {
           buffer.append( generateNonIdentityColumnString(dialect, col) );
@@ -124,7 +122,7 @@ public class CreateTableBuilder extends TraceableMigrationElement {
 
     prepareAndLogAndExecute(conn, createTableSql());
 
-    if (!dialect.supportsIdentityColumns()) {
+    if (useNativeIdentityGenerator && ! dialect.supportsIdentityColumns()) {
       createSequences(conn);
     }
   }

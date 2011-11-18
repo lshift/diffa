@@ -49,24 +49,6 @@ object JSONEncodingUtils {
   def deserializeActionRequest(wire:String) = mapper.readValue(wire, classOf[ActionInvocation])
   def serializeActionRequest(response:ActionInvocation) = mapper.writeValueAsString(response)
 
-  def deserializeEvent(wire:String) : WireEvent = mapper.readValue(wire, classOf[WireEvent])
-  def serializeEvent(event:WireEvent) = mapper.writeValueAsString(event)
-
-  def deserializeEventList(wire:String): Seq[WireEvent] =
-    asScalaBuffer(mapper.readValue(wire, new TypeReference[List[WireEvent]]() {}))
-
-  def maybeDeserializeEventList(event: String) : Seq[WireEvent] = {
-    if (event.startsWith("[")) {
-      deserializeEventList(event)
-    }
-    else {
-      Seq(JSONEncodingUtils.deserializeEvent(event))
-    }
-  }
-
-  def serializeEventList(events:Seq[WireEvent]) =
-    mapper.writeValueAsString(seqAsJavaList(events))
-
   def serializeEmptyResponse() = "{}"
 
   // Internal plumbing

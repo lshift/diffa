@@ -16,7 +16,6 @@
 package net.lshift.diffa.agent.load
 
 import net.lshift.diffa.messaging.json.ChangesRestClient
-import net.lshift.diffa.kernel.events.UpstreamChangeEvent
 import org.joda.time.DateTime
 import scala.collection.JavaConversions._
 import net.lshift.diffa.agent.client.{DifferencesRestClient, ConfigurationRestClient}
@@ -25,6 +24,7 @@ import net.lshift.diffa.kernel.differencing.DifferenceEvent
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
+import net.lshift.diffa.participant.changes.ChangeEvent
 
 /**
  * Utility class to load lots of unmatched events into the agent.
@@ -66,7 +66,7 @@ object PagingDataLoader {
       val timestamp = start.plusMinutes(i)
       val id = "id_" + i
       val version = "vsn_" + i
-      changesClient.onChangeEvent(UpstreamChangeEvent(id, List(start.toString), timestamp, version))
+      changesClient.onChangeEvent(ChangeEvent.forChange(id, version, timestamp, Map("bizDate" -> start.toString())))
     }
 
     Thread.sleep(1000)

@@ -59,14 +59,16 @@ class EndpointTest {
                           "abc_attribute" -> unboundDateCategoryDescriptor,
                           "def_attribute" -> unboundDateCategoryDescriptor)
 
-    val rightOrder = Seq("2011-01-26T10:24:00.000Z" /* abc */ ,"2011-01-26T10:36:00.000Z" /* def */, "55" /* xyz */)
+    val untyped = Map("abc_attribute" -> "2011-01-26T10:24:00.000Z",
+                      "def_attribute" -> "2011-01-26T10:36:00.000Z",
+                      "xyz_attribute" -> "55")
 
     val schematized = Map("xyz_attribute" -> IntegerAttribute(55),
                           "abc_attribute" -> DateTimeAttribute(new DateTime(2011, 1, 26, 10, 24, 0, 0, DateTimeZone.UTC)),
                           "def_attribute" -> DateTimeAttribute(new DateTime(2011, 1, 26, 10, 36, 0, 0, DateTimeZone.UTC)))
 
     var ep = new Endpoint{categories = categoryMap}
-    assertEquals(schematized, ep.schematize(rightOrder))
+    assertEquals(schematized, ep.schematize(untyped))
   }
 }
 

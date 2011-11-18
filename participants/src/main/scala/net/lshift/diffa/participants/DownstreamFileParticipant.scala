@@ -18,9 +18,9 @@ package net.lshift.diffa.participants
 
 import java.lang.String
 import java.io.File
-import net.lshift.diffa.kernel.events.DownstreamChangeEvent
-import net.lshift.diffa.kernel.differencing.AttributesUtil
 import net.lshift.diffa.kernel.participants.{CategoryFunction, DownstreamParticipant}
+import net.lshift.diffa.participant.changes.ChangeEvent
+import scala.collection.JavaConversions._
 
 /**
  * Downstream participant implementation backed off the filesystem.
@@ -33,6 +33,6 @@ class DownstreamFileParticipant(epName:String, root:String, agentRoot:String) ex
   def generateVersion(entityBody: String) = null
 
   protected def onFileChange(f: File) = {
-    changesClient.onChangeEvent(DownstreamChangeEvent(idFor(f), AttributesUtil.toSeq(attributesFor(f)), dateFor(f), versionFor(f)))
+    changesClient.onChangeEvent(ChangeEvent.forChange(idFor(f), versionFor(f), dateFor(f), attributesFor(f)))
   }
 }

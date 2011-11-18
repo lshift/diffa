@@ -128,7 +128,7 @@ case class Endpoint(
    * static schema bound keys because the static attributes
    * are not transmitted over the wire.
    */
-  def schematize(runtimeValues:Seq[String]) = AttributesUtil.toTypedMap(categories.toMap, runtimeValues)
+  def schematize(runtimeValues:Map[String, String]) = AttributesUtil.toTypedMap(categories.toMap, runtimeValues)
 
   def initialBucketing(view:Option[String]) =
     CategoryUtil.initialBucketingFor(CategoryUtil.fuseViewCategories(categories.toMap, views, view))

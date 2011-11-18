@@ -15,6 +15,7 @@
  */
 package net.lshift.hibernate.migrations;
 
+import net.lshift.hibernate.migrations.dialects.DialectExtension;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.Dialect;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static net.lshift.hibernate.migrations.SQLStringHelpers.generateColumnString;
+import static net.lshift.hibernate.migrations.SQLStringHelpers.maybeBracketTerm;
 import static net.lshift.hibernate.migrations.SQLStringHelpers.qualifyName;
 
 /**
@@ -38,12 +40,14 @@ public class AlterTableBuilder extends TraceableMigrationElement {
 
   private final Configuration config;
   private final Dialect dialect;
+  private final DialectExtension dialectExtension;
   private final String table;
   private final List<String> alterFragments;
 
-  public AlterTableBuilder(Configuration config, Dialect dialect, String table) {
+  public AlterTableBuilder(Configuration config, Dialect dialect, DialectExtension dialectExtension, String table) {
     this.config = config;
     this.dialect = dialect;
+    this.dialectExtension = dialectExtension;
     this.table = table;
     this.alterFragments = new ArrayList<String>();
   }
@@ -55,13 +59,14 @@ public class AlterTableBuilder extends TraceableMigrationElement {
 
   public AlterTableBuilder addColumn(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
     Column col = buildColumnDefinition(name, sqlType, length, nullable, defaultVal);
-    alterFragments.add("add column " + generateColumnString(dialect, col, false));
+    alterFragments.add(dialectExtension.addColumnString() + " " + generateColumnString(dialect, col, false));
     return this;
   }
 
   public AlterTableBuilder alterColumn(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
     Column col = buildColumnDefinition(name, sqlType, length, nullable, defaultVal);
-    alterFragments.add("alter column " + generateColumnString(dialect, col, false));
+    alterFragments.add(dialectExtension.alterColumnString() + " " +
+      maybeBracketTerm(generateColumnString(dialect, col, false), dialectExtension.shouldBracketAlterColumnStatement()));
     return this;
   }
 

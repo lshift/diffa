@@ -536,7 +536,7 @@ class PairActorTest {
     val id = VersionID(DiffaPairRef(pairKey, domainName), "foo")
     val lastUpdate = new DateTime
     val vsn = "foobar"
-    UpstreamPairChangeEvent(id, Seq(), lastUpdate, vsn)
+    UpstreamPairChangeEvent(id, Map(), lastUpdate, vsn)
   }
 
   def awaitFeedbackHandleCancellation(feedbackHandle:FeedbackHandle) {

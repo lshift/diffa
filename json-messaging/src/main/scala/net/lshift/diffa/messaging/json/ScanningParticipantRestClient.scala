@@ -39,8 +39,12 @@ class ScanningParticipantRestClient(scanUrl:String)
       case sqc:SetConstraint   =>
         sqc.getValues.foreach(v => params.add(sqc.getAttributeName, v))
       case rc:RangeConstraint =>
-        params.add(rc.getAttributeName + "-start", rc.getStartText)
-        params.add(rc.getAttributeName + "-end", rc.getEndText)
+        if (rc.hasLowerBound) {
+          params.add(rc.getAttributeName + "-start", rc.getStartText)  
+        }
+        if (rc.hasUpperBound) {
+          params.add(rc.getAttributeName + "-end", rc.getEndText)
+        }
       case pc:StringPrefixConstraint =>
         params.add(pc.getAttributeName + "-prefix", pc.getPrefix)
     }

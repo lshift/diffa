@@ -298,7 +298,7 @@ class LuceneVersionCorrelationStoreTest {
     val collector = new Collector
     store.queryUpstreams(List(new TimeRangeConstraint("bizDateTime", DEC_1_2009, endOfDay(DEC_1_2009))), collector.collectUpstream)
     assertEquals(
-      List(UpstreamPairChangeEvent(VersionID(pair, "id7"), bizDateTimeSeq(DEC_1_2009), DEC_1_2009, "upstreamVsn-id7")),
+      List(UpstreamPairChangeEvent(VersionID(pair, "id7"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_1_2009)), DEC_1_2009, "upstreamVsn-id7")),
       collector.upstreamObjs.toList)
   }
 
@@ -330,7 +330,7 @@ class LuceneVersionCorrelationStoreTest {
     val collector = new Collector
     val digests = store.queryDownstreams(List(new TimeRangeConstraint("bizDateTime", DEC_1_2009, endOfDay(DEC_1_2009))), collector.collectDownstream)
     assertEquals(
-      List(DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id7"), bizDateTimeSeq(DEC_1_2009), DEC_1_2009, "upstreamVsn-id7", "downstreamVsn-id7")),
+      List(DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id7"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_1_2009)), DEC_1_2009, "upstreamVsn-id7", "downstreamVsn-id7")),
       collector.downstreamObjs.toList)
   }
 
@@ -357,7 +357,7 @@ class LuceneVersionCorrelationStoreTest {
     val collector = new Collector
     val digests = store.queryUpstreams(system.constraints, collector.collectUpstream)
     assertEquals(
-      List(UpstreamPairChangeEvent(VersionID(pair, "id1"), AttributesUtil.toSeqFromTyped(system.includedAttrs), DEC_31_2009, "upstreamVsn-id1")),
+      List(UpstreamPairChangeEvent(VersionID(pair, "id1"), AttributesUtil.toUntypedMap(system.includedAttrs), DEC_31_2009, "upstreamVsn-id1")),
       collector.upstreamObjs.toList)
   }
 
@@ -371,7 +371,7 @@ class LuceneVersionCorrelationStoreTest {
     val collector = new Collector
     val digests = store.queryDownstreams(system.constraints, collector.collectDownstream)
     assertEquals(
-      List(DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id1"), AttributesUtil.toSeqFromTyped(system.includedAttrs), DEC_31_2009, "upstreamVsn-id1", "downstreamVsn-id1")),
+      List(DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id1"), AttributesUtil.toUntypedMap(system.includedAttrs), DEC_31_2009, "upstreamVsn-id1", "downstreamVsn-id1")),
       collector.downstreamObjs.toList)
   }
 
@@ -386,8 +386,8 @@ class LuceneVersionCorrelationStoreTest {
     val digests = store.queryUpstreams(List(), collector.collectUpstream)
     assertEquals(
       List(
-        UpstreamPairChangeEvent(VersionID(pair, "id6"), bizDateTimeSeq(DEC_1_2009), DEC_1_2009, "upstreamVsn-id6"),
-        UpstreamPairChangeEvent(VersionID(pair, "id7"), bizDateTimeSeq(DEC_2_2009), DEC_2_2009, "upstreamVsn-id7")),
+        UpstreamPairChangeEvent(VersionID(pair, "id6"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_1_2009)), DEC_1_2009, "upstreamVsn-id6"),
+        UpstreamPairChangeEvent(VersionID(pair, "id7"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_2_2009)), DEC_2_2009, "upstreamVsn-id7")),
       collector.upstreamObjs.toList)
   }
 
@@ -402,8 +402,8 @@ class LuceneVersionCorrelationStoreTest {
     val digests = store.queryDownstreams(List(), collector.collectDownstream)
     assertEquals(
       List(
-        DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id6"), bizDateTimeSeq(DEC_1_2009), DEC_1_2009, "upstreamVsn-id6", "downstreamVsn-id6"),
-        DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id7"), bizDateTimeSeq(DEC_2_2009), DEC_2_2009, "upstreamVsn-id7", "downstreamVsn-id7")),
+        DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id6"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_1_2009)), DEC_1_2009, "upstreamVsn-id6", "downstreamVsn-id6"),
+        DownstreamCorrelatedPairChangeEvent(VersionID(pair, "id7"), AttributesUtil.toUntypedMap(bizDateTimeMap(DEC_2_2009)), DEC_2_2009, "upstreamVsn-id7", "downstreamVsn-id7")),
       collector.downstreamObjs.toList)
   }
   
@@ -544,10 +544,10 @@ class Collector {
   val downstreamObjs = new ListBuffer[DownstreamCorrelatedPairChangeEvent]
 
   def collectUpstream(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, vsn:String) = {
-    upstreamObjs += UpstreamPairChangeEvent(id, AttributesUtil.toSeq(attributes), lastUpdate, vsn)
+    upstreamObjs += UpstreamPairChangeEvent(id, attributes, lastUpdate, vsn)
   }
   def collectDownstream(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, uvsn:String, dvsn:String) = {
-    downstreamObjs += DownstreamCorrelatedPairChangeEvent(id, AttributesUtil.toSeq(attributes), lastUpdate, uvsn, dvsn)
+    downstreamObjs += DownstreamCorrelatedPairChangeEvent(id, attributes, lastUpdate, uvsn, dvsn)
   }
 }
 

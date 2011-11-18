@@ -16,12 +16,11 @@
 
 package net.lshift.diffa.participants
 
-import net.lshift.diffa.kernel.participants.{DownstreamMemoryParticipant, UpstreamMemoryParticipant}
-import net.lshift.diffa.kernel.events.{VersionID, DownstreamChangeEvent}
+import net.lshift.diffa.kernel.participants.{DownstreamMemoryParticipant}
 import org.joda.time.DateTime
 import org.apache.commons.codec.digest.DigestUtils
-import collection.mutable.HashMap
-import net.lshift.diffa.kernel.differencing.AttributesUtil
+import net.lshift.diffa.participant.changes.ChangeEvent
+import scala.collection.JavaConversions._
 
 /**
  * An implementation of the DownstreamParticipant using the MemoryParticipant base, whereby the body is the version
@@ -34,13 +33,13 @@ class DownstreamWebParticipant(val epName:String, val agentRoot:String, val doma
   override def addEntity(id: String, someDate:DateTime, someString:String, lastUpdated: DateTime, body: String) = {
     super.addEntity(id, someDate, someString, lastUpdated, body)
 
-    changesClient.onChangeEvent(DownstreamChangeEvent(id, Seq(someDate.toString, someString), lastUpdated, dvsnGen(body)))
+    changesClient.onChangeEvent(ChangeEvent.forChange(id, dvsnGen(body), lastUpdated, Map("someDate" -> someDate.toString(), "someString" -> someString)))
   }
 
 
   override def removeEntity(id: String) = {
     super.removeEntity(id)
 
-    changesClient.onChangeEvent(DownstreamChangeEvent(id, Seq(), new DateTime, null))
+    changesClient.onChangeEvent(ChangeEvent.forChange(id, null, new DateTime))
   }
 }

@@ -57,13 +57,33 @@ public class IntegerRangeConstraint extends AbstractScanConstraint implements Ra
   }
 
   @Override
+  public boolean hasLowerBound() {
+    return start != null;
+  }
+
+  @Override
+  public boolean hasUpperBound() {
+    return end != null;
+  }
+
+  @Override
   public String getStartText() {
-    return Integer.toString(start);
+    if (start == null) {
+      return null;
+    }
+    else {
+      return Integer.toString(start);
+    }
   }
 
   @Override
   public String getEndText() {
-    return Integer.toString(end);
+    if (end == null) {
+      return null;
+    }
+    else {
+      return Integer.toString(end);
+    }
   }
 
   private static Integer maybeParse(String intStr) {

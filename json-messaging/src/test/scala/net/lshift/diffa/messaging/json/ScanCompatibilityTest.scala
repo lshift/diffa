@@ -28,10 +28,13 @@ import scala.collection.JavaConversions._
 import org.joda.time.{DateTimeZone, DateTime, LocalDate}
 import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.participant.scanning._
+import org.junit.runner.RunWith
+import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 
 /**
  * Test ensuring that internal query constraint and aggregation types are passed and parsed by Scala participants.
  */
+@RunWith(classOf[Theories])
 class ScanCompatibilityTest {
   import ScanCompatibilityTest._
 
@@ -43,6 +46,45 @@ class ScanCompatibilityTest {
   @Before
   def reset() {
     resetAll()
+  }
+
+  @Theory
+  def shouldBeAbleToScanConstraint(constraint:ScanConstraint) = {
+    stubAggregationBuilder(req => new AggregationBuilder(req))
+    stubConstraintBuilder(req => {
+      val builder = new ConstraintsBuilder(req)
+      constraint match {
+        case drc:DateRangeConstraint    => builder.maybeAddDateRangeConstraint(constraint.getAttributeName)
+        case trc:TimeRangeConstraint    => builder.maybeAddTimeRangeConstraint(constraint.getAttributeName)
+        case trc:IntegerRangeConstraint => builder.maybeAddIntegerRangeConstraint(constraint.getAttributeName)
+      }
+      builder
+    })
+    
+    constraint match {
+      case rc:RangeConstraint if (!rc.hasLowerBound && !rc.hasUpperBound) => expectQuery(Seq(), Seq())
+      case _                                                              => expectQuery(Seq(constraint), Seq())
+    }
+
+    replayAll()
+
+    scanningRestClient.scan(Seq(constraint), Seq())
+    verifyAll()
+  }
+
+  @Test
+  def shouldBeAbleToScanDatesWithUndefinedLowerBound() {
+    stubAggregationBuilder(req => new AggregationBuilder(req))
+    stubConstraintBuilder(req => {
+      val builder = new ConstraintsBuilder(req)
+      builder.maybeAddDateRangeConstraint("bizDate")
+      builder
+    })
+    expectQuery(Seq(new net.lshift.diffa.participant.scanning.DateRangeConstraint("bizDate", null, new LocalDate(2011, 7, 31))), Seq())
+    replayAll()
+
+    scanningRestClient.scan(Seq(new DateRangeConstraint("bizDate", null, new LocalDate(2011, 7, 31))), Seq())
+    verifyAll()
   }
 
   @Test
@@ -201,6 +243,17 @@ class ScanCompatibilityTest {
 }
 
 object ScanCompatibilityTest {
+
+  @DataPoint def lowerUnboundedDate = new DateRangeConstraint("bizDate", null, new LocalDate(2011, 7, 31))
+  @DataPoint def upperUnboundedDate = new DateRangeConstraint("bizDate", new LocalDate(2011, 7, 31), null)
+  @DataPoint def completelyUnboundedDate = new DateRangeConstraint("bizDate", null.asInstanceOf[LocalDate], null)
+  @DataPoint def lowerUnboundedTime = new TimeRangeConstraint("bizTime", null, new DateTime(2011, 7, 1, 10, 36, 0, 0, DateTimeZone.UTC))
+  @DataPoint def upperUnboundedTime = new TimeRangeConstraint("bizTime", new DateTime(2011, 7, 1, 10, 36, 0, 0, DateTimeZone.UTC), null)
+  @DataPoint def completelyUnboundedTime = new TimeRangeConstraint("bizTime", null.asInstanceOf[DateTime], null)
+  @DataPoint def lowerUnboundedInteger = new IntegerRangeConstraint("someInt", null, 20)
+  @DataPoint def upperUnboundedInteger = new IntegerRangeConstraint("someInt", 5, null)
+  @DataPoint def completelyUnboundedInteger = new IntegerRangeConstraint("someInt", null.asInstanceOf[Integer], null)
+
   val scanningParticipant = createStrictMock(classOf[ScanningParticipantHandler])
   val serverPort = 41255
 

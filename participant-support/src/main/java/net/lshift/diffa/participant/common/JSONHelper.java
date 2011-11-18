@@ -15,10 +15,13 @@
  */
 package net.lshift.diffa.participant.common;
 
+import net.lshift.diffa.participant.changes.ChangeEvent;
 import net.lshift.diffa.participant.correlation.ProcessingResponse;
 import net.lshift.diffa.participant.scanning.ScanResultEntry;
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -88,6 +91,55 @@ public class JSONHelper {
       throw ex;
     } catch (Exception ex) {
       throw new IOException("Failed to deserialise result from JSON", ex);
+    }
+  }
+
+  public static void writeChangeEvent(OutputStream responseStream, ChangeEvent event)
+      throws IOException {
+    try {
+      mapper.writeValue(responseStream, event);
+    } catch (IOException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IOException("Failed to serialise event to JSON", ex);
+    }
+  }
+
+  public static void writeChangeEvents(OutputStream responseStream, Iterable<ChangeEvent> events)
+      throws IOException {
+    try {
+      mapper.writeValue(responseStream, events);
+    } catch (IOException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IOException("Failed to serialise events to JSON", ex);
+    }
+  }
+
+  public static void formatChangeEvents(OutputStream responseStream, Iterable<ChangeEvent> events)
+      throws IOException {
+    try {
+      prettyMapper.writeValue(responseStream, events);
+    } catch (IOException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IOException("Failed to serialise events to JSON", ex);
+    }
+  }
+
+  public static ChangeEvent[] readChangeEvents(InputStream stream)
+      throws IOException {
+    try {
+      JsonNode nextNode = mapper.readTree(stream);
+      if (nextNode instanceof ArrayNode) {
+        return mapper.convertValue(nextNode, ChangeEvent[].class);
+      } else {
+        return new ChangeEvent[] { mapper.convertValue(nextNode, ChangeEvent.class) };
+      }
+    } catch (IOException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IOException("Failed to deserialise event from JSON", ex);
     }
   }
 }

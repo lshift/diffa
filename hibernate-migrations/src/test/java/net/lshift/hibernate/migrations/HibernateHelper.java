@@ -19,6 +19,8 @@ import org.hibernate.cfg.Configuration;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.easymock.EasyMock.*;
 
@@ -26,17 +28,23 @@ import static org.easymock.EasyMock.*;
  * Helper for various hibernate-edges within the test cases.
  */
 public class HibernateHelper {
-  private static Configuration config;
+  public static final String HSQL_DIALECT = "org.hibernate.dialect.HSQLDialect";
+  public static final String ORACLE_DIALECT = "org.hibernate.dialect.Oracle10gDialect";
+
+  private static Map<String, Configuration> config = new HashMap<String, Configuration>();
 
   public static Configuration configuration() {
-    if (config == null) {
-      config = new Configuration().
-        setProperty("hibernate.dialect", "org.hibernate.dialect.HSQLDialect").
+    return configuration(HSQL_DIALECT);
+  }
+  public static Configuration configuration(String dialect) {
+    if (config.get(dialect) == null) {
+      config.put(dialect, new Configuration().
+        setProperty("hibernate.dialect", dialect).
         setProperty("hibernate.connection.url", "jdbc:hsqldb:mem").
-        setProperty("hibernate.connection.driver_class", "org.hsqldb.jdbc.JDBCDriver");
+        setProperty("hibernate.connection.driver_class", "org.hsqldb.jdbc.JDBCDriver"));
     }
 
-    return config;
+    return config.get(dialect);
   }
 
   public static PreparedStatement mockExecutablePreparedStatement() throws SQLException {

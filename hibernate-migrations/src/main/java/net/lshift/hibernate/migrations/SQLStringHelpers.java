@@ -104,4 +104,9 @@ public class SQLStringHelpers {
     String defaultSchema = config.getProperties().getProperty(Environment.DEFAULT_SCHEMA);
     return new Table(table).getQualifiedName(dialect,defaultCatalog, defaultSchema);
   }
+
+  public static String maybeBracketTerm(String term, boolean bracket) {
+    if (bracket) return "(" + term + ")";
+    return term;
+  }
 }

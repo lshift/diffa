@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2011 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.hibernate.migrations.dialects;
 
-package net.lshift.diffa.kernel.client
-
-import net.lshift.diffa.participant.changes.ChangeEvent
+import org.hibernate.dialect.Dialect;
+import org.hibernate.dialect.Oracle8iDialect;
 
 /**
- * Interface supported by clients capable of reporting change events to the diffa agent.
+ * Helper for selecting an appropriate dialect extension for a given dialect.
  */
-trait ChangesClient {
-  /**
-   * Reports a change with the given details to the agent.
-   */
-  def onChangeEvent(evt:ChangeEvent)
+public class DialectExtensionSelector {
+  public static DialectExtension select(Dialect hibernateDialect) {
+    if (hibernateDialect instanceof Oracle8iDialect) {
+      return new OracleDialectExtension();
+    }
+
+    return new DialectExtension();
+  }
 }

@@ -234,7 +234,7 @@ abstract class AbstractPolicyTest {
     listener.onMismatch(VersionID(pair.asRef, "id1"), update, "vsn1", null, LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, UpstreamPairChangeEvent(VersionID(pair.asRef, "id1"), toStrMap(attrs).values.toSeq, observationDate, "vsn1"))
+    policy.onChange(writer, UpstreamPairChangeEvent(VersionID(pair.asRef, "id1"), toStrMap(attrs), observationDate, "vsn1"))
     verifyAll
   }
 
@@ -253,7 +253,7 @@ abstract class AbstractPolicyTest {
     listener.onMismatch(VersionID(pair.asRef, "id1"), JUL_8_2010_2, null, "vsn1", LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamPairChangeEvent(VersionID(pair.asRef, "id1"), AttributesUtil.toSeq(attributes), JUL_8_2010_2, "vsn1"))
+    policy.onChange(writer, DownstreamPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1"))
     verifyAll
   }
 
@@ -271,7 +271,7 @@ abstract class AbstractPolicyTest {
     listener.onMismatch(VersionID(pair.asRef, "id1"), JUL_8_2010_2, null, "vsn1", LiveWindow, Unfiltered); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), AttributesUtil.toSeq(attributes), JUL_8_2010_2, "vsn1", "vsn2"))
+    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1", "vsn2"))
     verifyAll
   }
 
@@ -289,7 +289,7 @@ abstract class AbstractPolicyTest {
     listener.onMatch(VersionID(pair.asRef, "id1"), "vsn1", LiveWindow); expectLastCall
     replayAll
 
-    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), AttributesUtil.toSeq(attributes), JUL_8_2010_2, "vsn1", "vsn2"))
+    policy.onChange(writer, DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, "id1"), attributes, JUL_8_2010_2, "vsn1", "vsn2"))
     verifyAll
   }
 
