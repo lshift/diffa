@@ -98,6 +98,15 @@
     </New>
   </New>
 
+  <New id="amqpcf" class="org.eclipse.jetty.plus.jndi.Resource">
+    <Arg>amqp/connectionFactory</Arg>
+    <Arg>
+      <New class="com.rabbitmq.client.ConnectionFactory">
+        <Set name="host">localhost</Set>
+      </New>
+    </Arg>
+  </New>
+
   <Call id="MBeanServer" class="java.lang.management.ManagementFactory" name="getPlatformMBeanServer" />
 
 </Configure>
