@@ -16,7 +16,6 @@
 
 package net.lshift.diffa.messaging.json
 
-import net.lshift.diffa.kernel.protocol.ProtocolMapper
 import net.lshift.diffa.kernel.frontend.Changes
 import net.lshift.diffa.kernel.lifecycle.AgentLifecycleAware
 import net.lshift.diffa.kernel.participants._
@@ -25,8 +24,7 @@ import net.lshift.diffa.kernel.participants._
  * Utility class responsible for registering the JSON protocol support with necessary factories
  * and request handlers.
  */
-class JsonMessagingRegistrar(val protocolMapper:ProtocolMapper,
-                             val participantFactory:ParticipantFactory,
+class JsonMessagingRegistrar(val participantFactory:ParticipantFactory,
                              val changes:Changes)
   extends AgentLifecycleAware {
 

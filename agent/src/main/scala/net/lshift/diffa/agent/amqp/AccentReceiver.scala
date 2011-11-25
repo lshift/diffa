@@ -29,8 +29,7 @@ import net.lshift.diffa.participant.common.JSONHelper
 
 
 /**
- * AMQP message consumer. Uses a ProtocolHandler to process messages as TransportRequests,
- * and produces no response.
+ * AMQP message consumer for change events.
  */
 class AccentReceiver(con: AccentConnection,
                      params:ReceiverParameters,

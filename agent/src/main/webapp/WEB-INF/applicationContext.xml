@@ -206,15 +206,6 @@
   <bean id="participantFactory" class="net.lshift.diffa.kernel.participants.ParticipantFactory"/>
 
   <!--
-    ====================
-      Protocol Mapping
-    ====================
-  -->
-
-  <bean id="protocolMapper" class="net.lshift.diffa.kernel.protocol.ProtocolMapper">
-  </bean>
-
-  <!--
     ===============================
       Inbound Endpoint Management
     ===============================
