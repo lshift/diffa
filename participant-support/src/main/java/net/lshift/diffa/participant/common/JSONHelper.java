@@ -23,6 +23,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.node.ArrayNode;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -104,6 +105,19 @@ public class JSONHelper {
       throw new IOException("Failed to serialise event to JSON", ex);
     }
   }
+
+  public static byte[] writeChangeEvent(ChangeEvent event)
+        throws IOException {
+      try {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        writeChangeEvent(baos, event);
+        return baos.toByteArray();
+      } catch (IOException ex) {
+        throw ex;
+      } catch (Exception ex) {
+        throw new IOException("Failed to serialise event to JSON", ex);
+      }
+    }
 
   public static void writeChangeEvents(OutputStream responseStream, Iterable<ChangeEvent> events)
       throws IOException {

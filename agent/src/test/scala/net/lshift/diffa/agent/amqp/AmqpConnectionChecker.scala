@@ -1,3 +1,5 @@
+package net.lshift.diffa.agent.amqp
+
 /**
  * Copyright (C) 2010-2011 LShift Ltd.
  *
@@ -14,14 +16,15 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.amqp
-
 import com.rabbitmq.client.ConnectionFactory
 import org.slf4j.LoggerFactory
 
 /**
  * Utility object that can detect whether a RabbitMQ connection is available
  * on localhost, using the default port number.
+ *
+ * Example usage: assumeTrue(AmqpConnectionChecker.isConnectionAvailable)
+ *
  */
 object AmqpConnectionChecker {
 

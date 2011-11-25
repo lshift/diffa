@@ -17,14 +17,18 @@
 package net.lshift.diffa.agent.itest.support
 
 import net.lshift.diffa.messaging.json.ChangesRestClient
-import net.lshift.diffa.messaging.amqp.{AmqpQueueUrl, ConnectorHolder, ChangesAmqpClient}
+import com.rabbitmq.client.ConnectionFactory
+import net.lshift.accent.AccentConnection
+import net.lshift.diffa.agent.amqp.{AmqpQueueUrl, ChangesAmqpClient, AccentConnectionFailureHandler}
 
 /**
  * Static set of environments that can be used in integration test cases.
  */
 object TestEnvironments {
 
-  private val amqpConnectorHolder = new ConnectorHolder()
+  val factory = new ConnectionFactory()
+  val failureHandler = new AccentConnectionFailureHandler()
+  private val accentConnection = new AccentConnection(factory, failureHandler)
 
   // Each environment will need participants running on their own ports. To do this, we'll simply provide
   // a mechanism for portOffset.
@@ -49,7 +53,7 @@ object TestEnvironments {
   def sameAmqp(key:String) =
     new TestEnvironment(key,
                         new HttpParticipants(nextPort, nextPort),
-                        { (_, epName) => new ChangesAmqpClient(amqpConnectorHolder.connector,
+                        { (_, epName) => new ChangesAmqpClient(accentConnection,
                                                      epName + "-changes-same" + key,
                                                      10000) },
                         SameVersionScheme,
@@ -58,7 +62,7 @@ object TestEnvironments {
   def correlatedAmqp(key:String) =
     new TestEnvironment(key,
                         new HttpParticipants(nextPort, nextPort),
-                        { (_, epName:String) => new ChangesAmqpClient(amqpConnectorHolder.connector,
+                        { (_, epName:String) => new ChangesAmqpClient(accentConnection,
                                                                       epName + "-changes-correlated" + key,
                                                                       10000) },
                         CorrelatedVersionScheme,

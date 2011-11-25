@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ *  Copyright (C) 2010-2011 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.diffa.agent.amqp
 
-package net.lshift.diffa.messaging.amqp
-
-import java.io.IOException
+import net.lshift.accent.ConnectionFailureListener
+import java.lang.Exception
+import org.slf4j.LoggerFactory
+import net.lshift.diffa.kernel.util.AlertCodes
 
 /**
- * Exception thrown when by AMQP RPC clients when a response is not received within a fixed
- * period of time.
+ * Default handler for listening to failures in Accent connections.
  */
-case class ReceiveTimeoutException(queueName:String, endpoint:String, timeoutMillis: Long) extends IOException {
+class AccentConnectionFailureHandler extends ConnectionFailureListener {
 
-  override def getMessage = "Receive (%s - %s) timed out after %dms".format(queueName, endpoint, timeoutMillis)
+  val log = LoggerFactory.getLogger(getClass)
+
+  def connectionFailure(e: Exception)
+    = log.error("%s: Accent connection failure".format(AlertCodes.GENERAL_MESSAGING_ERROR), e)
 }

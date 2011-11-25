@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.amqp
+package net.lshift.diffa.agent.amqp
 
 import scala.util.matching.Regex
 import com.rabbitmq.client.ConnectionFactory.USE_DEFAULT_PORT

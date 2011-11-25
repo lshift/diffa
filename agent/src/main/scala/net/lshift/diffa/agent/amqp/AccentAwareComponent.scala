@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ *  Copyright (C) 2010-2011 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.amqp
+package net.lshift.diffa.agent.amqp
 
-import com.rabbitmq.messagepatterns.unicast.ReceivedMessage
+import java.io.Closeable
+import net.lshift.accent.{AccentConnection, AccentChannel}
 
 /**
- * Determines the endpoint name for an incoming AMQP message.
+ * Simple base class for implementing disposable Accent based senders and receivers.
  */
-trait EndpointMapper extends (ReceivedMessage => String)
+class AccentAwareComponent(con: AccentConnection) extends Closeable {
+
+  protected val channel: AccentChannel = con.createChannel()
+
+  def close = channel.close
+}

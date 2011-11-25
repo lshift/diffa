@@ -150,11 +150,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>net.lshift.diffa</groupId>
-      <artifactId>diffa-amqp-messaging</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
       <scope>provided</scope>
@@ -169,6 +164,11 @@
       <artifactId>amqp-client</artifactId>
       <version>${rabbitmq.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.lshift</groupId>
+      <artifactId>accent</artifactId>
+      <version>${accent.version}</version>
     </dependency>
   </dependencies>
 
@@ -290,6 +290,7 @@
         <configuration>
           <!--<forkMode>never</forkMode>-->
           <excludes>
+            <exclude>**/*$*/**</exclude>
             <exclude>**/itest/**</exclude>
           </excludes>
         </configuration>

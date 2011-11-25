@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.amqp
+package net.lshift.diffa.agent.amqp
 
-import com.rabbitmq.client.ConnectionFactory
-import com.rabbitmq.messagepatterns.unicast.{Factory, ConnectionBuilder}
+import net.lshift.accent.{AccentConfirmPublisher, AccentConnection}
+import com.rabbitmq.client.MessageProperties
 
 /**
- * Wrapper for a Connector instance as required by the message patterns library. Connection
- * parameters are passed in via a ConnectionFactory instance.
+ * Forwards messages directly into a specifically named AMQP queue
  */
-case class ConnectorHolder(connectionFactory: ConnectionFactory = new ConnectionFactory()) {
+class AccentSender(con: AccentConnection, queueName:String) extends AccentAwareComponent(con) {
 
-  private lazy val builder = new ConnectionBuilder {
-    def createConnection = connectionFactory.newConnection()
-  }
+  private val publisher = new AccentConfirmPublisher(channel)
 
-  lazy val connector = Factory.createConnector(builder)
-
-  def close() {
-    connector.close()
+  /**
+   * Send the given payload to the configured queue.
+   */
+  def send(payload: Array[Byte]) = {
+    publisher.reliablePublish("", queueName, MessageProperties.PERSISTENT_BASIC, payload)
   }
 }

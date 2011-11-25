@@ -69,4 +69,9 @@ object AlertCodes {
    * Indicates a given domain is not valid or does not exist.
    */
   val INVALID_DOMAIN = "D10"
+
+  /**
+   * Indicates that an error has occurred in the message processing infrastructure
+   */
+  val GENERAL_MESSAGING_ERROR = "D11"
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.amqp
+package net.lshift.diffa.agent.amqp
 
 import org.junit.Assert._
 import org.junit.Test
@@ -22,7 +22,7 @@ import org.junit.Test
 /**
  * Test cases for the AmqpQueueUrl class.
  */
-class AmqpQueueUrlTests {
+class AmqpQueueUrlTest {
 
   @Test
   def parseUrlWithNoPortAndEmptyVHost() {

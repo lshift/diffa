@@ -52,6 +52,15 @@ public class JSONHelperTest {
   }
 
   @Test
+  public void shouldRoundTripByteArrayRepresentation() throws Exception {
+    ChangeEvent event = ChangeEvent.forChange("foo", "bar", new DateTime(1977,5,6,4,5,8,0, DateTimeZone.UTC));
+    byte[] buffer = JSONHelper.writeChangeEvent(event);
+    ByteArrayInputStream is = new ByteArrayInputStream(buffer);
+    ChangeEvent[] events = JSONHelper.readChangeEvents(is);
+    assertEquals(event, events[0]);
+  }
+  
+  @Test
   public void shouldRoundtripSingleEntityWithNoAttributes() throws Exception {
     ScanResultEntry entry = ScanResultEntry.forEntity("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC));
     String single = serialiseResult(Arrays.asList(entry));
