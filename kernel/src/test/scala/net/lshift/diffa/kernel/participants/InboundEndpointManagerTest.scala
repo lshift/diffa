@@ -31,7 +31,7 @@ class InboundEndpointManagerTest {
   val jsonFactory = new InboundEndpointFactory {
     var lastEp:Endpoint = null
 
-    def canHandleInboundEndpoint(url: String, contentType: String) = url.startsWith("amqp") && contentType == "application/json"
+    def canHandleInboundEndpoint(url: String) = url.startsWith("amqp")
     def ensureEndpointReceiver(e: Endpoint) = lastEp = e
     def endpointGone(key: String) = null
   }
@@ -55,14 +55,6 @@ class InboundEndpointManagerTest {
 
     assertNotNull(jsonFactory.lastEp)
     assertEquals("e", jsonFactory.lastEp.name)
-  }
-
-  @Test
-  def shouldNotInformFactoryWhenEndpointIsNotAcceptable {
-    manager.registerFactory(jsonFactory)
-    manager.onEndpointAvailable(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", contentType = "application/xml", inboundUrl = "amqp:queue.name"))
-
-    assertNull(jsonFactory.lastEp)
   }
 
   @Test

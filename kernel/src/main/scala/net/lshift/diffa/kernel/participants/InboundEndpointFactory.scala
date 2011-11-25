@@ -24,10 +24,10 @@ import net.lshift.diffa.kernel.config.Endpoint
 trait InboundEndpointFactory {
 
   /**
-   * Allows the agent to determine if this factory can handle inbound endpoints with the given url and content. If
+   * Allows the agent to determine if this factory can handle inbound endpoints with the given url. If
    * the factory responds with true, then a subsequent request to ensure an endpoint is available will be sent.
    */
-  def canHandleInboundEndpoint(url:String, contentType:String):Boolean
+  def canHandleInboundEndpoint(url:String):Boolean
 
   /**
    * Indicates that the factory should ensure an receiving endpoint is available for the given endpoint. This call will

@@ -40,7 +40,7 @@ class InboundEndpointManager(configStore:SystemConfigStore) extends EndpointLife
   def onEndpointAvailable(e:Endpoint) {
     if (e.inboundUrl != null) {
       // We need to ensure we have an inbound receiver
-      val validFactories = factories.filter(_.canHandleInboundEndpoint(e.inboundUrl, e.contentType))
+      val validFactories = factories.filter(_.canHandleInboundEndpoint(e.inboundUrl))
       if (validFactories.length == 0) {
         log.error("No InboundEndpointFactories accepted the endpoint " + e + ". Change events may not be received.")
       } else {

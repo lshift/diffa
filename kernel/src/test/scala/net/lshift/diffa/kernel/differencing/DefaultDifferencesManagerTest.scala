@@ -39,9 +39,9 @@ import org.joda.time.{DateTimeZone, DateTime, Duration, Interval}
 class StubParticipantProtocolFactory
     extends ScanningParticipantFactory {
 
-  def supportsAddress(address:String, protocol:String) = true
+  def supportsAddress(address:String) = true
 
-  def createParticipantRef(address: String, protocol: String) = new ScanningParticipantRef {
+  def createParticipantRef(address: String) = new ScanningParticipantRef {
     def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = null
     def close() {}
   }

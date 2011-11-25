@@ -57,16 +57,15 @@ class ParticipantFactoryTest {
   allFactories.foreach(checkOrder(_, false))
 
   // Apply an accepted URL for each factory
-  private val json = "application/json"
-  expect(scanning1.supportsAddress("http://localhost/scan", json)).andReturn(true).anyTimes
-  expect(scanning2.supportsAddress("amqp://localhost/scan", json)).andReturn(true).anyTimes
-  expect(content1.supportsAddress("http://localhost/content", json)).andReturn(true).anyTimes
-  expect(content2.supportsAddress("amqp://localhost/content", json)).andReturn(true).anyTimes
-  expect(versioning1.supportsAddress("http://localhost/corr-version", json)).andReturn(true).anyTimes
-  expect(versioning2.supportsAddress("amqp://localhost/corr-version", json)).andReturn(true).anyTimes
+  expect(scanning1.supportsAddress("http://localhost/scan")).andReturn(true).anyTimes
+  expect(scanning2.supportsAddress("amqp://localhost/scan")).andReturn(true).anyTimes
+  expect(content1.supportsAddress("http://localhost/content")).andReturn(true).anyTimes
+  expect(content2.supportsAddress("amqp://localhost/content")).andReturn(true).anyTimes
+  expect(versioning1.supportsAddress("http://localhost/corr-version")).andReturn(true).anyTimes
+  expect(versioning2.supportsAddress("amqp://localhost/corr-version")).andReturn(true).anyTimes
 
   // Default to factories not supporting addresses
-  allFactories.foreach(f => expect(f.supportsAddress(anyString, anyString)).andReturn(false).anyTimes)
+  allFactories.foreach(f => expect(f.supportsAddress(anyString)).andReturn(false).anyTimes)
 
   @Theory
   def shouldFailToCreateUpstreamWhenAddressOrContentTypeIsInvalid(e:EndpointConfig) {
@@ -238,18 +237,18 @@ class ParticipantFactoryTest {
   def expectParticipantCreation(e:EndpointConfig) {
     e.scan match {
       case Fails     =>
-      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint.scanUrl, e.endpoint.contentType)).andReturn(scanningRef).anyTimes
-      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint.scanUrl, e.endpoint.contentType)).andReturn(scanningRef).anyTimes
+      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint.scanUrl)).andReturn(scanningRef).anyTimes
+      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint.scanUrl)).andReturn(scanningRef).anyTimes
     }
     e.retrieveContent match {
       case Fails     =>
-      case UseFirst  => expect(content1.createParticipantRef(e.endpoint.contentRetrievalUrl, e.endpoint.contentType)).andReturn(contentRef).anyTimes
-      case UseSecond => expect(content2.createParticipantRef(e.endpoint.contentRetrievalUrl, e.endpoint.contentType)).andReturn(contentRef).anyTimes
+      case UseFirst  => expect(content1.createParticipantRef(e.endpoint.contentRetrievalUrl)).andReturn(contentRef).anyTimes
+      case UseSecond => expect(content2.createParticipantRef(e.endpoint.contentRetrievalUrl)).andReturn(contentRef).anyTimes
     }
     e.correlateVersion match {
       case Fails     =>
-      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint.versionGenerationUrl, e.endpoint.contentType)).andReturn(versionRef).anyTimes
-      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint.versionGenerationUrl, e.endpoint.contentType)).andReturn(versionRef).anyTimes
+      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint.versionGenerationUrl)).andReturn(versionRef).anyTimes
+      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint.versionGenerationUrl)).andReturn(versionRef).anyTimes
     }
   }
 
@@ -295,10 +294,6 @@ object ParticipantFactoryTest {
     Endpoint(name = "invalidScanUrl", scanUrl = "ftp://blah", contentType = "application/json"),
     validUpstream = false, validDownstream = false)
 
-  @DataPoint def invalidScanUrlContentType = EndpointConfig(
-    Endpoint(name = "invalidScanUrl", scanUrl = "http://localhost/scan", contentType = "application/xml"),
-    validUpstream = false, validDownstream = false)
-
   @DataPoint def firstScanUrl = EndpointConfig(
     Endpoint(name = "firstScanUrl", scanUrl = "http://localhost/scan", contentType = "application/json"),
     scan = UseFirst)
@@ -311,10 +306,6 @@ object ParticipantFactoryTest {
     Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "ftp://blah", contentType = "application/json"),
     validUpstream = false, validDownstream = false)
 
-  @DataPoint def invalidContentUrlContentType = EndpointConfig(
-    Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "http://localhost/content", contentType = "application/xml"),
-    validUpstream = false, validDownstream = false)
-
   @DataPoint def firstContentUrl = EndpointConfig(
     Endpoint(name = "firstContentUrl", contentRetrievalUrl = "http://localhost/content", contentType = "application/json"),
     retrieveContent = UseFirst)
@@ -325,10 +316,6 @@ object ParticipantFactoryTest {
   
   @DataPoint def invalidVersionUrl = EndpointConfig(
     Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "ftp://blah", contentType = "application/json"),
-    validUpstream = true, validDownstream = false)
-
-  @DataPoint def invalidVersionUrlVersionType = EndpointConfig(
-    Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "http://localhost/corr-version", contentType = "application/xml"),
     validUpstream = true, validDownstream = false)
 
   @DataPoint def firstVersionUrl = EndpointConfig(

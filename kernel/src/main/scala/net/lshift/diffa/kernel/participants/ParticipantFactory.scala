@@ -49,18 +49,18 @@ class ParticipantFactory() {
   }
 
   def createScanningParticipant(endpoint:Endpoint): Option[ScanningParticipantRef] =
-    createParticipant(scanningFactories, endpoint.scanUrl, endpoint.contentType)
+    createParticipant(scanningFactories, endpoint.scanUrl)
   def createContentParticipant(endpoint:Endpoint): Option[ContentParticipantRef] =
-    createParticipant(contentFactories, endpoint.contentRetrievalUrl, endpoint.contentType)
+    createParticipant(contentFactories, endpoint.contentRetrievalUrl)
   def createVersioningParticipant(endpoint:Endpoint): Option[VersioningParticipantRef] =
-    createParticipant(versioningFactories, endpoint.versionGenerationUrl, endpoint.contentType)
+    createParticipant(versioningFactories, endpoint.versionGenerationUrl)
 
-  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]], url:String, contentType:String):Option[T] = url match {
+  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]], url:String):Option[T] = url match {
     case null => None
     case _ =>
-      factories.find(f => f.supportsAddress(url, contentType)) match {
-        case None     => throw new InvalidParticipantAddressException(url, contentType)
-        case Some(f)  => Some(f.createParticipantRef(url, contentType))
+      factories.find(f => f.supportsAddress(url)) match {
+        case None     => throw new InvalidParticipantAddressException(url)
+        case Some(f)  => Some(f.createParticipantRef(url))
       }
   }
 
@@ -103,7 +103,7 @@ class ParticipantFactory() {
   }
 }
 
-class InvalidParticipantAddressException(addr:String, contentType:String)
-    extends Exception("The address " + addr + " is not a valid participant address for the content type " + contentType)
+class InvalidParticipantAddressException(addr:String)
+    extends Exception("The address " + addr + " is not a valid participant address")
 class InvalidParticipantOperationException(partName:String, op:String)
     extends Exception("The participant " + partName + " does not support " + op)

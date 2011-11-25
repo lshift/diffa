@@ -20,14 +20,14 @@ package net.lshift.diffa.kernel.participants
  */
 trait AddressDrivenFactory[T] {
   /**
-   * Determines whether this factory accepts addresses of the given form with the given content type.
+   * Determines whether this factory accepts addresses of the given form.
    */
-  def supportsAddress(address:String, contentType:String):Boolean
+  def supportsAddress(address:String):Boolean
 
   /**
-   * Creates a participant reference using the given address and protocol. It is expected the factory has
+   * Creates a participant reference using the given address. It is expected the factory has
    * already been checked for compatibility via supportsAddress. The behaviour when calling this method without
    * previously checking is undefined, and the factory implementation may return a non-functional proxy.
    */
-  def createParticipantRef(address:String, protocol:String): T
+  def createParticipantRef(address:String): T
 }
