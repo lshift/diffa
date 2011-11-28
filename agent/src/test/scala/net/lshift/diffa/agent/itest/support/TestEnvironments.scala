@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.agent.itest.support
 
-import net.lshift.diffa.messaging.json.ChangesRestClient
+import net.lshift.diffa.client.ChangesRestClient
 import com.rabbitmq.client.ConnectionFactory
 import net.lshift.accent.AccentConnection
 import net.lshift.diffa.agent.amqp.{AmqpQueueUrl, ChangesAmqpClient, AccentConnectionFailureHandler}

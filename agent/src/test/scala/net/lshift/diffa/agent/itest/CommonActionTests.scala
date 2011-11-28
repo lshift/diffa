@@ -19,7 +19,7 @@ package net.lshift.diffa.agent.itest
 import support.TestEnvironment
 import org.junit.Assert._
 import net.lshift.diffa.kernel.client.ActionableRequest
-import net.lshift.diffa.messaging.json.BadRequestException
+import net.lshift.diffa.client.BadRequestException
 import org.junit._
 import net.lshift.diffa.kernel.util.AlertCodes
 import net.lshift.diffa.kernel.config.DiffaPairRef

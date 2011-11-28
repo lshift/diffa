@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.json
+package net.lshift.diffa.client
 
 import net.lshift.diffa.kernel.client.ChangesClient
 import net.lshift.diffa.participant.changes.ChangeEvent

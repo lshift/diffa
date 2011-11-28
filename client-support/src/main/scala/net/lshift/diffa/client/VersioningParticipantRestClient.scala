@@ -1,5 +1,3 @@
-package net.lshift.diffa.messaging.json
-
 /**
  * Copyright (C) 2010-2011 LShift Ltd.
  *
@@ -15,6 +13,9 @@ package net.lshift.diffa.messaging.json
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package net.lshift.diffa.client
+
 import com.sun.jersey.core.util.MultivaluedMapImpl
 import net.lshift.diffa.kernel.participants._
 import com.sun.jersey.api.client.ClientResponse

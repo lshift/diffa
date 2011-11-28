@@ -21,7 +21,7 @@ import net.lshift.diffa.agent.client.SystemConfigRestClient
 import org.junit.Test
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.frontend.DomainDef
-import net.lshift.diffa.messaging.json.NotFoundException
+import net.lshift.diffa.client.NotFoundException
 
 class SystemConfigTest {
 

@@ -20,7 +20,7 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.ConfigurationRestClient
 import org.junit.Test
 import com.eaio.uuid.UUID
-import net.lshift.diffa.messaging.json.NotFoundException
+import net.lshift.diffa.client.NotFoundException
 import org.junit.Assert._
 import collection.JavaConversions._
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor

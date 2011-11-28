@@ -20,7 +20,7 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.DifferencesRestClient
 import net.lshift.diffa.kernel.participants.ParticipantType
 import org.junit.Test
-import net.lshift.diffa.messaging.json.NotFoundException
+import net.lshift.diffa.client.NotFoundException
 import net.lshift.diffa.kernel.differencing.InvalidSequenceNumberException
 
 /**

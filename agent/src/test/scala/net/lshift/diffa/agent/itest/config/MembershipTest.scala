@@ -22,7 +22,7 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import com.eaio.uuid.UUID
 import net.lshift.diffa.agent.client.{ConfigurationRestClient, UsersRestClient, SystemConfigRestClient}
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
-import net.lshift.diffa.messaging.json.AccessDeniedException
+import net.lshift.diffa.client.AccessDeniedException
 
 /**
  * Tests whether domain membership admin is accessible via the REST API

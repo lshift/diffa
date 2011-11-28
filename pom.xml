@@ -13,7 +13,7 @@
   <modules>
     <module>agent</module>
     <module>kernel</module>
-    <module>json-messaging</module>
+    <module>client-support</module>
     <module>participants</module>
     <module>participant-support</module>
     <module>participants-web</module>

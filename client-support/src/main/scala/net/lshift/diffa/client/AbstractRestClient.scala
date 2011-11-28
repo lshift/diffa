@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.messaging.json
+package net.lshift.diffa.client
 
 import com.sun.jersey.api.client.config.{ClientConfig, DefaultClientConfig}
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider

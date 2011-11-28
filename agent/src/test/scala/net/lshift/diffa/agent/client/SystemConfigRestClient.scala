@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.agent.client
 
-import net.lshift.diffa.messaging.json.AbstractRestClient
+import net.lshift.diffa.client.AbstractRestClient
 import net.lshift.diffa.kernel.frontend.DomainDef
 
 class SystemConfigRestClient(rootUrl:String, username:String = "guest", password:String = "guest")

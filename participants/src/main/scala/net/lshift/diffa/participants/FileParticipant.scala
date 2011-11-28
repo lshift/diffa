@@ -19,7 +19,7 @@ package net.lshift.diffa.participants
 import org.joda.time.DateTime
 import org.apache.commons.io.IOUtils
 import org.apache.commons.codec.digest.DigestUtils
-import net.lshift.diffa.messaging.json.ChangesRestClient
+import net.lshift.diffa.client.ChangesRestClient
 import java.io.{Closeable, FileInputStream, File}
 import collection.mutable.{HashMap, ListBuffer}
 import org.joda.time.format.ISODateTimeFormat

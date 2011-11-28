@@ -442,7 +442,7 @@
     <property name="targetMethod" value="registerScanningFactory" />
     <property name="arguments">
       <list>
-        <bean class="net.lshift.diffa.messaging.json.ScanningParticipantRestClientFactory" />
+        <bean class="net.lshift.diffa.client.ScanningParticipantRestClientFactory" />
       </list>
     </property>
   </bean>
@@ -451,7 +451,7 @@
     <property name="targetMethod" value="registerContentFactory" />
     <property name="arguments">
       <list>
-        <bean class="net.lshift.diffa.messaging.json.ContentParticipantRestClientFactory" />
+        <bean class="net.lshift.diffa.client.ContentParticipantRestClientFactory" />
       </list>
     </property>
   </bean>
@@ -460,7 +460,7 @@
     <property name="targetMethod" value="registerVersioningFactory" />
     <property name="arguments">
       <list>
-        <bean class="net.lshift.diffa.messaging.json.VersioningParticipantRestClientFactory" />
+        <bean class="net.lshift.diffa.client.VersioningParticipantRestClientFactory" />
       </list>
     </property>
   </bean>

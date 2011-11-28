@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.load
 
-import net.lshift.diffa.messaging.json.ChangesRestClient
+import net.lshift.diffa.client.ChangesRestClient
 import org.joda.time.DateTime
 import scala.collection.JavaConversions._
 import net.lshift.diffa.agent.client.{DifferencesRestClient, ConfigurationRestClient}

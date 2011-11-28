@@ -19,7 +19,7 @@ package net.lshift.diffa.agent.client
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.frontend.PairReportDef
 import com.sun.jersey.api.client.ClientResponse
-import net.lshift.diffa.messaging.json.BadRequestException
+import net.lshift.diffa.client.BadRequestException
 
 class ReportsRestClient(serverRootUrl:String, domain:String, username:String = "guest", password:String = "guest")
   extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/actions/", username, password) {

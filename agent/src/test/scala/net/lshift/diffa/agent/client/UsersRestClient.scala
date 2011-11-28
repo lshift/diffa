@@ -16,7 +16,7 @@ package net.lshift.diffa.agent.client
  * limitations under the License.
  */
 
-import net.lshift.diffa.messaging.json.AbstractRestClient
+import net.lshift.diffa.client.AbstractRestClient
 import net.lshift.diffa.kernel.frontend.UserDef
 
 class UsersRestClient(u:String, username:String = "guest", password:String = "guest")

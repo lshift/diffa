@@ -23,7 +23,7 @@ import net.lshift.diffa.kernel.participants.ParticipantType
 import javax.ws.rs.core.{Response, MediaType}
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
-import net.lshift.diffa.messaging.json.NotFoundException
+import net.lshift.diffa.client.NotFoundException
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.node.ObjectNode
 import net.lshift.diffa.kernel.differencing.{InvalidSequenceNumberException, PairScanState, DifferenceEvent}

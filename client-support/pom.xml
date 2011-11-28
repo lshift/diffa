@@ -8,8 +8,8 @@
     <version>1.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>diffa-json-messaging</artifactId>
-  <name>LShift Diffa JSON Messaging Support</name>
+  <artifactId>diffa-client-support</artifactId>
+  <name>LShift Diffa JSON Client Support</name>
 
   <packaging>jar</packaging>
 

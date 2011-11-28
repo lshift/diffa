@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.diffa.messaging.json
+
+package net.lshift.diffa.client
 
 import com.sun.jersey.core.util.MultivaluedMapImpl
 import net.lshift.diffa.kernel.participants._

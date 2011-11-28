@@ -19,7 +19,7 @@ package net.lshift.diffa.participants
 import net.lshift.diffa.kernel.participants.{TestEntity, MemoryParticipantBase}
 import collection.mutable.HashMap
 import net.lshift.diffa.kernel.client.ChangesClient
-import net.lshift.diffa.messaging.json.ChangesRestClient
+import net.lshift.diffa.client.ChangesRestClient
 
 /**
  * Common trait supported by all web participant types.

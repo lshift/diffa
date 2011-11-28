@@ -26,7 +26,7 @@
     </dependency>
     <dependency>
       <groupId>net.lshift.diffa</groupId>
-      <artifactId>diffa-json-messaging</artifactId>
+      <artifactId>diffa-client-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.diffa.messaging.json
+package net.lshift.diffa.client
 
-import net.lshift.diffa.participant.content.{ContentParticipantDelegator, ContentParticipantHandler}
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.server.{Request, Server}
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -23,7 +22,7 @@ import net.lshift.diffa.participant.common.ServletHelper
 import org.easymock.EasyMock._
 import org.easymock.{EasyMock, IAnswer}
 import org.junit.{Before, Test}
-import java.util.{Arrays, ArrayList}
+import java.util.ArrayList
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTimeZone, DateTime, LocalDate}
 import net.lshift.diffa.kernel.participants._

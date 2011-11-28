@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.client
 
-import net.lshift.diffa.messaging.json.AbstractRestClient
+import net.lshift.diffa.client.AbstractRestClient
 
 /**
  * Superclass that is aware of the domain to execute requests for.
