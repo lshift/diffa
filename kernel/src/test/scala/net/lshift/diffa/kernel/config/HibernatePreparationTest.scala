@@ -55,7 +55,8 @@ class HibernatePreparationTest {
       "is_internal"    // Removed as part of the v3 migration
     ),
     "endpoint" -> Seq(
-      "inbound_content_type"    // Removed as part of the v13 migration
+      "inbound_content_type",   // Removed as part of the v13 migration
+      "content_type"   // Removed as of the v15 migration
     )
   )
   

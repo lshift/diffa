@@ -48,8 +48,8 @@ class ScanningTest {
 
     val categories = Map("bizDate" -> new RangeCategoryDescriptor("datetime"))
 
-    configClient.declareEndpoint(EndpointDef(name = up, scanUrl = "http://upstream.com", contentType = "application/json", categories = categories))
-    configClient.declareEndpoint(EndpointDef(name = down, scanUrl = "http://downstream.com", contentType = "application/json", categories = categories))
+    configClient.declareEndpoint(EndpointDef(name = up, scanUrl = "http://upstream.com", categories = categories))
+    configClient.declareEndpoint(EndpointDef(name = down, scanUrl = "http://downstream.com", categories = categories))
     configClient.declarePair(PairDef(pair, "same", 1, up, down, "0 0 0 0 0 0"))
 
     // Simple smoke test - you could kick off a scan and verify that it gets interrupted,

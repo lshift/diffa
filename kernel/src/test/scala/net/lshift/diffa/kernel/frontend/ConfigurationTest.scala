@@ -93,9 +93,9 @@ class ConfigurationTest {
 
   @Test
   def shouldGenerateExceptionWhenInvalidConfigurationIsApplied() {
-    val e1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234/scan", contentType = "application/json",
+    val e1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234/scan",
           inboundUrl = "http://inbound")
-    val e2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan", contentType = "application/json")
+    val e2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan")
     val conf = new DiffaConfig(
       endpoints = Set(e1, e2),
       pairs = Set(
@@ -119,12 +119,12 @@ class ConfigurationTest {
     systemConfigStore.createOrUpdateUser(User(name = "abc"))
     systemConfigStore.createOrUpdateUser(User(name = "def"))
 
-    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234", contentType = "application/json",
+    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234",
                 inboundUrl = "http://inbound",
                 categories = Map(
                   "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
                   "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
-    val ep2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan", contentType = "application/json",
+    val ep2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
             "d" -> new PrefixCategoryDescriptor(1, 6, 1)
@@ -177,13 +177,13 @@ class ConfigurationTest {
     resetAll
 
       // upstream1 is kept but changed
-    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:6543/scan", contentType = "application/json",
+    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:6543/scan",
           inboundUrl = "http://inbound",
           categories = Map(
             "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
             "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
       // downstream1 is gone, downstream2 is added
-    val ep2 = EndpointDef(name = "downstream2", scanUrl = "http://localhost:54321/scan", contentType = "application/json",
+    val ep2 = EndpointDef(name = "downstream2", scanUrl = "http://localhost:54321/scan",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
             "d" -> new PrefixCategoryDescriptor(1, 6, 1)

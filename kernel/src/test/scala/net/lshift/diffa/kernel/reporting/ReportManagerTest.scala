@@ -30,7 +30,7 @@ class ReportManagerTest {
 
     systemConfigStore.createOrUpdateDomain(Domain(domain))
     configStore.createOrUpdateEndpoint(domain,
-      EndpointDef("e", contentType = "application/json"))
+      EndpointDef("e"))
     configStore.createOrUpdatePair(domain,
       PairDef(pair.key, versionPolicyName = "same", upstreamName = "e", downstreamName = "e"))
   }

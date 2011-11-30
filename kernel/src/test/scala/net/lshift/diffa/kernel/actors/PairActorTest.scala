@@ -45,8 +45,8 @@ class PairActorTest {
   val domainName = "some-domain"
   val pairKey = nextPairId
   val policyName = ""
-  val upstream = Endpoint(name = "up", scanUrl = "up", contentType = "application/json")
-  val downstream = Endpoint(name = "down", scanUrl = "down", contentType = "application/json")
+  val upstream = Endpoint(name = "up", scanUrl = "up")
+  val downstream = Endpoint(name = "down", scanUrl = "down")
 
   val pair = new DiffaPair()
   pair.key = pairKey

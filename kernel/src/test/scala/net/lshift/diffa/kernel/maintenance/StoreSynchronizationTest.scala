@@ -49,8 +49,8 @@ class StoreSynchronizationTest {
   val domainName = "domain"
   val domain = Domain(name=domainName)
 
-  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", contentType = "application/json", inboundUrl = "changes")
-  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", contentType = "application/json", inboundUrl = "changes")
+  val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
+  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
   val pair = DiffaPair(key = "pair", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
   val pairRef = pair.asRef

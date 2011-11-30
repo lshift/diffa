@@ -2,15 +2,12 @@
 
   <endpoint name="upstream"
             url="http://upstream.com"
-            content-type="application/json"
-            inbound-url="amqp://localhost//queues/exampleChanges"
-            inbound-content-type="application/example+json">
+            inbound-url="amqp://localhost//queues/exampleChanges">
     <range-category name="bizDate" data-type="datetime"/>
   </endpoint>
 
   <endpoint name="downstream"
-            url="http://downstream.com"
-            content-type="application/json">
+            url="http://downstream.com">
     <range-category name="bizDate" data-type="datetime"/>
   </endpoint>
 

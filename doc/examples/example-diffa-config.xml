@@ -6,8 +6,7 @@
   <member>user1</member>
 
   <endpoint name="upstream1"
-            url="http://localhost:19293/diffa-participants/p/upstream"
-            content-type="application/json">
+            url="http://localhost:19293/diffa-participants/p/upstream">
 
     <prefix-category name="id" initial-length="1" max-length="8" step="2" />
     <range-category name="bizDate" data-type="date" lower="2009-01-01" />
@@ -19,9 +18,7 @@
 
   <endpoint name="downstream1"
             url="amqp://localhost//queues/downstream1"
-            content-type="application/json"
-            inbound-url="amqp://localhost//queues/exampleChanges"
-            inbound-content-type="application/example+json">
+            inbound-url="amqp://localhost//queues/exampleChanges">
 
     <range-category name="bizDate" data-type="date" lower="2009-01-01" />
     <set-category name="segments">

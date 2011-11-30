@@ -53,8 +53,8 @@ class HibernateDomainDifferenceStoreTest {
 
     val domain = Domain("domain")
     systemConfigStore.createOrUpdateDomain(domain)
-    val us = EndpointDef(name = "upstream", contentType = "application/json")
-    val ds = EndpointDef(name = "downstream", contentType = "application/json")
+    val us = EndpointDef(name = "upstream")
+    val ds = EndpointDef(name = "downstream")
     configStore.createOrUpdateEndpoint(domain.name, us)
     configStore.createOrUpdateEndpoint(domain.name, ds)
 

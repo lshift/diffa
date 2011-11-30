@@ -27,14 +27,8 @@ import org.junit.runner.RunWith
 class ConfigValidationTest {
 
   @Test(expected = classOf[ConfigValidationException])
-  def shouldRejectEndpointWithNullContentType = {
-    val endpointLog = new EndpointDef(contentType = null)
-    endpointLog.validate("")
-  }
-
-  @Test(expected = classOf[ConfigValidationException])
   def shouldRejectEndpointWithScanUrlThatIsTooLong = {
-    val endpointLog = new EndpointDef(contentType = "", scanUrl = "*" * 1025)
+    val endpointLog = new EndpointDef(scanUrl = "*" * 1025)
     endpointLog.validate("")
   }
 
@@ -82,7 +76,7 @@ class ConfigValidationTest {
 
   @Test
   def shouldRejectViewsWithCategoriesNotPresentOnParent() {
-    val endpointDef = EndpointDef(name = "endpointA", contentType = "application/json",
+    val endpointDef = EndpointDef(name = "endpointA",
       categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
       views = List(EndpointViewDef(name = "invalid",
         categories = Map("otherString" -> new SetCategoryDescriptor(Set("c", "d"))))))
@@ -98,7 +92,7 @@ class ConfigValidationTest {
 
   @Test
   def shouldRejectViewsWithCategoriesThatArentWithinBoundsOfParent() {
-    val endpointDef = EndpointDef(name = "endpointA", contentType = "application/json",
+    val endpointDef = EndpointDef(name = "endpointA",
       categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
       views = List(EndpointViewDef(name = "invalid",
         categories = Map("someString" -> new SetCategoryDescriptor(Set("c", "d"))))))

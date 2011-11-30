@@ -77,7 +77,6 @@ class TestEnvironment(val pairKey: String,
   val domain = DomainDef(name="domain")
 
   def serverRoot = agentURL
-  val contentType = "application/json"
   val matchingTimeout = 1  // 1 second
 
   // Version Generation
@@ -131,13 +130,13 @@ class TestEnvironment(val pairKey: String,
   // Ensure that the configuration exists
   systemConfig.declareDomain(domain)
   configurationClient.declareEndpoint(EndpointDef(name = upstreamEpName,
-    scanUrl = participants.upstreamScanUrl, contentRetrievalUrl = participants.upstreamContentUrl, contentType = contentType,
+    scanUrl = participants.upstreamScanUrl, contentRetrievalUrl = participants.upstreamContentUrl,
     inboundUrl = inboundURLBuilder(upstreamEpName),
     categories = categories,
     views = views))
   configurationClient.declareEndpoint(EndpointDef(name = downstreamEpName,
     scanUrl = participants.downstreamScanUrl, contentRetrievalUrl = participants.downstreamContentUrl,
-    versionGenerationUrl = participants.downstreamVersionUrl, contentType = contentType,
+    versionGenerationUrl = participants.downstreamVersionUrl,
     inboundUrl = inboundURLBuilder(downstreamEpName),
     categories = categories,
     views = views))

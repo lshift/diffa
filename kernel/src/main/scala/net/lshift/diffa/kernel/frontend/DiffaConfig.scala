@@ -54,7 +54,6 @@ case class EndpointDef (
   @BeanProperty var scanUrl: String = null,
   @BeanProperty var contentRetrievalUrl: String = null,
   @BeanProperty var versionGenerationUrl: String = null,
-  @BeanProperty var contentType: String = null,
   @BeanProperty var inboundUrl: String = null,
   @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor],
   @BeanProperty var views: java.util.List[EndpointViewDef] = new java.util.ArrayList[EndpointViewDef]) {
@@ -66,9 +65,6 @@ case class EndpointDef (
   def validate(path:String = null) {
     // TODO [#344] : Add validation of endpoint parameters
     val endPointPath = ValidationUtil.buildPath(path, "endpoint", Map("name" -> name))
-    if (contentType == null) {
-      throw new ConfigValidationException(endPointPath, "Content type should not be null for endpoint %s".format(this))
-    }
     Seq(
       scanUrl,
       contentRetrievalUrl,

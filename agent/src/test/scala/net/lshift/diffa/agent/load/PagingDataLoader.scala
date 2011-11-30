@@ -51,12 +51,10 @@ object PagingDataLoader {
     val changesClient = new ChangesRestClient(host, domain, up)
     val diffsClient = new DifferencesRestClient(host, domain)
 
-    val content = "application/json"
-
     val categories = Map("bizDate" -> new RangeCategoryDescriptor("datetime"))
 
-    configClient.declareEndpoint(EndpointDef(name = up, scanUrl = host, contentType = content, categories = categories))
-    configClient.declareEndpoint(EndpointDef(name = down, scanUrl = host, contentType = content, categories = categories))
+    configClient.declareEndpoint(EndpointDef(name = up, scanUrl = host, categories = categories))
+    configClient.declareEndpoint(EndpointDef(name = down, scanUrl = host, categories = categories))
 
     configClient.declarePair(PairDef(pair, "same", 0, up, down, "0 15 10 ? * *"))
 

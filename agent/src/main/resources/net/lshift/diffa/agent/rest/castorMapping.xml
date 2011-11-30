@@ -83,9 +83,6 @@
     <field name="versionGenerationUrl" type="string">
       <bind-xml name="version-url" node="attribute" />
     </field>
-    <field name="contentType" type="string">
-      <bind-xml name="content-type" node="attribute" />
-    </field>
     <field name="inboundUrl" type="string">
       <bind-xml name="inbound-url" node="attribute" />
     </field>

@@ -35,7 +35,6 @@ class DocExamplesFactory {
 
   val up = new EndpointDef(name = "upstream-system",
                            scanUrl = "http://acme.com/upstream/scan",
-                           contentType = "application/json",
                            contentRetrievalUrl = "http://acme.com/upstream/node-content",
                            inboundUrl = "http://diff.io/domain/changes",
                            categories = Map("bizDate" -> categoryDescriptor))

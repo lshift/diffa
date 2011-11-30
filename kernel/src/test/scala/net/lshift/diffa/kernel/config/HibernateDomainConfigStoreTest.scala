@@ -61,17 +61,17 @@ class HibernateDomainConfigStoreTest {
 
   val setView = EndpointViewDef(name = "a-only", categories = Map(dateCategoryName -> new SetCategoryDescriptor(Set("a"))))
 
-  val upstream1 = new EndpointDef(name = "TEST_UPSTREAM", scanUrl = "testScanUrl1", contentType = "application/json",
+  val upstream1 = new EndpointDef(name = "TEST_UPSTREAM", scanUrl = "testScanUrl1",
                                   categories = dateRangeCategoriesMap)
   val upstream2 = new EndpointDef(name = "TEST_UPSTREAM_ALT", scanUrl = "testScanUrl2",
-                                  contentRetrievalUrl = "contentRetrieveUrl1", contentType = "application/json",
+                                  contentRetrievalUrl = "contentRetrieveUrl1",
                                   categories = setCategoriesMap,
                                   views = Seq(setView))
 
   val downstream1 = new EndpointDef(name = "TEST_DOWNSTREAM", scanUrl = "testScanUrl3",
-                                    contentType = "application/json", categories = intRangeCategoriesMap)
+                                    categories = intRangeCategoriesMap)
   val downstream2 = new EndpointDef(name = "TEST_DOWNSTREAM_ALT", scanUrl = "testScanUrl4",
-                                    versionGenerationUrl = "generateVersionUrl1", contentType = "application/json",
+                                    versionGenerationUrl = "generateVersionUrl1",
                                     categories = stringPrefixCategoriesMap)
 
   val versionPolicyName1 = "TEST_VPNAME"
@@ -219,7 +219,7 @@ class HibernateDomainConfigStoreTest {
       Map(dateCategoryName ->  new RangeCategoryDescriptor("datetime", dateCategoryLower, dateCategoryUpper, "individual"))
 
     val endpoint = new EndpointDef(name = "ENDPOINT_WITH_OVERIDE", scanUrl = "testScanUrlOverride",
-                                   contentRetrievalUrl = "contentRetrieveUrlOverride", contentType = "application/json",
+                                   contentRetrievalUrl = "contentRetrieveUrlOverride",
                                    categories = categories)
     domainConfigStore.createOrUpdateEndpoint(domainName, endpoint)
     exists(endpoint, 1)
@@ -281,7 +281,6 @@ class HibernateDomainConfigStoreTest {
     // Change its name
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = upstreamRenamed,
                                                                      scanUrl = upstream1.scanUrl,
-                                                                     contentType = "application/json",
                                                                      inboundUrl = "changes"))
 
     val retrieved = domainConfigStore.getEndpointDef(domainName, upstreamRenamed)
@@ -391,7 +390,7 @@ class HibernateDomainConfigStoreTest {
     systemConfigStore.createOrUpdateDomain(domain)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = upstream1.name, scanUrl = "DIFFERENT_URL",
-                                                                     contentType = "application/json", inboundUrl = "changes"))
+                                                                     inboundUrl = "changes"))
     assertEquals(1, domainConfigStore.listEndpoints(domainName).length)
     assertEquals("DIFFERENT_URL", domainConfigStore.getEndpointDef(domainName, upstream1.name).scanUrl)
   }

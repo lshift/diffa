@@ -68,7 +68,7 @@ class ParticipantFactoryTest {
   allFactories.foreach(f => expect(f.supportsAddress(anyString)).andReturn(false).anyTimes)
 
   @Theory
-  def shouldFailToCreateUpstreamWhenAddressOrContentTypeIsInvalid(e:EndpointConfig) {
+  def shouldFailToCreateUpstreamWhenAddressIsInvalid(e:EndpointConfig) {
     assumeTrue(!e.validUpstream)
     replayAll()
 
@@ -78,7 +78,7 @@ class ParticipantFactoryTest {
   }
 
   @Theory
-  def shouldFailToCreateDownstreamWhenAddressOrContentTypeIsInvalid(e:EndpointConfig) {
+  def shouldFailToCreateDownstreamWhenAddressIsInvalid(e:EndpointConfig) {
     assumeTrue(!e.validDownstream)
     replayAll()
 
@@ -287,42 +287,42 @@ object ParticipantFactoryTest {
   @DataPoint def allUrls = EndpointConfig(
     Endpoint(name = "allUrls",
       scanUrl = "http://localhost/scan", contentRetrievalUrl = "http://localhost/content",
-      versionGenerationUrl = "http://localhost/corr-version", contentType = "application/json"),
+      versionGenerationUrl = "http://localhost/corr-version"),
     scan = UseFirst, retrieveContent = UseFirst, correlateVersion = UseFirst)
 
   @DataPoint def invalidScanUrl = EndpointConfig(
-    Endpoint(name = "invalidScanUrl", scanUrl = "ftp://blah", contentType = "application/json"),
+    Endpoint(name = "invalidScanUrl", scanUrl = "ftp://blah"),
     validUpstream = false, validDownstream = false)
 
   @DataPoint def firstScanUrl = EndpointConfig(
-    Endpoint(name = "firstScanUrl", scanUrl = "http://localhost/scan", contentType = "application/json"),
+    Endpoint(name = "firstScanUrl", scanUrl = "http://localhost/scan"),
     scan = UseFirst)
 
   @DataPoint def secondScanUrl = EndpointConfig(
-    Endpoint(name = "secondScanUrl", scanUrl = "amqp://localhost/scan", contentType = "application/json"),
+    Endpoint(name = "secondScanUrl", scanUrl = "amqp://localhost/scan"),
     scan = UseSecond)
 
   @DataPoint def invalidContentUrl = EndpointConfig(
-    Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "ftp://blah", contentType = "application/json"),
+    Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "ftp://blah"),
     validUpstream = false, validDownstream = false)
 
   @DataPoint def firstContentUrl = EndpointConfig(
-    Endpoint(name = "firstContentUrl", contentRetrievalUrl = "http://localhost/content", contentType = "application/json"),
+    Endpoint(name = "firstContentUrl", contentRetrievalUrl = "http://localhost/content"),
     retrieveContent = UseFirst)
 
   @DataPoint def secondContentUrl = EndpointConfig(
-    Endpoint(name = "secondContentUrl", contentRetrievalUrl = "amqp://localhost/content", contentType = "application/json"),
+    Endpoint(name = "secondContentUrl", contentRetrievalUrl = "amqp://localhost/content"),
     retrieveContent = UseSecond)
   
   @DataPoint def invalidVersionUrl = EndpointConfig(
-    Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "ftp://blah", contentType = "application/json"),
+    Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "ftp://blah"),
     validUpstream = true, validDownstream = false)
 
   @DataPoint def firstVersionUrl = EndpointConfig(
-    Endpoint(name = "firstVersionUrl", versionGenerationUrl = "http://localhost/corr-version", contentType = "application/json"),
+    Endpoint(name = "firstVersionUrl", versionGenerationUrl = "http://localhost/corr-version"),
     correlateVersion = UseFirst)
 
   @DataPoint def secondVersionUrl = EndpointConfig(
-    Endpoint(name = "secondVersionUrl", versionGenerationUrl = "amqp://localhost/corr-version", contentType = "application/json"),
+    Endpoint(name = "secondVersionUrl", versionGenerationUrl = "amqp://localhost/corr-version"),
     correlateVersion = UseSecond)
 }

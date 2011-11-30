@@ -140,9 +140,7 @@ class CastorSerializableEndpoint extends Categorized {
   @BeanProperty var scanUrl: String = null
   @BeanProperty var contentRetrievalUrl: String = null
   @BeanProperty var versionGenerationUrl: String = null
-  @BeanProperty var contentType: String = null
   @BeanProperty var inboundUrl: String = null
-  @BeanProperty var inboundContentType: String = null
   @BeanProperty var views: java.util.List[CastorSerializableEndpointView] = new java.util.ArrayList[CastorSerializableEndpointView]
 
   def fromDiffaEndpoint(e:EndpointDef) = {
@@ -150,7 +148,6 @@ class CastorSerializableEndpoint extends Categorized {
     this.scanUrl = e.scanUrl
     this.contentRetrievalUrl = e.contentRetrievalUrl
     this.versionGenerationUrl = e.versionGenerationUrl
-    this.contentType = e.contentType
     this.inboundUrl = e.inboundUrl
     this.fromDiffaCategories(e.categories)
     this.views = e.views.map(v => new CastorSerializableEndpointView().fromDiffaEndpointView(v));
@@ -160,7 +157,7 @@ class CastorSerializableEndpoint extends Categorized {
 
   def toDiffaEndpoint =
     EndpointDef(
-      name = name, contentType = contentType, inboundUrl = inboundUrl,
+      name = name, inboundUrl = inboundUrl,
       scanUrl = scanUrl, contentRetrievalUrl = contentRetrievalUrl, versionGenerationUrl = versionGenerationUrl,
       categories = toDiffaCategories,
       views = views.map(v => v.toDiffaEndpointView)

@@ -36,7 +36,7 @@ class AgentConfigTest {
   @Test
   def shouldFindExistentEndpoint = {
     client.declareEndpoint(EndpointDef(name = "some-endpoint",
-                                       scanUrl = "http://some-endpoint.com/scan", contentType = "application/json",
+                                       scanUrl = "http://some-endpoint.com/scan",
                                        categories = Map("bizDate" -> new RangeCategoryDescriptor("datetime"))))
     val endpoint = client.getEndpoint("some-endpoint")
     assertNotNull(endpoint)

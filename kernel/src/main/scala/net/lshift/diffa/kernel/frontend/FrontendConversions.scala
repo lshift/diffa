@@ -29,7 +29,6 @@ object FrontendConversions {
     scanUrl = e.scanUrl,
     contentRetrievalUrl = e.contentRetrievalUrl,
     versionGenerationUrl = e.versionGenerationUrl,
-    contentType = e.contentType,
     inboundUrl = e.inboundUrl,
     categories = e.categories,
     views = new java.util.ArrayList[EndpointViewDef](e.views.map(v => toEndpointViewDef(v))))
@@ -40,7 +39,6 @@ object FrontendConversions {
     scanUrl = e.scanUrl,
     contentRetrievalUrl = e.contentRetrievalUrl,
     versionGenerationUrl = e.versionGenerationUrl,
-    contentType = e.contentType,
     inboundUrl = e.inboundUrl,
     categories = e.categories)
 

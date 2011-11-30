@@ -2,8 +2,7 @@
 
   <endpoint name="a"
             scan-url="http://localhost:19293/participant-demo/p/upstream/scan"
-            content-url="http://localhost:19293/participant-demo/p/upstream/content"
-            content-type="application/json">
+            content-url="http://localhost:19293/participant-demo/p/upstream/content">
 
     <view name="view1" />
     <view name="view2" />
@@ -13,8 +12,7 @@
   <endpoint name="b"
             scan-url="http://localhost:19293/participant-demo/p/downstream/scan"
             content-url="http://localhost:19293/participant-demo/p/downstream/content"
-            version-url="http://localhost:19293/participant-demo/p/downstream/corr-version"
-            content-type="application/json">
+            version-url="http://localhost:19293/participant-demo/p/downstream/corr-version">
 
     <view name="view1" />
     <view name="view2" />

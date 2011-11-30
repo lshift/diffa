@@ -34,7 +34,7 @@ class DiffaConfigReaderWriterTest {
       properties = Map("diffa.host" -> "localhost:1234", "a" -> "b"),
       members = Set("abc"),
       endpoints = Set(
-        EndpointDef(name = "upstream1", contentType = "application/json",
+        EndpointDef(name = "upstream1",
           inboundUrl = "http://inbound",
           scanUrl = "http://localhost:1234/scan",
           contentRetrievalUrl = "http://localhost:1234/content",
@@ -47,7 +47,7 @@ class DiffaConfigReaderWriterTest {
               "a" -> new RangeCategoryDescriptor("date", "2010", "2010"),
               "b" -> new SetCategoryDescriptor(Set("a")))
             ))),
-        EndpointDef(name = "downstream1", contentType = "application/json",
+        EndpointDef(name = "downstream1",
           scanUrl = "http://localhost:5432/scan", versionGenerationUrl = "http://localhost:5432/generate-version",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
@@ -85,7 +85,7 @@ class DiffaConfigReaderWriterTest {
         <property key="diffa.host">localhost:1234</property>
         <property key="a">b</property>
         <member>abc</member>
-        <endpoint name="upstream1" content-type="application/json"
+        <endpoint name="upstream1"
                   inbound-url="http://inbound"
                   scan-url="http://localhost:1234/scan" content-url="http://localhost:1234/content">
           <range-category name="a" data-type="date" lower="2009" upper="2010"/>
@@ -102,7 +102,7 @@ class DiffaConfigReaderWriterTest {
             </set-category>
           </view>
         </endpoint>
-        <endpoint name="downstream1" content-type="application/json"
+        <endpoint name="downstream1"
                   scan-url="http://localhost:5432/scan" version-url="http://localhost:5432/generate-version">
           <prefix-category name="c" prefix-length="1" max-length="5" step="1"/>
           <prefix-category name="d" prefix-length="1" max-length="6" step="1"/>
