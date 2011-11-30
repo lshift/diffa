@@ -28,7 +28,7 @@ trait EndpointLifecycleListener {
   def onEndpointAvailable(e:Endpoint):Unit
 
   /**
-   * Indicates that the endpoint with the given key is no longer available within the system.
+   * Indicates that the endpoint with the given domain and name is no longer available within the system.
    */
-  def onEndpointRemoved(key:String):Unit
+  def onEndpointRemoved(domain: String, endpoint: String): Unit
 }

@@ -117,7 +117,7 @@ class Configuration(val configStore: DomainConfigStore,
   def deleteEndpoint(domain:String, endpoint: String) = {
     log.debug("[%s] Processing endpoint delete request: %s".format(domain,endpoint))
     configStore.deleteEndpoint(domain, endpoint)
-    endpointListener.onEndpointRemoved(endpoint)
+    endpointListener.onEndpointRemoved(domain, endpoint)
   }
 
   def listEndpoints(domain:String) : Seq[EndpointDef] = configStore.listEndpoints(domain)

@@ -58,8 +58,8 @@ class InboundEndpointManager(configStore:SystemConfigStore) extends EndpointLife
   /**
    * Should be called whenever an endpoint is removed.
    */
-  def onEndpointRemoved(key:String) {
-    factories.foreach(_.endpointGone(key))
+  def onEndpointRemoved(domain: String, endpoint: String) {
+    factories.foreach(_.endpointGone(domain, endpoint))
   }
 
   /**

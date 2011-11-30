@@ -410,18 +410,6 @@
     ==============================
   -->
 
-  <bean id="accentConnection" class="net.lshift.accent.AccentConnection" destroy-method="close">
-    <constructor-arg index="0">
-      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-        <property name="jndiName" value="amqp/connectionFactory"/>
-        <property name="resourceRef" value="true"/>
-      </bean>
-    </constructor-arg>
-    <constructor-arg index="1">
-      <bean class="net.lshift.diffa.agent.amqp.AccentConnectionFailureHandler"/>
-    </constructor-arg>
-  </bean>
-
   <!-- register inbound AMQP support -->
   <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
     <property name="targetObject" ref="inboundEndpointManager" />
@@ -429,7 +417,6 @@
     <property name="arguments">
       <list>
         <bean class="net.lshift.diffa.agent.amqp.AmqpInboundEndpointFactory">
-          <constructor-arg ref="accentConnection" />
           <constructor-arg ref="changesFrontend" />
         </bean>
       </list>

@@ -37,9 +37,9 @@ trait InboundEndpointFactory {
   def ensureEndpointReceiver(e:Endpoint)
 
   /**
-   * Indicates to the factory that the endpoint with the given key has been removed from the system. Note that the
+   * Indicates to the factory that the endpoint with the given domain and name has been removed from the system. Note that the
    * system will not filter these events based on factory support, so factories should expect to see more removal
    * events than ensure events, and should silently ignore any unknown endpoints.
    */
-  def endpointGone(key:String)
+  def endpointGone(domain: String, endpoint: String)
 }

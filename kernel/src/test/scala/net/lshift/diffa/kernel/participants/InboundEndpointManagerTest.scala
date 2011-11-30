@@ -28,12 +28,12 @@ import org.junit.Assert._
 class InboundEndpointManagerTest {
   val configStore = createMock(classOf[SystemConfigStore])
   val manager = new InboundEndpointManager(configStore)
-  val jsonFactory = new InboundEndpointFactory {
+  val inboundEndpointFactory = new InboundEndpointFactory {
     var lastEp:Endpoint = null
 
     def canHandleInboundEndpoint(url: String) = url.startsWith("amqp")
     def ensureEndpointReceiver(e: Endpoint) = lastEp = e
-    def endpointGone(key: String) = null
+    def endpointGone(domain: String, endpoint: String) = null
   }
 
   @Test
@@ -50,22 +50,22 @@ class InboundEndpointManagerTest {
 
   @Test
   def shouldInformFactoryWhenValidEndpointIsAvailable {
-    manager.registerFactory(jsonFactory)
+    manager.registerFactory(inboundEndpointFactory)
     manager.onEndpointAvailable(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", contentType = "application/json", inboundUrl = "amqp:queue.name"))
 
-    assertNotNull(jsonFactory.lastEp)
-    assertEquals("e", jsonFactory.lastEp.name)
+    assertNotNull(inboundEndpointFactory.lastEp)
+    assertEquals("e", inboundEndpointFactory.lastEp.name)
   }
 
   @Test
   def shouldActivateStoredEndpoint {
-    manager.registerFactory(jsonFactory)
+    manager.registerFactory(inboundEndpointFactory)
 
     expect(configStore.listEndpoints).andReturn(Seq(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", contentType = "application/json", inboundUrl = "amqp:queue.name")))
     replay(configStore)
 
     manager.onAgentConfigurationActivated
-    assertNotNull(jsonFactory.lastEp)
-    assertEquals("e", jsonFactory.lastEp.name)
+    assertNotNull(inboundEndpointFactory.lastEp)
+    assertEquals("e", inboundEndpointFactory.lastEp.name)
   }
 }

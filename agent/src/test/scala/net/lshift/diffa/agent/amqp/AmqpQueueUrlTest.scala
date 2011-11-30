@@ -73,6 +73,31 @@ class AmqpQueueUrlTest {
   }
 
   @Test
+  def parseUrlWithUsernameAndPasswordAndNoPortAndEmptyVHost() {
+    assertEquals(AmqpQueueUrl("test", host = "rabbitserver", vHost = "", username = "scott", password = "tiger"),
+                 AmqpQueueUrl.parse("amqp://scott:tiger@rabbitserver//queues/test"))
+  }
+
+  @Test
+  def parseUrlWithUsernameAndPasswordAndPortAndEmptyVHost() {
+    assertEquals(AmqpQueueUrl("test", host = "rabbitserver", vHost = "", port = 1234, username = "scott", password = "tiger"),
+                 AmqpQueueUrl.parse("amqp://scott:tiger@rabbitserver:1234//queues/test"))
+  }
+
+  @Test
+  def parseUrlWithUsernameAndPasswordNoPortAndVHost() {
+    assertEquals(AmqpQueueUrl("test", host = "rabbitserver", vHost = "vhost", username = "scott", password = "tiger"),
+                 AmqpQueueUrl.parse("amqp://scott:tiger@rabbitserver/vhost/queues/test"))
+  }
+
+  @Test
+  def parseUrlWithUsernameAndPasswordAndPortAndVHost() {
+    assertEquals(AmqpQueueUrl("test", host = "rabbitserver", port = 4321, vHost = "vhost", username = "scott", password = "tiger"),
+                 AmqpQueueUrl.parse("amqp://scott:tiger@rabbitserver:4321/vhost/queues/test"))
+  }
+
+
+  @Test
   def buildStringWithNoPortAndEmptyVHost() {
     assertEquals("amqp://localhost//queues/test",
                AmqpQueueUrl("test").toString)
@@ -94,6 +119,30 @@ class AmqpQueueUrlTest {
   def buildStringWithHostPortAndEmptyVHost() {
     assertEquals("amqp://rabbitserver:9001//queues/test",
                AmqpQueueUrl("test", host = "rabbitserver", port = 9001).toString)
+  }
+
+  @Test
+  def buildStringWithUsernameAndPasswordAndNoPortAndEmptyVHost() {
+    assertEquals("amqp://foo:bar@rabbitserver//queues/test",
+               AmqpQueueUrl("test", host = "rabbitserver", username = "foo", password = "bar").toString)
+  }
+
+  @Test
+  def buildStringWithUsernameAndPasswordAndPortAndEmptyVHost() {
+    assertEquals("amqp://foo:bar@rabbitserver:5132//queues/test",
+               AmqpQueueUrl("test", host = "rabbitserver", port = 5132, username = "foo", password = "bar").toString)
+  }
+
+  @Test
+  def buildStringWithUsernameAndPasswordNoPortAndVHost() {
+    assertEquals("amqp://foo:bar@rabbitserver/blah/queues/test",
+               AmqpQueueUrl("test", host = "rabbitserver", vHost = "blah", username = "foo", password = "bar").toString)
+  }
+
+  @Test
+  def buildStringWithUsernameAndPasswordAndPortAndVHost() {
+    assertEquals("amqp://foo:bar@rabbitserver:7777/blah/queues/test",
+               AmqpQueueUrl("test", host = "rabbitserver", port = 7777, vHost = "blah", username = "foo", password = "bar").toString)
   }
 
   @Test(expected = classOf[InvalidAmqpQueueUrlException])

@@ -233,7 +233,7 @@ class ConfigurationTest {
     expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ad", domain = "domain"))).once
     expect(pairPolicyClient.difference(DiffaPairRef(key = "ad", domain = "domain"))).once
 
-    expect(endpointListener.onEndpointRemoved("downstream1")).once
+    expect(endpointListener.onEndpointRemoved("domain", "downstream1")).once
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep2))).once
     replayAll
@@ -268,8 +268,8 @@ class ConfigurationTest {
     expect(diagnostics.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
     expect(differencesManager.onDeletePair(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(differencesManager.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(endpointListener.onEndpointRemoved("upstream1")).once
-    expect(endpointListener.onEndpointRemoved("downstream1")).once
+    expect(endpointListener.onEndpointRemoved("domain", "upstream1")).once
+    expect(endpointListener.onEndpointRemoved("domain", "downstream1")).once
     replayAll
 
     configuration.applyConfiguration("domain",DiffaConfig())
