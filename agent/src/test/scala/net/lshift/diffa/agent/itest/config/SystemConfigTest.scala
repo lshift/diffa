@@ -19,6 +19,7 @@ package net.lshift.diffa.agent.itest.config
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.SystemConfigRestClient
 import org.junit.Test
+import org.junit.Assert._
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.frontend.DomainDef
 import net.lshift.diffa.client.NotFoundException
@@ -37,6 +38,16 @@ class SystemConfigTest {
   @Test(expected = classOf[NotFoundException])
   def nonExistentDomainShouldRaiseError {
     client.removeDomain(new UUID().toString)
+  }
+
+  @Test(expected = classOf[NotFoundException])
+  def shouldSetSystemConfigOption {
+    client.setConfigOption("foo", "bar")
+    assertEquals("bar", client.getConfigOption("foo"))
+    client.deleteConfigOption("foo")
+
+    // This should provoke a 404
+    client.getConfigOption("foo")
   }
 
 }

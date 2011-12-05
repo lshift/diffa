@@ -49,4 +49,9 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesM
   }
   def deleteUser(username: String) = systemConfigStore.deleteUser(username)
   def listUsers : Seq[UserDef] = systemConfigStore.listUsers.map(toUserDef(_))
+
+  def setSystemConfigOption(key:String, value:String) = systemConfigStore.setSystemConfigOption(key, value)
+  def clearSystemConfigOption(key:String) = systemConfigStore.clearSystemConfigOption(key)
+  def getSystemConfigOption(key:String) = systemConfigStore.maybeSystemConfigOption(key)
+
 }
