@@ -58,7 +58,7 @@ class AccentReceiver(con: AccentConnection,
   def handleCancelOk(consumerTag: String) {}
   def handleCancel(consumerTag: String) {}
   def handleShutdownSignal(consumerTag: String, sig: ShutdownSignalException) {}
-  def handleRecoverOk() {}
+  def handleRecoverOk(consumerTag: String) {}
 
   def handleDelivery(consumerTag: String, header: Envelope, properties: BasicProperties, body: Array[Byte]) = {
     if (!pool.isShutdown() && !isClosing.get()) {

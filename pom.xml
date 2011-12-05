@@ -37,7 +37,7 @@
     <postgresql.version>9.1-901.jdbc4</postgresql.version>
     <dbcp.version>1.2.2</dbcp.version>
     <jetty.version>7.3.0.v20110203</jetty.version>
-    <rabbitmq.version>2.6.1</rabbitmq.version>
+    <rabbitmq.version>2.7.0</rabbitmq.version>
     <accent.version>0.9</accent.version>
     <commons.io.version>1.4</commons.io.version>
     <jersey.version>1.10</jersey.version>

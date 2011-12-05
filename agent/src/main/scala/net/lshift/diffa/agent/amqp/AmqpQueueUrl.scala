@@ -17,24 +17,44 @@
 package net.lshift.diffa.agent.amqp
 
 import scala.util.matching.Regex
-import com.rabbitmq.client.ConnectionFactory.{DEFAULT_USER, DEFAULT_PASS, USE_DEFAULT_PORT}
+
+object AmqpQueueUrl {
+
+  val DEFAULT_PORT = 5672
+  val DEFAULT_USER = "guest"
+  val DEFAULT_PASS = "guest"
+
+  private val pattern = new Regex("""amqp://((.+):(.+)@)?(.*?)(:(\d+))?/(.*?)/queues/(.*?)""")
+
+  def parse(url: String) = url match {
+    case pattern(_, username, password, host, _, port, vHost, queue) =>
+      AmqpQueueUrl(queue,
+                   host,
+                   if (port != null) port.toInt else DEFAULT_PORT,
+                   vHost,
+                   if (username != null) username else DEFAULT_USER,
+                   if (password != null) password else DEFAULT_PASS)
+    case _ =>
+      throw new InvalidAmqpQueueUrlException(url)
+  }
+}
 
 /**
  * Custom URL scheme for AMQP URLs. Extends existing AMQP URL scheme by adding a "queues" resource after the vhost section.
  */
 case class AmqpQueueUrl(queue: String,
                         host: String = "localhost",
-                        port: Int = USE_DEFAULT_PORT,
+                        port: Int = AmqpQueueUrl.DEFAULT_PORT,
                         vHost: String = "",
-                        username: String = DEFAULT_USER,
-                        password: String = DEFAULT_PASS) {
+                        username: String = AmqpQueueUrl.DEFAULT_USER,
+                        password: String = AmqpQueueUrl.DEFAULT_PASS) {
 
   def isDefaultVHost = vHost.isEmpty
 
-  private def portString = if (port == USE_DEFAULT_PORT) "" else ":%d".format(port)
+  private def portString = if (port == AmqpQueueUrl.DEFAULT_PORT) "" else ":%d".format(port)
 
   private def userInfoString =
-    if (username == DEFAULT_USER && password == DEFAULT_PASS) "" else "%s:%s@".format(username, password)
+    if (username == AmqpQueueUrl.DEFAULT_USER && password == AmqpQueueUrl.DEFAULT_PASS) "" else "%s:%s@".format(username, password)
 
   override def toString = "amqp://%s%s%s/%s/queues/%s".format(userInfoString,
                                                               host,
@@ -44,22 +64,7 @@ case class AmqpQueueUrl(queue: String,
 
 }
 
-object AmqpQueueUrl {
 
-  private val pattern = new Regex("""amqp://((.+):(.+)@)?(.*?)(:(\d+))?/(.*?)/queues/(.*?)""")
-
-  def parse(url: String) = url match {
-    case pattern(_, username, password, host, _, port, vHost, queue) =>
-      AmqpQueueUrl(queue,
-                   host,
-                   if (port != null) port.toInt else USE_DEFAULT_PORT,
-                   vHost,
-                   if (username != null) username else DEFAULT_USER,
-                   if (password != null) password else DEFAULT_PASS)
-    case _ =>
-      throw new InvalidAmqpQueueUrlException(url)
-  }
-}
 
 case class InvalidAmqpQueueUrlException(url: String) extends RuntimeException {
   override def getMessage = "The given URL [%s] is not a valid AMQP queue URL".format(url)
