@@ -20,12 +20,13 @@ import net.lshift.diffa.kernel.client.ChangesClient
 import net.lshift.diffa.participant.changes.ChangeEvent
 import java.io.ByteArrayOutputStream
 import net.lshift.diffa.participant.common.JSONHelper
+import java.lang.Long
 
 /**
  * JSON-over-REST client for the changes endpoint.
  */
-class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, username:String = "guest", password:String = "guest")
-    extends AbstractRestClient(serverRootUrl, "rest/" + domain + "/changes/", username, password)
+class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, params: RestClientParams = RestClientParams.default)
+    extends AbstractRestClient(serverRootUrl, "rest/" + domain + "/changes/", params)
         with ChangesClient {
 
   def onChangeEvent(evt:ChangeEvent) {

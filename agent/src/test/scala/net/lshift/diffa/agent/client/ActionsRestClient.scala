@@ -19,9 +19,10 @@ package net.lshift.diffa.agent.client
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest, ActionsClient}
 import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction}
+import net.lshift.diffa.client.RestClientParams
 
-class ActionsRestClient(serverRootUrl:String, domain:String, username:String = "guest", password:String = "guest")
-  extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/actions/", username, password)
+class ActionsRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
+  extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/actions/", params)
         with ActionsClient {
 
   def listActions(pair:DiffaPairRef): Seq[Actionable] = {

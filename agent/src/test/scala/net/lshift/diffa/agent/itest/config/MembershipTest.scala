@@ -22,7 +22,7 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import com.eaio.uuid.UUID
 import net.lshift.diffa.agent.client.{ConfigurationRestClient, UsersRestClient, SystemConfigRestClient}
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
-import net.lshift.diffa.client.AccessDeniedException
+import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
 
 /**
  * Tests whether domain membership admin is accessible via the REST API
@@ -37,7 +37,7 @@ class MembershipTest {
   val systemConfigClient = new SystemConfigRestClient(agentURL)
   val usersClient = new UsersRestClient(agentURL)
   val configClient = new ConfigurationRestClient(agentURL, domain.name)
-  val userConfigClient = new ConfigurationRestClient(agentURL, domain.name, username = username, password = password)
+  val userConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some(password)))
 
   @Test
   def shouldBeAbleToManageDomainMembership = {

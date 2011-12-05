@@ -26,9 +26,8 @@ import java.lang.RuntimeException
 import com.sun.jersey.api.client.{WebResource, UniformInterfaceException, ClientResponse, Client}
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 
-abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubUrl:String,
-                                  val username:String = null, val password:String = null)
-    extends Closeable {
+abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubUrl:String, params: RestClientParams = RestClientParams.default)
+  extends Closeable {
 
   val log:Logger = LoggerFactory.getLogger(classOf[AbstractRestClient])
 
@@ -39,11 +38,13 @@ abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubU
   private var isClosing = false
 
   val config = new DefaultClientConfig()
-  config.getProperties().put(ClientConfig.PROPERTY_FOLLOW_REDIRECTS, true.asInstanceOf[AnyRef]);
+  config.getProperties().put(ClientConfig.PROPERTY_FOLLOW_REDIRECTS, true.asInstanceOf[AnyRef])
+  config.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, params.connectTimeout.getOrElse(null))
+  config.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, params.readTimeout.getOrElse(null))
   config.getClasses().add(classOf[JacksonJsonProvider]);
   val client = Client.create(config)
-  if (username != null && password != null) {
-    client.addFilter(new HTTPBasicAuthFilter(username, password))
+  if (params.hasCredentials) {
+    client.addFilter(new HTTPBasicAuthFilter(params.username.get, params.password.get))
   }
 
   val serverRootResource = client.resource(serverRootUrl)

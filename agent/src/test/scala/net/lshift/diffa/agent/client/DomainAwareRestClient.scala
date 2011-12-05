@@ -15,13 +15,13 @@
  */
 package net.lshift.diffa.agent.client
 
-import net.lshift.diffa.client.AbstractRestClient
+import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
 
 /**
  * Superclass that is aware of the domain to execute requests for.
  */
-abstract class DomainAwareRestClient(val root:String, val domain:String, val resourcePattern:String, username:String, password:String)
-    extends AbstractRestClient(root, "", username, password) {
+abstract class DomainAwareRestClient(val root:String, val domain:String, val resourcePattern:String, params: RestClientParams = RestClientParams.default)
+    extends AbstractRestClient(root, "", params) {
 
   override val resourcePath = resourcePattern.replace("{domain}", domain)
 

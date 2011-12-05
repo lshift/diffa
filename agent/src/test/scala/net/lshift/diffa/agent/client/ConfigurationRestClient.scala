@@ -21,9 +21,10 @@ import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.kernel.frontend._
 import javax.ws.rs.core.MediaType
 import org.eclipse.jetty.io.EndPoint
+import net.lshift.diffa.client.RestClientParams
 
-class ConfigurationRestClient(serverRootUrl:String, domain:String, username:String = "guest", password:String = "guest")
-    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/config/", username, password) {
+class ConfigurationRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
+    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/config/", params) {
 
   def declareEndpoint(e:EndpointDef) = {
     create("endpoints", e)

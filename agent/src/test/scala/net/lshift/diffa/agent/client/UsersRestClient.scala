@@ -16,11 +16,11 @@ package net.lshift.diffa.agent.client
  * limitations under the License.
  */
 
-import net.lshift.diffa.client.AbstractRestClient
 import net.lshift.diffa.kernel.frontend.UserDef
+import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
 
-class UsersRestClient(u:String, username:String = "guest", password:String = "guest")
-  extends AbstractRestClient(u, "rest/security/", username, password) {
+class UsersRestClient(u:String, params: RestClientParams = RestClientParams.default)
+  extends AbstractRestClient(u, "rest/security/", params) {
 
   def declareUser(user:UserDef) : UserDef = {
     create("users", user)

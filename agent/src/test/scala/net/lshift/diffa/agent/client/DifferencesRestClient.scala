@@ -23,17 +23,17 @@ import net.lshift.diffa.kernel.participants.ParticipantType
 import javax.ws.rs.core.{Response, MediaType}
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
-import net.lshift.diffa.client.NotFoundException
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.node.ObjectNode
 import net.lshift.diffa.kernel.differencing.{InvalidSequenceNumberException, PairScanState, DifferenceEvent}
 import java.util.ArrayList
+import net.lshift.diffa.client.{RestClientParams, NotFoundException}
 
 /**
  * A RESTful client to poll for difference events on a domain.
  */
-class DifferencesRestClient(serverRootUrl:String, domain:String, username:String = "guest", password:String = "guest")
-    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/diffs", username, password) {
+class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
+    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/diffs", params) {
 
   val supportsStreaming = false
   val supportsPolling = true

@@ -23,20 +23,20 @@ trait ParticipantRestClientFactory {
   def supportsAddress(address: String) = address.startsWith("http://")
 }
 
-class ScanningParticipantRestClientFactory
+class ScanningParticipantRestClientFactory(params: RestClientParams)
   extends ScanningParticipantFactory with ParticipantRestClientFactory {
 
-  def createParticipantRef(address: String) = new ScanningParticipantRestClient(address)
+  def createParticipantRef(address: String) = new ScanningParticipantRestClient(address, params)
 }
 
-class ContentParticipantRestClientFactory
+class ContentParticipantRestClientFactory(params: RestClientParams)
   extends ContentParticipantFactory with ParticipantRestClientFactory {
 
-  def createParticipantRef(address: String) = new ContentParticipantRestClient(address)
+  def createParticipantRef(address: String) = new ContentParticipantRestClient(address, params)
 }
 
-class VersioningParticipantRestClientFactory
+class VersioningParticipantRestClientFactory(params: RestClientParams)
   extends VersioningParticipantFactory with ParticipantRestClientFactory {
 
-  def createParticipantRef(address: String) = new VersioningParticipantRestClient(address)
+  def createParticipantRef(address: String) = new VersioningParticipantRestClient(address, params)
 }

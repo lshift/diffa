@@ -29,8 +29,8 @@ import net.lshift.diffa.participant.scanning._
  * JSON/REST scanning participant client.
  */
 
-class ScanningParticipantRestClient(scanUrl:String)
-    extends AbstractRestClient(scanUrl, "")
+class ScanningParticipantRestClient(scanUrl:String, params: RestClientParams = RestClientParams.default)
+    extends AbstractRestClient(scanUrl, "", params)
     with ScanningParticipantRef {
 
   def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = {

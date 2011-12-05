@@ -21,12 +21,13 @@ import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.kernel.differencing.PairScanState
 import scala.collection.JavaConversions._
 import com.sun.jersey.core.util.MultivaluedMapImpl
+import net.lshift.diffa.client.RestClientParams
 
 /**
  * A RESTful client to manage participant scanning.
  */
-class ScanningRestClient(serverRootUrl:String, domain:String, username:String = "guest", password:String = "guest")
-    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/scanning/", username, password) {
+class ScanningRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
+    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/scanning/", params) {
 
   def startScan(pairKey: String, view:Option[String] = None) = {
     val p = resource.path("pairs").path(pairKey).path("scan")

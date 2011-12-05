@@ -24,8 +24,8 @@ import org.apache.commons.io.IOUtils
 /**
  * JSON/REST content participant client.
  */
-class ContentParticipantRestClient(contentUrl:String)
-    extends AbstractRestClient(contentUrl, "")
+class ContentParticipantRestClient(contentUrl:String, params: RestClientParams = RestClientParams.default)
+    extends AbstractRestClient(contentUrl, "", params)
     with ContentParticipantRef {
 
   def retrieveContent(identifier: String) = {
