@@ -564,7 +564,7 @@ object LuceneVersionCorrelationStoreTest {
   val domainName = "domain"
   val pair = DiffaPairRef(key="pair",domain=domainName)
   val otherPair = DiffaPairRef(key="other-pair",domain=domainName)
-  val stores = new LuceneVersionCorrelationStoreFactory("target", classOf[MMapDirectory], dummyConfigStore, dummyDiagnostics)
+  val stores = new LuceneVersionCorrelationStoreFactory("target", dummyConfigStore, dummyDiagnostics)
 
   // Helper methods for various constraint/attribute scenarios
   def bizDateTimeSeq(d:DateTime) = Seq(d.toString())

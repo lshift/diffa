@@ -88,7 +88,7 @@ class StoreSynchronizationTest {
   val diagnosticsManager = new LocalDiagnosticsManager(domainConfigStore, explainDir)
 
   var store:VersionCorrelationStore = null
-  var stores:LuceneVersionCorrelationStoreFactory[MMapDirectory] = null
+  var stores:LuceneVersionCorrelationStoreFactory = null
 
   // Wire in the diffs manager
 
@@ -102,7 +102,7 @@ class StoreSynchronizationTest {
     if (dir.exists()) {
       FileUtils.deleteDirectory(dir)
     }
-    stores = new LuceneVersionCorrelationStoreFactory(indexDir, classOf[MMapDirectory], systemConfigStore, diagnosticsManager)
+    stores = new LuceneVersionCorrelationStoreFactory(indexDir, systemConfigStore, diagnosticsManager)
     store = stores(pairRef)
 
     systemConfigStore.createOrUpdateDomain(domain)

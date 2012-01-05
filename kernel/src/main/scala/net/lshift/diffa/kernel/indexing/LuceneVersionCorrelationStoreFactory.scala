@@ -17,23 +17,25 @@
 package net.lshift.diffa.kernel.indexing
 
 import java.io.File
-import org.apache.lucene.store.FSDirectory
 import net.lshift.diffa.kernel.differencing.VersionCorrelationStoreFactory
 import scala.collection.mutable.HashMap
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.apache.commons.io.FileUtils
+import org.apache.lucene.store.{SimpleFSDirectory, NIOFSDirectory}
+import org.slf4j.LoggerFactory
 
 /**
  * Factory that creates LuceneVersionCorrelationStore instances.
  */
-class LuceneVersionCorrelationStoreFactory[T <: FSDirectory](
+class LuceneVersionCorrelationStoreFactory(
   baseDir: String,
-  directoryClass: Class[T],
   configStore: SystemConfigStore,
   diagnostics:DiagnosticsManager
 ) extends VersionCorrelationStoreFactory {
+
+  import LuceneVersionCorrelationStoreFactory._
 
   private val stores = HashMap[DiffaPairRef, LuceneVersionCorrelationStore]()
   
@@ -42,8 +44,11 @@ class LuceneVersionCorrelationStoreFactory[T <: FSDirectory](
       new LuceneVersionCorrelationStore(pair, luceneDirectory(pair), configStore, diagnostics))
 
   private def directory(pair: DiffaPairRef) = new File(baseDir, pair.identifier)
+
   private def luceneDirectory(pair: DiffaPairRef) =
     directoryClass.getConstructor(classOf[File]).newInstance(directory(pair))
+
+
 
   def remove(pair: DiffaPairRef) {
     close(pair)
@@ -64,4 +69,20 @@ class LuceneVersionCorrelationStoreFactory[T <: FSDirectory](
     stores.keys.foreach(close(_))
   }
 
+}
+
+object LuceneVersionCorrelationStoreFactory {
+
+  val log = LoggerFactory.getLogger(classOf[LuceneVersionCorrelationStoreFactory])
+
+  lazy val directoryClass = {
+    val os = System.getProperty("os.name")
+    if (os != null && os.toLowerCase.indexOf("win") >= 0) {
+      log.warn("Detected Windows OS, so using SimpleFSDirectory implementation. "
+             + "See http://lucene.apache.org/java/3_5_0/api/core/org/apache/lucene/store/FSDirectory.html for further details.")
+      classOf[SimpleFSDirectory]
+    } else {
+      classOf[NIOFSDirectory]
+    }
+  }
 }

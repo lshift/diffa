@@ -206,6 +206,7 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
 
   def close = {
     writer.close
+    index.close
   }
 
   def reset() = {
