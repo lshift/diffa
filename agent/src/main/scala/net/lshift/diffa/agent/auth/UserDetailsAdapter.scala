@@ -17,12 +17,12 @@ package net.lshift.diffa.agent.auth
 
 import org.springframework.security.core.userdetails.{UsernameNotFoundException, UserDetails, UserDetailsService}
 import scala.collection.JavaConversions._
-import org.springframework.security.core.authority.GrantedAuthorityImpl
 import org.springframework.security.access.PermissionEvaluator
 import java.io.Serializable
 import org.springframework.security.core.{GrantedAuthority, Authentication}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.util.MissingObjectException
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 
 /**
  * Adapter for providing UserDetailsService on top of the underlying Diffa user store.
@@ -40,8 +40,8 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     val isRoot = user.superuser
     val memberships = systemConfigStore.listDomainMemberships(username)
     val domainAuthorities = memberships.map(m => DomainAuthority(m.domain.name, "user"))
-    val authorities = domainAuthorities ++ Seq(new GrantedAuthorityImpl("user")) ++ (isRoot match {
-      case true   => Seq(new GrantedAuthorityImpl("root"))
+    val authorities = domainAuthorities ++ Seq(new SimpleGrantedAuthority("user")) ++ (isRoot match {
+      case true   => Seq(new SimpleGrantedAuthority("root"))
       case false  => Seq()
     })
 

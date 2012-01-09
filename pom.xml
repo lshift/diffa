@@ -28,7 +28,7 @@
 
     <scala.version>2.9.1</scala.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
-    <spring.version>3.0.6.RELEASE</spring.version>
+    <spring.version>3.1.0.RELEASE</spring.version>
 
     <!-- Patched from: https://github.com/0x6e6562/hibernate-core/commit/615aa049e7a557d4a8506a09eb1d2be38714b78f -->
     <hibernate.version>3.6.7-2L</hibernate.version>
@@ -102,6 +102,11 @@
       <artifactId>spring-aop</artifactId>
       <version>${spring.version}</version>
     </dependency>
+    <dependency>      <!-- Soft dependency specified by spring-aop, but app crashes without it -->
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
+      <version>1.6.8</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-orm</artifactId>
@@ -117,6 +122,21 @@
       <artifactId>spring-security-web</artifactId>
       <version>${spring.version}</version>
     </dependency>
+    <dependency>    <!-- Listed specifically, since spring-security-web 3.1 has bad dependencies, and references 3.0.6 -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-expression</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <dependency>    <!-- Listed specifically, since spring-security-web 3.1 has bad dependencies, and references 3.0.6 -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-tx</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <dependency>    <!-- Listed specifically, since spring-security-web 3.1 has bad dependencies, and references 3.0.6 -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jdbc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
@@ -125,6 +145,11 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-taglibs</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-ldap</artifactId>
       <version>${spring.version}</version>
     </dependency>
     <dependency>

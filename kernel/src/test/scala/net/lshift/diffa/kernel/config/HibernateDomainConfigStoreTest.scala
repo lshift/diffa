@@ -542,6 +542,17 @@ class HibernateDomainConfigStoreTest {
     assertIsDomainMember(member, false)
   }
 
+  @Test
+  def shouldBeAbleToFindRootUsers = {
+
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(User(name = "admin_user", email = "dev_null@lshift.net", superuser = true))
+
+    assertTrue(systemConfigStore.containsRootUser(Seq("test_user", "admin_user", "missing_user")))
+    assertFalse(systemConfigStore.containsRootUser(Seq("test_user", "missing_user")))
+    assertFalse(systemConfigStore.containsRootUser(Seq("missing_user1", "missing_user2")))
+  }
+
   private def expectMissingObject(name:String)(f: => Unit) {
     try {
       f

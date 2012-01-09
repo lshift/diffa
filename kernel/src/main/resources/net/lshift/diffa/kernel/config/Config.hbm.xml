@@ -260,6 +260,9 @@
     select m from Member m where m.user.name = :user_name
   </query>
 
+  <query name="rootUserCount" cacheable="true">
+    select count(*) from User u where u.name in (:user_names) and u.superuser = true
+  </query>
 
   <!-- Queries by endpoint -->
   <query name="pairsByEndpoint" cacheable="true">

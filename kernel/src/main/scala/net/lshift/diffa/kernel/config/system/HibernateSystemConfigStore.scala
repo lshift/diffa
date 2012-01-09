@@ -17,12 +17,12 @@
 package net.lshift.diffa.kernel.config.system
 
 import net.lshift.diffa.kernel.util.SessionHelper._
-import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException, HibernateQueryUtils}
 import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, PairCache, SystemConfigOption, Member, DiffaPairRef, User, ConfigOption, RepairAction, Escalation, Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
+import org.hibernate.{Query, Session, SessionFactory}
 
 class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCache:PairCache)
     extends SystemConfigStore with HibernateQueryUtils {
@@ -80,6 +80,13 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
   def listUsers : Seq[User] = sessionFactory.withSession(s => listQuery[User](s, "allUsers", Map()))
   def listDomainMemberships(username: String) : Seq[Member] =
     sessionFactory.withSession(s => listQuery[Member](s, "membersByUser", Map("user_name" -> username)))
+  def containsRootUser(usernames: Seq[String]) : Boolean =
+    sessionFactory.withSession(s => {
+      val query: Query = s.getNamedQuery("rootUserCount")
+      query.setParameterList("user_names", seqAsJavaList(usernames))
+
+      query.uniqueResult().asInstanceOf[java.lang.Long] > 0
+    })
 
   // TODO Add a unit test for this
   def maybeSystemConfigOption(key: String) = {

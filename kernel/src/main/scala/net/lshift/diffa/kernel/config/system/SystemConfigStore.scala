@@ -67,5 +67,6 @@ trait SystemConfigStore {
   def listUsers : Seq[User]
   def listDomainMemberships(username: String) : Seq[Member]
   def getUser(name: String) : User
+  def containsRootUser(names:Seq[String]):Boolean
 
 }
