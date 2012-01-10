@@ -30,15 +30,15 @@ to users by creating internal accounts matching their username, or matching the 
 For instance, if you had a user 'frank.diffman' with the groups 'Development' and 'Support'. If you wanted to make this
 user a root system user, then you'd create a Diffa user (with a dummy password) marked as a superuser. For example:
 
-  curl -u guest:guest -XPOST -d'{"name":"frank.diffman","email":"frank.diffman@example.com","superuser":true,"password":"sha256:1234"}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
+  curl -u guest:guest -XPOST -d'{"name":"frank.diffman","email":"frank.diffman@example.com","superuser":true,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
 
-Note that the above command specifies a sha256 encoded password of 1234, which can never be matched
-(since no SHA-256 encoding will result in this value). This ensures that the user can never log in without Active Directory
-acceptance.
+Note that the above command specifies that the user is external. This allows the user to be defined without a password,
+ensuring that the only way they can log in is with Active Directory acceptance. Specifying a password instead would allow
+the user to log in with either their Active Directory password or the stored Diffa password.
 
 If you wanted to allow all Support users to log into the 'staging' Diffa domain, then you'd create a user such as:
 
-  curl -u guest:guest -XPOST -d'{"name":"Support","email":"support@example.com","superuser":false,"password":"sha256:1234"}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
+  curl -u guest:guest -XPOST -d'{"name":"Support","email":"support@example.com","superuser":false,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
 
 Then assign it to the domain 'staging':
 

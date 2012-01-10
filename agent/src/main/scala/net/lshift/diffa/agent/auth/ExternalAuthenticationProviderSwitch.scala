@@ -19,10 +19,11 @@ import org.springframework.security.core.Authentication
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.springframework.security.ldap.authentication.ad.ActiveDirectoryLdapAuthenticationProvider
 import org.slf4j.{LoggerFactory, Logger}
-import org.springframework.security.authentication.AuthenticationProvider
 import scala.collection.JavaConversions._
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.util.StringUtils
+import org.springframework.security.authentication.{BadCredentialsException, AuthenticationProvider}
 
 /**
  * Runtime controllable authentication provider implementation, that will proxy to an internally configured LDAP
@@ -50,7 +51,15 @@ class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore) ex
   }
 
   def authenticate(authentication: Authentication) = backingProvider match {
-    case Some(ap) => enhanceResult(ap.authenticate(authentication))
+    case Some(ap) => {
+      // None of the providers prevent an empty password being used, but the ActiveDirectory provider actually throws
+      // a nasty exception if one is used.
+      if (!StringUtils.hasLength(authentication.getCredentials.toString)) {
+        throw new BadCredentialsException("Empty Password")
+      }
+
+      enhanceResult(ap.authenticate(authentication))
+    }
     case None     => null
   }
 

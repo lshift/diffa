@@ -28,7 +28,8 @@ import net.lshift.diffa.kernel.config.ValidationUtil
 case class UserDef(@BeanProperty var name: String = null,
                    @BeanProperty var email: String = null,
                    @BeanProperty var superuser: Boolean = false,
-                   @BeanProperty var password: String = null) {
+                   @BeanProperty var password: String = null,
+                   @BeanProperty var external: Boolean = false) {
 
   private val encodedPasswordPrefix = "sha256:"
 
@@ -39,20 +40,30 @@ case class UserDef(@BeanProperty var name: String = null,
 
     ValidationUtil.requiredAndNotEmpty(userPath, "name", name)
     ValidationUtil.requiredAndNotEmpty(userPath, "email", email)
-    ValidationUtil.requiredAndNotEmpty(userPath, "password", password)
+
+    if (!external) {
+      ValidationUtil.requiredAndNotEmpty(userPath, "password", password)
+    }
   }
 
   /**
    * Returns the encoded password. If the password field starts with a prefix indicating that it is already encoded,
    * then we just strip the prefix. If the prefix isn't present, then we'll SHA-256 encode the password.
    */
-  def passwordEnc:String = if (password.startsWith(encodedPasswordPrefix)) {
+  def passwordEnc:String = if (password == null) {
+    ""    // Return an empty password string if the user didn't specify one. Since the password is SHA-256 encoded,
+          // an empty string is unachievable, so this makes the account unable to be authenticated with via a password.
+  } else if (password.startsWith(encodedPasswordPrefix)) {
     password.substring(encodedPasswordPrefix.length())
   } else {
     sha256Encode(password)
   }
   def passwordEnc_=(s:String) {
-    password = encodedPasswordPrefix + s
+    if (s == null || s == "") {
+      password = null
+    } else {
+      password = encodedPasswordPrefix + s
+    }
   }
 
   private def sha256Encode(s:String) = {

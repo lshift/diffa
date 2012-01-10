@@ -353,6 +353,48 @@ class ConfigValidationTest {
         assertEquals("config/pair[key=p]/report[name=Process Differences]: Invalid target (not a URL): random-target", e.getMessage)
     }
   }
+
+  @Test
+  def shouldRejectUserWithoutName() {
+    val userDef = UserDef(email = "user@domain.com", password = "password")
+    try {
+      userDef.validate("config")
+      fail("Should have thrown ConfigValidationException")
+    } catch {
+      case e:ConfigValidationException =>
+        assertEquals("config/user[name=null]: name cannot be null or empty", e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldRejectUserWithoutEmail() {
+    val userDef = UserDef(name = "some.user", password = "password")
+    try {
+      userDef.validate("config")
+      fail("Should have thrown ConfigValidationException")
+    } catch {
+      case e:ConfigValidationException =>
+        assertEquals("config/user[name=some.user]: email cannot be null or empty", e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldRejectUserWithoutPasswordWhenNotExternal() {
+    val userDef = UserDef(name = "some.user", email = "user@domain.com")
+    try {
+      userDef.validate("config")
+      fail("Should have thrown ConfigValidationException")
+    } catch {
+      case e:ConfigValidationException =>
+        assertEquals("config/user[name=some.user]: password cannot be null or empty", e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldAcceptExternalUserWithoutPassword() {
+    val userDef = UserDef(name = "some.user", email = "user@domain.com", external = true)
+    userDef.validate("config")
+  }
 }
 
 case class RangeScenario(dataType:String, lower:String, upper:String, justBefore:String, justAfter:String, wayAfter:String, lowerMid:String, upperMid:String)

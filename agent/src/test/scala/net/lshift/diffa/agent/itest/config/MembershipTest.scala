@@ -23,6 +23,7 @@ import com.eaio.uuid.UUID
 import net.lshift.diffa.agent.client.{ConfigurationRestClient, UsersRestClient, SystemConfigRestClient}
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
 import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
+import com.sun.jersey.api.client.UniformInterfaceException
 
 /**
  * Tests whether domain membership admin is accessible via the REST API
@@ -72,5 +73,31 @@ class MembershipTest {
     usersClient.declareUser(UserDef(username,email,false,password))
     configClient.makeDomainMember(username)
     userConfigClient.listDomainMembers
+  }
+
+  @Test
+  def shouldBeAbleToCreateExternalUser() {
+    usersClient.declareUser(UserDef(name = username, email = email, external = true))
+  }
+
+  @Test
+  def shouldNotBeAbleToAuthenticateWithExternalUser() {
+    usersClient.declareUser(UserDef(name = username, email = email, external = true))
+
+    val noPasswordConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some("")))
+    try {
+      noPasswordConfigClient.listDomainMembers
+      fail("Should have thrown 401")
+    } catch {
+      case ex:UniformInterfaceException => assertEquals(401, ex.getResponse.getStatus)
+    }
+
+    val dummyPasswordConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some("abcdef")))
+    try {
+      noPasswordConfigClient.listDomainMembers
+      fail("Should have thrown 401")
+    } catch {
+      case ex:UniformInterfaceException => assertEquals(401, ex.getResponse.getStatus)
+    }
   }
 }
