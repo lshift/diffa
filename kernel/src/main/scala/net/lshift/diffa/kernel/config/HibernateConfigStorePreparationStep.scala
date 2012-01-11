@@ -68,8 +68,20 @@ class HibernateConfigStorePreparationStep
             try {
               migration.apply(connection)
               if (step.versionId > 1) {
-                s.createSQLQuery(HibernatePreparationUtils.schemaVersionUpdateStatement(step.versionId)).executeUpdate()
-                s.flush
+
+                // Make sure that this really does get written to the underlying DB
+
+                val tx = s.beginTransaction()
+                try {
+                  s.createSQLQuery(HibernatePreparationUtils.schemaVersionUpdateStatement(step.versionId)).executeUpdate()
+                  tx.commit()
+                }
+                catch {
+                  case x => {
+                    tx.rollback()
+                    throw x
+                  }
+                }
               }
               log.info("Upgraded database to version %s (%s)".format(step.versionId, step.name))
             } catch {
@@ -190,11 +202,14 @@ class FreshMigrationStep(currentMaxVersionId:Int) extends HibernateMigrationStep
 
     type R = ReferenceDataMigrationStep
     type C = StandaloneConstraintMigrationStep
+    type P = PartitioningMigrationStep
+
+    DefineSchemaVersionTable.defineTableAndInitialEntry(freshMigration, versionId)
+    DefinePartitionInformationTable.defineTable(freshMigration)
 
     steps.filter(_.isInstanceOf[R]).map(_.asInstanceOf[R]).foreach(_.applyReferenceData(freshMigration))
     steps.filter(_.isInstanceOf[C]).map(_.asInstanceOf[C]).foreach(_.applyConstraint(freshMigration))
-
-    DefineSchemaVersionTable.defineTableAndInitialEntry(freshMigration, versionId)
+    steps.filter(_.isInstanceOf[P]).map(_.asInstanceOf[P]).foreach(_.applyPartitioning(freshMigration))
 
     freshMigration
   }
@@ -233,6 +248,10 @@ trait StandaloneConstraintMigrationStep {
   def applyConstraint(migration:MigrationBuilder)
 }
 
+trait PartitioningMigrationStep {
+  def applyPartitioning(migration:MigrationBuilder) : MigrationBuilder
+}
+
 /**
  * One-off definition of the schema version table.
  */
@@ -244,6 +263,20 @@ object DefineSchemaVersionTable {
         pk("version")
     migration.insert("schema_version").
         values(Map("version" -> new java.lang.Integer(targetVersion)))
+  }
+
+}
+
+/**
+ * One-off definition of the partition information table.
+ */
+object DefinePartitionInformationTable {
+
+  def defineTable(migration:MigrationBuilder) {    
+    migration.createTable("partition_information").
+        column("table_name", Types.VARCHAR, false).
+        column("version", Types.INTEGER, false).
+        pk("table_name","version")
   }
 
 }
@@ -613,6 +646,66 @@ object HibernateConfigStorePreparationStep {
 
         migration.alterTable("endpoint").dropColumn("content_type")
 
+        migration
+      }
+    },
+
+    new HibernateMigrationStep with PartitioningMigrationStep {
+        def versionId = 16
+        def name = "Partition diffs table"
+
+      def createMigration(config: Configuration) = {
+        val migration = new MigrationBuilder(config)
+
+        // If this step is being executed, then by definition, the partition information table cannot exist
+        DefinePartitionInformationTable.defineTable(migration)
+
+        applyPartitioning(migration)
+      }
+
+      def applyPartitioning(migration:MigrationBuilder) = {
+        if (migration.canPartition) {
+
+          migration.addPrecondition("partition_information",
+                                    "where table_name = '%s' and version = %s".format("diffs", versionId), 0)
+
+          // This number is quite arbitrary
+          val arbitraryPartitionCount = 16
+  
+          migration.createTable("diffs_tmp").
+                    column("seq_id", Types.INTEGER, false).
+                    column("domain", Types.VARCHAR, 255, false).
+                    column("pair", Types.VARCHAR, 255, false).
+                    column("entity_id", Types.VARCHAR, 255, false).
+                    column("is_match", Types.BIT, false).
+                    column("detected_at", Types.TIMESTAMP, false).
+                    column("last_seen", Types.TIMESTAMP, false).
+                    column("upstream_vsn", Types.VARCHAR, 255, true).
+                    column("downstream_vsn", Types.VARCHAR, 255, true).
+                    column("ignored", Types.BIT, false).
+                    pk("seq_id", "domain", "pair").
+                    hashPartitions(arbitraryPartitionCount, "domain", "pair")
+          
+          migration.copyTableContents("diffs", "diffs_tmp");
+          migration.dropTable("diffs")
+          migration.alterTable("diffs_tmp").renameTo("diffs");
+
+  
+          // If this partitioning function is being executed, then by definition, the partition information table must exist          
+          migration.insert("partition_information").
+                    values(Map("version" -> new java.lang.Integer(versionId),
+                               "table_name" -> "diffs"))
+
+          migration.createIndex("diff_last_seen", "diffs", "last_seen")
+          migration.createIndex("diff_detection", "diffs", "detected_at")
+          migration.createIndex("rdiff_is_matched", "diffs", "is_match")
+          migration.createIndex("rdiff_domain_idx", "diffs", "entity_id", "domain", "pair")
+
+          if (migration.canAnalyze) {
+            migration.analyzeTable("diffs");
+          }
+        }
+        
         migration
       }
     }

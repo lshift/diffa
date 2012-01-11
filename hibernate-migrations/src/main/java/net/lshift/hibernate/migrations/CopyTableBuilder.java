@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.hibernate.migrations.dialects;
+package net.lshift.hibernate.migrations;
 
-import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.Oracle8iDialect;
-
-/**
- * Helper for selecting an appropriate dialect extension for a given dialect.
- */
-public class DialectExtensionSelector {
-  public static DialectExtension select(Dialect hibernateDialect) {
-    if (hibernateDialect instanceof Oracle8iDialect) {
-      return new OracleDialectExtension();
-    }
-
-    return new DefaultDialectExtension();
+public class CopyTableBuilder extends SingleStatementMigrationElement{
+  
+  private String sourceTable;
+  private String destinationTable;
+  
+  public CopyTableBuilder(String source, String destination) {
+    sourceTable = source;
+    destinationTable = destination;
+  }
+  
+  @Override
+  protected String getSQL() {
+    return String.format("insert into %s select * from %s", destinationTable, sourceTable);
   }
 }

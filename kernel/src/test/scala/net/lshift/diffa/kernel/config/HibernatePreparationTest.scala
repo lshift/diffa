@@ -155,6 +155,24 @@ class HibernatePreparationTest {
     }
   }
 
+  @Test
+  def verifyExternalDatabase() {
+    if(System.getProperty("verifyExternalDB") != null) {
+      val config = new Configuration().
+          addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+          addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
+          setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
+          setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("configStore-export")).
+          setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
+          setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
+          setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
+          setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
+          setProperty("hibernate.cache.use_second_level_cache", "true")
+      val sf = config.buildSessionFactory
+      (new HibernateConfigStorePreparationStep).prepare(sf, config)
+    }
+  }
+
   /**
    * Loads statements from a resource. The load process consists of reading lines, removing those starting with a
    * comment, re-joining and splitting based on ;.
@@ -199,6 +217,8 @@ object HibernatePreparationTest {
   @DataPoint def v12 = StartingDatabaseVersion("v12")
   @DataPoint def v13 = StartingDatabaseVersion("v13")
   @DataPoint def v14 = StartingDatabaseVersion("v14")
+  @DataPoint def v15 = StartingDatabaseVersion("v15")
+  @DataPoint def v16 = StartingDatabaseVersion("v16")
 }
 
 case class StartingDatabaseVersion(startName:String)

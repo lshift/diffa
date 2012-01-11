@@ -15,6 +15,7 @@
  */
 package net.lshift.hibernate.migrations;
 
+import net.lshift.hibernate.migrations.dialects.DialectExtension;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.mapping.Column;
 import org.hibernate.mapping.PrimaryKey;
@@ -23,6 +24,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static net.lshift.hibernate.migrations.SQLStringHelpers.generateColumnString;
@@ -38,9 +40,11 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   private final List<String> primaryKeys;
   private final List<Column> columns;
   private boolean useNativeIdentityGenerator = false;
+  private PartitionAwareTableHelper partitionHelper;
 
-  public CreateTableBuilder(Dialect dialect, String name, String... primaryKeys) {
+  public CreateTableBuilder(Dialect dialect, DialectExtension dialectExtension, String name, String... primaryKeys) {
     this.dialect = dialect;
+    this.partitionHelper = new PartitionAwareTableHelper(dialectExtension);
     this.name = name;
     this.primaryKeys = new ArrayList<String>(Arrays.asList(primaryKeys));
     this.columns = new ArrayList<Column>();
@@ -73,6 +77,11 @@ public class CreateTableBuilder extends TraceableMigrationElement {
 
     return this;
   }
+  
+  public CreateTableBuilder hashPartitions(int partitions, String ... columns) {
+    partitionHelper.definePartitions(partitions,columns);
+    return this;
+  }
 
 
   //
@@ -98,6 +107,9 @@ public class CreateTableBuilder extends TraceableMigrationElement {
     buffer.append(getPrimaryKey().sqlConstraintString(dialect));
 
     buffer.append(")");
+
+    partitionHelper.appendPartitionString(buffer);
+
     return buffer.toString();
   }
 

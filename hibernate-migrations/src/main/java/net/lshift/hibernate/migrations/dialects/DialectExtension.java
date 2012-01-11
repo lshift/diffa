@@ -19,7 +19,10 @@ package net.lshift.hibernate.migrations.dialects;
  * Class providing extensions to specific Hibernate dialects. When a Hibernate dialect doesn't have a specific
  * extension, this base extension will be used.
  */
-public class DialectExtension {
+public abstract class DialectExtension {
+
+
+  public abstract String getDialectName() ;
 
   /**
    * Retrieves the string to be used when specifying that a column is being altered.
@@ -44,4 +47,39 @@ public class DialectExtension {
   public boolean shouldBracketAlterColumnStatement() {
     return false;
   }
+
+  /**
+   * Indicates whether the database permits tables to be partitioned.
+   * @return
+   */
+  public boolean supportsHashPartitioning() {
+    return false;
+  }
+  
+  /**
+   * Retrieves the string to be used when specifying a partitioning hash scheme
+   * @param partitions The number of partitions to create.
+   * @param columns The columns to base the partitioning on.
+   * @return the string.
+   */
+  public String defineHashPartitionString(int partitions, String ... columns) {
+    throw new RuntimeException("Hash partitioning is not supported by this dialect");
+  }
+
+  /**
+   * Indicates whether the database permits tables to be analyzed.
+   * @return
+   */
+  public boolean supportsAnalyze() {
+    return false;
+  }
+
+  /**
+   * Retrieves the string to be used when analyzing a table
+   * @param table The table to analyze.
+   */
+  public String analyzeTableString(String table) {
+    throw new RuntimeException("analyze table is not supported by this dialect");
+  }
+
 }

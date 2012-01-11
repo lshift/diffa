@@ -19,6 +19,10 @@ package net.lshift.hibernate.migrations.dialects;
  * Extension to the Oracle Dialect, providing additional Oracle-specific SQL information.
  */
 public class OracleDialectExtension extends DialectExtension {
+  @Override
+  public String getDialectName() {
+    return "ORACLE";
+  }
 
   @Override
   public String alterColumnString() {
@@ -33,5 +37,25 @@ public class OracleDialectExtension extends DialectExtension {
   @Override
   public boolean shouldBracketAlterColumnStatement() {
     return true;
+  }
+
+  @Override
+  public boolean supportsHashPartitioning() {
+    return true;
+  }
+
+  @Override
+  public String defineHashPartitionString(int partitions, String... columns) {
+    return String.format("partition by hash(%s) partitions ", columns) + partitions;
+  }
+
+  @Override
+  public boolean supportsAnalyze() {
+    return true;
+  }
+
+  @Override
+  public String analyzeTableString(String table) {
+    return String.format("analyze table %s compute statistics", table);
   }
 }

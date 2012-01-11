@@ -101,6 +101,28 @@ public class CreateTableBuilderTest {
     expectCreateTableStatements(config, false, statements);
   }
 
+  @Test
+  public void shouldPartitionTableWhenDialectExtensionSupportsPartitioningAndPartitionIsRequested() throws Exception {
+    Configuration config = new Configuration().setProperty("hibernate.dialect", "org.hibernate.dialect.Oracle10gDialect");
+
+    String statement = "create table foo (bar number(10,0) not null, baz varchar2(1024 char), primary key (bar)) partition by hash(baz) partitions 10";
+
+    MigrationBuilder mb = new MigrationBuilder(config);
+    mb.createTable("foo").
+      column("bar", Types.INTEGER, false).
+      column("baz", Types.VARCHAR, 1024, true).
+      pk("bar").
+      hashPartitions(10, "baz");
+
+    Connection conn = createStrictMock(Connection.class);
+    expect(conn.prepareStatement(statement)).andReturn(mockExecutablePreparedStatement());
+
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
   private void expectCreateTableStatements(Configuration config, boolean nativeIdentityGenerator, String... statements) throws SQLException {
     MigrationBuilder mb = new MigrationBuilder(config);
     CreateTableBuilder cb = mb.createTable("foo").

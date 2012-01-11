@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package net.lshift.hibernate.migrations.dialects;
 
-import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.Oracle8iDialect;
-
 /**
- * Helper for selecting an appropriate dialect extension for a given dialect.
+ * Simple default implementation to enforce appropriate override settings.
  */
-public class DialectExtensionSelector {
-  public static DialectExtension select(Dialect hibernateDialect) {
-    if (hibernateDialect instanceof Oracle8iDialect) {
-      return new OracleDialectExtension();
-    }
+public class DefaultDialectExtension extends DialectExtension{
 
-    return new DefaultDialectExtension();
+  @Override
+  public String getDialectName() {
+    return "DEFAULT";
   }
 }

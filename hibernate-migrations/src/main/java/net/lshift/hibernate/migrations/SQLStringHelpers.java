@@ -95,6 +95,15 @@ public class SQLStringHelpers {
     return buffer.toString();
   }
 
+  /**
+   * Note to the unassuming maintenance developer:
+   *
+   * What happens with Oracle a dialect is when a varchar2 is larger than 4000,
+   * the type name returned for java.sql.Type.VARCHAR is a long, which can be very confusing.
+   *
+   * I'm not sure that this is significant enough to warrant patching.
+   *
+   */
   private static String getTypeName(Dialect dialect, Column col) {
     return dialect.getTypeName(col.getSqlTypeCode(), col.getLength(), col.getPrecision(), col.getScale());
   }
