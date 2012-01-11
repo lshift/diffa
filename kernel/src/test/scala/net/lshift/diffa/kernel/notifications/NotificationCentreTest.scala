@@ -24,6 +24,7 @@ import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.config.Domain
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.differencing._
+import net.lshift.diffa.kernel.frontend.SystemConfigListener
 
 /**
  * Test cases for the Notification Centre.
@@ -71,6 +72,22 @@ class NotificationCentreTest {
     replay(l1, l2)
 
     nc.pairScanStateChanged(pair.asRef, PairScanState.SCANNING)
+    verify(l1, l2)
+  }
+
+  @Test
+  def shouldDispatchToSystemConfigListeners() {
+    val l1 = createStrictMock("l1", classOf[SystemConfigListener])
+    val l2 = createStrictMock("l2", classOf[SystemConfigListener])
+
+    nc.registerForSystemConfigEvents(l1)
+    nc.registerForSystemConfigEvents(l2)
+
+    l1.configPropertiesUpdated(Seq("a"))
+    l2.configPropertiesUpdated(Seq("a"))
+    replay(l1, l2)
+
+    nc.configPropertiesUpdated(Seq("a"))
     verify(l1, l2)
   }
 }

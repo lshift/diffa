@@ -24,31 +24,30 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.util.StringUtils
 import org.springframework.security.authentication.{BadCredentialsException, AuthenticationProvider}
+import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
+import net.lshift.diffa.kernel.frontend.SystemConfigListener
 
 /**
  * Runtime controllable authentication provider implementation, that will proxy to an internally configured LDAP
  * implementation if configuration is available.
  */
-class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore) extends AuthenticationProvider {
+class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore)
+    extends AuthenticationProvider
+    with AgentLifecycleAware
+    with SystemConfigListener {
+
+  val AD_DOMAIN_PROPERTY = "activedirectory.domain"
+  val AD_SERVER_PROPERTY = "activedirectory.server"
 
   val log:Logger = LoggerFactory.getLogger(getClass)
 
-  // Look for configuration for various authentication mechanisms
-  val activeDirectoryDomain = configStore.maybeSystemConfigOption("activedirectory.domain")
+  override def onAgentInstantiationCompleted(nc: NotificationCentre) {
+    nc.registerForSystemConfigEvents(this)
+  }
 
   // Generate a backing provider based upon the settings that are available
-  val backingProvider:Option[AuthenticationProvider] = if (activeDirectoryDomain.isDefined) {
-    val domain = activeDirectoryDomain.get
-    val activeDirectoryServer = configStore.systemConfigOptionOrDefault("activedirectory.server", "ldap://" + domain + "/")
 
-    log.info("Using ActiveDirectory authentication for domain %s with server %s".format(domain, activeDirectoryServer))
-
-    Some(new ActiveDirectoryLdapAuthenticationProvider(domain, activeDirectoryServer))
-  } else {
-    log.info("No external authentication providers configured")
-
-    None
-  }
+  var backingProvider:Option[AuthenticationProvider] = loadBackingProvider
 
   def authenticate(authentication: Authentication) = backingProvider match {
     case Some(ap) => {
@@ -68,7 +67,25 @@ class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore) ex
     case None     => false
   }
 
-  def enhanceResult(res:Authentication):Authentication = res match {
+  private def loadBackingProvider = {
+    // Look for configuration for various authentication mechanisms
+    val activeDirectoryDomain = configStore.maybeSystemConfigOption(AD_DOMAIN_PROPERTY)
+
+    if (activeDirectoryDomain.isDefined) {
+      val domain = activeDirectoryDomain.get
+      val activeDirectoryServer = configStore.systemConfigOptionOrDefault(AD_SERVER_PROPERTY, "ldap://" + domain + "/")
+
+      log.info("Using ActiveDirectory authentication for domain %s with server %s".format(domain, activeDirectoryServer))
+
+      Some(new ActiveDirectoryLdapAuthenticationProvider(domain, activeDirectoryServer))
+    } else {
+      log.info("No external authentication providers configured")
+
+      None
+    }
+  }
+
+  private def enhanceResult(res:Authentication):Authentication = res match {
     case null => null
     case _    => {
       val username = res.getPrincipal.asInstanceOf[UserDetails].getUsername
@@ -94,6 +111,13 @@ class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore) ex
         def getName = res.getName
         def isAuthenticated = res.isAuthenticated
       }
+    }
+  }
+
+  def configPropertiesUpdated(properties: Seq[String]) {
+    // Reload the backing provider if any relevant configuration properties are changed
+    if (properties.contains(AD_DOMAIN_PROPERTY) || properties.contains(AD_SERVER_PROPERTY)) {
+      backingProvider = loadBackingProvider
     }
   }
 }

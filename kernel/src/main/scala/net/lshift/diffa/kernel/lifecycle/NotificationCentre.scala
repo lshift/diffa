@@ -22,6 +22,7 @@ import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
 import net.lshift.diffa.kernel.differencing._
 import collection.mutable.{ListBuffer}
 import collection.immutable.HashSet
+import net.lshift.diffa.kernel.frontend.SystemConfigListener
 
 /**
  * Central system component for subscribing to notifications. To prevent dependency loops, consumer components should not
@@ -30,11 +31,13 @@ import collection.immutable.HashSet
  */
 class NotificationCentre
     extends DifferencingListener
-    with PairScanListener {
+    with PairScanListener
+    with SystemConfigListener {
   private val unfilteredDifferenceListeners = new ListBuffer[DifferencingListener]
   private val filteredDifferenceListeners = new ListBuffer[DifferencingListener]
   private var allDifferenceListeners = Set[DifferencingListener]()
   private val pairScanListeners = new ListBuffer[PairScanListener]
+  private val systemConfigListeners = new ListBuffer[SystemConfigListener]
 
   /**
    * Registers a listener to receive different events.
@@ -49,6 +52,13 @@ class NotificationCentre
    */
   def registerForPairScanEvents(l:PairScanListener) {
     pairScanListeners += l
+  }
+
+   /**
+   * Registers a listener to receive system config events.
+   */
+  def registerForSystemConfigEvents(l:SystemConfigListener) {
+    systemConfigListeners += l
   }
 
   //
@@ -73,5 +83,13 @@ class NotificationCentre
 
   def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) {
     pairScanListeners.foreach(_.pairScanStateChanged(pair, scanState))
+  }
+
+  //
+  // System Config Listener Multicast
+  //
+
+  def configPropertiesUpdated(properties: Seq[String]) {
+    systemConfigListeners.foreach(_.configPropertiesUpdated(properties))
   }
 }

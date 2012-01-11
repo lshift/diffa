@@ -50,4 +50,10 @@ class SystemConfigTest {
     client.getConfigOption("foo")
   }
 
+  @Test
+  def shouldSetMultipleSystemConfigOptions {
+    client.setConfigOptions(Map("foo" -> "bar", "foz" -> "boz"))
+    assertEquals("bar", client.getConfigOption("foo"))
+    assertEquals("boz", client.getConfigOption("foz"))
+  }
 }

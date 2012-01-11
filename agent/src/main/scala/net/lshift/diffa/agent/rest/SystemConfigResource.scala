@@ -19,15 +19,16 @@ package net.lshift.diffa.agent.rest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import net.lshift.diffa.agent.rest.ResponseUtils._
-import javax.ws.rs.core.{UriInfo, Context}
 import net.lshift.diffa.docgen.annotations.{MandatoryParams, Description}
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
 import javax.ws.rs._
+import core._
 import net.lshift.diffa.kernel.frontend.{SystemConfiguration, DomainDef}
 import org.springframework.security.access.prepost.PreAuthorize
 import net.lshift.diffa.kernel.util.MissingObjectException
-import javax.ws.rs.core.Response
 import net.lshift.diffa.kernel.config.ConfigValidationException
+import com.sun.jersey.api.representation.Form
+import scala.collection.JavaConversions._
 
 @Path("/root")
 @Component
@@ -51,6 +52,20 @@ class SystemConfigResource {
   @Description("Removes a domain from the agent.")
   @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Domain name")))
   def deleteEndpoint(@PathParam("name") name:String) = systemConfig.deleteDomain(name)
+
+  @POST
+  @Path("/system/config")
+  @Consumes(Array(MediaType.APPLICATION_FORM_URLENCODED))
+  @Description("Sets multiple system wide properties.")
+  def setSystemConfigOption(params: Form) = {
+    val update = params.keySet().map(k => {
+      k -> params.getFirst(k)
+    }).toMap
+
+    systemConfig.setSystemConfigOptions(update)
+
+    Response.noContent().build()
+  }
 
   @PUT
   @Path("/system/config/{key}")

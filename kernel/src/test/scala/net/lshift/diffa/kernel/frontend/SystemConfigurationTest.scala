@@ -9,6 +9,7 @@ import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
 import org.hibernate.cfg.{Configuration => HibernateConfig}
 import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 
 /**
  * Test cases for apply System Configuration.
@@ -20,7 +21,11 @@ class SystemConfigurationTest {
 
   private val differencesManager = createMock("differencesManager", classOf[DifferencesManager])
 
-  private val systemConfiguration = new SystemConfiguration(systemConfigStore, differencesManager)
+  private val nc = new NotificationCentre
+
+  private val systemConfiguration = new SystemConfiguration(systemConfigStore, differencesManager, nc)
+  private val listener = createMock("systemConfigListener", classOf[SystemConfigListener])
+
 
   @Test
   def shouldBeAbleToCreateUserWithUnencryptedPassword() {
@@ -61,6 +66,39 @@ class SystemConfigurationTest {
   def shouldRejectUserDefinitionWithoutPassword() {
     systemConfiguration.createOrUpdateUser(
       UserDef(name = validUserDef.name, email = validUserDef.email, superuser = validUserDef.superuser, password = null))
+  }
+
+  @Test
+  def shouldBeAbleToSetASingleOption() {
+    systemConfiguration.setSystemConfigOption("a", "b")
+    assertEquals(Some("b"), systemConfiguration.getSystemConfigOption("a"))
+  }
+
+  @Test
+  def shouldReceiveAnEventWhenASingleOptionIsUpdated() {
+    listener.configPropertiesUpdated(Seq("a")); expectLastCall()
+    replay(listener)
+    nc.registerForSystemConfigEvents(listener)
+
+    systemConfiguration.setSystemConfigOption("a", "b")
+    verify(listener)
+  }
+
+  @Test
+  def shouldBeAbleToSetMultipleOptions() {
+    systemConfiguration.setSystemConfigOptions(Map("a" -> "foo", "b" -> "bar"))
+    assertEquals(Some("foo"), systemConfiguration.getSystemConfigOption("a"))
+    assertEquals(Some("bar"), systemConfiguration.getSystemConfigOption("b"))
+  }
+
+  @Test
+  def shouldReceiveAnEventWhenMultipleOptionsUpdated() {
+    listener.configPropertiesUpdated(Seq("a", "b")); expectLastCall()
+    replay(listener)
+    nc.registerForSystemConfigEvents(listener)
+
+    systemConfiguration.setSystemConfigOptions(Map("a" -> "foo", "b" -> "bar"))
+    verify(listener)
   }
 }
 

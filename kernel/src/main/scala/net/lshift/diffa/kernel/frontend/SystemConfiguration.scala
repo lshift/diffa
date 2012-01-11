@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.differencing.DifferencesManager
 /**
  * Frontend component that wraps all of the events that surround system configuration changes.
  */
-class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesManager:DifferencesManager) {
+class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesManager:DifferencesManager, listener:SystemConfigListener) {
 
   val log = LoggerFactory.getLogger(getClass)
 
@@ -50,8 +50,20 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesM
   def deleteUser(username: String) = systemConfigStore.deleteUser(username)
   def listUsers : Seq[UserDef] = systemConfigStore.listUsers.map(toUserDef(_))
 
-  def setSystemConfigOption(key:String, value:String) = systemConfigStore.setSystemConfigOption(key, value)
-  def clearSystemConfigOption(key:String) = systemConfigStore.clearSystemConfigOption(key)
+  def setSystemConfigOption(key:String, value:String) {
+    systemConfigStore.setSystemConfigOption(key, value)
+    listener.configPropertiesUpdated(Seq(key))
+  }
+  def setSystemConfigOptions(options:Map[String,String]) {
+    options.foreach { case (k, v) =>
+      systemConfigStore.setSystemConfigOption(k, v)
+    }
+    listener.configPropertiesUpdated(options.keys.toSeq)
+  }
+  def clearSystemConfigOption(key:String) {
+    systemConfigStore.clearSystemConfigOption(key)
+    listener.configPropertiesUpdated(Seq(key))
+  }
   def getSystemConfigOption(key:String) = systemConfigStore.maybeSystemConfigOption(key)
 
 }

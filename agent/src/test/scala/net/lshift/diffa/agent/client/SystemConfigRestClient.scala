@@ -22,6 +22,9 @@ import com.sun.jersey.api.client.ClientResponse
 import com.sun.jersey.core.util.MultivaluedMapImpl
 import net.lshift.diffa.client.{NotFoundException, AbstractRestClient}
 import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
+import collection.immutable.Map
+import java.lang.String
+import com.sun.jersey.api.representation.Form
 
 
 class SystemConfigRestClient(rootUrl:String, params: RestClientParams = RestClientParams.default)
@@ -40,6 +43,20 @@ class SystemConfigRestClient(rootUrl:String, params: RestClientParams = RestClie
       case x:Int => handleHTTPError(x, path, status)
     }
   }
+
+  def setConfigOptions(options: Map[String, String]) {
+    val form = new Form()
+    options.foreach { case (k, v) => form.add(k, v)}
+
+    val path = resource.path("/system/config")
+    val response = path.`type`(MediaType.APPLICATION_FORM_URLENCODED).post(classOf[ClientResponse], form)
+    val status = response.getClientResponseStatus
+    status.getStatusCode match {
+      case 204 | 304    => ()
+      case x:Int => handleHTTPError(x, path, status)
+    }
+  }
+
 
   def deleteConfigOption(key:String) = {
     val path = resource.path("/system/config/" + key)

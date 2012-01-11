@@ -11,11 +11,10 @@ Domain Controller dc.mydomain.com, you'd configure the following Diffa options:
 This can be configured via the REST API as such (assuming a Diffa instance running on http://localhost:19093/diffa-agent
 with the default user still in place):
 
-curl -u guest:guest -XPUT -d"mydomain.com" -H"Content-Type: text/plain" http://localhost:19093/diffa-agent/rest/root/system/config/activedirectory.domain
-curl -u guest:guest -XPUT -d"ldap://dc.mydomain.com" -H"Content-Type: text/plain" http://localhost:19093/diffa-agent/rest/root/system/config/activedirectory.server
+curl -u guest:guest -XPOST -d"activedirectory.domain=mydomain.com&activedirectory.server=ldap://dc.mydomain.com" \
+  -H"Content-Type: application/x-www-form-urlencoded" http://localhost:19093/diffa-agent/rest/root/system/config
 
-IMPORTANT: Once these options have been applied, the Diffa server must be restarted. External Authentication options are
-only applied on agent startup. If settings are applied successfully, the server log should include a line such as:
+If settings are applied successfully, the server log should include a line such as:
 
   INFO ExternalAuthenticationProviderSwitch:43 - Using ActiveDirectory authentication for domain mydomain.com with server ldap://dc.mydomain.com
 
