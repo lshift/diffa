@@ -36,6 +36,7 @@
 @bright-yellow: #FFFD94;
 @dark-text: #333;
 @light-border: #ccc;
+@yellow-error-background: #F9EDBE;
 
 @min-line-height: 18px;
 
@@ -127,4 +128,18 @@ button.repair {
   margin: 10px 5px 0 0;
   border: 1px solid @light-border;
   cursor: pointer;
+}
+
+.error-display {
+  margin: 0 auto;
+  width: 500px;
+  background-color: @yellow-error-background;
+  padding: 3px 10px;
+  text-align: center;
+
+  .prefix {
+    font-weight: bold;
+  }
+  .description {
+  }
 }

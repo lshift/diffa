@@ -59,3 +59,39 @@ function appendActionButtonToContainer($container, action, pairKey, itemID, $rep
     })
     .appendTo($container);
 }
+
+$(function() {
+  var DiffaCommon = {
+    Views: {}
+  };
+
+  DiffaCommon.Views.Errors = Backbone.View.extend({
+    initialize: function() {
+      _.bindAll(this, "handleAjaxSuccess", "handleAjaxError");
+    },
+
+    handleAjaxSuccess: function(event, XMLHttpRequest, ajaxOptions) {
+      $(this.el).hide();
+    },
+
+    handleAjaxError: function(event, jqXHR, ajaxSettings, thrownError) {
+      var errorDescription = "Unexpected Server Error (" + jqXHR.status + ")";
+
+      // Perform specific error decoding for known cases
+      if (jqXHR.status == 0) {
+        errorDescription = "Server Communication Error";
+      } else if (jqXHR.status == 403) {
+        errorDescription = "Domain Access Denied";
+      }
+
+      $('.description', this.el).text(errorDescription);
+      $(this.el).show();
+    }
+  });
+
+  DiffaCommon.ErrorView = new DiffaCommon.Views.Errors({el: $('.error-display')});
+
+  // Install a global handler to capture errors in AJAX requests
+  jQuery(document).ajaxSuccess(DiffaCommon.ErrorView.handleAjaxSuccess);
+  jQuery(document).ajaxError(DiffaCommon.ErrorView.handleAjaxError);
+});

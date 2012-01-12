@@ -57,6 +57,12 @@
 
   <body>
     <div class="container">
+      <div class="error-display" style="display:none;">
+        <span class="prefix">Diffa is experiencing a problem: </span>
+        <span class="description"></span>
+        <span class="reload"><a href="javascript:document.location.reload();">Reload</a></span>
+      </div>
+
       <decorator:body/>
       <div class="footer">Diffa ${project.version} &copy;2010-2011 LShift Ltd.</div>
     </div>
