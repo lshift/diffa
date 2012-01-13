@@ -61,6 +61,7 @@ case class UserDef(@BeanProperty var name: String = null,
   def passwordEnc_=(s:String) {
     if (s == null || s == "") {
       password = null
+      external = true
     } else {
       password = encodedPasswordPrefix + s
     }
