@@ -15,18 +15,25 @@
  */
 package net.lshift.hibernate.migrations;
 
+import com.google.common.base.Joiner;
+
 public class CopyTableBuilder extends SingleStatementMigrationElement{
-  
+
   private String sourceTable;
   private String destinationTable;
-  
-  public CopyTableBuilder(String source, String destination) {
+  private Iterable<String> columnsToCopy;
+
+  public CopyTableBuilder(String source, String destination, Iterable<String> columns) {
     sourceTable = source;
     destinationTable = destination;
+    columnsToCopy = columns;
   }
   
   @Override
   protected String getSQL() {
-    return String.format("insert into %s select * from %s", destinationTable, sourceTable);
+    Joiner joiner = Joiner.on(",").skipNulls();
+    String columns = joiner.join(columnsToCopy);
+    return String.format("insert into %s(%s) select %s from %s",
+                         destinationTable, columns, columns, sourceTable);
   }
 }

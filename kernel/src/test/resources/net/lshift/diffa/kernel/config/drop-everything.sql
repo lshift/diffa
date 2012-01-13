@@ -21,4 +21,4 @@ drop table pair;
 drop table endpoint;
 drop table domains;
 drop table schema_version;
-drop table diffa_partitioning_information;
+drop table partition_information;

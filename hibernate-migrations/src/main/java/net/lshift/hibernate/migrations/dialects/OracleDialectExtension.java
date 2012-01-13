@@ -15,6 +15,8 @@
  */
 package net.lshift.hibernate.migrations.dialects;
 
+import com.google.common.base.Joiner;
+
 /**
  * Extension to the Oracle Dialect, providing additional Oracle-specific SQL information.
  */
@@ -46,7 +48,9 @@ public class OracleDialectExtension extends DialectExtension {
 
   @Override
   public String defineHashPartitionString(int partitions, String... columns) {
-    return String.format("partition by hash(%s) partitions ", columns) + partitions;
+    Joiner joiner = Joiner.on(",").skipNulls();
+    String joined = joiner.join(columns);
+    return String.format("partition by hash(%s) partitions ", joined) + partitions;
   }
 
   @Override

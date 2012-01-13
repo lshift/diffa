@@ -685,11 +685,17 @@ object HibernateConfigStorePreparationStep {
                     column("ignored", Types.BIT, false).
                     pk("seq_id", "domain", "pair").
                     hashPartitions(arbitraryPartitionCount, "domain", "pair")
-          
-          migration.copyTableContents("diffs", "diffs_tmp");
-          migration.dropTable("diffs")
-          migration.alterTable("diffs_tmp").renameTo("diffs");
 
+          val columns = Seq("seq_id", "domain", "pair", "entity_id", "is_match", "detected_at",
+                            "last_seen","upstream_vsn","downstream_vsn","ignored")
+          
+          migration.copyTableContents("diffs", "diffs_tmp", columns)
+          migration.dropTable("diffs")
+          migration.alterTable("diffs_tmp").renameTo("diffs")
+
+          // Copy the constraint that was applied in step 7
+          migration.alterTable("diffs")
+            .addForeignKey("FK5AA9592F53F69C16", Array("pair", "domain"), "pair", Array("pair_key", "domain"))
   
           // If this partitioning function is being executed, then by definition, the partition information table must exist          
           migration.insert("partition_information").

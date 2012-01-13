@@ -74,8 +74,8 @@ public class MigrationBuilder {
     return register(new CreateIndexBuilder(name, table, columns));
   }
 
-  public CopyTableBuilder copyTableContents(String source, String destination) {
-    return register(new CopyTableBuilder(source, destination));
+  public CopyTableBuilder copyTableContents(String source, String destination, Iterable<String> columns) {
+    return register(new CopyTableBuilder(source, destination, columns));
   }
 
   public AnalyzeTableBuilder analyzeTable(String table) {

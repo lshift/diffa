@@ -105,14 +105,15 @@ public class CreateTableBuilderTest {
   public void shouldPartitionTableWhenDialectExtensionSupportsPartitioningAndPartitionIsRequested() throws Exception {
     Configuration config = new Configuration().setProperty("hibernate.dialect", "org.hibernate.dialect.Oracle10gDialect");
 
-    String statement = "create table foo (bar number(10,0) not null, baz varchar2(1024 char), primary key (bar)) partition by hash(baz) partitions 10";
+    String statement = "create table foo (bar number(10,0) not null, baz varchar2(1024 char), haz varchar2(1024 char), primary key (bar)) partition by hash(baz,haz) partitions 10";
 
     MigrationBuilder mb = new MigrationBuilder(config);
     mb.createTable("foo").
       column("bar", Types.INTEGER, false).
       column("baz", Types.VARCHAR, 1024, true).
+      column("haz", Types.VARCHAR, 1024, true).
       pk("bar").
-      hashPartitions(10, "baz");
+      hashPartitions(10, "baz","haz");
 
     Connection conn = createStrictMock(Connection.class);
     expect(conn.prepareStatement(statement)).andReturn(mockExecutablePreparedStatement());
