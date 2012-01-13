@@ -1,0 +1,15 @@
+dn: cn=External Admin,dc=diffa,dc=io
+cn: External Admin
+objectClass: person
+uid: external
+givenName: External
+sn: Admin
+userPassword: admin123
+
+dn: cn=External User,dc=diffa,dc=io
+cn: External User
+objectClass: person
+uid: external
+givenName: External
+sn: User
+userPassword: user123
