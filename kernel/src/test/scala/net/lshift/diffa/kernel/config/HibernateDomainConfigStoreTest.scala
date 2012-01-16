@@ -553,6 +553,45 @@ class HibernateDomainConfigStoreTest {
     assertFalse(systemConfigStore.containsRootUser(Seq("missing_user1", "missing_user2")))
   }
 
+  @Test
+  def shouldBeAbleToRetrieveTokenForUser() {
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(User(name = "test_user2", email = "dev_null@lshift.net"))
+
+    val token1 = systemConfigStore.getUserToken("test_user")
+    val token2 = systemConfigStore.getUserToken("test_user2")
+
+    assertFalse(token1.equals(token2))
+
+    assertEquals("test_user", systemConfigStore.getUserByToken(token1).name)
+    assertEquals("test_user2", systemConfigStore.getUserByToken(token2).name)
+  }
+
+  @Test
+  def shouldBeAbleToResetTokenForUser() {
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(User(name = "test_user2", email = "dev_null@lshift.net"))
+
+    val token1 = systemConfigStore.getUserToken("test_user")
+    val token2 = systemConfigStore.getUserToken("test_user2")
+
+    systemConfigStore.clearUserToken("test_user2")
+
+    assertEquals(token1, systemConfigStore.getUserToken("test_user"))
+
+    val newToken2 = systemConfigStore.getUserToken("test_user2")
+    assertNotNull(newToken2)
+    assertFalse(token2.equals(newToken2))
+
+    assertEquals("test_user2", systemConfigStore.getUserByToken(newToken2).name)
+    try {
+      systemConfigStore.getUserByToken(token2)
+      fail("Should have thrown MissingObjectException")
+    } catch {
+      case ex:MissingObjectException => // Expected
+    }
+  }
+
   private def expectMissingObject(name:String)(f: => Unit) {
     try {
       f

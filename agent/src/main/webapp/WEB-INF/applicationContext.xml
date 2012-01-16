@@ -427,6 +427,7 @@
   <bean id="restClientParams" class="net.lshift.diffa.client.RestClientParams">
     <constructor-arg value="guest" />
     <constructor-arg value="guest" />
+    <constructor-arg><null /></constructor-arg>
     <constructor-arg>
       <bean id="restClientConnectTimeout" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="targetObject" ref="systemConfigStore"/>

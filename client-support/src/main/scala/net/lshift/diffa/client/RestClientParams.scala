@@ -18,14 +18,15 @@ package net.lshift.diffa.client
 
 case class RestClientParams(username: Option[String] = None,
                             password: Option[String] = None,
+                            token: Option[String] = None,
                             connectTimeout: Option[java.lang.Integer] = None,
                             readTimeout: Option[java.lang.Integer] = None) {
 
   /**
    * Constructor for Java interop
    */
-  def this(username: String, password: String, connectTimeout: java.lang.Integer, readTimeout: java.lang.Integer) =
-    this(Option(username), Option(password), Option(connectTimeout), Option(readTimeout))
+  def this(username: String, password: String, token: String, connectTimeout: java.lang.Integer, readTimeout: java.lang.Integer) =
+    this(Option(username), Option(password), Option(token), Option(connectTimeout), Option(readTimeout))
 
   def hasCredentials = username.isDefined && password.isDefined
 }

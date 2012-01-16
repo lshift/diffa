@@ -24,10 +24,15 @@
 
   <http use-expressions="true" >
     <http-basic />
+    <custom-filter ref="tokenFilter" before="BASIC_AUTH_FILTER" />
 
     <!-- All operations within the interface require a user role -->
     <intercept-url pattern="/**" access="hasRole('user')" />
   </http>
+
+  <beans:bean id="tokenFilter" class="net.lshift.diffa.agent.auth.SimpleTokenAuthenticationFilter">
+    <beans:constructor-arg ref="authenticationManager" />
+  </beans:bean>
 
   <beans:bean id="encoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder">
     <beans:constructor-arg value="256"/>
@@ -41,11 +46,16 @@
     <beans:constructor-arg ref="systemConfigStore" />
   </beans:bean>
 
-  <authentication-manager>
+  <beans:bean id="tokenAuthenticationProvider" class="net.lshift.diffa.agent.auth.SimpleTokenAuthenticationProvider">
+    <beans:constructor-arg ref="userDetailsProvider" />
+  </beans:bean>
+
+  <authentication-manager alias="authenticationManager">
     <authentication-provider user-service-ref="userDetailsProvider">
       <password-encoder ref="encoder"/>
     </authentication-provider>
     <authentication-provider ref="externalProviderSwitch" />
+    <authentication-provider ref="tokenAuthenticationProvider" />
   </authentication-manager>
 
   <global-method-security pre-post-annotations="enabled">

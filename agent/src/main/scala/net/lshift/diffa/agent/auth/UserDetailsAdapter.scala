@@ -23,6 +23,7 @@ import org.springframework.security.core.{GrantedAuthority, Authentication}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.util.MissingObjectException
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import net.lshift.diffa.kernel.config.User
 
 /**
  * Adapter for providing UserDetailsService on top of the underlying Diffa user store.
@@ -30,6 +31,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     extends UserDetailsService
     with PermissionEvaluator {
+
   def loadUserByUsername(username: String) = {
     val user = try {
       systemConfigStore.getUser(username)
@@ -37,23 +39,17 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
       case _:MissingObjectException => throw new UsernameNotFoundException(username)
     }
 
-    val isRoot = user.superuser
-    val memberships = systemConfigStore.listDomainMemberships(username)
-    val domainAuthorities = memberships.map(m => DomainAuthority(m.domain.name, "user"))
-    val authorities = domainAuthorities ++ Seq(new SimpleGrantedAuthority("user")) ++ (isRoot match {
-      case true   => Seq(new SimpleGrantedAuthority("root"))
-      case false  => Seq()
-    })
+    extractDetails(user)
+  }
 
-    new UserDetails() {
-      def getAuthorities = authorities.toList
-      def getPassword = user.passwordEnc
-      def getUsername = username
-      def isAccountNonExpired = true
-      def isAccountNonLocked = true
-      def isCredentialsNonExpired = true
-      def isEnabled = true
+  def loadUserByToken(token: String) = {
+    val user = try {
+      systemConfigStore.getUserByToken(token)
+    } catch {
+      case _:MissingObjectException => throw new UsernameNotFoundException(token)
     }
+
+    extractDetails(user)
   }
 
   def hasPermission(auth: Authentication, targetDomainObject: AnyRef, permission: AnyRef) = {
@@ -72,6 +68,25 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
 
   def hasPermission(auth: Authentication, targetId: Serializable, targetType: String, permission: AnyRef) = false
 
+  def extractDetails(user:User) = {
+    val isRoot = user.superuser
+    val memberships = systemConfigStore.listDomainMemberships(user.name)
+    val domainAuthorities = memberships.map(m => DomainAuthority(m.domain.name, "user"))
+    val authorities = domainAuthorities ++ Seq(new SimpleGrantedAuthority("user")) ++ (isRoot match {
+      case true   => Seq(new SimpleGrantedAuthority("root"))
+      case false  => Seq()
+    })
+
+    new UserDetails() {
+      def getAuthorities = authorities.toList
+      def getPassword = user.passwordEnc
+      def getUsername = user.name
+      def isAccountNonExpired = true
+      def isAccountNonLocked = true
+      def isCredentialsNonExpired = true
+      def isEnabled = true
+    }
+  }
   def isRoot(auth: Authentication) = auth.getAuthorities.find(_.getAuthority == "root").isDefined
   def hasDomainRole(auth: Authentication, domain:String, role:String) = auth.getAuthorities.find {
       case DomainAuthority(grantedDomain, grantedRole) =>

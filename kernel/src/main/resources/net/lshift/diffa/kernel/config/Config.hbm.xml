@@ -155,6 +155,7 @@
     <property name="email" type="string" />
     <property name="passwordEnc" type="string" column="password_enc" />
     <property name="superuser" type="boolean" />
+    <property name="token" type="string" unique="true" />
   </class>
 
   <class name="Member" table="members" abstract="false">
@@ -223,6 +224,9 @@
 
   <query name="userByName" cacheable="true">
     select u from User u where u.name = :name
+  </query>
+  <query name="userByToken" cacheable="true">
+    select u from User u where u.token = :token
   </query>
 
   <!-- Select all statements -->

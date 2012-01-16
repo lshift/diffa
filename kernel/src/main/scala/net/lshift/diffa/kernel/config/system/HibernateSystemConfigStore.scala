@@ -23,6 +23,7 @@ import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException, Hiberna
 import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, PairCache, SystemConfigOption, Member, DiffaPairRef, User, ConfigOption, RepairAction, Escalation, Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
 import org.hibernate.{Query, Session, SessionFactory}
+import org.apache.commons.lang.RandomStringUtils
 
 class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCache:PairCache)
     extends SystemConfigStore with HibernateQueryUtils {
@@ -69,6 +70,24 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
 
 
   def createOrUpdateUser(u: User) = sessionFactory.withSession(s => s.saveOrUpdate(u))
+  def getUserToken(username: String) = {
+    sessionFactory.withSession(s => {
+      val user = getUser(s, username)
+      if (user.token == null) {
+        // Generate token on demand
+        user.token = RandomStringUtils.randomAlphanumeric(40)
+      }
+      user.token
+    })
+  }
+  def clearUserToken(username: String) {
+    sessionFactory.withSession(s => {
+      val user = getUser(s, username)
+      user.token = null
+
+      s.saveOrUpdate(user)
+    })
+  }
 
   def deleteUser(name: String) = sessionFactory.withSession(s => {
     val user = getUser(s, name)
@@ -76,6 +95,8 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
   })
 
   def getUser(name: String) : User = sessionFactory.withSession(getUser(_,name))
+  def getUserByToken(token: String) : User = sessionFactory.withSession(s =>
+    singleQuery[User](s, "userByToken", Map("token" -> token), "user token %s".format(token)))
 
   def listUsers : Seq[User] = sessionFactory.withSession(s => listQuery[User](s, "allUsers", Map()))
   def listDomainMemberships(username: String) : Seq[Member] =

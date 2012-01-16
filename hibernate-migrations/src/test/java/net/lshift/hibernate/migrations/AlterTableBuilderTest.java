@@ -75,6 +75,34 @@ public class AlterTableBuilderTest {
   }
 
   @Test
+  public void shouldGenerateSingleUniqueKeyConstraint() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").addUniqueConstraint("blaz");
+
+    Connection conn = createStrictMock(Connection.class);
+    expect(conn.prepareStatement("alter table foo add unique (blaz)")).
+        andReturn(mockExecutablePreparedStatement());
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
+  @Test
+  public void shouldGenerateMultipleUniqueKeyConstraint() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").addUniqueConstraint("U123123", "blaz", "boz");
+
+    Connection conn = createStrictMock(Connection.class);
+    expect(conn.prepareStatement("alter table foo  add constraint U123123 unique (blaz, boz)")).
+        andReturn(mockExecutablePreparedStatement());
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
+  @Test
   public void shouldGenerateDropConstraint() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
     mb.alterTable("foo").dropConstraint("FK80C74EA1C3C204DC");

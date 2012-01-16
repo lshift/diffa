@@ -22,7 +22,7 @@ import net.lshift.diffa.docgen.annotations.{MandatoryParams, Description}
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
 import net.lshift.diffa.kernel.config.User
 import javax.ws.rs._
-import core.{Context, UriInfo}
+import core.{Response, Context, UriInfo}
 import net.lshift.diffa.agent.rest.ResponseUtils._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.frontend.{SystemConfiguration, UserDef}
@@ -69,6 +69,23 @@ class UsersResource {
   @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
   def updateUser(@PathParam("name") name:String, user:UserDef) = systemConfig.createOrUpdateUser(user)
   // TODO This PUT is buggy
+
+  @GET
+  @Produces(Array("text/plain"))
+  @Path("/users/{name}/token")
+  @Description("Retrieves the token that can be used by the user for login")
+  @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
+  def getUserToken(@PathParam("name") name:String) = systemConfig.getUserToken(name)
+
+  @DELETE
+  @Path("/users/{name}/token")
+  @Description("Clears the user login token.")
+  @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
+  def clearUserToken(@PathParam("name") name:String) = {
+    systemConfig.clearUserToken(name)
+
+    Response.noContent().build()
+  }
 
   @DELETE
   @Path("/users/{name}")

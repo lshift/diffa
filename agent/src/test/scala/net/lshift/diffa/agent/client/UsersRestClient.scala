@@ -22,6 +22,9 @@ import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
 class UsersRestClient(u:String, params: RestClientParams = RestClientParams.default)
   extends AbstractRestClient(u, "rest/security/", params) {
 
+  def getUserToken(username: String) = rpc("users/" + username + "/token", classOf[String])
+  def clearUserToken(username: String) = delete("users/" + username + "/token")
+
   def declareUser(user:UserDef) : UserDef = {
     create("users", user)
     user

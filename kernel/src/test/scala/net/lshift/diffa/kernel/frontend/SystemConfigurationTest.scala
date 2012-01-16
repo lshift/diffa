@@ -69,6 +69,22 @@ class SystemConfigurationTest {
   }
 
   @Test
+  def shouldBeAbleToRetrieveAUserToken() {
+    systemConfiguration.createOrUpdateUser(validUserDef)
+    assertNotNull(systemConfiguration.getUserToken(validUserDef.name))
+  }
+
+  @Test
+  def shouldBeAbleToResetAUserToken() {
+    systemConfiguration.createOrUpdateUser(validUserDef)
+    val token1 = systemConfiguration.getUserToken(validUserDef.name)
+    systemConfiguration.clearUserToken(validUserDef.name)
+    val token2 = systemConfiguration.getUserToken(validUserDef.name)
+
+    assertFalse(token1.equals(token2))
+  }
+
+  @Test
   def shouldBeAbleToSetASingleOption() {
     systemConfiguration.setSystemConfigOption("a", "b")
     assertEquals(Some("b"), systemConfiguration.getSystemConfigOption("a"))

@@ -714,6 +714,18 @@ object HibernateConfigStorePreparationStep {
         
         migration
       }
+    },
+
+    new HibernateMigrationStep {
+      def versionId = 17
+      def name = "Add token to users"
+      def createMigration(config: Configuration) = {
+        val migration = new MigrationBuilder(config)
+        migration.alterTable("users").
+          addColumn("token", Types.VARCHAR, 255, true, null).
+          addUniqueConstraint("token")
+        migration
+      }
     }
   )
 }

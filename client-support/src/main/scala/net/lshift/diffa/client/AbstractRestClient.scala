@@ -49,7 +49,10 @@ abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubU
 
   val serverRootResource = client.resource(serverRootUrl)
 
-  def resource = serverRootResource.path(resourcePath)
+  def resource = params.token match {
+    case None         => serverRootResource.path(resourcePath)
+    case Some(token)  => serverRootResource.path(resourcePath).queryParam("authToken", token)
+  }
 
   override def close() = {
     if (!isClosing) {

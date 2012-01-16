@@ -63,10 +63,13 @@ trait SystemConfigStore {
   // TODO should this be in a separate interface?
 
   def createOrUpdateUser(user: User) : Unit
+  def getUserToken(username: String): String
+  def clearUserToken(username: String)
   def deleteUser(name: String): Unit
   def listUsers : Seq[User]
   def listDomainMemberships(username: String) : Seq[Member]
   def getUser(name: String) : User
+  def getUserByToken(token: String) : User
   def containsRootUser(names:Seq[String]):Boolean
 
 }

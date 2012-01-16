@@ -19,10 +19,7 @@ import net.lshift.hibernate.migrations.dialects.DialectExtension;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.mapping.Column;
-import org.hibernate.mapping.ForeignKey;
-import org.hibernate.mapping.PrimaryKey;
-import org.hibernate.mapping.Table;
+import org.hibernate.mapping.*;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -97,8 +94,29 @@ public class AlterTableBuilder extends TraceableMigrationElement {
 
     String defaultCatalog = config.getProperties().getProperty(Environment.DEFAULT_CATALOG);
     String defaultSchema = config.getProperties().getProperty(Environment.DEFAULT_SCHEMA);
-    
+
     alterFragments.add(fk.sqlConstraintString(dialect, fk.getName(), defaultCatalog, defaultSchema));
+    return this;
+  }
+  public AlterTableBuilder addUniqueConstraint(String columnName) {
+    UniqueKey uk = new UniqueKey();
+    uk.addColumn(new Column(columnName));
+
+    String constraintString = uk.sqlConstraintString(dialect);
+    if (constraintString != null) {
+      alterFragments.add("add " + constraintString);
+    }
+    
+    return this;
+  }
+  public AlterTableBuilder addUniqueConstraint(String name, String...columnNames) {
+    UniqueKey uk = new UniqueKey();
+    for (String col : columnNames) uk.addColumn(new Column(col));
+
+    String defaultCatalog = config.getProperties().getProperty(Environment.DEFAULT_CATALOG);
+    String defaultSchema = config.getProperties().getProperty(Environment.DEFAULT_SCHEMA);
+
+    alterFragments.add(uk.sqlConstraintString(dialect, name, defaultCatalog, defaultSchema));
     return this;
   }
 
