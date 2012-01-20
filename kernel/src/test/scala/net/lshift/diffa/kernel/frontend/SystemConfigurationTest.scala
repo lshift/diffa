@@ -23,7 +23,7 @@ class SystemConfigurationTest {
 
   private val nc = new NotificationCentre
 
-  private val systemConfiguration = new SystemConfiguration(systemConfigStore, differencesManager, nc)
+  private val systemConfiguration = new SystemConfiguration(systemConfigStore, differencesManager, nc, null)
   private val listener = createMock("systemConfigListener", classOf[SystemConfigListener])
 
 

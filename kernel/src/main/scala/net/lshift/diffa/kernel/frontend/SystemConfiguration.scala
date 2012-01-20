@@ -25,21 +25,23 @@ import net.lshift.diffa.kernel.differencing.DifferencesManager
 /**
  * Frontend component that wraps all of the events that surround system configuration changes.
  */
-class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesManager:DifferencesManager, listener:SystemConfigListener) {
+class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesManager:DifferencesManager,
+                          listener:SystemConfigListener, configuration:Configuration) {
 
   val log = LoggerFactory.getLogger(getClass)
 
   def createOrUpdateDomain(domain: DomainDef) = {
-    log.debug("Processing domain declare/update request: %s".format(domain))
+    log.info("Processing domain declare/update request: %s".format(domain))
     domain.validate()
     systemConfigStore.createOrUpdateDomain(fromDomainDef(domain))
     differencesManager.onUpdateDomain(domain.name)
   }
 
   def deleteDomain(domain: String) = {
-    log.debug("Processing endpoint delete request: %s".format(domain))
-    systemConfigStore.deleteDomain(domain)
+    log.info("Processing domain delete request: %s".format(domain))
+    configuration.clearDomain(domain)
     differencesManager.onDeleteDomain(domain)
+    systemConfigStore.deleteDomain(domain)
   }
 
   def getUser(username: String) : UserDef = toUserDef(systemConfigStore.getUser(username))

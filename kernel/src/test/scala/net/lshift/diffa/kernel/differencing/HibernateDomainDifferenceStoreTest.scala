@@ -35,6 +35,7 @@ import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
 import org.joda.time.{DateTime, Interval, DateTimeZone}
 import org.hibernate.dialect.Dialect
+import net.lshift.diffa.kernel.hooks.HookManager
 
 /**
  * Test cases for the HibernateDomainDifferenceStore.
@@ -48,7 +49,7 @@ class HibernateDomainDifferenceStoreTest {
     diffStore.clearAllDifferences
 
     val pairCache = new PairCache(new CacheManager())
-    val configStore = new HibernateDomainConfigStore(sf, pairCache)
+    val configStore = new HibernateDomainConfigStore(sf, pairCache, HibernateDomainDifferenceStoreTest.hookManager)
     val systemConfigStore = new HibernateSystemConfigStore(sf, pairCache)
 
     val domain = Domain("domain")
@@ -1019,6 +1020,7 @@ object HibernateDomainDifferenceStoreTest {
   val sf:SessionFactory = config.buildSessionFactory
   (new HibernateConfigStorePreparationStep).prepare(sf, config)
   val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
-  val diffStore = new HibernateDomainDifferenceStore(sf, cacheManager, dialect)
+  val hookManager = new HookManager(config)
+  val diffStore = new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager)
 
 }

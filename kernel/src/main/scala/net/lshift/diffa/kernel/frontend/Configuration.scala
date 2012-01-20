@@ -101,6 +101,9 @@ class Configuration(val configStore: DomainConfigStore,
       reports = configStore.listReports(domain).toSet
     )
   }
+  def clearDomain(domain:String) {
+    applyConfiguration(domain, DiffaConfig())
+  }
 
   /*
   * Endpoint CRUD

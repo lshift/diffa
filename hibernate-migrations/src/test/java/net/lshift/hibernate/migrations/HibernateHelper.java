@@ -17,6 +17,7 @@ package net.lshift.hibernate.migrations;
 
 import org.hibernate.cfg.Configuration;
 
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -49,6 +50,15 @@ public class HibernateHelper {
 
   public static PreparedStatement mockExecutablePreparedStatement() throws SQLException {
     PreparedStatement stmtMock = createStrictMock(PreparedStatement.class);
+    expect(stmtMock.execute()).andReturn(true);
+    stmtMock.close(); expectLastCall();
+    replay(stmtMock);
+
+    return stmtMock;
+  }
+
+  public static CallableStatement mockExecutableCallableStatement() throws SQLException {
+    CallableStatement stmtMock = createStrictMock(CallableStatement.class);
     expect(stmtMock.execute()).andReturn(true);
     stmtMock.close(); expectLastCall();
     replay(stmtMock);

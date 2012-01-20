@@ -82,6 +82,14 @@ public class MigrationBuilder {
     return register(new AnalyzeTableBuilder(dialectExtension, table));
   }
 
+  public ScriptLoader executeDatabaseScript(String scriptName, String packageName) {
+    return register(new ScriptLoader(dialectExtension, scriptName, packageName));
+  }
+
+  public StoredProcedureCallBuilder executeStoredProcedure(String procedureName) {
+    return register(new StoredProcedureCallBuilder(procedureName));
+  }
+
   public RawSqlBuilder sql(String sql) {
     return register(new RawSqlBuilder(sql));
   }
@@ -172,8 +180,12 @@ public class MigrationBuilder {
     return statements;
   }
 
-  public boolean canPartition() {
+  public boolean canUseHashPartitioning() {
     return dialectExtension.supportsHashPartitioning();
+  }
+
+  public boolean canUseListPartitioning() {
+    return dialectExtension.supportsListPartitioning();
   }
 
   public boolean canAnalyze() {

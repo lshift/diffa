@@ -23,10 +23,13 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.HibernateQueryUtils
 import net.lshift.diffa.kernel.frontend._
+import net.lshift.diffa.kernel.hooks.HookManager
 
-class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:PairCache)
+class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:PairCache, hookManager:HookManager)
     extends DomainConfigStore
     with HibernateQueryUtils {
+
+  val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
 
   def createOrUpdateEndpoint(domainName:String, e: EndpointDef) : Endpoint = sessionFactory.withSession(s => {
 
@@ -77,31 +80,39 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
     })
   }
 
-  def createOrUpdatePair(domain:String, p: PairDef): Unit = sessionFactory.withSession(s => {
-    p.validate()
+  def createOrUpdatePair(domain:String, p: PairDef): Unit = {
+    sessionFactory.withSession(s => {
+      p.validate()
 
-    pairCache.invalidate(domain)
+      pairCache.invalidate(domain)
 
-    val up = getEndpoint(s, domain, p.upstreamName)
-    val down = getEndpoint(s, domain, p.downstreamName)
-    val dom = getDomain(domain)
-    val toUpdate = new Pair(p.key, dom, up, down, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
-    s.saveOrUpdate(toUpdate)
+      val up = getEndpoint(s, domain, p.upstreamName)
+      val down = getEndpoint(s, domain, p.downstreamName)
+      val dom = getDomain(domain)
+      val toUpdate = new Pair(p.key, dom, up, down, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
+      s.saveOrUpdate(toUpdate)
 
-    // Update the view definitions
-    val existingViews = listPairViews(s, domain, p.key)
-    val viewsToRemove = existingViews.filter(existing => p.views.find(v => v.name == existing.name).isEmpty)
-    viewsToRemove.foreach(r => s.delete(r))
-    p.views.foreach(v => s.saveOrUpdate(fromPairViewDef(toUpdate, v)))
-  })
+      // Update the view definitions
+      val existingViews = listPairViews(s, domain, p.key)
+      val viewsToRemove = existingViews.filter(existing => p.views.find(v => v.name == existing.name).isEmpty)
+      viewsToRemove.foreach(r => s.delete(r))
+      p.views.foreach(v => s.saveOrUpdate(fromPairViewDef(toUpdate, v)))
+    })
 
-  def deletePair(domain:String, key: String): Unit = sessionFactory.withSession(s => {
+    hook.pairCreated(domain, p.key)
+  }
 
-    pairCache.invalidate(domain)
+  def deletePair(domain:String, key: String) {
+    sessionFactory.withSession(s => {
 
-    val pair = getPair(s, domain, key)
-    deletePairInSession(s, domain, pair)
-  })
+      pairCache.invalidate(domain)
+
+      val pair = getPair(s, domain, key)
+      deletePairInSession(s, domain, pair)
+    })
+
+    hook.pairRemoved(domain, key)
+  }
 
   // TODO This read through cache should not be necessary when the 2L cache miss issue is resolved
   def listPairs(domain:String) = pairCache.readThrough(domain, () => listPairsFromPersistence(domain))

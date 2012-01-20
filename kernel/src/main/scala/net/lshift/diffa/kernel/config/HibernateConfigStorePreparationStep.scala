@@ -279,6 +279,16 @@ object DefinePartitionInformationTable {
         pk("table_name","version")
   }
 
+  def applyPartitionVersion(migration:MigrationBuilder, table:String, versionId:Int) {
+    migration.insert("partition_information").
+                    values(Map("version" -> new java.lang.Integer(versionId),
+                               "table_name" -> table))
+  }
+
+  def preventPartitionReapplication(migration:MigrationBuilder, table:String, versionId:Int) {
+    migration.addPrecondition("partition_information",
+                              "where table_name = '%s' and version = %s".format(table, versionId), 0)
+  }
 }
 
 object HibernateConfigStorePreparationStep {
@@ -664,10 +674,9 @@ object HibernateConfigStorePreparationStep {
       }
 
       def applyPartitioning(migration:MigrationBuilder) = {
-        if (migration.canPartition) {
+        if (migration.canUseHashPartitioning) {
 
-          migration.addPrecondition("partition_information",
-                                    "where table_name = '%s' and version = %s".format("diffs", versionId), 0)
+          DefinePartitionInformationTable.preventPartitionReapplication(migration, "diffs", versionId)
 
           // This number is quite arbitrary
           val arbitraryPartitionCount = 16
@@ -697,10 +706,8 @@ object HibernateConfigStorePreparationStep {
           migration.alterTable("diffs")
             .addForeignKey("FK5AA9592F53F69C16", Array("pair", "domain"), "pair", Array("pair_key", "domain"))
   
-          // If this partitioning function is being executed, then by definition, the partition information table must exist          
-          migration.insert("partition_information").
-                    values(Map("version" -> new java.lang.Integer(versionId),
-                               "table_name" -> "diffs"))
+          // If this partitioning function is being executed, then by definition, the partition information table must exist
+          DefinePartitionInformationTable.applyPartitionVersion(migration, "diffs", versionId)
 
           migration.createIndex("diff_last_seen", "diffs", "last_seen")
           migration.createIndex("diff_detection", "diffs", "detected_at")
@@ -724,6 +731,69 @@ object HibernateConfigStorePreparationStep {
         migration.alterTable("users").
           addColumn("token", Types.VARCHAR, 255, true, null).
           addUniqueConstraint("token")
+        migration
+      }
+    },
+
+  new HibernateMigrationStep with PartitioningMigrationStep {
+        def versionId = 18
+        def name = "Partition diffs table with list partitions"
+
+      def createMigration(config: Configuration) = {
+        val migration = new MigrationBuilder(config)
+
+        applyPartitioning(migration)
+      }
+
+      def applyPartitioning(migration:MigrationBuilder) = {
+        if (migration.canUseListPartitioning) {
+
+          DefinePartitionInformationTable.preventPartitionReapplication(migration, "diffs", versionId)
+          
+          migration.createTable("diffs_tmp").
+                    column("seq_id", Types.INTEGER, false).
+                    column("domain", Types.VARCHAR, 255, false).
+                    column("pair", Types.VARCHAR, 255, false).
+                    column("entity_id", Types.VARCHAR, 255, false).
+                    column("is_match", Types.BIT, false).
+                    column("detected_at", Types.TIMESTAMP, false).
+                    column("last_seen", Types.TIMESTAMP, false).
+                    column("upstream_vsn", Types.VARCHAR, 255, true).
+                    column("downstream_vsn", Types.VARCHAR, 255, true).
+                    column("ignored", Types.BIT, false).
+                    pk("seq_id", "domain", "pair").
+                    virtualColumn("partition_name", Types.VARCHAR, 512, "domain || '_' || pair").
+                    listPartitioned("partition_name").
+                    listPartition("part_dummy_default", "default")
+
+          val columns = Seq("seq_id", "domain", "pair", "entity_id", "is_match", "detected_at",
+                            "last_seen","upstream_vsn","downstream_vsn","ignored")
+
+          // Load the appropriate stored procedure into the database, and execute it
+          migration.executeDatabaseScript("sync_pair_diff_partitions", "net.lshift.diffa.kernel.config.procedures")
+          migration.executeStoredProcedure("sync_pair_diff_partitions('diffs_tmp')")
+
+          migration.copyTableContents("diffs", "diffs_tmp", columns)
+          migration.dropTable("diffs")
+          migration.alterTable("diffs_tmp").renameTo("diffs")
+
+          // Copy the constraint that was applied in step 7
+          migration.alterTable("diffs")
+            .addForeignKey("FK5AA9592F53F69C16", Array("pair", "domain"), "pair", Array("pair_key", "domain"))
+
+          // If this partitioning function is being executed, then by definition, the partition information table must exist
+          DefinePartitionInformationTable.applyPartitionVersion(migration, "diffs", versionId)
+
+          migration.createIndex("diff_last_seen", "diffs", "last_seen")
+          migration.createIndex("diff_detection", "diffs", "detected_at")
+          migration.createIndex("rdiff_is_matched", "diffs", "is_match")
+          migration.createIndex("rdiff_domain_idx", "diffs", "entity_id", "domain", "pair")
+
+          if (migration.canAnalyze) {
+            migration.analyzeTable("diffs");
+          }
+        }
+
         migration
       }
     }

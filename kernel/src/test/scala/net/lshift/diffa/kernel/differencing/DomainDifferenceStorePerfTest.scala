@@ -13,6 +13,7 @@ import org.junit.{Ignore, Test}
 import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
 import org.hibernate.dialect.Dialect
+import net.lshift.diffa.kernel.hooks.HookManager
 
 /**
  * Performance test for the domain cache.
@@ -218,5 +219,5 @@ object DomainDifferenceStorePerfTest {
 
   lazy val cacheManager = new CacheManager()
   lazy val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
-  lazy val diffStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect)
+  lazy val diffStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect, new HookManager(config))
 }

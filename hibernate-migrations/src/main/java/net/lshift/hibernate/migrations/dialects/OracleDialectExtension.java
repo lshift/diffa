@@ -17,6 +17,8 @@ package net.lshift.hibernate.migrations.dialects;
 
 import com.google.common.base.Joiner;
 
+import java.util.Map;
+
 /**
  * Extension to the Oracle Dialect, providing additional Oracle-specific SQL information.
  */
@@ -47,10 +49,36 @@ public class OracleDialectExtension extends DialectExtension {
   }
 
   @Override
+  public boolean supportsListPartitioning() {
+    return true;
+  }
+
+  @Override
   public String defineHashPartitionString(int partitions, String... columns) {
     Joiner joiner = Joiner.on(",").skipNulls();
     String joined = joiner.join(columns);
     return String.format("partition by hash(%s) partitions ", joined) + partitions;
+  }
+
+  @Override
+  public String defineListPartitionString(String column, Map<String, String[]> partitionDefinitions) {
+    StringBuilder partitionDefString = new StringBuilder();
+    for (Map.Entry<String, String[]> partition : partitionDefinitions.entrySet()) {
+      if (partitionDefString.length() > 0) partitionDefString.append(", ");
+
+      StringBuilder partitionValuesBuilder = new StringBuilder();
+      for (String value : partition.getValue()) {
+        if (partitionValuesBuilder.length() > 0)
+          partitionValuesBuilder.append(", ");
+        
+        partitionValuesBuilder.append("'").append(value).append("'");
+      }
+
+      partitionDefString.append(
+        String.format("partition \"%s\" values (%s)", partition.getKey(), partitionValuesBuilder));
+    }
+
+    return String.format("partition by list (%s) (%s)", column, partitionDefString);
   }
 
   @Override

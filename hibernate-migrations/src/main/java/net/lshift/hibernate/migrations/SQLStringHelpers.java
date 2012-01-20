@@ -86,6 +86,9 @@ public class SQLStringHelpers {
       buffer.append(col.getDefaultValue());
       buffer.append(defaultQuote);
     }
+    if (col instanceof VirtualColumn) {
+      buffer.append(String.format(" GENERATED ALWAYS AS (%s) VIRTUAL", ((VirtualColumn) col).getGenerator()));
+    }
 
     // HSQL Doesn't like the not null coming before the default stanza
     if (!col.isNullable()) {

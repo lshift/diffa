@@ -37,6 +37,7 @@ import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
 import org.hibernate.cfg.{Configuration => HibernateConfig}
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import net.lshift.diffa.kernel.hooks.HookManager
 
 /**
  * Test cases for the Configuration frontend.
@@ -54,7 +55,8 @@ class ConfigurationTest {
   // TODO This is a strange mixture of mock and real objects
   private val pairCache = new PairCache(new CacheManager())
   private val systemConfigStore = new HibernateSystemConfigStore(ConfigurationTest.sessionFactory, pairCache)
-  private val domainConfigStore = new HibernateDomainConfigStore(ConfigurationTest.sessionFactory, pairCache)
+  private val domainConfigStore = new HibernateDomainConfigStore(ConfigurationTest.sessionFactory, pairCache,
+    new HookManager(ConfigurationTest.config))
 
   private val configuration = new Configuration(domainConfigStore,
                                                 systemConfigStore,
@@ -289,7 +291,7 @@ class ConfigurationTest {
   }
 }
 object ConfigurationTest {
-  private lazy val config =
+  lazy val config =
       new HibernateConfig().
         addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
         addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").

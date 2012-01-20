@@ -109,6 +109,7 @@
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="zoomCacheManager"/>
     <constructor-arg ref="dialect"/>
+    <constructor-arg ref="hookManager" />
   </bean>
   <bean id="domainDifferenceStore"
         factory-bean="domainDifferenceStoreFactory"
@@ -277,6 +278,7 @@
     <constructor-arg ref="systemConfigStore"/>
     <constructor-arg ref="differencesManager" />
     <constructor-arg ref="notificationCentre" />
+    <constructor-arg ref="configurationFrontend" />
   </bean>
   <bean id="changesFrontend" class="net.lshift.diffa.kernel.frontend.Changes">
     <constructor-arg ref="domainConfigStore"/>
@@ -299,6 +301,7 @@
   <bean id="dialect" class="org.springframework.jndi.JndiObjectFactoryBean">
     <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
   </bean>
+  <bean id="hookManager" class="net.lshift.diffa.kernel.hooks.HookManager" />
 
   <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
     <constructor-arg>
@@ -326,6 +329,7 @@
         <bean class="net.lshift.diffa.kernel.config.HibernateConfigStorePreparationStep" />
       </list>
     </property>
+    <property name="hookManager" ref="hookManager" />
   </bean>
 
   <!--
@@ -365,6 +369,7 @@
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.HibernateDomainConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="pairCache" />
+    <constructor-arg ref="hookManager" />
   </bean>
 
   <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">

@@ -15,6 +15,8 @@
  */
 package net.lshift.hibernate.migrations.dialects;
 
+import java.util.Map;
+
 /**
  * Class providing extensions to specific Hibernate dialects. When a Hibernate dialect doesn't have a specific
  * extension, this base extension will be used.
@@ -49,10 +51,18 @@ public abstract class DialectExtension {
   }
 
   /**
-   * Indicates whether the database permits tables to be partitioned.
+   * Indicates whether the database permits tables to be partitioned using a hash-partitioning scheme.
    * @return
    */
   public boolean supportsHashPartitioning() {
+    return false;
+  }
+
+  /**
+   * Indicates whether the database permits tables to be partitioned using a list/value partitioning scheme.
+   * @return
+   */
+  public boolean supportsListPartitioning() {
     return false;
   }
   
@@ -64,6 +74,16 @@ public abstract class DialectExtension {
    */
   public String defineHashPartitionString(int partitions, String ... columns) {
     throw new RuntimeException("Hash partitioning is not supported by this dialect");
+  }
+
+  /**
+   * Retrieves the string to be used when specifying the list partitioning scheme on a table.
+   * @param column the column that the partitioning is based upon.
+   * @param partitionDefinitions definitions of the partitions.
+   * @return the string.
+   */
+  public String defineListPartitionString(String column, Map<String, String[]> partitionDefinitions) {
+    throw new RuntimeException("List partitioning is not supported by this dialect");
   }
 
   /**
@@ -81,5 +101,4 @@ public abstract class DialectExtension {
   public String analyzeTableString(String table) {
     throw new RuntimeException("analyze table is not supported by this dialect");
   }
-
 }

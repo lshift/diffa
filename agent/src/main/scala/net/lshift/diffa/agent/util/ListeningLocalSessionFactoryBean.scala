@@ -21,6 +21,7 @@ import org.hibernate.SessionFactoryObserver
 import org.hibernate.cfg.Configuration
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.config.HibernatePreparationStep
+import net.lshift.diffa.kernel.hooks.HookManager
 
 /**
  * This wires in a callback that will be invoked when the underlying session factory has been
@@ -29,6 +30,7 @@ import net.lshift.diffa.kernel.config.HibernatePreparationStep
  */
 class ListeningLocalSessionFactoryBean(observer:SessionFactoryObserver) extends LocalSessionFactoryBean {
   @BeanProperty var preparationSteps:Array[HibernatePreparationStep] = Array[HibernatePreparationStep]()
+  @BeanProperty var hookManager:HookManager = null
 
   override def newConfiguration() = {
     val config = super.newConfiguration()
@@ -42,6 +44,7 @@ class ListeningLocalSessionFactoryBean(observer:SessionFactoryObserver) extends 
   override def newSessionFactory(config:Configuration) = {
     val sf = super.newSessionFactory(config)
 
+    hookManager.applyConfiguration(config)
     preparationSteps.foreach(step => step.prepare(sf, config))
 
     sf

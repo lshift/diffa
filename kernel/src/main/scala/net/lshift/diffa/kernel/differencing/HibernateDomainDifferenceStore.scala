@@ -18,15 +18,17 @@ import java.sql.{Types, Timestamp}
 import net.lshift.diffa.kernel.config.DomainScopedKey._
 import net.lshift.diffa.kernel.config.Domain._
 import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.hooks.HookManager
 
 /**
  * Hibernate backed Domain Cache provider.
  */
-class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cacheManager:CacheManager, val dialect:Dialect)
+class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cacheManager:CacheManager, val dialect:Dialect, val hookManager:HookManager)
     extends DomainDifferenceStore
     with HibernateQueryUtils {
 
   val zoomCache = new ZoomCacheProvider(this, cacheManager)
+  val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
 
   val zoomQueries = Map(
     ZoomCache.QUARTER_HOURLY -> "15_minute_aggregation",
@@ -40,11 +42,23 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
 
   val columnMapper = new TimestampColumnDateTimeMapper()
 
-  def removeDomain(domain:String) = removeDomainDifferences(domain)
+  def removeDomain(domain:String) = {
+    // If difference partitioning is enabled, ask the hook to clean up each pair. Note that we'll end up running a
+    // delete over all pair differences later anyway, so we won't record the result of the removal operation.
+    if (hook.isDifferencePartitioningEnabled) {
+      listPairsInDomain(domain).foreach(p => hook.removeAllPairDifferences(domain, p.key))
+    }
+
+    removeDomainDifferences(domain)
+  }
 
   def removePair(pair: DiffaPairRef) = {
+    val hookHelped = hook.removeAllPairDifferences(pair.domain, pair.key)
+
     sessionFactory.withSession { s =>
-      executeUpdate(s, "removeDiffsByPairAndDomain", Map("pairKey" -> pair.key, "domain" -> pair.domain))
+      if (!hookHelped) {
+        executeUpdate(s, "removeDiffsByPairAndDomain", Map("pairKey" -> pair.key, "domain" -> pair.domain))
+      }
       executeUpdate(s, "removePendingDiffsByPairAndDomain", Map("pairKey" -> pair.key, "domain" -> pair.domain))
       removeLatestRecordedVersion(pair)
     }
@@ -463,11 +477,11 @@ case class AggregateEventsRow(
 /**
  * Workaround for injecting JNDI string - basically because I couldn't find a way to due this just with the Spring XML file.
  */
-class HibernateDomainDifferenceStoreFactory(val sessionFactory:SessionFactory, val cacheManager:CacheManager, val dialectString:String) {
+class HibernateDomainDifferenceStoreFactory(val sessionFactory:SessionFactory, val cacheManager:CacheManager, val dialectString:String, val hookManager:HookManager) {
 
   def create = {
     val dialect = Class.forName(dialectString).newInstance().asInstanceOf[Dialect]
-    new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect)
+    new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect, hookManager)
   }
 }
 

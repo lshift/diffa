@@ -2,7 +2,9 @@ package net.lshift.hibernate.migrations;
 
 import net.lshift.hibernate.migrations.dialects.DialectExtension;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Abstract class to provide table partition DDL statements.
@@ -11,17 +13,37 @@ public class PartitionAwareTableHelper {
 
   private final DialectExtension dialectExtension;
   private int partitionCount = 1;
-  private String[] partitionColumns;
+  private String[] hashPartitionColumns;
+  private String listPartitionColumn;
+  private Map<String, String[]> listPartitionDefinitions;
 
   public PartitionAwareTableHelper(DialectExtension dialectExtension) {
     this.dialectExtension = dialectExtension;
   }
 
-  public void definePartitions(int partitions, String ... columns) {
+  public void defineHashPartitions(int partitions, String... columns) {
+    if (shouldPartition()) throw new IllegalStateException("Partitioning has already been enabled for this table");
+
     if (dialectExtension.supportsHashPartitioning()) {
       partitionCount = partitions;
-      partitionColumns = columns;
+      hashPartitionColumns = columns;
     }
+  }
+
+  public void useListPartitioning(String column) {
+    if (shouldPartition()) throw new IllegalStateException("Partitioning has already been enabled for this table");
+
+    if (dialectExtension.supportsListPartitioning()) {
+      listPartitionColumn = column;
+      listPartitionDefinitions = new HashMap<String, String[]>();
+    }
+  }
+
+  public void addListPartition(String name, String...values) {
+    if (listPartitionColumn == null)
+      throw new IllegalStateException("useListPartitioning must be called before adding a list partition definition");
+
+    listPartitionDefinitions.put(name, values);
   }
 
   /**
@@ -29,7 +51,10 @@ public class PartitionAwareTableHelper {
    * information has been supplied.
    */
   private boolean shouldPartition() {
-    return canPartition() && partitionColumns != null && partitionColumns.length > 0;
+    return canPartition() && (
+      (hashPartitionColumns != null && hashPartitionColumns.length > 0) ||
+      (listPartitionColumn != null)
+    );
   }
 
   /**
@@ -42,8 +67,10 @@ public class PartitionAwareTableHelper {
   public void appendPartitionString(StringBuffer buffer) {
     if (shouldPartition()) {
       buffer.append(" ");
-      buffer.append(dialectExtension.defineHashPartitionString(partitionCount, partitionColumns));
+      if (hashPartitionColumns != null)
+        buffer.append(dialectExtension.defineHashPartitionString(partitionCount, hashPartitionColumns));
+      if (listPartitionColumn != null)
+        buffer.append(dialectExtension.defineListPartitionString(listPartitionColumn, listPartitionDefinitions));
     }
   }
-
 }

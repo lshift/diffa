@@ -24,7 +24,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static net.lshift.hibernate.migrations.SQLStringHelpers.generateColumnString;
@@ -68,6 +67,17 @@ public class CreateTableBuilder extends TraceableMigrationElement {
     return column(name, sqlType, Column.DEFAULT_LENGTH, nullable);
   }
 
+  public CreateTableBuilder virtualColumn(String name, int sqlType, int length, String generator) {
+    VirtualColumn col = new VirtualColumn(name);
+    col.setSqlTypeCode(sqlType);
+    col.setLength(length);
+    col.setGenerator(generator);
+
+    columns.add(col);
+
+    return this;
+  }
+
   public CreateTableBuilder column(String name, int sqlType, int length, boolean nullable) {
     Column col = new Column(name);
     col.setNullable(nullable);
@@ -79,7 +89,17 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   }
   
   public CreateTableBuilder hashPartitions(int partitions, String ... columns) {
-    partitionHelper.definePartitions(partitions,columns);
+    partitionHelper.defineHashPartitions(partitions, columns);
+    return this;
+  }
+
+  public CreateTableBuilder listPartitioned(String column) {
+    partitionHelper.useListPartitioning(column);
+    return this;
+  }
+
+  public CreateTableBuilder listPartition(String name, String...values) {
+    partitionHelper.addListPartition(name, values);
     return this;
   }
 

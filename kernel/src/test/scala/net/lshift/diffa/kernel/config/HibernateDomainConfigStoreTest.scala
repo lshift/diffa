@@ -31,6 +31,8 @@ import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
 import net.lshift.diffa.kernel.frontend._
 import org.hibernate.dialect.Dialect
+import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStore
 
 class HibernateDomainConfigStoreTest {
 
@@ -614,7 +616,7 @@ class HibernateDomainConfigStoreTest {
 }
 
 object HibernateDomainConfigStoreTest {
-  private lazy val config =
+  lazy val config =
       new Configuration().
         addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
         addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
@@ -638,11 +640,14 @@ object HibernateDomainConfigStoreTest {
   lazy val pairCache = new PairCache(cacheManager)
   val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
 
-  lazy val domainConfigStore = new HibernateDomainConfigStore(sessionFactory, pairCache)
+  lazy val hookManager = new HookManager(config)
+  lazy val domainConfigStore = new HibernateDomainConfigStore(sessionFactory, pairCache, hookManager)
   lazy val systemConfigStore = new HibernateSystemConfigStore(sessionFactory, pairCache)
+  lazy val domainDifferenceStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect, hookManager)
 
   def clearAllConfig = {
     try {
+      domainDifferenceStore.removeDomain("domain")
       systemConfigStore.deleteDomain("domain")
     }
     catch {

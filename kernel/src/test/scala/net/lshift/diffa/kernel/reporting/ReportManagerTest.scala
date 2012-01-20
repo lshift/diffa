@@ -10,6 +10,7 @@ import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, HibernateDomainConf
 import org.joda.time.DateTime
 import net.lshift.diffa.kernel.differencing.{HibernateDomainDifferenceStore}
 import org.junit.Assert._
+import net.lshift.diffa.kernel.hooks.HookManager
 
 class ReportManagerTest {
   val domain = "reportingDomain"
@@ -20,7 +21,7 @@ class ReportManagerTest {
   val systemConfigStore = HibernateDomainConfigStoreTest.systemConfigStore
   val diffStore =new HibernateDomainDifferenceStore(
     HibernateDomainConfigStoreTest.sessionFactory, HibernateDomainConfigStoreTest.cacheManager,
-    HibernateDomainConfigStoreTest.dialect)
+    HibernateDomainConfigStoreTest.dialect, new HookManager(HibernateDomainConfigStoreTest.config))
   val reportManager = new ReportManager(configStore, diffStore, diagnostics)
 
   @Before

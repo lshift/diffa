@@ -41,6 +41,7 @@ import org.apache.lucene.store.MMapDirectory
 import org.apache.commons.io.FileUtils
 import org.junit.{After, Before, Test}
 import net.lshift.diffa.kernel.matching.{MatchingStatusListener, MatchingManager, EventMatcher}
+import net.lshift.diffa.kernel.hooks.HookManager
 
 class StoreSynchronizationTest {
 
@@ -79,7 +80,8 @@ class StoreSynchronizationTest {
   val sf = HibernateDomainConfigStoreTest.sessionFactory
 
   val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
-  val domainDifferenceStore = new HibernateDomainDifferenceStore(sf, new CacheManager(), dialect)
+  val domainDifferenceStore = new HibernateDomainDifferenceStore(sf, new CacheManager(), dialect,
+    new HookManager(HibernateDomainConfigStoreTest.config))
 
   val indexDir = "target/storeSynchronizationTest"
   val explainDir = "target/storeSynchronizationTest-explain"
