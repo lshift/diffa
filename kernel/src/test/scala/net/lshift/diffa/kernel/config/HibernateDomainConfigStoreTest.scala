@@ -570,6 +570,17 @@ class HibernateDomainConfigStoreTest {
   }
 
   @Test
+  def tokenShouldRemainConsistentEvenWhenUserIsUpdated() {
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
+    val token1 = systemConfigStore.getUserToken("test_user")
+
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null2@lshift.net"))
+    val token2 = systemConfigStore.getUserToken("test_user")
+
+    assertEquals(token1, token2)
+  }
+
+  @Test
   def shouldBeAbleToResetTokenForUser() {
     systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
     systemConfigStore.createOrUpdateUser(User(name = "test_user2", email = "dev_null@lshift.net"))

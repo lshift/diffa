@@ -67,7 +67,15 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
   def listEndpoints = sessionFactory.withSession(s => listQuery[Endpoint](s, "allEndpoints", Map()))
 
 
-  def createOrUpdateUser(u: User) = sessionFactory.withSession(s => s.saveOrUpdate(u))
+  def createOrUpdateUser(u: User) = sessionFactory.withSession(s => {
+    singleQueryOpt[User](s, "userByName", Map("name" -> u.name)) match {
+      case Some(oldUser) => {
+        u.token = oldUser.token
+        s.merge(u)
+      }
+      case None => s.save(u)
+    }
+  })
   def getUserToken(username: String) = {
     sessionFactory.withSession(s => {
       val user = getUser(s, username)
