@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.matching.{MatchingStatusListener, EventMatcher, M
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import org.easymock.EasyMock
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, Endpoint, DomainConfigStore, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, Endpoint, DomainConfigStore, DiffaPair}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DefaultDifferencesManagerTest.Scenario
@@ -61,8 +61,8 @@ class DefaultDifferencesManagerTest {
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
-  val pair1 = DiffaPair(key = "pair1", domain = domain1, versionPolicyName = "policy", upstream = u, downstream = d)
-  val pair2 = DiffaPair(key = "pair2", domain = domain1, versionPolicyName = "policy", upstream = u, downstream = d, matchingTimeout = 5)
+  val pair1 = DiffaPair(key = "pair1", domain = domain1, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
+  val pair2 = DiffaPair(key = "pair2", domain = domain1, versionPolicyName = "policy", upstream = u.name, downstream = d.name, matchingTimeout = 5)
 
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])

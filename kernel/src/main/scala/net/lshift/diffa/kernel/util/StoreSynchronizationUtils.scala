@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.events.VersionID._
 import net.lshift.diffa.kernel.config.DiffaPairRef._
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.VersionID
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
 
 /**
  * Provides some generic routines to maintain the correlation and diff stores.
@@ -33,16 +33,17 @@ object StoreSynchronizationUtils {
    * Runs a simple replayUnmatchedDifferences for the pair.
    */
   def replayCorrelationStore(diffsManager:DifferencesManager, writer:ExtendedVersionCorrelationWriter,
-                             store:VersionCorrelationStore, pair:DiffaPair, origin:MatchOrigin) = {
+                             store:VersionCorrelationStore, pair:DiffaPairRef, upstream:Endpoint, downstream:Endpoint,
+                             origin:MatchOrigin) = {
 
-    val diffWriter = diffsManager.createDifferenceWriter(pair.domain.name, pair.key, overwrite = true)
+    val diffWriter = diffsManager.createDifferenceWriter(pair.domain, pair.key, overwrite = true)
     try {
-      val version = diffsManager.lastRecordedVersion(pair.asRef)
+      val version = diffsManager.lastRecordedVersion(pair)
       
       // Run a query for mismatched versions, and report each one. Note that we always sync using the default view -
       // given we're doing an incremental sync, this shouldn't see changes other than the ones that we've found in the
       // view, and will ensure that we don't miss syncing realtime changes that affect sequence versioning.
-      store.unmatchedVersions(pair.upstream.initialConstraints(None), pair.downstream.initialConstraints(None), version).foreach(
+      store.unmatchedVersions(upstream.initialConstraints(None), downstream.initialConstraints(None), version).foreach(
         corr => diffWriter.writeMismatch(corr.asVersionID, corr.lastUpdate, corr.upstreamVsn, corr.downstreamUVsn, origin, corr.storeVersion))
 
       val tombstones = store.tombstoneVersions(version)

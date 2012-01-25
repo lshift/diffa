@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.actors
 
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, DiffaPair}
 
 /**
  * Trait supported by components that manage active pairs.

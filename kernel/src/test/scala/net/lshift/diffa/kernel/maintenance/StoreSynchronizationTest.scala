@@ -29,7 +29,7 @@ import net.lshift.diffa.kernel.actors.PairPolicyClient
 import org.junit.Assert._
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 import net.lshift.diffa.kernel.config.{HibernateDomainConfigStoreTest, DomainConfigStore, DiffaPairRef}
-import net.lshift.diffa.kernel.config.{Domain,Endpoint,Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Domain,Endpoint,DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.config.system.{HibernateSystemConfigStoreTest, SystemConfigStore}
 import net.sf.ehcache.CacheManager
@@ -53,7 +53,7 @@ class StoreSynchronizationTest {
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
-  val pair = DiffaPair(key = "pair", domain = domain, versionPolicyName = "policy", upstream = u, downstream = d)
+  val pair = DiffaPair(key = "pair", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
   val pairRef = pair.asRef
 
   // Stub Wiring
@@ -133,7 +133,7 @@ class StoreSynchronizationTest {
 
     writer.flush()
 
-    replayCorrelationStore(diffsManager, writer, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
 
     assertEquals(Some(2L), diffsManager.lastRecordedVersion(pairRef))
 
@@ -162,7 +162,7 @@ class StoreSynchronizationTest {
 
     checkUnmatched(1)
 
-    replayCorrelationStore(diffsManager, writer, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(4L), diffsManager.lastRecordedVersion(pairRef))
 
     checkUnmatched(0)
@@ -179,14 +179,14 @@ class StoreSynchronizationTest {
     firstWriter.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
 
     firstWriter.flush()
-    replayCorrelationStore(diffsManager, firstWriter, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, firstWriter, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(1L), diffsManager.lastRecordedVersion(pairRef))
 
     stores.close(pairRef)
     store = stores(pairRef)
 
     val secondWriter = store.openWriter()
-    replayCorrelationStore(diffsManager, secondWriter, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, secondWriter, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(1L), diffsManager.lastRecordedVersion(pairRef))
   }
 
@@ -202,11 +202,11 @@ class StoreSynchronizationTest {
     writer.storeUpstreamVersion(id, attributes, lastUpdated, "v2") // Should produce store version 2
 
     writer.flush()
-    replayCorrelationStore(diffsManager, writer, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(2L), diffsManager.lastRecordedVersion(pairRef))
 
     writer.reset()
-    replayCorrelationStore(diffsManager, writer, store, pair, TriggeredByScan)
+    replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(2L), diffsManager.lastRecordedVersion(pairRef))
 
   }

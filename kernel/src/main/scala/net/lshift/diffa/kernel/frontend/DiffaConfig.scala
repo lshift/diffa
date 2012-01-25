@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import reflect.BeanProperty
 import org.quartz.CronExpression
 import java.util.HashMap

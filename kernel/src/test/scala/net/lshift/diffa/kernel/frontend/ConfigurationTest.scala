@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
 import org.easymock.IArgumentMatcher
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.frontend.DiffaConfig._
 import collection.mutable.HashSet
 import scala.collection.JavaConversions._
@@ -147,10 +147,10 @@ class ConfigurationTest {
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
 
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
@@ -209,13 +209,13 @@ class ConfigurationTest {
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
 
     val ad = DiffaPair(key = "ad", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", upstream = fromEndpointDef(domain, ep1), downstream = fromEndpointDef(domain, ep2))
+                          versionPolicyName = "same", upstream = ep1.name, downstream = ep2.name)
 
     expect(pairManager.stopActor(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(pairManager.startActor(pairInstance("ab"))).once
@@ -282,10 +282,10 @@ class ConfigurationTest {
   private def replayAll = replay(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def verifyAll = verify(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def resetAll = reset(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
-  private def pairInstance(key:String):Pair = {
+  private def pairInstance(key:String):DiffaPair = {
     reportMatcher(new IArgumentMatcher {
       def appendTo(buffer: StringBuffer) = buffer.append("pair with key " + key)
-      def matches(argument: AnyRef) = argument.asInstanceOf[Pair].key == key
+      def matches(argument: AnyRef) = argument.asInstanceOf[DiffaPair].key == key
     })
     null
   }

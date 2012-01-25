@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, User, Domain, Escalation, RepairAction, Endpoint, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, User, Domain, Escalation, RepairAction, Endpoint, DiffaPair}
 
 /**
  * A bunch of converter functions to translate frontend objects from their internal counterparts
@@ -51,8 +51,8 @@ object FrontendConversions {
     key = p.key,
     versionPolicyName = p.versionPolicyName,
     matchingTimeout = p.matchingTimeout,
-    upstreamName = p.upstream.name,
-    downstreamName = p.downstream.name,
+    upstreamName = p.upstream,
+    downstreamName = p.downstream,
     scanCronSpec = p.scanCronSpec,
     allowManualScans = p.allowManualScans,
     views = p.views.map(v => toPairViewDef(v)).toList)

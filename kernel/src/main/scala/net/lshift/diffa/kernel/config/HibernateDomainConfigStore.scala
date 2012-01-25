@@ -20,7 +20,6 @@ import net.lshift.diffa.kernel.util.SessionHelper._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.HibernateQueryUtils
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
@@ -54,10 +53,9 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
 
     val endpoint = getEndpoint(s, domain, name)
 
-    // TODO (see ticket #324) Delete children manually - Hibernate can't cascade on delete without a one-to-many relationship,
-    // which would create an infinite loop in computing the hashCode of pairs
-    s.createQuery("FROM Pair WHERE upstream = :endpoint OR downstream = :endpoint").
-            setEntity("endpoint", endpoint).list.foreach(p => deletePairInSession(s, domain, p.asInstanceOf[DiffaPair]))
+    // Remove all pairs that reference the endpoint
+    s.createQuery("FROM DiffaPair WHERE upstream = :endpoint OR downstream = :endpoint").
+            setString("endpoint", name).list.foreach(p => deletePairInSession(s, domain, p.asInstanceOf[DiffaPair]))
 
     endpoint.views.foreach(s.delete(_))
 
@@ -86,10 +84,8 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
 
       pairCache.invalidate(domain)
 
-      val up = getEndpoint(s, domain, p.upstreamName)
-      val down = getEndpoint(s, domain, p.downstreamName)
       val dom = getDomain(domain)
-      val toUpdate = new Pair(p.key, dom, up, down, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
+      val toUpdate = DiffaPair(p.key, dom, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout, p.scanCronSpec, p.allowManualScans)
       s.saveOrUpdate(toUpdate)
 
       // Update the view definitions
@@ -117,10 +113,10 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   // TODO This read through cache should not be necessary when the 2L cache miss issue is resolved
   def listPairs(domain:String) = pairCache.readThrough(domain, () => listPairsFromPersistence(domain))
 
-  def listPairsFromPersistence(domain:String) = sessionFactory.withSession(s => listQuery[Pair](s, "pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_)))
+  def listPairsFromPersistence(domain:String) = sessionFactory.withSession(s => listQuery[DiffaPair](s, "pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_)))
 
   def listPairsForEndpoint(domain:String, endpoint:String) = sessionFactory.withSession(s =>
-    listQuery[Pair](s, "pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint)))
+    listQuery[DiffaPair](s, "pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint)))
 
   def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] =
     sessionFactory.withSession(s => {
@@ -192,6 +188,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   */
 
   def getEndpointDef(domain:String, name: String) = sessionFactory.withSession(s => toEndpointDef(getEndpoint(s, domain, name)))
+  def getEndpoint(domain:String, name: String) = sessionFactory.withSession(s => getEndpoint(s, domain, name))
   def getPairDef(domain:String, key: String) = sessionFactory.withSession(s => toPairDef(getPair(s, domain, key)))
   def getRepairActionDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toRepairActionDef(getRepairAction(s, domain, name, pairKey)))
   def getPairReportDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toPairReportDef(getReport(s, domain, name, pairKey)))

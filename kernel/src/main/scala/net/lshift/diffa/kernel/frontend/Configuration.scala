@@ -23,7 +23,6 @@ import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelat
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.scheduler.ScanScheduler
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import system.SystemConfigStore
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}

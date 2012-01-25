@@ -21,7 +21,7 @@ import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException, HibernateQueryUtils}
 import net.lshift.diffa.kernel.differencing.StoreCheckpoint
-import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, PairCache, SystemConfigOption, Member, DiffaPairRef, User, ConfigOption, RepairAction, Escalation, Endpoint, DomainConfigStore, Domain, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, PairCache, SystemConfigOption, Member, DiffaPairRef, User, ConfigOption, RepairAction, Escalation, Endpoint, DomainConfigStore, Domain, DiffaPair}
 import org.hibernate.{Query, Session, SessionFactory}
 import org.apache.commons.lang.RandomStringUtils
 

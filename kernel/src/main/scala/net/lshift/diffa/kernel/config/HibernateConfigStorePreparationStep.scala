@@ -25,9 +25,9 @@ import org.hibernate.tool.hbm2ddl.{DatabaseMetadata, SchemaExport}
 import org.hibernate.cfg.{Environment, Configuration}
 import java.sql.{Types, Connection}
 import net.lshift.diffa.kernel.differencing.VersionCorrelationStore
+import net.lshift.hibernate.migrations.MigrationBuilder
 import scala.collection.JavaConversions._
 import org.hibernate.`type`.IntegerType
-import net.lshift.hibernate.migrations.MigrationBuilder
 
 /**
  * Preparation step to ensure that the configuration for the Hibernate Config Store is in place.
@@ -795,6 +795,32 @@ object HibernateConfigStorePreparationStep {
         }
 
         migration
+      }
+    },
+
+    new HibernateMigrationStep with StandaloneConstraintMigrationStep {
+      def versionId = 19
+      def name = "Reference endpoints by name only"
+
+      def createMigration(config: Configuration) = {
+        val migration = new MigrationBuilder(config)
+
+        // Remove the existing constraints on domain/endpoint pairs, and then remove the endpoint domain columns
+        migration.alterTable("pair").
+          dropConstraint("FK3462DAF68A3C7").
+          dropConstraint("FK3462DAF2DA557F").
+          dropColumn("dep_domain").
+          dropColumn("uep_domain")
+
+        applyConstraint(migration)
+
+        migration
+      }
+
+      def applyConstraint(migration:MigrationBuilder) {
+        migration.alterTable("pair").
+          addForeignKey("FK3462DAF68A3C7", Array("upstream", "domain"), "endpoint", Array("name", "domain")).
+          addForeignKey("FK3462DAF2DA557F", Array("downstream", "domain"), "endpoint", Array("name", "domain"))
       }
     }
   )

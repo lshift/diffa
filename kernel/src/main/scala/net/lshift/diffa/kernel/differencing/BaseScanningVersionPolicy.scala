@@ -24,11 +24,11 @@ import concurrent.SyncVar
 import net.lshift.diffa.participant.scanning.{ScanConstraint, DigestBuilder, ScanResultEntry}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, Pair => DiffaPair}
 import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.participant.common.JSONHelper
 import java.io.PrintWriter
 import collection.JavaConversions._
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
 
 /**
  * Standard behaviours supported by scanning version policies.
@@ -47,21 +47,20 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
    * version correlation store.
    */
   def onChange(writer: LimitedVersionCorrelationWriter, evt: PairChangeEvent) = {
-
     val pair = systemConfigStore.getPair(evt.id.pair.domain, evt.id.pair.key)
 
     val corr = evt match {
       case UpstreamPairChangeEvent(id, _, lastUpdate, vsn) => vsn match {
         case null => writer.clearUpstreamVersion(id)
-        case _    => writer.storeUpstreamVersion(id, pair.upstream.schematize(evt.attributes), maybe(lastUpdate), vsn)
+        case _    => writer.storeUpstreamVersion(id, evt.attributes, maybe(lastUpdate), vsn)
       }
       case DownstreamPairChangeEvent(id, _, lastUpdate, vsn) => vsn match {
         case null => writer.clearDownstreamVersion(id)
-        case _    => writer.storeDownstreamVersion(id, pair.downstream.schematize(evt.attributes), maybe(lastUpdate), vsn, vsn)
+        case _    => writer.storeDownstreamVersion(id, evt.attributes, maybe(lastUpdate), vsn, vsn)
       }
       case DownstreamCorrelatedPairChangeEvent(id, _, lastUpdate, uvsn, dvsn) => (uvsn, dvsn) match {
         case (null, null) => writer.clearDownstreamVersion(id)
-        case _            => writer.storeDownstreamVersion(id, pair.downstream.schematize(evt.attributes), maybe(lastUpdate), uvsn, dvsn)
+        case _            => writer.storeDownstreamVersion(id, evt.attributes, maybe(lastUpdate), uvsn, dvsn)
       }
     }
 
@@ -79,31 +78,31 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
     }
   }
 
-  def benchmark[T](pair:DiffaPair, label:String, f:() => T) {
+  def benchmark[T](pairRef:DiffaPairRef, label:String, f:() => T) {
     val start = new DateTime()
     val result = f()
     val stop = new DateTime()
     val interval = new Interval(start,stop)
     val period = interval.toPeriod
-    logger.debug("[%s]: Benchmarking operation %s: %s -> %s".format(pair.identifier, label, period , interval ) )
+    logger.debug("[%s]: Benchmarking operation %s: %s -> %s".format(pairRef.identifier, label, period , interval ) )
     result
   }
 
-  def scanUpstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter, participant:UpstreamParticipant,
+  def scanUpstream(pairRef:DiffaPairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter, participant:UpstreamParticipant,
                    listener:DifferencingListener, handle:FeedbackHandle) = {
-    benchmark(pair, "upstream scan", () => {
-      val upstreamConstraints = pair.upstream.groupedConstraints(view)
+    benchmark(pairRef, "upstream scan", () => {
+      val upstreamConstraints = upstream.groupedConstraints(view)
       constraintsOrEmpty(upstreamConstraints).foreach((new UpstreamScanStrategy)
-        .scanParticipant(pair.asRef, writer, pair.upstream, pair.upstream.initialBucketing(view), _, participant, listener, handle))
+        .scanParticipant(pairRef, writer, upstream, upstream.initialBucketing(view), _, participant, listener, handle))
     })
   }
 
-  def scanDownstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter, us:UpstreamParticipant,
+  def scanDownstream(pairRef:DiffaPairRef, downstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter, us:UpstreamParticipant,
                      ds:DownstreamParticipant, listener:DifferencingListener, handle:FeedbackHandle) = {
-    benchmark(pair, "downstream scan", () => {
-      val downstreamConstraints = pair.downstream.groupedConstraints(view)
+    benchmark(pairRef, "downstream scan", () => {
+      val downstreamConstraints = downstream.groupedConstraints(view)
       constraintsOrEmpty(downstreamConstraints).foreach(downstreamStrategy(us,ds)
-        .scanParticipant(pair.asRef, writer, pair.downstream, pair.downstream.initialBucketing(view), _, ds, listener, handle))
+        .scanParticipant(pairRef, writer, downstream, downstream.initialBucketing(view), _, ds, listener, handle))
     })
   }
 

@@ -37,7 +37,7 @@ import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.junit.Assume._
 import java.util.HashMap
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 
 /**
@@ -97,8 +97,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -128,8 +128,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -168,8 +168,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -208,8 +208,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -332,9 +332,9 @@ object AbstractDataDrivenPolicyTest {
   val domain = Domain(name="domain")
 
   @DataPoint def noCategoriesScenario = Scenario(
-    Pair(key = "ab", domain = domain,
-      upstream = new Endpoint(categories = new HashMap[String, CategoryDescriptor]),
-      downstream = new Endpoint(categories = new HashMap[String, CategoryDescriptor])),
+    DiffaPair(key = "ab", domain = domain),
+    Endpoint(categories = new HashMap[String, CategoryDescriptor]),
+    Endpoint(categories = new HashMap[String, CategoryDescriptor]),
       EntityTx(Seq(),
         Vsn("id1", Map(), "vsn1"),
         Vsn("id2", Map(), "vsn2")
@@ -347,9 +347,9 @@ object AbstractDataDrivenPolicyTest {
    * Should any body ask for this, this behavior be may re-instated at some point.
    */
   @DataPoint def setOnlyScenario = Scenario(
-    Pair(key = "ab", domain = domain,
-      upstream = new Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C")))),
-      downstream = new Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C"))))),
+    DiffaPair(key = "ab", domain = domain),
+    Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C")))),
+    Endpoint(categories = Map("someString" -> new SetCategoryDescriptor(Set("A","B","C")))),
       EntityTx(Seq(new SetConstraint("someString", Set("A"))),
         Vsn("id1", Map("someString" -> "A"), "vsn1"),
         Vsn("id2", Map("someString" -> "A"), "vsn2")
@@ -365,9 +365,9 @@ object AbstractDataDrivenPolicyTest {
     )
 
   @DataPoint def dateTimesOnlyScenario = Scenario(
-    Pair(key = "ab", domain = domain,
-      upstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor)),
-      downstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor))),
+    DiffaPair(key = "ab", domain = domain),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor)),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(),
       Bucket("2010", Map("bizDateTime" -> "2010"),
         AggregateTx(Seq(monthly("bizDateTime", TimeDataType)), Seq(dateTimeRange("bizDateTime", START_2010, END_2010)),
@@ -406,9 +406,9 @@ object AbstractDataDrivenPolicyTest {
 
 
   @DataPoint def datesOnlyScenario = Scenario(
-    Pair(key = "xy", domain = domain,
-      upstream = new Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor)),
-      downstream = new Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor))),
+    DiffaPair(key = "xy", domain = domain),
+    Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor)),
+    Endpoint(categories = Map("bizDate" -> dateCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDate", DateDataType)), Seq(),
       Bucket("1995", Map("bizDate" -> "1995"),
         AggregateTx(Seq(monthly("bizDate", DateDataType)), Seq(dateRange("bizDate", START_1995, END_1995)),
@@ -449,9 +449,9 @@ object AbstractDataDrivenPolicyTest {
    *  values but uses a full DateTime data type during its descent.
    */
   @DataPoint def yy_MM_dddd_dateTimesOnlyScenario = Scenario(
-    Pair(key = "tf", domain = domain,
-      upstream = new Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor)),
-      downstream = new Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor))),
+    DiffaPair(key = "tf", domain = domain),
+    Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor)),
+    Endpoint(categories = Map("bizDateTime" -> localDatePrimedDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(dateTimeRange("bizDateTime", START_2023_FULL, END_2023_FULL)),
       Bucket("2023", Map("bizDateTime" -> "2023"),
         AggregateTx(Seq(monthly("bizDateTime", TimeDataType)), Seq(dateTimeRange("bizDateTime", START_2023_FULL, END_2023_FULL)),
@@ -466,9 +466,9 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def integersOnlyScenario = Scenario(
-    Pair(key = "bc", domain = domain,
-      upstream = new Endpoint(categories = Map("someInt" -> intCategoryDescriptor)),
-      downstream = new Endpoint(categories = Map("someInt" -> intCategoryDescriptor))),
+    DiffaPair(key = "bc", domain = domain),
+    Endpoint(categories = Map("someInt" -> intCategoryDescriptor)),
+    Endpoint(categories = Map("someInt" -> intCategoryDescriptor)),
     AggregateTx(Seq(thousands("someInt")), Seq(),
       Bucket("1000", Map("someInt" -> "1000"),
         AggregateTx(Seq(hundreds("someInt")), Seq(intRange("someInt", 1000, 1999)),
@@ -504,9 +504,9 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def stringsOnlyScenario = Scenario(
-    Pair(key = "bc", domain = domain,
-      upstream = new Endpoint(categories = Map("someString" -> stringCategoryDescriptor)),
-      downstream = new Endpoint(categories = Map("someString" -> stringCategoryDescriptor))),
+    DiffaPair(key = "bc", domain = domain),
+    Endpoint(categories = Map("someString" -> stringCategoryDescriptor)),
+    Endpoint(categories = Map("someString" -> stringCategoryDescriptor)),
     AggregateTx(Seq(oneCharString("someString")), Seq(),
       Bucket("A", Map("someString" -> "A"),
         AggregateTx(Seq(twoCharString("someString")), Seq(prefix("someString", "A")),
@@ -542,9 +542,9 @@ object AbstractDataDrivenPolicyTest {
     ))
 
   @DataPoint def integersAndDateTimesScenario = Scenario(
-    Pair(key = "ab", domain = domain,
-      upstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor)),
-      downstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor))),
+    DiffaPair(key = "ab", domain = domain),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor)),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someInt" -> intCategoryDescriptor)),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType), thousands("someInt")), Seq(),
       Bucket("2010_1000", Map("bizDateTime" -> "2010", "someInt" -> "1000"),
         AggregateTx(Seq(monthly("bizDateTime", TimeDataType), hundreds("someInt")), Seq(dateTimeRange("bizDateTime", START_2010, END_2010), intRange("someInt", 1000, 1999)),
@@ -587,9 +587,9 @@ object AbstractDataDrivenPolicyTest {
    */
 
   @DataPoint def setAndDateTimesScenario = Scenario(
-    Pair(key = "gh", domain = domain,
-      upstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B")))),
-      downstream = new Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B"))))),
+    DiffaPair(key = "gh", domain = domain),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B")))),
+    Endpoint(categories = Map("bizDateTime" -> dateTimeCategoryDescriptor, "someString" -> new SetCategoryDescriptor(Set("A","B")))),
     AggregateTx(Seq(yearly("bizDateTime", TimeDataType)), Seq(new SetConstraint("someString",Set("A"))),
       Bucket("2010_A", Map("bizDateTime" -> "2010", "someString" -> "A"),
         AggregateTx(Seq(monthly("bizDateTime", TimeDataType)), Seq(dateTimeRange("bizDateTime", START_2010, END_2010), new SetConstraint("someString",Set("A"))),
@@ -648,7 +648,7 @@ object AbstractDataDrivenPolicyTest {
   // Type Definitions
   //
 
-  case class Scenario(pair:DiffaPair, tx:Tx*)
+  case class Scenario(pair:DiffaPair, upstreamEp:Endpoint, downstreamEp:Endpoint, tx:Tx*)
 
   abstract class Tx {
     def constraints:Seq[ScanConstraint]

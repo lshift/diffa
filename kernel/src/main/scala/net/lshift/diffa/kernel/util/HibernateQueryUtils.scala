@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.util
 
 import net.lshift.diffa.kernel.util.SessionHelper._
 import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.DiffaPair
 import org.slf4j.{LoggerFactory, Logger}
 import scala.collection.JavaConversions._
 import scala.collection.Map
@@ -223,7 +223,7 @@ trait HibernateQueryUtils {
 
   def getUser(s: Session, name: String) = singleQuery[User](s, "userByName", Map("name" -> name), "user %s".format(name))
 
-  def getPair(s: Session, domain:String, key: String) = getOrFail(s, classOf[Pair], DomainScopedKey(key, Domain(name = domain)), "pair")
+  def getPair(s: Session, domain:String, key: String) = getOrFail(s, classOf[DiffaPair], DomainScopedKey(key, Domain(name = domain)), "pair")
 
   def getRepairAction(s: Session, domain:String, name: String, pairKey: String) =
     singleQuery[RepairAction](s, "repairActionsByNameAndPair",

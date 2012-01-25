@@ -25,7 +25,6 @@ import org.joda.time.DateTime
 import collection.mutable.HashSet
 import scala.collection.JavaConversions._
 import system.{HibernateSystemConfigStore, SystemConfigStore}
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.SessionHelper._
 import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
@@ -299,7 +298,7 @@ class HibernateDomainConfigStoreTest {
       domainConfigStore.getPairDef(domainName, pairKey)
     }
 
-    domainConfigStore.createOrUpdatePair(domainName, PairDef(pairRenamed, versionPolicyName2, Pair.NO_MATCHING,
+    domainConfigStore.createOrUpdatePair(domainName, PairDef(pairRenamed, versionPolicyName2, DiffaPair.NO_MATCHING,
       downstream1.name, upstream1.name, "0 0 * * * ?", allowManualScans = false))
     
     val retrieved = domainConfigStore.getPairDef(domainName, pairRenamed)
@@ -309,7 +308,7 @@ class HibernateDomainConfigStoreTest {
     assertEquals(versionPolicyName2, retrieved.versionPolicyName)
     assertEquals("0 0 * * * ?", retrieved.scanCronSpec)
     assertEquals(false, retrieved.allowManualScans)
-    assertEquals(Pair.NO_MATCHING, retrieved.matchingTimeout)
+    assertEquals(DiffaPair.NO_MATCHING, retrieved.matchingTimeout)
   }
 
   @Test
@@ -376,13 +375,11 @@ class HibernateDomainConfigStoreTest {
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, downstream1)
 
-      // TODO: We should probably get an exception indicating that the constraint was null, not that the object
-      //       we're linking to is missing.
-    expectMissingObject("endpoint") {
-      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, Pair.NO_MATCHING, null, downstream1.name))
+    expectNullPropertyException("upstream") {
+      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, DiffaPair.NO_MATCHING, null, downstream1.name))
     }
-    expectMissingObject("endpoint") {
-      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, Pair.NO_MATCHING, upstream1.name, null))
+    expectNullPropertyException("downstream") {
+      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, DiffaPair.NO_MATCHING, upstream1.name, null))
     }
   }
 
@@ -613,6 +610,21 @@ class HibernateDomainConfigStoreTest {
       case e:MissingObjectException => assertTrue(
         "Missing Object Exception for wrong object. Expected for " + name + ", got msg: " + e.getMessage,
         e.getMessage.contains(name))
+    }
+  }
+
+  private def expectNullPropertyException(name:String)(f: => Unit) {
+    try {
+      f
+      fail("Expected PropertyValueException")
+    } catch {
+      case e:org.hibernate.PropertyValueException =>
+        assertTrue(
+          "PropertyValueException for wrong object. Expected null error for " + name + ", got msg: " + e.getMessage,
+          e.getMessage.contains("not-null property references a null or transient value"))
+        assertTrue(
+          "PropertyValueException for wrong object. Expected for field " + name + ", got msg: " + e.getMessage,
+          e.getMessage.contains(name))
     }
   }
 

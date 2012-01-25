@@ -24,7 +24,7 @@ import scala.collection.JavaConversions.asMap
 import collection.mutable.HashMap
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.config.DiffaPairRef._
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef}
 
 // Base type for upstream and downstream correlations allowing pairs to be managed
 case class Correlation(

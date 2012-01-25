@@ -19,8 +19,7 @@ package net.lshift.diffa.kernel.matching
 import net.lshift.diffa.kernel.util.{ConcurrentJunitRunner, Concurrent}
 import org.junit.runner.RunWith
 import org.junit.After
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
-import net.lshift.diffa.kernel.config.Domain
+import net.lshift.diffa.kernel.config.{DiffaPair, Domain}
 
 /**
  * Test cases for the locally maintained matching engine. Attempts to exercise various matching and expiration code paths.

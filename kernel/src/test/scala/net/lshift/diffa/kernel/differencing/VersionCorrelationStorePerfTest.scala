@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.indexing.LuceneVersionCorrelationStore
 import ch.qos.logback.classic.Level
 import net.lshift.diffa.participant.scanning.TimeRangeConstraint
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DiffaPair}
 
 /**
  * Performance test for the version correlation store.

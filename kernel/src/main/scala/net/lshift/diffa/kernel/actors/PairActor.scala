@@ -30,15 +30,17 @@ import akka.actor._
 import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
-import net.lshift.diffa.kernel.config.{Pair => DiffaPair}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
+import net.lshift.diffa.kernel.config.{Endpoint, DiffaPair}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
  */
 case class PairActor(pair:DiffaPair,
-                     us:UpstreamParticipant,
-                     ds:DownstreamParticipant,
+                     us:Endpoint,
+                     ds:Endpoint,
+                     usp:UpstreamParticipant,
+                     dsp:DownstreamParticipant,
                      policy:VersionPolicy,
                      store:VersionCorrelationStore,
                      differencesManager:DifferencesManager,
@@ -279,7 +281,7 @@ case class PairActor(pair:DiffaPair,
 
       try {
         diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Calculating differences")
-        replayCorrelationStore(differencesManager, writer, store, pair, TriggeredByScan)
+        replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByScan)
       } catch {
         case ex =>
           logger.error("Failed to apply unmatched differences to the differences manager", ex)
@@ -355,7 +357,7 @@ case class PairActor(pair:DiffaPair,
   def handleDifferenceMessage() = {
     try {
       writer.flush()
-      replayCorrelationStore(differencesManager, writer, store, pair, TriggeredByBoot)
+      replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByBoot)
     } catch {
       case ex => {
         diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to Difference Pair: " + ex.getMessage)
@@ -386,7 +388,7 @@ case class PairActor(pair:DiffaPair,
 
       Actor.spawn {
         try {
-          policy.scanUpstream(pair, scanView, writerProxy, us, bufferingListener, currentFeedbackHandle)
+          policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
         }
         catch {
@@ -404,7 +406,7 @@ case class PairActor(pair:DiffaPair,
 
       Actor.spawn {
         try {
-          policy.scanDownstream(pair, scanView, writerProxy, us, ds, bufferingListener, currentFeedbackHandle)
+          policy.scanDownstream(pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
         }
         catch {

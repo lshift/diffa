@@ -17,8 +17,8 @@ import org.hibernate.dialect.Dialect
 import java.sql.{Types, Timestamp}
 import net.lshift.diffa.kernel.config.DomainScopedKey._
 import net.lshift.diffa.kernel.config.Domain._
-import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, Pair => DiffaPair}
 import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, DiffaPair}
 
 /**
  * Hibernate backed Domain Cache provider.

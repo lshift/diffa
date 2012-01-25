@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.differencing
 import net.lshift.diffa.kernel.events.PairChangeEvent
 import net.jcip.annotations.NotThreadSafe
 import net.lshift.diffa.kernel.participants.{UpstreamParticipant, DownstreamParticipant}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
 
 /**
  * Policy implementations of this trait provide different mechanism for handling the matching of upstream
@@ -43,7 +43,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanUpstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanUpstream(pairRef:DiffaPairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter,
                    participant:UpstreamParticipant, listener:DifferencingListener,
                    handle:FeedbackHandle)
 
@@ -52,7 +52,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanDownstream(pair:DiffaPair, view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanDownstream(pairRef:DiffaPairRef, downstream:Endpoint,  view:Option[String], writer: LimitedVersionCorrelationWriter,
                      us:UpstreamParticipant, ds:DownstreamParticipant,
                      listener:DifferencingListener, handle:FeedbackHandle)
 

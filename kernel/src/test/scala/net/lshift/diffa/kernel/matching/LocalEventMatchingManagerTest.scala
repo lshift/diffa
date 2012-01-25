@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.matching
 import org.junit.Test
 import org.junit.Assert._
 import org.easymock.EasyMock.{createStrictMock, expect, replay, reset}
-import net.lshift.diffa.kernel.config.{DomainConfigStore, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPair}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.Domain
 

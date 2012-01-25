@@ -34,7 +34,7 @@ import net.lshift.diffa.participant.scanning._
 import org.joda.time.{DateTime, LocalDate, DateTimeZone}
 import net.lshift.diffa.kernel.util.AlertCodes
 import net.lshift.diffa.kernel.config.system.{InvalidSystemConfigurationException, SystemConfigStore}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore, Pair => DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore}
 import org.apache.lucene.index.{IndexWriterConfig, IndexReader, Term, IndexWriter}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 
