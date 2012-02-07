@@ -48,6 +48,7 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
     deleteByDomain[Endpoint](s, domain, "endpointsByDomain")
     deleteByDomain[ConfigOption](s, domain, "configOptionsByDomain")
     deleteByDomain[Member](s, domain, "membersByDomain")
+    removeDomainDifferences(domain)
 
     s.flush()
 
