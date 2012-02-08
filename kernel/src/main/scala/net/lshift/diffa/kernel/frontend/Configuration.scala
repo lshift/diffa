@@ -122,6 +122,7 @@ class Configuration(val configStore: DomainConfigStore,
     endpointListener.onEndpointRemoved(domain, endpoint)
   }
 
+  def listPairs(domain:String) : Seq[PairDef] = configStore.listPairs(domain)
   def listEndpoints(domain:String) : Seq[EndpointDef] = configStore.listEndpoints(domain)
   def listUsers(domain:String) : Seq[User] = systemConfigStore.listUsers
 

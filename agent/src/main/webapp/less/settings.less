@@ -18,101 +18,59 @@
 
 /* Definitions for the settings page */
 
-#all-pairings {
-  .span-24;
-}
+#settings-page {
+  #elements {
+    .prepend-top;
+    .append-bottom;
+    .span-6;
 
-#pair-list {
-  .prepend-top;
-  .span-24;
+    border-top: 1px solid black;
+    border-right: 1px solid black;
+    padding: 10px;
+    min-height: 500px;
 
-  .pair-row {
+    .element-list-panel {
+      .append-bottom;
+    }
+
+    .add-element {
+      display: block;
+      text-align: right;
+    }
+  }
+
+  .loading {
+    display: block;
+  }
+
+  #details {
+    .prepend-top;
+    .span-17;
     .last;
 
-    .name {
-      .span-2;
+    border-top: 1px solid black;
+
+    .editable-table {
+      border-collapse: collapse;
+
+      thead td {
+        font-weight: bold;
+      }
+      td {
+        border: 1px solid black;
+      }
+
+      margin-bottom: 0;
     }
-    .state {
-      .span-4;
+
+    .add-link {
+      text-align: right;
     }
-  }
 
-  @pair-margin: 10px;
-
-  .pair {
-    .span-6;
-    .rounded(10px);
-
-    border: @solid-border;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: @pair-margin;
-  }
-
-  .selected-pair {
-    @selected-border-width: 2px;
-    @selected-background-colour: #E8E9EB;
-
-    border: @selected-border-width solid black;
-    background-color: @selected-background-colour;
-    margin-bottom: @pair-margin - @selected-border-width;
-  }
-}
-
-#pairlist-header {
-  .top-and-bottom-borders;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-div.pair-name-span {
-  .span-2;
-}
-
-div.pair-state-span {
-  .span-4;
-}
-
-div.pair-action-span {
-  .span-8;
-  .last;
-}
-
-.pair-info-panel {
-  .prepend-top;
-  .span-24;
-
-  border: @dotted-border;
-  padding: 10px;
-
-  h3 {
-    border-bottom: @solid-border;
-    padding-bottom: 4px;
-    margin: 5px 0px 10px 0px;
-  }
-}
-
-#pair-actions {
-  .control-set {
-    border-top: @dotted-border;
-    padding-bottom: 10px;
-  }
-
-  #pair-controls {
-    padding-bottom: 10px;
-  }
-}
-
-#pair-log {
-  margin-bottom: 10px;
-
-  .entry .timestamp {
-    margin-right: 15px;
-  }
-  .entry-info .msg {
-    color: green;
-  }
-  .entry-error .msg {
-    color: red;
+    dd.controls {
+      margin-top: 10px;
+      border-top: 1px dashed black;
+      padding-top: 5px;
+    }
   }
 }

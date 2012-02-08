@@ -1,0 +1,92 @@
+<!--
+
+    Copyright (C) 2010-2011 LShift Ltd.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+
+<html>
+  <head>
+    <title>Diffa Status</title>
+
+    <script type="text/javascript" src="js/thirdparty/jquery-1.6.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/json2.js"></script>
+    <script type="text/javascript" src="js/thirdparty/underscore-1.1.6.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/backbone-0.5.1.min.js"></script>
+    <script type="text/javascript" src="js/datejs/date-en-GB.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/datejs/extras.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/diffa-common.js" charset="utf-8"></script>
+
+    <script type="text/javascript" src="js/status.js"></script>
+
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <div class="main-logo">
+        <h1>Diffa Status</h1>
+      </div>
+
+      <div class="top-navigation-link">
+        <a href="index.html">Diffa</a>
+      </div>
+
+      <div id="all-pairings">
+        <a id="scan_all" href="#">Scan All Pairings For Differences</a>
+      </div>
+
+      <div id="pair-list">
+
+        <div id="pairs"></div>
+
+      </div>
+
+      <div id="pair-actions" class="pair-info-panel" style="display:none">
+        <h3>Available Pair Actions</h3>
+
+        <div id="pair-controls">
+          <button class="repair scan-button pair-scan-button">Start Scan</button>
+          <button class="repair cancel-button">Cancel Scan</button>
+        </div>
+        <div id="pair-repairs" class="control-set">
+          <div class="loading">
+            <img src="images/busy.gif"/>
+          </div>
+        </div>
+        <div id="pair-reports" class="control-set">
+          <div class="loading">
+            <img src="images/busy.gif"/>
+          </div>
+        </div>
+      </div>
+
+      <div id="pair-log" class="pair-info-panel" style="display:none">
+        <h3>Recent Pair Activity</h3>
+        <div class="loading">
+          <img src="images/busy.gif"/>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/template" id="pair-selector-template">
+      <div class="name"><%= name %></div>
+      <div class="state"><%= state %></div>
+    </script>
+
+
+  </body>
+
+</html>

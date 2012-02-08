@@ -1,6 +1,5 @@
-
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,484 +19,511 @@ var Diffa = {
   Views: {},
   Collections: {},
   Models: {},
-  Config: {
-    LogPollInterval:    2000,     // How frequently (in ms) we poll for log updates
-    PairStateInterval:  5000      // How frequently (in ms) we poll for pair state updates
-  }
+  Config: {},
+  Binders: {},
+  Helpers: {}
 };
 
 $(function() {
 
-Diffa.Routers.Pairs = Backbone.Router.extend({
+Diffa.Routers.Config = Backbone.Router.extend({
   routes: {
-    "":                  "index",      // #
-    "pair/:pair":        "managePair"  // #pair/WEB-1
+    "":                   "index",          // #
+    "endpoint":           "createEndpoint", // #endpoint
+    "endpoint/:endpoint": "manageEndpoint", // #endpoint/ep1
+    "pair":               "createPair",     // #pair
+    "pair/:pair":         "managePair"      // #pair/p1
   },
 
   index: function() {
+    this.updateEditor(null);
   },
 
-  managePair: function(pairKey) {
-    Diffa.PairsCollection.select(pairKey);
-  }
-});
-
-Diffa.Models.Pair = Backbone.Model.extend({
-  initialize: function() {
-    var self = this;
-
-    _.bindAll(this, "remove", "syncLog", "startScan", "cancelScan");
-
-    // If we become selected, then we should fetch our actions
-    this.bind("change:selected", function(pair) {
-      if (pair.get('selected')) {
-        self.fetchActions();
-        self.fetchReports();
-        self.fetchFullDetails();
-
-        self.logPollIntervalId = window.setInterval(self.syncLog, Diffa.Config.LogPollInterval);
-        self.syncLog();
-      } else {
-        if (self.logPollIntervalId) {
-          window.clearInterval(self.logPollIntervalId);
-          delete self.logPollIntervalId;
-        }
-      }
-    })
+  createEndpoint: function() {
+    var newEndpoint = new Diffa.Models.Endpoint();
+    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: newEndpoint, collection: Diffa.EndpointsCollection}) });
+  },
+  createPair: function() {
+    var newPair = new Diffa.Models.Pair();
+    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: newPair, collection: Diffa.PairsCollection}) });
   },
 
-  remove: function() {
-    this.trigger('remove');
+  manageEndpoint: function(endpointName) {
+    var endpoint = Diffa.EndpointsCollection.get(endpointName);
+    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: endpoint, collection: Diffa.EndpointsCollection}) });
   },
 
-  fetchActions: function() {
-    var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/actions/' + this.id + '?scope=pair', function(actions) {
-      self.set({actions: actions});
-    });
+  managePair: function(pairName) {
+    var pair = Diffa.PairsCollection.get(pairName);
+    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: pair, collection: Diffa.PairsCollection}) });
   },
 
-  fetchReports: function() {
-    var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/reports/' + this.id, function(reports) {
-      self.set({reports: reports});
-    });
-  },
-
-  fetchFullDetails: function() {
-    var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/config/pairs/' + this.id, function(pairInfo) {
-      self.set(pairInfo);
-      self.set({fullContent: true})
-    });
-  },
-
-  syncLog: function() {
-    var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + "/diagnostics/" + this.id + "/log", function(logEntries) {
-      self.set({logEntries: logEntries});
-    });
-  },
-
-  startScan: function(view) {
-    var self = this;
-    var data = {};
-    if (view) {
-      data.view = view;
+  updateEditor: function(newEditorBuilder) {
+    if (this.currentEditor) {
+      this.currentEditor.close();
     }
-    
-    this.set({state: 'REQUESTING'});
-    $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
-      type: "POST",
-      data: data,
-      success: function() {
-        self.set({state: 'SCANNING'});
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("Error in scan request: " + errorThrown);
-      }
-    });
-  },
-
-  cancelScan: function() {
-    var self = this;
-
-    this.set({state: 'CANCELLED'});
-    $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
-      type: "DELETE",
-      success: function() {
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("Error in scan cancellation request: " + errorThrown);
-      }
-    });
-  },
-
-  runReport: function(name) {
-    var self = this;
-    
-    $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/reports/" + this.id + "/" + name,
-      type: "POST",
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("Error in report request: " + errorThrown);
-      }
-    });
+    if (newEditorBuilder) {
+      this.currentEditor = newEditorBuilder();
+    } else {
+      this.currentEditor = null;
+    }
   }
 });
 
-Diffa.Collections.Pairs = Backbone.Collection.extend({
+Diffa.Helpers.ViewsHelper = {
+  extractViews: function(model, viewCollectionClass) {
+    var updateViews = function() {
+      model.views.reset(model.get('views'));
+    };
+
+    model.bind('change:views', updateViews);
+    model.views = new (viewCollectionClass || Backbone.Collection)([]);
+    updateViews();
+  },
+  packViews: function(model) {
+    model.views.each(function(m) { if (m.prepareForSave) m.prepareForSave(); });
+    model.set({views: model.views.toJSON()}, {silent: true});
+  }
+};
+Diffa.Helpers.CategoriesHelper = {
+  extractCategories: function(model, viewCollectionClass) {
+    var updateCategories = function() {
+      model.rangeCategories.unpack(model.get('categories'));
+      model.setCategories.unpack(model.get('categories'));
+      model.prefixCategories.unpack(model.get('categories'));
+    };
+
+    model.bind('change:categories', updateCategories);
+
+    model.rangeCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'range'});
+    model.setCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'set'});
+    model.prefixCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'prefix'});
+
+    updateCategories();
+  },
+  packCategories: function(model) {
+    var categories = {};
+
+    model.rangeCategories.pack(categories);
+    model.setCategories.pack(categories);
+    model.prefixCategories.pack(categories);
+
+    model.set({categories: categories}, {silent: true});
+  }
+};
+Diffa.Models.Endpoint = Backbone.Model.extend({
+  idAttribute: 'name',
+  initialize: function() {
+    Diffa.Helpers.CategoriesHelper.extractCategories(this);
+    Diffa.Helpers.ViewsHelper.extractViews(this, Diffa.Collections.EndpointViews);
+  },
+  urlRoot: function() { return API_BASE + "/" + Diffa.currentDomain + "/config/endpoints"; },
+  prepareForSave: function() {
+    Diffa.Helpers.CategoriesHelper.packCategories(this);
+    Diffa.Helpers.ViewsHelper.packViews(this);
+  }
+});
+Diffa.Models.EndpointView = Backbone.Model.extend({
+  idAttribute: 'name',
+  initialize: function() {
+    Diffa.Helpers.CategoriesHelper.extractCategories(this);
+  },
+  prepareForSave: function() {
+    Diffa.Helpers.CategoriesHelper.packCategories(this);
+  }
+});
+Diffa.Models.Pair = Backbone.Model.extend({
+  idAttribute: "key",
+  urlRoot: function() { return API_BASE + "/" + Diffa.currentDomain + "/config/pairs"; },
+  initialize: function() {
+    Diffa.Helpers.ViewsHelper.extractViews(this);
+  },
+  prepareForSave: function() {
+      // Remove properties artifacts from the databinding library
+    this.unset('versionPolicyName_text', {silent: true});
+    this.unset('upstreamName_text', {silent: true});
+    this.unset('downstreamName_text', {silent: true});
+
+    Diffa.Helpers.ViewsHelper.packViews(this);
+  },
+  updateViews: function() {
+    this.views.reset(this.get('views'));
+  }
+});
+
+Diffa.Collections.CollectionBase = Backbone.Collection.extend({
+  initialize: function() {
+    var self = this;
+
+    // Track whether an initial load has been done. This allows a UI to distinguish
+    // between "still loading" and "empty".
+    this.initialLoadComplete = false;
+    this.bind("reset", function() {
+      self.initialLoadComplete = true;
+    });
+  }
+});
+Diffa.Collections.Endpoints = Diffa.Collections.CollectionBase.extend({
+  model: Diffa.Models.Endpoint,
+  url: function() { return API_BASE + "/" + Diffa.currentDomain + "/config/endpoints"; },
+  comparator: function(endpoint) { return endpoint.get('name'); }
+});
+Diffa.Collections.EndpointViews = Backbone.Collection.extend({
+  model: Diffa.Models.EndpointView
+})
+Diffa.Collections.Pairs = Diffa.Collections.CollectionBase.extend({
   model: Diffa.Models.Pair,
-  url: function() { return API_BASE + "/" + Diffa.currentDomain + "/scanning/states"; },
-
-  initialize: function() {
-    _.bindAll(this, "sync", "scanAll", "select");
-
-    this.bind("add", function(pair) {
-      pair.set({selected: pair.id == this.selectedPair});
-    });
+  url: function() { return API_BASE + "/" + Diffa.currentDomain + "/config/pairs"; },
+  comparator: function(endpoint) { return endpoint.get('name'); }
+});
+Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
+  model: Backbone.Model,
+  initialize: function(models, options) {
+    Diffa.Collections.CategoryCollection.__super__.initialize.call(this, arguments);
+    this.categoryType = options.categoryType;
   },
-
-  sync: function() {
+  pack: function(target) {
     var self = this;
 
-    $.getJSON(this.url(), function(states) {
-      var toRemove = [];
-
-      // Update any pairs we've already got
-      self.each(function(currentPair) {
-        var newState = states[currentPair.id];
-
-        if (newState) {
-          // We're updating an existing pair
-          currentPair.set({state: newState});
-        } else {
-          toRemove.push(currentPair);
-        }
-      });
-
-      // Remove removable pairs
-      _.each(toRemove, function(r) { self.remove(r); });
-
-      // Add any pairs we haven't seen
-      for (var key in states) {
-        if (!self.get(key)) {
-          self.add([{id: key, state: states[key]}]);
-        }
-      }
+    this.each(function(cat) {
+      target[cat.get('name')] = $.extend({}, cat.attributes, {'@type': self.categoryType});
+      delete target[cat.get('name')].name;
     });
   },
-
-  scanAll: function() {
+  unpack: function(source) {
     var self = this;
 
-    this.each(function(pair) {
-      pair.set({state: 'REQUESTING'});
-    });
+    this.reset([]);
+    _.each(source, function(value, name) {
+      if (value['@type'] == self.categoryType) {
+        var attrs = $.extend({}, value, {name: name});
+        delete attrs['@type']
 
-    $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/scan_all",
-      type: "POST",
-      success: function() {
-        self.each(function(pair) {
-          pair.set({state: 'SCANNING'});
-        });
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("Error in scan request: " + errorThrown);
+        self.add(new self.model(attrs));
       }
-    });
-  },
-
-  select: function(pairKey) {
-    this.selectedPair = pairKey;
-    this.each(function(pair) {
-      pair.set({selected: pair.id == pairKey});
     });
   }
 });
 
-Diffa.Views.PairList = Backbone.View.extend({
-  el: $('#pair-list'),
-
+Diffa.Views.ElementList = Backbone.View.extend({
   initialize: function() {
-    _.bindAll(this, "addPair", "removePair");
+    var self = this;
 
-    this.model.bind('add', this.addPair);
-    this.model.bind('remove', this.removePair);
-  },
+    _.bindAll(this, "render", "addOne", "updateNoneMessage");
 
-  addPair: function(pair) {
-    var view = new Diffa.Views.PairSelector({model: pair});
-    this.el.append(view.render().el);
-  },
+    this.collection.bind('reset', this.render);
+    this.collection.bind('add', function(m) { self.addOne(m, false); });
+    this.collection.bind('remove', this.updateNoneMessage);
 
-  removePair: function(pair) {
-    pair.remove();
-  }
-});
-
-Diffa.Views.PairSelector = Backbone.View.extend({
-  tagName: "div",
-  className: "pair",
-  template: _.template($('#pair-selector-template').html()),
-
-  events: {
-    "click":  "select"
-  },
-
-  initialize: function() {
-    _.bindAll(this, "render", "select", "close");
-
-    this.model.bind('change:state',     this.render);
-    this.model.bind('change:selected',  this.render);
-    this.model.bind('remove',           this.close);
+    this.render();
   },
 
   render: function() {
-    $(this.el).html(this.template({name: this.model.id, state: this.renderState(this.model.get('state'))}));
-    $(this.el).attr('pair-key', this.model.id);
-    $(this.el).toggleClass('selected-pair', this.model.get('selected'));
+    var self = this;
+
+    this.collection.each(function(m) {
+      self.addOne(m, true);
+    });
+
+    this.updateNoneMessage();
+
     return this;
   },
 
-  close: function() {
-    $(this.el).remove();
+  addOne: function(m, initialRender) {
+    var self = this;
+    var newView = new Diffa.Views.ElementListItem({model: m, elementType: self.options.elementType});
+
+    this.$('.element-list').append(newView.render());
+    this.updateNoneMessage();
+
+    if (!initialRender) newView.flash();
   },
 
-  select: function() {
-    Diffa.SettingsApp.navigate("pair/" + this.model.id, true);
-  },
-
-  renderState: function(state) {
-    switch (state) {
-      case "REQUESTING":    return "Requesting Scan";
-      case "UNKNOWN":       return "Scan not run";
-      case "FAILED":        return "Last Scan Failed";
-      case "UP_TO_DATE":    return "Up to Date";
-      case "SCANNING":      return "Scan In Progress";
-      case "CANCELLED":     return "Last Scan Cancelled";
-    }
-
-    return null;
+  updateNoneMessage: function() {
+    this.$('.none-message').toggle(this.collection.length == 0 && !!this.collection.initialLoadComplete);
+    this.$('.loading').toggle(this.collection.length == 0 && !this.collection.initialLoadComplete);
   }
 });
-
-// Base class inherited by views that take a pair collection and then find the selected item to display it.
-Diffa.Views.PairSelectionView = Backbone.View.extend({
-  el: $('#pair-actions'),
+Diffa.Views.ElementListItem = Backbone.View.extend({
+  tagName: 'li',
 
   initialize: function() {
-    _.bindAll(this, "maybeRender");
+    _.bindAll(this, 'render', 'flash', 'remove');
+
+    this.model.bind("change:" + this.model.idField, this.render);
+    this.model.bind("destroy", this.remove);
   },
 
-  maybeRender: function(pair) {
-    // We can sometimes be invoked without a pair. In that case, scan the collection to find a
-    if (pair == null) {
-      pair = this.model.detect(function(pair) { return pair.get('selected'); });
+  render: function() {
+    $(this.el).html(
+      '<a href="#' + this.options.elementType + '/' + this.model.id + '">' +
+        this.model.id +
+      '</a>');
 
-      // If nothing is selected, then we have nothing to do.
-      if (pair == null) return;
-    }
+    return this.el;
+  },
 
-    if (!pair.get('selected') && pair.id == this.currentPairKey) {
-      // The pair we've previously been showing is no longer visible. Hide our view.
-      $(this.el).hide();
-    } else if (pair.get('selected')) {
-      this.currentPairKey = pair.id;
-      this.render();
-    }
+  flash: function() {
+    $('a', this.el).css('background-color', '#ffff99').animate({'background-color': '#FFFFFF'});
   }
 });
-
-Diffa.Views.PairControls = Diffa.Views.PairSelectionView.extend({
-  el: $('#pair-actions'),
-
+Diffa.Views.FormEditor = Backbone.View.extend({
   events: {
-    "click  #pair-controls .scan-button":       "startScan",
-    "click  #pair-controls .cancel-button":     "cancelScan"
+    "click .save": 'saveChanges',
+    "click .delete": 'deleteObject'
   },
 
   initialize: function() {
-    Diffa.Views.PairSelectionView.prototype.initialize.call(this);
+    _.bindAll(this, 'render', 'close');
 
-    _.bindAll(this, "render");
+    this.model.bind('fetch', this.render);
 
-    this.model.bind('change:selected',    this.maybeRender);
-    this.model.bind('change:state',       this.maybeRender);
-    this.model.bind('change:fullContent', this.maybeRender);
-
-    this.maybeRender();
+    this.render();
   },
 
   render: function() {
+    this.preBind();
+
+    $('input[data-key]', this.el).val('');    // Clear the contents of all bound fields
+    Backbone.ModelBinding.bind(this, {all: "data-key"});
+
+    var nameContainer = $('.name-container', this.el);
+
+    $('input', nameContainer).toggle(this.model.isNew());
+    $('span', nameContainer).toggle(!this.model.isNew());
+
+    $(this.el).show();
+  },
+
+  // Callback function to be implemented by subclasses that need to add field values before binding.
+  preBind: function() {},
+  postClose: function() {},
+
+  close: function() {
+    $(this.el).hide();
+
+    this.undelegateEvents();
+    Backbone.ModelBinding.unbind(this);
+
+    this.postClose();
+  },
+
+  saveChanges: function() {
     var self = this;
-    var currentPair = self.model.get(self.currentPairKey);
-    var currentState = currentPair.get('state');
-    var scanIsRunning = (currentState == "REQUESTING" || currentState == "SCANNING");
 
-    var pairScanButton = this.$('#pair-controls .pair-scan-button');
-    var scanButtons = this.$('#pair-controls .scan-button');
-    var cancelButton = this.$('#pair-controls .cancel-button');
-
-    $(cancelButton).toggle(scanIsRunning);
-
-    this.$('#pair-controls .view-scan-button').remove();
-    if (currentPair.get('fullContent')) {
-      // The presence of 'fullContent' indicates that the full data has been loaded
-      var views = _.sortBy(currentPair.get('views'), function(v) { return v.name; });
-
-      // Render scan buttons only if we're not currently doing a scan
-      if (!scanIsRunning) {
-        _.each(views, function(view) {
-          $('<button class="repair scan-button view-scan-button">Scan ' + view.name + '</button>').
-            appendTo($('#pair-controls')).
-            click(function(e) {
-              e.preventDefault();
-              currentPair.startScan(view.name);
-            });
-        });
+    this.model.prepareForSave();
+    this.model.save({}, {
+      success: function() {
+        if (!self.collection.get(self.model.id)) {
+          self.collection.add(self.model);
+          Diffa.SettingsApp.navigate(self.elementType + "/" + self.model.id, {replace: true, trigger: true});
+        }
       }
-
-      // Only show the pair scan button if we're not scanning and we allow manual scans
-      var allowManualScans = (currentPair.get('allowManualScans') !== false);
-      $(pairScanButton).toggle(!scanIsRunning && allowManualScans);
-    } else {
-      $(scanButtons).hide();      // Don't show scan buttons till we know if they're allowed
-    }
-
-    this.el.show();
+    });
   },
 
-  startScan: function() {
-    var currentPair = this.model.get(this.currentPairKey);
-    currentPair.startScan();
-  },
-
-  cancelScan: function() {
-    var currentPair = this.model.get(this.currentPairKey);
-    currentPair.cancelScan();
-  }
-});
-
-Diffa.Views.PairControlSet = Diffa.Views.PairSelectionView.extend({
-  el: $('#pair-actions'),
-
-  initialize: function() {
-    Diffa.Views.PairSelectionView.prototype.initialize.call(this);
-
-    _.bindAll(this, "render");
-
-    this.model.bind('change:selected', this.maybeRender);
-    this.model.bind('change:' + this.controlSet,  this.maybeRender);
-
-    this.maybeRender();
-  },
-
-  render: function() {
-    var self = this;
-
-    $(this.panelEl).find('button').remove();
-
-    var currentPair = self.model.get(self.currentPairKey);
-    var currentControls = currentPair.get(self.controlSet);
-
-    // Only show the loading flower if we don't have items loaded
-    $(this.panelEl).find('.loading').toggle(currentControls == null);
-
-    if (currentControls != null)
-      this.renderPanel(currentPair, currentControls);
-
-    // Only show ourselves if we're still loading or have content
-    $(this.panelEl).toggle(currentControls == null || currentControls.length > 0);
-  }
-});
-
-Diffa.Views.PairRepairs = Diffa.Views.PairControlSet.extend({
-  panelEl: $('#pair-repairs'),
-  controlSet: 'actions',
-
-  renderPanel: function(currentPair, currentActions) {
-    var self = this;
-
-    _.each(currentActions, function(action) {
-      appendActionButtonToContainer(self.panelEl, action, self.model.get(self.currentPairKey), null, null);
+  deleteObject: function() {
+    this.model.destroy({
+      success: function() {
+        Diffa.SettingsApp.navigate("", {trigger: true});
+      }
     });
   }
 });
+Diffa.Views.EndpointEditor = Diffa.Views.FormEditor.extend({
+  el: $('#endpoint-editor'),
+  elementType: "endpoint",
 
-Diffa.Views.PairReports = Diffa.Views.PairControlSet.extend({
-  panelEl: $('#pair-reports'),
-  controlSet: 'reports',
+  preBind: function() {
+    // Attach categories
+    this.categoryEditors = [
+      new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
+      new Diffa.Views.CategoriesEditor({collection: this.model.setCategories, el: this.$('.set-categories')}),
+      new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')})
+    ];
 
-  renderPanel: function(currentPair, currentReports) {
-    var self = this;
+    this.viewsEditor = new Diffa.Views.EndpointViewsEditor({collection: this.model.views, el: this.$('.views')});
+  },
+  postClose: function() {
+    if (this.categoryEditors) _.each(this.categoryEditors, function(editor) { editor.close(); });
+    if (this.viewsEditor) this.viewsEditor.close();
+  }
+});
+Diffa.Views.PairEditor = Diffa.Views.FormEditor.extend({
+  el: $('#pair-editor'),
+  elementType: "pair",
 
-    _.each(currentReports, function(report) {
-      $('<button class="repair">Run ' + report.name +  ' Report</button>').
-        appendTo(self.panelEl).
-        click(function(e) {
-          e.preventDefault();
-          currentPair.runReport(report.name);
-        });
-      });
+  preBind: function() {
+    var selections = this.$('select.endpoint-selection');
+
+    selections.empty();
+    Diffa.EndpointsCollection.each(function(ep) {
+      selections.append('<option value="' + ep.get('name') + '">' + ep.get('name') + '</option>');
+    });
+
+    this.viewsEditor = new Diffa.Views.PairViewsEditor({collection: this.model.views, el: this.$('.views')});
+  },
+  postClose: function() {
+    if (this.viewsEditor) this.viewsEditor.close();
   }
 });
 
-Diffa.Views.PairLog = Diffa.Views.PairSelectionView.extend({
-  el: $('#pair-log'),
+Diffa.Views.TableEditor = Backbone.View.extend({
+  rowEditor: undefined,   /* Must be overriden by subclasses */
 
   initialize: function() {
-    Diffa.Views.PairSelectionView.prototype.initialize.call(this);
+    _.bindAll(this, "addOne", "render", "createRow");
+    this.collection.bind("add", this.addOne);
+    this.collection.bind("reset", this.render);
 
-    _.bindAll(this, "render");
+    this.$('>.add-link').click(this.createRow);
 
-    this.model.bind('change:selected',    this.maybeRender);
-    this.model.bind('change:logEntries',  this.maybeRender);
+    this.templateName = this.$('table').data('template');
+    if (!this.templateName) console.error("Missing template name", this);
+    this.template = _.template($('#' + this.templateName).html());
 
-    this.maybeRender();
+    this.table = this.$('>table');
+
+    this.render();
   },
 
   render: function() {
+    // Remove all category rows
+    $('tr.editable-row', this.table).remove();
+
+    this.collection.each(this.addOne);
+  },
+
+  addOne: function(added) {
+    // Create a row with the table template
+    var row = $(this.template()).addClass('editable-row').appendTo(this.table);
+
+    // Bind the model to the row
+    var rowView = new this.rowEditor({el: row, model: added});
+  },
+
+  createRow: function(e) {
+    e.preventDefault();
+
+    this.collection.add(new this.collection.model({}));
+  },
+
+  close: function() {
+    this.undelegateEvents();
+
+    this.collection.unbind("add", this.addOne);
+    this.collection.unbind("reset", this.render);
+  }
+});
+Diffa.Views.CategoryEditor = Backbone.View.extend({
+  initialize: function() {
+    Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+
+    new Diffa.Binders.ListBinder(this, "data-el-list-key");
+  }
+});
+Diffa.Views.CategoriesEditor = Diffa.Views.TableEditor.extend({
+  rowEditor: Diffa.Views.CategoryEditor
+});
+Diffa.Views.PairViewEditor = Backbone.View.extend({
+  initialize: function() {
+    Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+  }
+});
+Diffa.Views.PairViewsEditor = Diffa.Views.TableEditor.extend({
+  rowEditor: Diffa.Views.PairViewEditor
+});
+Diffa.Views.EndpointViewEditor = Backbone.View.extend({
+  initialize: function() {
+    this.categoryEditors = [
+      new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
+      new Diffa.Views.CategoriesEditor({collection: this.model.setCategories, el: this.$('.set-categories')}),
+      new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')})
+    ];
+    Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+  }
+});
+Diffa.Views.EndpointViewsEditor = Diffa.Views.TableEditor.extend({
+  rowEditor: Diffa.Views.EndpointViewEditor
+});
+
+
+Diffa.Binder = function(options) {
+  this.initialize.apply(this, arguments);
+};
+_.extend(Diffa.Binder.prototype, {
+  initialize: function() {}
+});
+Diffa.Binder.extend = Backbone.Model.extend;    // Copy the extend method definition from a backbone class
+Diffa.Binders.ListBinder = Diffa.Binder.extend({
+  initialize: function(view, key) {
     var self = this;
 
-    this.$('div.entry').remove();
+    _.bindAll(this, 'renderEl');
+    this.view = view;
 
-    var currentPair = self.model.get(self.currentPairKey);
-    var currentLogEntries = currentPair.get('logEntries');
+    view.$('[' + key + ']').each(function(idx, el) {
+      var attrName = $(el).attr(key);
 
-    // Only show the loading flower if we don't have log entries loaded
-    this.$('.loading').toggle(currentLogEntries == null);
+      self.renderEl(attrName, el);
+      view.model.bind('change:' + attrName, function() { self.renderEl(attrName, el); });
+    });
+  },
 
-    if (currentLogEntries != null) {
-      _.each(currentLogEntries, function(entry) {
-        var time = new Date(entry.timestamp).toString("dd/MM/yyyy HH:mm:ss");
-        var text = '<span class="timestamp">' + time + '</span><span class="msg">' + entry.msg + '</span>';
+  renderEl: function(attrName, el) {
+    var self = this;
+    var values = self.view.model.get(attrName);
 
-        self.el.append('<div class="entry entry-' + entry.level.toLowerCase() + '">' + text + '</div>')
+    $(el).empty();
+    _.each(values, function(val, idx) {
+      $('<input type="text" value="' + _.escape(val) + '">').
+        appendTo(el).
+        change(function() {
+          values[idx] = $(this).val();
+        });
+    });
+
+    $('<button>+</button>').
+      appendTo(el).
+      click(function() {
+        self.view.model.set(attrName, (self.view.model.get(attrName) || []).concat(""))
       });
-    }
-    this.el.show();
   }
 });
 
-$('#scan_all').click(function(e) {
-  Diffa.PairsCollection.scanAll();
+Diffa.currentDomain = "diffa";    // TODO: Allow user to change this
+Diffa.SettingsApp = new Diffa.Routers.Config();
+Diffa.EndpointsCollection = new Diffa.Collections.Endpoints();
+Diffa.PairsCollection = new Diffa.Collections.Pairs();
+Diffa.EndpointElementListView = new Diffa.Views.ElementList({
+  el: $('#endpoints-list'),
+  collection: Diffa.EndpointsCollection,
+  elementType: 'endpoint'
+});
+Diffa.EndpointElementListView = new Diffa.Views.ElementList({
+  el: $('#pairs-list'),
+  collection: Diffa.PairsCollection,
+  elementType: 'pair'
 });
 
-Diffa.currentDomain = "diffa";    // TODO: Allow user to change this
-Diffa.SettingsApp = new Diffa.Routers.Pairs();
-Diffa.PairsCollection = new Diffa.Collections.Pairs();
-Diffa.PairListView = new Diffa.Views.PairList({model: Diffa.PairsCollection});
-Diffa.PairControlsView =  new Diffa.Views.PairControls({model: Diffa.PairsCollection});
-Diffa.PairRepairsView =  new Diffa.Views.PairRepairs({model: Diffa.PairsCollection});
-Diffa.PairReportsView =  new Diffa.Views.PairReports({model: Diffa.PairsCollection});
-Diffa.PairLogView =  new Diffa.Views.PairLog({model: Diffa.PairsCollection});
-Backbone.history.start();
+var preloadCollections = function(colls, callback) {
+  var remaining = colls.length;
+  _.each(colls, function(preload) {
+    preload.fetch({
+      success: function() {
+        remaining -= 1;
 
-Diffa.PairsCollection.sync();
-setInterval('Diffa.PairsCollection.sync()', Diffa.Config.PairStateInterval);
-  
+        if (remaining == 0) {
+          callback();
+        }
+      }
+    })
+  });
+};
+
+// Preload useful collections, and then start processing history
+preloadCollections([Diffa.EndpointsCollection, Diffa.PairsCollection], function() {
+  Backbone.history.start();
+});
 });

@@ -89,6 +89,12 @@ class ConfigurationResource(val config:Configuration,
   @MandatoryParams(Array(new MandatoryParam(name="id", datatype="string", description="Endpoint ID")))
   def deleteEndpoint(@PathParam("id") id:String) = config.deleteEndpoint(domain, id)
 
+  @GET
+  @Path("/pairs")
+  @Produces(Array("application/json"))
+  @Description("Returns a list of all the pairs registered with the agent.")
+  def listPairs() = config.listPairs(domain).toArray
+
   @POST
   @Path("/pairs")
   @Consumes(Array("application/json"))

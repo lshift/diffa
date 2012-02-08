@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) 2010-2011 LShift Ltd.
+    Copyright (C) 2010-2012 LShift Ltd.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,9 +21,11 @@
     <title>Diffa Settings</title>
 
     <script type="text/javascript" src="js/thirdparty/jquery-1.6.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/jquery.color.js"></script>
     <script type="text/javascript" src="js/thirdparty/json2.js"></script>
-    <script type="text/javascript" src="js/thirdparty/underscore-1.1.6.min.js"></script>
-    <script type="text/javascript" src="js/thirdparty/backbone-0.5.1.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/underscore-1.3.1.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/backbone-0.9.0.min.js"></script>
+    <script type="text/javascript" src="js/thirdparty/backbone.modelbinding-0.5.0-patched.js"></script>
     <script type="text/javascript" src="js/datejs/date-en-GB.js" charset="utf-8"></script>
     <script type="text/javascript" src="js/datejs/extras.js" charset="utf-8"></script>
     <script type="text/javascript" src="js/diffa-common.js" charset="utf-8"></script>
@@ -34,7 +36,7 @@
 
   <body>
 
-    <div class="container">
+    <div id="settings-page" class="container">
 
       <div class="main-logo">
         <h1>Diffa Settings</h1>
@@ -44,49 +46,155 @@
         <a href="index.html">Diffa</a>
       </div>
 
-      <div id="all-pairings">
-        <a id="scan_all" href="#">Scan All Pairings For Differences</a>
+      <div id="elements">
+        <div id="endpoints-list" class="element-list-panel">
+          <h4>Endpoints</h4>
+          <span class="none-message">No endpoints configured</span>
+          <ul class="element-list"></ul>
+          <span class="loading"><img src="images/busy.gif"/></span>
+          <a id="addEndpoint" href="#endpoint" class="add-element">Add New</a>
+        </div>
+
+        <div id="pairs-list" class="element-list-panel">
+          <h4>Pairs</h4>
+          <span class="none-message">No pairs configured</span>
+          <span class="loading"><img src="images/busy.gif"/></span>
+          <ul class="element-list"></ul>
+          <a id="addPair" href="#pair" class="add-element">Add New</a>
+        </div>
+
       </div>
 
-      <div id="pair-list">
+      <div id="details">
+        <div style="display:none" id="endpoint-editor">
+          <dl>
+            <dt>Name:</dt><dd class="name-container"><input data-key="name" type="text"><span data-bind="name"></span></dd>
+            <dt>Scan URL:</dt><dd><input data-key="scanUrl" type="text" size="60"></dd>
+            <dt>Content Retrieval URL:</dt><dd><input data-key="contentRetrievalUrl" type="text" size="60"></dd>
+            <dt>Version Generation URL:</dt><dd><input data-key="versionGenerationUrl" type="text" size="60"></dd>
+            <dt>Inbound URL:</dt><dd><input data-key="inboundUrl" type="text" size="60"></dd>
 
-        <div id="pairs"></div>
+            <dt>Range Categories</dt>
+            <dd class="range-categories">
+              <table class="editable-table" data-template="range-category-template">
+                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+            <dt>Set Categories</dt>
+            <dd class="set-categories">
+              <table class="editable-table" data-template="set-category-template">
+                <thead><tr><td>Name</td><td>Values</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+            <dt>Prefix Categories</dt>
+            <dd class="prefix-categories">
+              <table class="editable-table" data-template="prefix-category-template">
+                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+            <dt>Views</dt>
+            <dd class="views">
+              <table class="editable-table" data-template="endpoint-view-template">
+                <thead><tr><td>Name</td><td>Details</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
 
-      </div>
-
-      <div id="pair-actions" class="pair-info-panel" style="display:none">
-        <h3>Available Pair Actions</h3>
-
-        <div id="pair-controls">
-          <button class="repair scan-button pair-scan-button">Start Scan</button>
-          <button class="repair cancel-button">Cancel Scan</button>
+            <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+          </dl>
         </div>
-        <div id="pair-repairs" class="control-set">
-          <div class="loading">
-            <img src="images/busy.gif"/>
-          </div>
-        </div>
-        <div id="pair-reports" class="control-set">
-          <div class="loading">
-            <img src="images/busy.gif"/>
-          </div>
-        </div>
-      </div>
+        <div style="display:none" id="pair-editor">
+          <dl>
+            <dt>Key:</dt><dd class="name-container"><input data-key="key" type="text"><span data-bind="key"></span></dd>
+            <dt>Version Policy:</dt><dd>
+              <select data-key="versionPolicyName">
+                <option value="same">Same</option>
+                <option value="correlated">Correlated</option>
+              </select>
+            </dd>
+            <dt>Upstream:</dt><dd><select class="endpoint-selection" data-key="upstreamName"></select></dd>
+            <dt>Downstream:</dt><dd><select class="endpoint-selection" data-key="downstreamName"></select></dd>
+            <dt>Allow Manual Scans:</dt><dd>
+              <input data-key="allowManualScans" type="checkbox" id="allowPairManualScans">
+              <label for="allowPairManualScans">Allow Manual Scans</label>
+            </dd>
+            <dt>Scan Cron Specification:</dt><dd><input data-key="scanCronSpec" type="text"></dd>
+            <dt>Matching Timeout:</dt><dd><input data-key="matchingTimeout" type="number"></dd>
+            <dt>Views</dt>
+            <dd class="views">
+              <table class="editable-table" data-template="pair-view-template">
+                <thead><tr><td>Name</td><td>View Scan Cron Specification</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
 
-      <div id="pair-log" class="pair-info-panel" style="display:none">
-        <h3>Recent Pair Activity</h3>
-        <div class="loading">
-          <img src="images/busy.gif"/>
+            <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+          </dl>
         </div>
       </div>
     </div>
 
-    <script type="text/template" id="pair-selector-template">
-      <div class="name"><%= name %></div>
-      <div class="state"><%= state %></div>
+    <script type="text/template" id="pair-view-template">
+      <tr>
+        <td><input data-el-key="name" type="text"></td>
+        <td><input data-el-key="scanCronSpec" type="text"></td>
+      </tr>
     </script>
-
-
+    <script type="text/template" id="range-category-template">
+      <tr>
+        <td><input data-el-key="name" type="text"></td>
+        <td><input data-el-key="dataType" type="text"></td>
+        <td><input data-el-key="lower" type="text"></td>
+        <td><input data-el-key="upper" type="text"></td>
+      </tr>
+    </script>
+    <script type="text/template" id="set-category-template">
+      <tr>
+        <td><input data-el-key="name" type="text"></td>
+        <td data-el-list-key="values"></td>
+      </tr>
+    </script>
+    <script type="text/template" id="prefix-category-template">
+      <tr>
+        <td><input data-el-key="name" type="text"></td>
+        <td><input data-el-key="prefixLength" type="text"></td>
+        <td><input data-el-key="maxLength" type="text"></td>
+        <td><input data-el-key="step" type="text"></td>
+      </tr>
+    </script>
+    <script type="text/template" id="endpoint-view-template">
+      <tr>
+        <td><input data-el-key="name" type="text"></td>
+        <td>
+          <dl>
+            <dt>Range Categories</dt>
+            <dd class="range-categories">
+              <table class="editable-table" data-template="range-category-template">
+                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+            <dt>Set Categories</dt>
+            <dd class="set-categories">
+              <table class="editable-table" data-template="set-category-template">
+                <thead><tr><td>Name</td><td>Values</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+            <dt>Prefix Categories</dt>
+            <dd class="prefix-categories">
+              <table class="editable-table" data-template="prefix-category-template">
+                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td></tr></thead>
+              </table>
+              <a class="add-link" href="">Add New</a>
+            </dd>
+          </dl>
+        </td>
+      </tr>
+    </script>
   </body>
 
 </html>

@@ -128,7 +128,7 @@ case class PairDef(
     val pairPath = ValidationUtil.buildPath(path, "pair", Map("key" -> key))
 
     // Ensure that cron specs are valid
-    if (scanCronSpec != null) {
+    if (scanCronSpec != null && scanCronSpec.length() > 0) {
       try {
         // Will throw an exception if the expression is invalid. The exception message will also include useful
         // diagnostics of why it is wrong.

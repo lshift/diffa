@@ -64,7 +64,7 @@
       </div>
 
       <decorator:body/>
-      <div class="footer">Diffa ${project.version} &copy;2010-2011 LShift Ltd.</div>
+      <div class="footer">Diffa ${project.version} &copy;2010-2012 LShift Ltd.</div>
     </div>
   </body>
 
