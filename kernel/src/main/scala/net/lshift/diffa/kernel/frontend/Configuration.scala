@@ -155,7 +155,7 @@ class Configuration(val configStore: DomainConfigStore,
     val pairRef = DiffaPairRef(pairDef.key, domain)
     log.info("%s -> Processing pair declare/update request ....".format(pairRef))
 
-    pairDef.validate()
+    pairDef.validate(null, configStore.listEndpoints(domain).toSet)
     // Stop a running actor, if there is one
     maybeWithPair(domain, pairDef.key, (p:DiffaPair) => {
       log.info("%s -> Stopping pair actor  (%s)".format(p.asRef, benchmark( () => supervisor.stopActor(p.asRef)) ))

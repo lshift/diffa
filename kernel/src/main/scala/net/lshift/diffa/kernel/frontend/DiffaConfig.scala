@@ -63,21 +63,21 @@ case class EndpointDef (
   val DEFAULT_URL_LENGTH_LIMIT = 1024
 
   def validate(path:String = null) {
-    // TODO [#344] : Add validation of endpoint parameters
+    // Nullify any of the URLs that are blank
+    scanUrl = ValidationUtil.maybeNullify(scanUrl)
+    contentRetrievalUrl = ValidationUtil.maybeNullify(contentRetrievalUrl)
+    versionGenerationUrl = ValidationUtil.maybeNullify(versionGenerationUrl)
+    inboundUrl = ValidationUtil.maybeNullify(inboundUrl)
+
     val endPointPath = ValidationUtil.buildPath(path, "endpoint", Map("name" -> name))
-    Seq(
-      scanUrl,
-      contentRetrievalUrl,
-      versionGenerationUrl,
-      inboundUrl
-    ).foreach(url => {
-      if (url != null) {
-        if (url.length() > DEFAULT_URL_LENGTH_LIMIT) {
-          throw new ConfigValidationException(endPointPath,
-            "URL (%s) length was %s, but the limit is %s (endpoint was %s)".format(url, url.length(), DEFAULT_URL_LENGTH_LIMIT, this))
-        }
-      }
-    })
+    ValidationUtil.requiredAndNotEmpty(endPointPath, "name", this.name);
+
+    ValidationUtil.ensureLengthLimit(endPointPath, "scanUrl", scanUrl, DEFAULT_URL_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(endPointPath, "contentRetrievalUrl", contentRetrievalUrl, DEFAULT_URL_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(endPointPath, "versionGenerationUrl", versionGenerationUrl, DEFAULT_URL_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(endPointPath, "inboundUrl", inboundUrl, DEFAULT_URL_LENGTH_LIMIT)
+
+    ValidationUtil.ensureUniqueChildren(endPointPath, "views", "name", views.map(v => v.name))
     views.foreach(v => v.validate(this, endPointPath))
   }
 }
@@ -90,6 +90,8 @@ case class EndpointViewDef(
 
   def validate(owner:EndpointDef, path:String = null) {
     val viewPath = ValidationUtil.buildPath(path, "views", Map("name" -> this.name))
+
+    ValidationUtil.requiredAndNotEmpty(viewPath, "name", this.name);
 
     categories.keySet().foreach(viewCategory => {
       if (!owner.categories.containsKey(viewCategory)) {
@@ -127,8 +129,14 @@ case class PairDef(
   def validate(path:String = null, endpoints:Set[EndpointDef] = null) {
     val pairPath = ValidationUtil.buildPath(path, "pair", Map("key" -> key))
 
+    ValidationUtil.requiredAndNotEmpty(pairPath, "key", key)
+
+    // Nullify the cronspecs if they are blank
+    scanCronSpec = ValidationUtil.maybeNullify(scanCronSpec)
+    views.foreach(v => v.scanCronSpec = ValidationUtil.maybeNullify(v.scanCronSpec))
+
     // Ensure that cron specs are valid
-    if (scanCronSpec != null && scanCronSpec.length() > 0) {
+    if (scanCronSpec != null) {
       try {
         // Will throw an exception if the expression is invalid. The exception message will also include useful
         // diagnostics of why it is wrong.
@@ -162,6 +170,8 @@ case class PairViewDef(
 
   def validate(owner:PairDef, path:String, upstreamEp:EndpointDef, downstreamEp:EndpointDef) {
     val viewPath = ValidationUtil.buildPath(path, "views", Map("name" -> this.name))
+
+    ValidationUtil.requiredAndNotEmpty(viewPath, "name", this.name)
 
     // Ensure we have both upstream and downstream endpoint views corresponding to this view
     upstreamEp.views.find(v => v.name == this.name).

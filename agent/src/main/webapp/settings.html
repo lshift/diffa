@@ -22,6 +22,7 @@
 
     <script type="text/javascript" src="js/thirdparty/jquery-1.6.min.js"></script>
     <script type="text/javascript" src="js/thirdparty/jquery.color.js"></script>
+    <script type="text/javascript" src="js/thirdparty/jquery.scrollTo-1.4.2-min.js"></script>
     <script type="text/javascript" src="js/thirdparty/json2.js"></script>
     <script type="text/javascript" src="js/thirdparty/underscore-1.3.1.min.js"></script>
     <script type="text/javascript" src="js/thirdparty/backbone-0.9.0.min.js"></script>
@@ -67,6 +68,7 @@
 
       <div id="details">
         <div style="display:none" id="endpoint-editor">
+          <div class="error"></div>
           <dl>
             <dt>Name:</dt><dd class="name-container"><input data-key="name" type="text"><span data-bind="name"></span></dd>
             <dt>Scan URL:</dt><dd><input data-key="scanUrl" type="text" size="60"></dd>
@@ -107,6 +109,7 @@
           </dl>
         </div>
         <div style="display:none" id="pair-editor">
+          <div class="error"></div>
           <dl>
             <dt>Key:</dt><dd class="name-container"><input data-key="key" type="text"><span data-bind="key"></span></dd>
             <dt>Version Policy:</dt><dd>

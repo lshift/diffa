@@ -48,4 +48,36 @@ object ValidationUtil {
       throw new ConfigValidationException(path, name + " cannot be null or empty")
     }
   }
+
+  /**
+   * Validates that the list of values contains only unique values. Raises an error for the first
+   * non-unique field.
+   */
+  def ensureUniqueChildren(path:String, child:String, keyName:String, values:Seq[String]) {
+    for (i <- 0 until (values.length-1)) {
+      val current = values(i)
+
+      if (values.slice(i+1, values.length).contains(current)) {
+        val childPath = buildPath(path, child, Map(keyName -> current))
+
+        throw new ConfigValidationException(childPath, "'" + current + "' is not a unique " + keyName)
+      }
+    }
+  }
+
+  /**
+   * Validates that a given field does not exceed a length limit.
+   */
+  def ensureLengthLimit(path:String, name:String, value:String, limit:Int) {
+    if (value != null && value.length() > limit) {
+      throw new ConfigValidationException(path,
+        "%s is too long. Limit is %s, value %s is %s".format(name, limit, value, value.length))
+    }
+  }
+
+  /**
+   * Turns an empty string into a null string. This prevents issues whereby empty strings provided by the web
+   * interface look like incorrect values instead of missing ones.
+   */
+  def maybeNullify(s:String) = if (s == null || s.isEmpty) null else s
 }

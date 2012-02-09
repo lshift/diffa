@@ -26,84 +26,115 @@ import org.junit.runner.RunWith
 @RunWith(classOf[Theories])
 class ConfigValidationTest {
 
-  @Test(expected = classOf[ConfigValidationException])
+  @Test
   def shouldRejectEndpointWithScanUrlThatIsTooLong = {
-    val endpointLog = new EndpointDef(scanUrl = "*" * 1025)
-    endpointLog.validate("")
+    validateError(
+      EndpointDef(name = "a", scanUrl = "*" * 1025),
+      "config/endpoint[name=a]: scanUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
+    )
+  }
+
+  @Test
+  def shouldRejectEndpointWithContentRetrievalUrlThatIsTooLong = {
+    validateError(
+      EndpointDef(name = "a", contentRetrievalUrl = "*" * 1025),
+      "config/endpoint[name=a]: contentRetrievalUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
+    )
+  }
+
+  @Test
+  def shouldRejectEndpointWithVersionGenerationUrlThatIsTooLong = {
+    validateError(
+      EndpointDef(name = "a", versionGenerationUrl = "*" * 1025),
+      "config/endpoint[name=a]: versionGenerationUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
+    )
+  }
+
+  @Test
+  def shouldRejectEndpointWithInboundUrlThatIsTooLong = {
+    validateError(
+      EndpointDef(name = "a", inboundUrl = "*" * 1025),
+      "config/endpoint[name=a]: inboundUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
+    )
+  }
+
+  @Test
+  def shouldRejectEndpointWithoutName() {
+    validateError(new EndpointDef(name = null), "config/endpoint[name=null]: name cannot be null or empty")
+  }
+
+  @Test
+  def shouldRejectEndpointViewWithoutName() {
+    validateError(
+      new EndpointDef(name = "a", views = List(EndpointViewDef())),
+      "config/endpoint[name=a]/views[name=null]: name cannot be null or empty"
+    )
+  }
+
+  @Test
+  def shouldRejectEndpointViewWithNonUniqueName() {
+    validateError(
+      new EndpointDef(name = "a", views = List(EndpointViewDef(name = "a"), EndpointViewDef(name = "a"))),
+      "config/endpoint[name=a]/views[name=a]: 'a' is not a unique name"
+    )
+  }
+  
+  @Test
+  def shouldRejectPairWithoutKey() {
+    validateError(
+      PairDef(key = null),
+      Set(),
+      "config/pair[key=null]: key cannot be null or empty"
+    )
   }
 
   @Test
   def shouldRejectPairWithScanCronSpecThatIsntACronSpec() {
-    val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "b", scanCronSpec = "1 2 3")
-    val endpoints = Set(EndpointDef(name = "a"), EndpointDef(name = "b"))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]: Schedule '1 2 3' is not a valid: Unexpected end of expression.", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "b", scanCronSpec = "1 2 3"),
+      Set(EndpointDef(name = "a"), EndpointDef(name = "b")),
+      "config/pair[key=p]: Schedule '1 2 3' is not a valid: Unexpected end of expression."
+    )
   }
 
   @Test
   def shouldRejectPairThatUsesAnUpstreamEndpointThatDoesntExist() {
-    val pairDef = PairDef(key = "p", upstreamName = "c", downstreamName = "b")
-    val endpoints = Set(EndpointDef(name = "a"), EndpointDef(name = "b"))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]: Upstream endpoint 'c' is not defined", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "c", downstreamName = "b"),
+      Set(EndpointDef(name = "a"), EndpointDef(name = "b")),
+      "config/pair[key=p]: Upstream endpoint 'c' is not defined"
+    )
   }
 
   @Test
   def shouldRejectPairThatUsesADownstreamEndpointThatDoesntExist() {
-    val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "c")
-    val endpoints = Set(EndpointDef(name = "a"), EndpointDef(name = "b"))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]: Downstream endpoint 'c' is not defined", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "c"),
+      Set(EndpointDef(name = "a"), EndpointDef(name = "b")),
+      "config/pair[key=p]: Downstream endpoint 'c' is not defined"
+    )
   }
 
   @Test
   def shouldRejectViewsWithCategoriesNotPresentOnParent() {
-    val endpointDef = EndpointDef(name = "endpointA",
-      categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
-      views = List(EndpointViewDef(name = "invalid",
-        categories = Map("otherString" -> new SetCategoryDescriptor(Set("c", "d"))))))
-
-    try {
-      endpointDef.validate()
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("endpoint[name=endpointA]/views[name=invalid]: View category 'otherString' does not derive from an endpoint category", e.getMessage)
-    }
+    validateError(
+      EndpointDef(name = "endpointA",
+        categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
+        views = List(EndpointViewDef(name = "invalid",
+          categories = Map("otherString" -> new SetCategoryDescriptor(Set("c", "d")))))),
+      "config/endpoint[name=endpointA]/views[name=invalid]: View category 'otherString' does not derive from an endpoint category"
+    )
   }
 
   @Test
   def shouldRejectViewsWithCategoriesThatArentWithinBoundsOfParent() {
-    val endpointDef = EndpointDef(name = "endpointA",
-      categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
-      views = List(EndpointViewDef(name = "invalid",
-        categories = Map("someString" -> new SetCategoryDescriptor(Set("c", "d"))))))
-
-    try {
-      endpointDef.validate()
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("endpoint[name=endpointA]/views[name=invalid]: View category 'someString' (SetCategoryDescriptor{values=[c, d]}) does not refine endpoint category (SetCategoryDescriptor{values=[a, b]})", e.getMessage)
-    }
+    validateError(
+      EndpointDef(name = "endpointA",
+        categories = Map("someString" -> new SetCategoryDescriptor(Set("a", "b"))),
+        views = List(EndpointViewDef(name = "invalid",
+          categories = Map("someString" -> new SetCategoryDescriptor(Set("c", "d")))))),
+      "config/endpoint[name=endpointA]/views[name=invalid]: View category 'someString' (SetCategoryDescriptor{values=[c, d]}) does not refine endpoint category (SetCategoryDescriptor{values=[a, b]})"
+    )
   }
 
   @Test
@@ -255,30 +286,20 @@ class ConfigValidationTest {
 
   @Test
   def shouldRejectPairViewThatUsesAnUpstreamViewThatDoesntExist() {
-    val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "b", views = List(PairViewDef("abc")))
-    val endpoints = Set(EndpointDef(name = "a"), EndpointDef(name = "b", views = List(EndpointViewDef(name = "abc"))))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/views[name=abc]: The upstream endpoint does not define the view 'abc'", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "b", views = List(PairViewDef("abc"))),
+      Set(EndpointDef(name = "a"), EndpointDef(name = "b", views = List(EndpointViewDef(name = "abc")))),
+      "config/pair[key=p]/views[name=abc]: The upstream endpoint does not define the view 'abc'"
+    )
   }
 
   @Test
   def shouldRejectPairViewThatUsesADownstreamViewThatDoesntExist() {
-    val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "b", views = List(PairViewDef("abc")))
-    val endpoints = Set(EndpointDef(name = "a", views = List(EndpointViewDef(name = "abc"))), EndpointDef(name = "b"))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/views[name=abc]: The downstream endpoint does not define the view 'abc'", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "b", views = List(PairViewDef("abc"))),
+      Set(EndpointDef(name = "a", views = List(EndpointViewDef(name = "abc"))), EndpointDef(name = "b")),
+      "config/pair[key=p]/views[name=abc]: The downstream endpoint does not define the view 'abc'"
+    )
   }
 
   @Test
@@ -294,19 +315,14 @@ class ConfigValidationTest {
 
   @Test
   def shouldRejectPairViewThatUsesInvalidCronExpression() {
-    val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "b",
-      views = List(PairViewDef("abc", scanCronSpec = "1 2 3")))
-    val endpoints = Set(
-      EndpointDef(name = "a", views = List(EndpointViewDef(name = "abc"))),
-      EndpointDef(name = "b", views = List(EndpointViewDef(name = "abc"))))
-
-    try {
-      pairDef.validate("config", endpoints)
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/views[name=abc]: Schedule '1 2 3' is not a valid: Unexpected end of expression.", e.getMessage)
-    }
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "b",
+              views = List(PairViewDef("abc", scanCronSpec = "1 2 3"))),
+      Set(
+        EndpointDef(name = "a", views = List(EndpointViewDef(name = "abc"))),
+        EndpointDef(name = "b", views = List(EndpointViewDef(name = "abc")))),
+      "config/pair[key=p]/views[name=abc]: Schedule '1 2 3' is not a valid: Unexpected end of expression."
+    )
   }
 
   @Test
@@ -318,82 +334,81 @@ class ConfigValidationTest {
 
   @Test
   def shouldRejectReportWithInvalidReportType() {
-    val reportDef = PairReportDef(name = "Process Differences", pair ="p", reportType = "blah-blah",
-                                  target = "http://someapp.com/handle_report")
-    try {
-      reportDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/report[name=Process Differences]: Invalid report type: blah-blah", e.getMessage)
-    }
+    validateError(
+      PairReportDef(name = "Process Differences", pair ="p", reportType = "blah-blah",
+                    target = "http://someapp.com/handle_report"),
+      "config/pair[key=p]/report[name=Process Differences]: Invalid report type: blah-blah"
+    )
   }
 
   @Test
   def shouldRejectReportWithMissingTarget() {
-    val reportDef = PairReportDef(name = "Process Differences", pair ="p", reportType = "differences")
-    try {
-      reportDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/report[name=Process Differences]: Missing target", e.getMessage)
-    }
+    validateError(
+      PairReportDef(name = "Process Differences", pair ="p", reportType = "differences"),
+      "config/pair[key=p]/report[name=Process Differences]: Missing target"
+    )
   }
 
   @Test
   def shouldRejectReportWithInvalidTarget() {
-    val reportDef = PairReportDef(name = "Process Differences", pair ="p", reportType = "differences",
-                                  target = "random-target")
-    try {
-      reportDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/pair[key=p]/report[name=Process Differences]: Invalid target (not a URL): random-target", e.getMessage)
-    }
+    validateError(
+      PairReportDef(name = "Process Differences", pair ="p", reportType = "differences",
+                    target = "random-target"),
+      "config/pair[key=p]/report[name=Process Differences]: Invalid target (not a URL): random-target"
+    )
   }
 
   @Test
   def shouldRejectUserWithoutName() {
-    val userDef = UserDef(email = "user@domain.com", password = "password")
-    try {
-      userDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/user[name=null]: name cannot be null or empty", e.getMessage)
-    }
+    validateError(
+      UserDef(email = "user@domain.com", password = "password"),
+      "config/user[name=null]: name cannot be null or empty"
+    )
   }
 
   @Test
   def shouldRejectUserWithoutEmail() {
-    val userDef = UserDef(name = "some.user", password = "password")
-    try {
-      userDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/user[name=some.user]: email cannot be null or empty", e.getMessage)
-    }
+    validateError(
+      UserDef(name = "some.user", password = "password"),
+      "config/user[name=some.user]: email cannot be null or empty"
+    )
   }
 
   @Test
   def shouldRejectUserWithoutPasswordWhenNotExternal() {
-    val userDef = UserDef(name = "some.user", email = "user@domain.com")
-    try {
-      userDef.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals("config/user[name=some.user]: password cannot be null or empty", e.getMessage)
-    }
+    validateError(
+      UserDef(name = "some.user", email = "user@domain.com"),
+      "config/user[name=some.user]: password cannot be null or empty"
+    )
   }
 
   @Test
   def shouldAcceptExternalUserWithoutPassword() {
     val userDef = UserDef(name = "some.user", email = "user@domain.com", external = true)
     userDef.validate("config")
+  }
+
+  type Validatable = {
+    def validate(path:String)
+  }
+
+  def validateError(v:Validatable, msg:String) {
+    try {
+      v.validate("config")
+      fail("Should have thrown ConfigValidationException")
+    } catch {
+      case e:ConfigValidationException =>
+        assertEquals(msg, e.getMessage)
+    }
+  }
+  def validateError(v:PairDef, endpoints:Set[EndpointDef], msg:String) {
+    try {
+      v.validate("config", endpoints)
+      fail("Should have thrown ConfigValidationException")
+    } catch {
+      case e:ConfigValidationException =>
+        assertEquals(msg, e.getMessage)
+    }
   }
 }
 

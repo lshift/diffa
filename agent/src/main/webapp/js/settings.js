@@ -283,6 +283,7 @@ Diffa.Views.FormEditor = Backbone.View.extend({
   },
 
   render: function() {
+    this.hideErrors();
     this.preBind();
 
     $('input[data-key]', this.el).val('');    // Clear the contents of all bound fields
@@ -311,14 +312,26 @@ Diffa.Views.FormEditor = Backbone.View.extend({
 
   saveChanges: function() {
     var self = this;
+    var saveButton = $('.save');
 
+    saveButton.attr('disabled', 'disabled');
+
+    this.hideErrors();
     this.model.prepareForSave();
     this.model.save({}, {
+      global: false,        // Don't invoke global event handlers - we'll deal with errors here locally
       success: function() {
+        saveButton.removeAttr('disabled');
+
         if (!self.collection.get(self.model.id)) {
           self.collection.add(self.model);
           Diffa.SettingsApp.navigate(self.elementType + "/" + self.model.id, {replace: true, trigger: true});
         }
+      },
+      error: function(model, response) {
+        saveButton.removeAttr('disabled');
+
+        self.showError(response.responseText);
       }
     });
   },
@@ -329,6 +342,13 @@ Diffa.Views.FormEditor = Backbone.View.extend({
         Diffa.SettingsApp.navigate("", {trigger: true});
       }
     });
+  },
+
+  showError: function(errorHtml) {
+    $.scrollTo(this.$('.error').html(errorHtml).show(), 1000);
+  },
+  hideErrors: function() {
+    this.$('.error').hide();
   }
 });
 Diffa.Views.EndpointEditor = Diffa.Views.FormEditor.extend({
