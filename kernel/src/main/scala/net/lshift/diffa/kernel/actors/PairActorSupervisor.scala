@@ -72,7 +72,10 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
         }
 
       }
-      case 1    => log.warn("Attempting to re-spawn actor for key: " + pair.identifier)
+      case 1    =>
+        log.info("Initiating restart of actor for key: " + pair.identifier)
+        stopActor(pair.asRef)
+        startActor(pair)
       case x    => log.error("Too many actors for key: " + pair.identifier + "; actors = " + x)
     }
   }

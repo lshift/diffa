@@ -57,7 +57,7 @@ class Configuration(val configStore: DomainConfigStore,
     diffaConfig.members.foreach(configStore.makeDomainMember(domain,_))
 
     // Apply endpoint and pair updates
-    diffaConfig.endpoints.foreach(createOrUpdateEndpoint(domain, _))
+    diffaConfig.endpoints.foreach(createOrUpdateEndpoint(domain, _, false))   // Don't restart pairs - that'll happen in the next step
     diffaConfig.pairs.foreach(p => createOrUpdatePair(domain, p))
 
     // Remove missing repair actions, and create/update the rest
@@ -109,11 +109,16 @@ class Configuration(val configStore: DomainConfigStore,
   * */
   def declareEndpoint(domain:String, endpoint: EndpointDef): Unit = createOrUpdateEndpoint(domain, endpoint)
 
-  def createOrUpdateEndpoint(domain:String, endpointDef: EndpointDef) = {
+  def createOrUpdateEndpoint(domain:String, endpointDef: EndpointDef, restartPairs:Boolean = true) = {
     log.debug("[%s] Processing endpoint declare/update request: %s".format(domain, endpointDef.name))
     endpointDef.validate()
     val endpoint = configStore.createOrUpdateEndpoint(domain, endpointDef)
     endpointListener.onEndpointAvailable(endpoint)
+
+    // Inform each related pair that it has been updated
+    if (restartPairs) {
+      configStore.listPairsForEndpoint(domain, endpoint.name).foreach(notifyPairUpdate(_))
+    }
   }
 
   def deleteEndpoint(domain:String, endpoint: String) = {
@@ -156,19 +161,8 @@ class Configuration(val configStore: DomainConfigStore,
     log.info("%s -> Processing pair declare/update request ....".format(pairRef))
 
     pairDef.validate(null, configStore.listEndpoints(domain).toSet)
-    // Stop a running actor, if there is one
-    maybeWithPair(domain, pairDef.key, (p:DiffaPair) => {
-      log.info("%s -> Stopping pair actor  (%s)".format(p.asRef, benchmark( () => supervisor.stopActor(p.asRef)) ))
-    })
     configStore.createOrUpdatePair(domain, pairDef)
-    withCurrentPair(domain, pairDef.key, (p:DiffaPair) => {
-      val pair = p.asRef
-      log.info("%s -> Starting pair actor  (%s)".format(pair, benchmark( () => supervisor.startActor(p)) ))
-      log.info("%s -> Adding to matching manager (%s)".format(pair, benchmark( () => matchingManager.onUpdatePair(p)) ))
-      log.info("%s -> Adding to differences store (%s)".format(pair, benchmark( () => differencesManager.onUpdatePair(pair)) ))
-      log.info("%s -> Registering with scheduler (%s)".format(pair, benchmark( () => scanScheduler.onUpdatePair(p)) ))
-      log.info("%s -> Running initial difference (%s)".format(pair, benchmark( () => pairPolicyClient.difference(pair)) ))
-    })
+    withCurrentPair(domain, pairDef.key, notifyPairUpdate(_))
 
     log.info("%s -> Completed pair declare/update request".format(pairRef))
   }
@@ -281,4 +275,14 @@ class Configuration(val configStore: DomainConfigStore,
   def makeDomainMember(domain:String, userName:String) = configStore.makeDomainMember(domain,userName)
   def removeDomainMembership(domain:String, userName:String) = configStore.removeDomainMembership(domain, userName)
   def listDomainMembers(domain:String) = configStore.listDomainMembers(domain)
+
+  def notifyPairUpdate(p:DiffaPair) {
+    val pairRef = p.asRef
+
+    log.info("%s -> Starting pair actor  (%s)".format(pairRef, benchmark( () => supervisor.startActor(p)) ))
+    log.info("%s -> Adding to matching manager (%s)".format(pairRef, benchmark( () => matchingManager.onUpdatePair(p)) ))
+    log.info("%s -> Adding to differences store (%s)".format(pairRef, benchmark( () => differencesManager.onUpdatePair(pairRef)) ))
+    log.info("%s -> Registering with scheduler (%s)".format(pairRef, benchmark( () => scanScheduler.onUpdatePair(p)) ))
+    log.info("%s -> Running initial difference (%s)".format(pairRef, benchmark( () => pairPolicyClient.difference(pairRef)) ))
+  }
 }

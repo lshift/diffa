@@ -217,8 +217,7 @@ class ConfigurationTest {
     val ad = DiffaPair(key = "ad", domain = Domain(name="domain"), matchingTimeout = 5,
                           versionPolicyName = "same", upstream = ep1.name, downstream = ep2.name)
 
-    expect(pairManager.stopActor(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(pairManager.startActor(pairInstance("ab"))).once
+    expect(pairManager.startActor(pairInstance("ab"))).once   // Note that this will result in the actor being restarted
     expect(matchingManager.onUpdatePair(DiffaPair(key = "ab", domain = Domain(name="domain")))).once
     expect(scanScheduler.onUpdatePair(ab)).once
     expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ab", domain = "domain"))).once
