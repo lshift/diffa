@@ -72,4 +72,6 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesM
   }
   def getSystemConfigOption(key:String) = systemConfigStore.maybeSystemConfigOption(key)
 
+  def listDomainMemberships(username: String) = systemConfigStore.listDomainMemberships(username)
+
 }

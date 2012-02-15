@@ -59,6 +59,19 @@ class MembershipTest {
     assertIsDomainMember(username, false)
   }
 
+  @Test
+  def shouldBeAbleToListDomainsUserIsAMemberOf() = {
+    systemConfigClient.declareDomain(domain)
+    usersClient.declareUser(UserDef(username, email, false, password))
+    configClient.makeDomainMember(username)
+
+    assertEquals(List(domain), usersClient.getMembershipDomains(username).toList)
+
+    configClient.removeDomainMembership(username)
+
+    assertEquals(List(), usersClient.getMembershipDomains(username).toList)
+  }
+
   @Test(expected = classOf[AccessDeniedException])
   def shouldNotBeAbleToAccessDomainConfigurationWhenNotADomainMember() {
     systemConfigClient.declareDomain(domain)

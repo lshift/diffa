@@ -25,7 +25,7 @@ import javax.ws.rs._
 import core.{Response, Context, UriInfo}
 import net.lshift.diffa.agent.rest.ResponseUtils._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
-import net.lshift.diffa.kernel.frontend.{SystemConfiguration, UserDef}
+import net.lshift.diffa.kernel.frontend.{SystemConfiguration, UserDef, DomainDef}
 import org.springframework.security.access.prepost.PreAuthorize
 
 /**
@@ -92,4 +92,12 @@ class UsersResource {
   @Description("Removes an endpoint that is registered with the agent.")
   @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
   def deleteUser(@PathParam("name") name:String) = systemConfig.deleteUser(name)
+  
+  @GET
+  @Produces(Array("application/json"))
+  @Path("/users/{name}/memberships")
+  @Description("Retrieves the domains which the user is a member of.")
+  @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
+  def listUserDomains(@PathParam("name") name: String) : Array[String] =
+    systemConfig.listDomainMemberships(name).map(m => m.domain.name).toArray
 }

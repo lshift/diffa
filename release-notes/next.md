@@ -7,6 +7,7 @@
 ## New Features
 
 * [31] - Added a settings page in the web UI to configure objects within a domain
+* [35] - Added an API endpoint to retrieve the list of domains that a given user is a member of
 
 ## General Maintenance
 

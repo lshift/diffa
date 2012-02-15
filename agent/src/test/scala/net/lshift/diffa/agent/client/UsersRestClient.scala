@@ -16,7 +16,7 @@ package net.lshift.diffa.agent.client
  * limitations under the License.
  */
 
-import net.lshift.diffa.kernel.frontend.UserDef
+import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
 import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
 
 class UsersRestClient(u:String, params: RestClientParams = RestClientParams.default)
@@ -29,4 +29,6 @@ class UsersRestClient(u:String, params: RestClientParams = RestClientParams.defa
     create("users", user)
     user
   }
+
+  def getMembershipDomains(username: String) = rpc("users/" + username + "/memberships", classOf[Array[DomainDef]])
 }

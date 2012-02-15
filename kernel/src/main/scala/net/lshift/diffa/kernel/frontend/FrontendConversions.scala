@@ -110,6 +110,8 @@ object FrontendConversions {
     target = r.target
   )
 
+  def toDomainDef(d: Domain) = DomainDef(name = d.name)
+  
   def fromDomainDef(d:DomainDef) = Domain(name=d.name)
 
   def fromUserDef(u:UserDef) = User(name = u.name, email = u.email, passwordEnc = u.passwordEnc, superuser = u.superuser)
