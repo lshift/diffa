@@ -22,7 +22,7 @@ import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.client.{RestClientParams, BadRequestException}
 
 class ReportsRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
-  extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/actions/", params) {
+  extends DomainAwareRestClient(serverRootUrl, domain, "rest/domains/{domain}/actions/", params) {
 
   def listReports(pair:DiffaPairRef): Seq[PairReportDef] = {
     val t = classOf[Array[PairReportDef]]

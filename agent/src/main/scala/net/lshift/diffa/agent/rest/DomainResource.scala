@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Scope
 import org.springframework.beans.factory.config.BeanDefinition
 import net.lshift.diffa.kernel.reporting.ReportManager
 
-@Path("/{domain}")
+@Path("/domains/{domain}")
 @Component
 @PreAuthorize("hasPermission(#domain, 'domain-user')")
 class DomainResource {

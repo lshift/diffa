@@ -72,21 +72,21 @@ Diffa.Models.Pair = Backbone.Model.extend({
 
   fetchActions: function() {
     var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/actions/' + this.id + '?scope=pair', function(actions) {
+    $.getJSON(API_BASE + "/domains/" + Diffa.currentDomain + '/actions/' + this.id + '?scope=pair', function(actions) {
       self.set({actions: actions});
     });
   },
 
   fetchReports: function() {
     var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/reports/' + this.id, function(reports) {
+    $.getJSON(API_BASE + "/domains/" + Diffa.currentDomain + '/reports/' + this.id, function(reports) {
       self.set({reports: reports});
     });
   },
 
   fetchFullDetails: function() {
     var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + '/config/pairs/' + this.id, function(pairInfo) {
+    $.getJSON(API_BASE + "/domains/" + Diffa.currentDomain + '/config/pairs/' + this.id, function(pairInfo) {
       self.set(pairInfo);
       self.set({fullContent: true})
     });
@@ -94,7 +94,7 @@ Diffa.Models.Pair = Backbone.Model.extend({
 
   syncLog: function() {
     var self = this;
-    $.getJSON(API_BASE + "/" + Diffa.currentDomain + "/diagnostics/" + this.id + "/log", function(logEntries) {
+    $.getJSON(API_BASE + "/domains/" + Diffa.currentDomain + "/diagnostics/" + this.id + "/log", function(logEntries) {
       self.set({logEntries: logEntries});
     });
   },
@@ -108,7 +108,7 @@ Diffa.Models.Pair = Backbone.Model.extend({
     
     this.set({state: 'REQUESTING'});
     $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
+      url: API_BASE + "/domains/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
       type: "POST",
       data: data,
       success: function() {
@@ -125,7 +125,7 @@ Diffa.Models.Pair = Backbone.Model.extend({
 
     this.set({state: 'CANCELLED'});
     $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
+      url: API_BASE + "/domains/" + Diffa.currentDomain + "/scanning/pairs/" + this.id + "/scan",
       type: "DELETE",
       success: function() {
       },
@@ -139,7 +139,7 @@ Diffa.Models.Pair = Backbone.Model.extend({
     var self = this;
     
     $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/reports/" + this.id + "/" + name,
+      url: API_BASE + "/domains/" + Diffa.currentDomain + "/reports/" + this.id + "/" + name,
       type: "POST",
       error: function(jqXHR, textStatus, errorThrown) {
         alert("Error in report request: " + errorThrown);
@@ -150,7 +150,7 @@ Diffa.Models.Pair = Backbone.Model.extend({
 
 Diffa.Collections.Pairs = Backbone.Collection.extend({
   model: Diffa.Models.Pair,
-  url: function() { return API_BASE + "/" + Diffa.currentDomain + "/scanning/states"; },
+  url: function() { return API_BASE + "/domains/" + Diffa.currentDomain + "/scanning/states"; },
 
   initialize: function() {
     _.bindAll(this, "sync", "scanAll", "select");
@@ -198,7 +198,7 @@ Diffa.Collections.Pairs = Backbone.Collection.extend({
     });
 
     $.ajax({
-      url: API_BASE + "/" + Diffa.currentDomain + "/scanning/scan_all",
+      url: API_BASE + "/domains/" + Diffa.currentDomain + "/scanning/scan_all",
       type: "POST",
       success: function() {
         self.each(function(pair) {

@@ -88,7 +88,7 @@ class ConfigurationUploadTest {
   val client = Client.create(config)
   client.addFilter(new HTTPBasicAuthFilter("guest", "guest"))
   val serverRootResource = client.resource(rootURL)
-  val resource = serverRootResource.path("rest/" + domain.name + "/config/xml").`type`(MediaType.APPLICATION_XML_TYPE)
+  val resource = serverRootResource.path("rest/domains/" + domain.name + "/config/xml").`type`(MediaType.APPLICATION_XML_TYPE)
 
   def uploadConfigRaw(body:String):Tuple2[Int, String] = {
     val response = resource.post(classOf[ClientResponse], body)

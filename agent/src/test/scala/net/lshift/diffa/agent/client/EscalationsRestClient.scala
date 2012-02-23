@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.client.RestClientParams
 
 class EscalationsRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
-    extends DomainAwareRestClient(serverRootUrl, domain, "rest/{domain}/escalations/", params) {
+    extends DomainAwareRestClient(serverRootUrl, domain, "rest/domains/{domain}/escalations/", params) {
 
   def listEscalations(pairKey: String) = {
     val t = classOf[Array[EscalationDef]]
