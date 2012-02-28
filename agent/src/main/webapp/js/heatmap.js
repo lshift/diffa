@@ -1111,7 +1111,7 @@ function nearestHour() {
   return Date.today().add({hours: hours});
 }
 
-Diffa.currentDomain = "diffa";    // TODO: Allow user to change this
+Diffa.currentDomain = currentDiffaDomain;
 Diffa.BlobsApp = new Diffa.Routers.Blobs();
 Diffa.BlobsModel = new Diffa.Models.Blobs();
 Diffa.DiffsCollection = new Diffa.Collections.Diffs();

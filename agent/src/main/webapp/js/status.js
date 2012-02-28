@@ -487,7 +487,7 @@ $('#scan_all').click(function(e) {
   Diffa.PairsCollection.scanAll();
 });
 
-Diffa.currentDomain = "diffa";    // TODO: Allow user to change this
+Diffa.currentDomain = currentDiffaDomain;
 Diffa.SettingsApp = new Diffa.Routers.Pairs();
 Diffa.PairsCollection = new Diffa.Collections.Pairs();
 Diffa.PairListView = new Diffa.Views.PairList({model: Diffa.PairsCollection});

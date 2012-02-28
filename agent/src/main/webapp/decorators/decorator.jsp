@@ -51,6 +51,8 @@
     <link rel="stylesheet/less" type="text/css" href="less/styling.less"/>
     <script src="js/thirdparty/less-1.1.3.min.js"></script>
 
+    <script src="js/current-domain.js"></script>
+
     <decorator:head/>
 
   </head>
