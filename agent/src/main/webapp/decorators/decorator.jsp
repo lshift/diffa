@@ -39,7 +39,7 @@
           apiRoot = customRoot;
         }
       %>
-      var API_BASE = "<%= apiRoot %>/rest"
+      var API_BASE = "<%= apiRoot %>"
     </script>
 
     <title><decorator:title default="Diffa"/></title>

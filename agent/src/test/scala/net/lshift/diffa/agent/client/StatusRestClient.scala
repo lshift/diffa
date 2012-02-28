@@ -22,7 +22,7 @@ import java.lang.String
 
 
 class StatusRestClient(rootUrl:String)
-    extends AbstractRestClient(rootUrl, "rest/status", RestClientParams()) {
+    extends AbstractRestClient(rootUrl, "status", RestClientParams()) {
 
   def checkStatus = {
     val response = resource.get(classOf[ClientResponse])

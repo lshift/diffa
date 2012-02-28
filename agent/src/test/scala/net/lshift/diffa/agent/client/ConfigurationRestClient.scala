@@ -24,7 +24,7 @@ import org.eclipse.jetty.io.EndPoint
 import net.lshift.diffa.client.RestClientParams
 
 class ConfigurationRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
-    extends DomainAwareRestClient(serverRootUrl, domain, "rest/domains/{domain}/config/", params) {
+    extends DomainAwareRestClient(serverRootUrl, domain, "domains/{domain}/config/", params) {
 
   def declareEndpoint(e:EndpointDef) = {
     create("endpoints", e)

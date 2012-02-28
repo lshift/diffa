@@ -28,7 +28,7 @@ import com.sun.jersey.api.representation.Form
 
 
 class SystemConfigRestClient(rootUrl:String, params: RestClientParams = RestClientParams.default)
-    extends AbstractRestClient(rootUrl, "rest/root/", params) {
+    extends AbstractRestClient(rootUrl, "root/", params) {
 
   def declareDomain(domain:DomainDef) = create("domains", domain)
 
