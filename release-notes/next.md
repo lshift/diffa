@@ -7,6 +7,7 @@
 ## New Features
 
 * [40] - Domain-scope API endpoints are now prefixed with "/domains", e.g., /diffa becomes /domains/diffa
+* [41] - Introduce a status page at /rest/status to allow easy monitoring of agent status
 
 ## General Maintenance
 

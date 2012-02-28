@@ -26,6 +26,9 @@
     <http-basic />
     <custom-filter ref="tokenFilter" before="BASIC_AUTH_FILTER" />
 
+    <!-- Allow the status page to be seen by anyone -->
+    <intercept-url pattern="/rest/status" access="permitAll" />
+
     <!-- All operations within the interface require a user role -->
     <intercept-url pattern="/**" access="hasRole('user')" />
   </http>
