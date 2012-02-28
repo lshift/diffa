@@ -185,7 +185,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <!--<forkMode>never</forkMode>-->
+          <!--
+          <forkMode>never</forkMode>
+          -->
             <!-- Doesn't yet work because it parallelises the Hibernate tests, which aren't thread safe -->
           <!--<parallel>methods</parallel>
           <threadCount>4</threadCount>-->
@@ -235,6 +237,64 @@
         </plugins>
       </build>
     </profile>
+  <profile>
+    <id>oracle</id>
+    <dependencies>
+      <dependency>
+        <groupId>com.oracle</groupId>
+        <artifactId>ojdbc6</artifactId>
+        <version>11.2.0.1.0</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+    <build>
+      <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <systemPropertyVariables>
+              <diffa.hibernate.dialect>${diffa.hibernate.dialect}</diffa.hibernate.dialect>
+              <diffa.jdbc.url>${diffa.jdbc.url}</diffa.jdbc.url>
+              <diffa.jdbc.driver>${diffa.jdbc.driver}</diffa.jdbc.driver>
+              <diffa.jdbc.username>${diffa.jdbc.username}</diffa.jdbc.username>
+              <diffa.jdbc.password>${diffa.jdbc.password}</diffa.jdbc.password>
+              <diffa.jdbc.sys.username>${diffa.jdbc.sys.username}</diffa.jdbc.sys.username>
+              <diffa.jdbc.sys.password>${diffa.jdbc.sys.password}</diffa.jdbc.sys.password>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
+  <profile>
+    <id>mysql</id>
+    <dependencies>
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>5.1.18</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+    <build>
+      <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <systemPropertyVariables>
+              <diffa.hibernate.dialect>${diffa.hibernate.dialect}</diffa.hibernate.dialect>
+              <diffa.jdbc.dbname>${diffa.jdbc.dbname}</diffa.jdbc.dbname>
+              <diffa.jdbc.sys.url>${diffa.jdbc.sys.url}</diffa.jdbc.sys.url>
+              <diffa.jdbc.url>${diffa.jdbc.url}</diffa.jdbc.url>
+              <diffa.jdbc.driver>${diffa.jdbc.driver}</diffa.jdbc.driver>
+              <diffa.jdbc.username>${diffa.jdbc.username}</diffa.jdbc.username>
+              <diffa.jdbc.password>${diffa.jdbc.password}</diffa.jdbc.password>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
   </profiles>
 </project>
 

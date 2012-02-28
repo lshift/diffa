@@ -162,9 +162,9 @@ trait DomainDifferenceStore {
 
   /**
    * Retrieves pre-set group of tiles that is aligned on the requested timestamp.
-   * @pair The pair to retrieve tiles for
-   * @zoomLevel The level that the tiles should be zoomed into
-   * @timestamp The (aligned) start time of the requested group of tiles
+   * @param pair The pair to retrieve tiles for.
+   * @param zoomLevel The level that the tiles should be zoomed into.
+   * @param timestamp The (aligned) start time of the requested group of tiles.
    */
   def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) : Option[TileGroup]
 

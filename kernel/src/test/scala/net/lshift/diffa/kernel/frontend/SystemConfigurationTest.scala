@@ -3,21 +3,22 @@ package net.lshift.diffa.kernel.frontend
 import net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
-import org.junit.Test
 import org.junit.Assert._
 import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
 import org.hibernate.cfg.{Configuration => HibernateConfig}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.lifecycle.NotificationCentre
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.junit.{AfterClass, Test}
 
 /**
  * Test cases for apply System Configuration.
  */
 class SystemConfigurationTest {
+ private val storeReferences = SystemConfigurationTest.storeReferences
 
-  private val pairCache = new PairCache(new CacheManager())
-  private val systemConfigStore = new HibernateSystemConfigStore(SystemConfigurationTest.sessionFactory,pairCache)
+  private val systemConfigStore = storeReferences.systemConfigStore
 
   private val differencesManager = createMock("differencesManager", classOf[DifferencesManager])
 
@@ -119,23 +120,14 @@ class SystemConfigurationTest {
 }
 
 object SystemConfigurationTest {
-  private lazy val config =
-      new HibernateConfig().
-        addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
-        addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
-        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/systemConfigTest")).
-        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
-        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
-        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
-        setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
-        setProperty("hibernate.generate_statistics", "true").
-        setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
-                                                               // otherwise the preparation step will not get committed
+  private[SystemConfigurationTest] lazy val env =
+    DatabaseEnvironment.customEnvironment("target/systemConfigTest")
 
-  lazy val sessionFactory = {
-    val sf = config.buildSessionFactory
-    (new HibernateConfigStorePreparationStep).prepare(sf, config)
-    sf
+  private[SystemConfigurationTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  @AfterClass
+  def cleanupSchema {
+    storeReferences.tearDown
   }
 }

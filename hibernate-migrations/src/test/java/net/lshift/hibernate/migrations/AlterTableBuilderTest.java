@@ -59,6 +59,20 @@ public class AlterTableBuilderTest {
     mb.alterTable("foo").alterColumn("bar", Types.VARCHAR, 1024, false, "baz");
     VerificationUtil.verifyMigrationBuilder(mb, "alter table foo alter column bar varchar(1024) default 'baz' not null");
   }
+  
+  @Test
+  public void shouldSetColumnNullable() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").setColumnNullable("bar", true);
+    VerificationUtil.verifyMigrationBuilder(mb, "alter table foo alter column bar set null");
+  }
+  
+  @Test
+  public void shouldSetColumnNotNull() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").setColumnNullable("bar", false);
+    VerificationUtil.verifyMigrationBuilder(mb, "alter table foo alter column bar set not null");
+  }
 
   @Test
   public void shouldGenerateForeignKeyConstraint() throws Exception {
@@ -117,6 +131,20 @@ public class AlterTableBuilderTest {
   }
 
   @Test
+  public void shouldGenerateDropForeignKey() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").dropConstraint("FK80C74EA1C3C204DC");
+
+    Connection conn = createStrictMock(Connection.class);
+    expect(conn.prepareStatement("alter table foo drop constraint FK80C74EA1C3C204DC")).
+        andReturn(mockExecutablePreparedStatement());
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
+  @Test
   public void shouldGenerateDropPrimaryKey() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
     mb.alterTable("foo").dropPrimaryKey();
@@ -140,6 +168,21 @@ public class AlterTableBuilderTest {
         andReturn(mockExecutablePreparedStatement());
     replay(conn);
 
+    mb.apply(conn);
+    verify(conn);
+  }
+  
+  @Test
+  public void shouldGenerateReplacePrimaryKey() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").replacePrimaryKey("bar", "baz");
+    Connection conn = createStrictMock(Connection.class);
+    expect(conn.prepareStatement("alter table foo drop primary key")).
+        andReturn(mockExecutablePreparedStatement());
+    expect(conn.prepareStatement("alter table foo add primary key (bar, baz)")).
+        andReturn(mockExecutablePreparedStatement());
+    replay(conn);
+    
     mb.apply(conn);
     verify(conn);
   }

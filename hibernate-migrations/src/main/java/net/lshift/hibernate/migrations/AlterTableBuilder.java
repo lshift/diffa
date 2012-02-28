@@ -20,6 +20,7 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.mapping.*;
+import org.hibernate.util.StringHelper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -67,6 +68,13 @@ public class AlterTableBuilder extends TraceableMigrationElement {
     return this;
   }
 
+  public AlterTableBuilder setColumnNullable(String name, boolean nullable) {
+    alterFragments.add(dialectExtension.alterColumnString() + " " +
+        maybeBracketTerm(name + dialectExtension.setColumnNullString() + String.format("%snull", nullable ? "" : "not "),
+            dialectExtension.shouldBracketAlterColumnStatement()));
+    return this;
+  }
+
   private static Column buildColumnDefinition(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
     Column col = new Column(name);
     col.setSqlTypeCode(sqlType);
@@ -95,6 +103,11 @@ public class AlterTableBuilder extends TraceableMigrationElement {
     String defaultCatalog = config.getProperties().getProperty(Environment.DEFAULT_CATALOG);
     String defaultSchema = config.getProperties().getProperty(Environment.DEFAULT_SCHEMA);
 
+    // fk.sqlConstraintString appears to generate incorrect SQL against MySQL in some instances.
+    // The referenced columns are not always correctly listed.
+//    alterFragments.add(" add index " + fk.getName() + " (" + StringHelper.join(", ", columnNames) +
+//        "), add constraint " + fk.getName() + " foreign key (" + StringHelper.join(", ", columnNames) +
+//        " references " + referencedTable + " (" + StringHelper.join(", ", referencedColumns) + ")");
     alterFragments.add(fk.sqlConstraintString(dialect, fk.getName(), defaultCatalog, defaultSchema));
     return this;
   }
@@ -120,6 +133,11 @@ public class AlterTableBuilder extends TraceableMigrationElement {
     return this;
   }
 
+  public AlterTableBuilder dropForeignKey(String name) {
+    alterFragments.add(dialect.getDropForeignKeyString() + name);
+    return this;
+  }
+
   public AlterTableBuilder dropConstraint(String name) {
     alterFragments.add("drop constraint " + name);
     return this;
@@ -136,6 +154,19 @@ public class AlterTableBuilder extends TraceableMigrationElement {
       pk.addColumn(new Column(col));
     }
     alterFragments.add("add " + pk.sqlConstraintString(dialect));
+    return this;
+  }
+  
+  public AlterTableBuilder replacePrimaryKey(String...cols) {
+    PrimaryKey pk = new PrimaryKey();
+    for (String col : cols) {
+      pk.addColumn(new Column(col));
+    }
+    if (dialectExtension.supportsPrimaryKeyReplace()) {
+      alterFragments.add("drop primary key, add " + pk.sqlConstraintString(dialect));
+    } else {
+      dropPrimaryKey().addPrimaryKey(cols);
+    }
     return this;
   }
 

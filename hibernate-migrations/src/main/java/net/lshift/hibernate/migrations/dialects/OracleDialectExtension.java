@@ -16,6 +16,7 @@
 package net.lshift.hibernate.migrations.dialects;
 
 import com.google.common.base.Joiner;
+import org.hibernate.cfg.Environment;
 
 import java.util.Map;
 
@@ -36,6 +37,11 @@ public class OracleDialectExtension extends DialectExtension {
   @Override
   public String addColumnString() {
     return "add";
+  }
+  
+  @Override
+  public String setColumnNullString() {
+    return " ";
   }
 
   @Override
@@ -89,5 +95,10 @@ public class OracleDialectExtension extends DialectExtension {
   @Override
   public String analyzeTableString(String table) {
     return String.format("analyze table %s compute statistics", table);
+  }
+  
+  @Override
+  public String schemaPropertyName() {
+    return Environment.USER;
   }
 }

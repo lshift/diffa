@@ -16,6 +16,8 @@
 package net.lshift.hibernate.migrations.dialects;
 
 import org.hibernate.dialect.Dialect;
+import org.hibernate.dialect.MySQL5Dialect;
+import org.hibernate.dialect.Oracle10gDialect;
 import org.hibernate.dialect.Oracle8iDialect;
 
 /**
@@ -25,6 +27,14 @@ public class DialectExtensionSelector {
   public static DialectExtension select(Dialect hibernateDialect) {
     if (hibernateDialect instanceof Oracle8iDialect) {
       return new OracleDialectExtension();
+    }
+
+    if (hibernateDialect instanceof Oracle10gDialect) {
+      return new OracleDialectExtension();
+    }
+
+    if (hibernateDialect instanceof MySQL5Dialect) {
+        return new MySQL5DialectExtension();
     }
 
     return new DefaultDialectExtension();

@@ -136,8 +136,9 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   private void createSequences(Connection conn) throws SQLException {
     for (Column col : columns) {
       if (primaryKeys.contains(col.getName())) {
-        for( String sql : dialect.getCreateSequenceStrings(col.getQuotedName()) ) {
+        for( String sql : dialect.getCreateSequenceStrings(dialect.quote(name + "_sequence"))) {
           prepareAndLogAndExecute(conn, sql);
+          return;
         }
       }
     }

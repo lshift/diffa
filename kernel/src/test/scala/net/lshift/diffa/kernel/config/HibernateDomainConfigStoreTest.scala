@@ -17,28 +17,21 @@
 package net.lshift.diffa.kernel.config
 
 import org.junit.Assert._
-import org.hibernate.cfg.Configuration
-import org.hibernate.exception.ConstraintViolationException
-import org.junit.{Test, Before}
 import scala.collection.Map
 import org.joda.time.DateTime
-import collection.mutable.HashSet
 import scala.collection.JavaConversions._
-import system.{HibernateSystemConfigStore, SystemConfigStore}
-import net.lshift.diffa.kernel.util.SessionHelper._
-import net.sf.ehcache.CacheManager
-import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
 import net.lshift.diffa.kernel.frontend._
-import org.hibernate.dialect.Dialect
-import net.lshift.diffa.kernel.hooks.HookManager
-import net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStore
+import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.slf4j.LoggerFactory
+import org.junit.{AfterClass, Test, Before}
 
 class HibernateDomainConfigStoreTest {
+  private val log = LoggerFactory.getLogger(getClass)
 
-  private lazy val domainConfigStore: DomainConfigStore = HibernateDomainConfigStoreTest.domainConfigStore
-  private lazy val sessionFactory = HibernateDomainConfigStoreTest.sessionFactory
-  private lazy val pairCache = HibernateDomainConfigStoreTest.pairCache
-  private lazy val systemConfigStore: SystemConfigStore = new HibernateSystemConfigStore(sessionFactory,pairCache)
+  private val storeReferences = HibernateDomainConfigStoreTest.storeReferences
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val domainConfigStore = storeReferences.domainConfigStore
 
   val dateCategoryName = "bizDate"
   val dateCategoryLower = new DateTime(1982,4,5,12,13,9,0).toString()
@@ -99,7 +92,9 @@ class HibernateDomainConfigStoreTest {
   val upstreamRenamed = "TEST_UPSTREAM_RENAMED"
   val pairRenamed = "TEST_PAIR_RENAMED"
 
-  val user = User(name = "test_user", email = "dev_null@lshift.net")
+  val user = User(name = "test_user", email = "dev_null@lshift.net", passwordEnc = "TEST")
+  val user2 = User(name = "test_user2", email = "dev_null@lshift.net", passwordEnc = "TEST")
+  val adminUser = User(name = "admin_user", email = "dev_null@lshift.net", passwordEnc = "TEST", superuser = true)
 
   def declareAll() {
     systemConfigStore.createOrUpdateDomain(domain)
@@ -114,7 +109,7 @@ class HibernateDomainConfigStoreTest {
   }
 
   @Before
-  def setUp = HibernateDomainConfigStoreTest.clearAllConfig
+  def setUp = storeReferences.clearConfiguration(domainName)
 
   def exists (e:EndpointDef, count:Int, offset:Int) : Unit = {
     val endpoints = domainConfigStore.listEndpoints(domainName)
@@ -133,15 +128,15 @@ class HibernateDomainConfigStoreTest {
 
     declareAll()
 
-    val initialCount = sessionFactory.getStatistics.getQueryExecutionCount
+    val initialCount = storeReferences.sessionStatistics.getQueryExecutionCount
 
     // This call should be read through from the DB
     domainConfigStore.listPairs(domainName)
-    assertEquals("Should have generated cache miss", initialCount + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+    assertEquals("Should have generated cache miss", initialCount + 1, storeReferences.sessionStatistics.getQueryExecutionCount)
 
     // This call should be cached
     domainConfigStore.listPairs(domainName)
-    assertEquals("Should have generated cache hit", initialCount + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+    assertEquals("Should have generated cache hit", initialCount + 1, storeReferences.sessionStatistics.getQueryExecutionCount)
 
     provokeCacheInvalidation(() => domainConfigStore.createOrUpdateEndpoint(domainName, upstream1))
     provokeCacheInvalidation(() => domainConfigStore.createOrUpdatePair(domainName, pairDef))
@@ -151,9 +146,9 @@ class HibernateDomainConfigStoreTest {
     // This should invalidate the pair cache
     def provokeCacheInvalidation[T](f:() => T) = {
       f()
-      val countAfterOperation = sessionFactory.getStatistics.getQueryExecutionCount
+      val countAfterOperation = storeReferences.sessionStatistics.getQueryExecutionCount
       domainConfigStore.listPairs(domainName)
-      assertEquals("Should have generated cache hit", countAfterOperation + 1, sessionFactory.getStatistics.getQueryExecutionCount)
+      assertEquals("Should have generated cache hit", countAfterOperation + 1, storeReferences.sessionStatistics.getQueryExecutionCount)
     }
   }
 
@@ -544,18 +539,18 @@ class HibernateDomainConfigStoreTest {
   @Test
   def shouldBeAbleToFindRootUsers = {
 
-    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
-    systemConfigStore.createOrUpdateUser(User(name = "admin_user", email = "dev_null@lshift.net", superuser = true))
+    systemConfigStore.createOrUpdateUser(user)
+    systemConfigStore.createOrUpdateUser(adminUser)
 
-    assertTrue(systemConfigStore.containsRootUser(Seq("test_user", "admin_user", "missing_user")))
-    assertFalse(systemConfigStore.containsRootUser(Seq("test_user", "missing_user")))
+    assertTrue(systemConfigStore.containsRootUser(Seq(user.name, adminUser.name, "missing_user")))
+    assertFalse(systemConfigStore.containsRootUser(Seq(user.name, "missing_user")))
     assertFalse(systemConfigStore.containsRootUser(Seq("missing_user1", "missing_user2")))
   }
 
   @Test
   def shouldBeAbleToRetrieveTokenForUser() {
-    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
-    systemConfigStore.createOrUpdateUser(User(name = "test_user2", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(user)
+    systemConfigStore.createOrUpdateUser(user2)
 
     val token1 = systemConfigStore.getUserToken("test_user")
     val token2 = systemConfigStore.getUserToken("test_user2")
@@ -568,10 +563,10 @@ class HibernateDomainConfigStoreTest {
 
   @Test
   def tokenShouldRemainConsistentEvenWhenUserIsUpdated() {
-    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(user)
     val token1 = systemConfigStore.getUserToken("test_user")
 
-    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null2@lshift.net"))
+    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null2@lshift.net", passwordEnc = "TEST"))
     val token2 = systemConfigStore.getUserToken("test_user")
 
     assertEquals(token1, token2)
@@ -579,21 +574,21 @@ class HibernateDomainConfigStoreTest {
 
   @Test
   def shouldBeAbleToResetTokenForUser() {
-    systemConfigStore.createOrUpdateUser(User(name = "test_user", email = "dev_null@lshift.net"))
-    systemConfigStore.createOrUpdateUser(User(name = "test_user2", email = "dev_null@lshift.net"))
+    systemConfigStore.createOrUpdateUser(user)
+    systemConfigStore.createOrUpdateUser(user2)
 
-    val token1 = systemConfigStore.getUserToken("test_user")
-    val token2 = systemConfigStore.getUserToken("test_user2")
+    val token1 = systemConfigStore.getUserToken(user.name)
+    val token2 = systemConfigStore.getUserToken(user2.name)
 
-    systemConfigStore.clearUserToken("test_user2")
+    systemConfigStore.clearUserToken(user2.name)
 
-    assertEquals(token1, systemConfigStore.getUserToken("test_user"))
+    assertEquals(token1, systemConfigStore.getUserToken(user.name))
 
-    val newToken2 = systemConfigStore.getUserToken("test_user2")
+    val newToken2 = systemConfigStore.getUserToken(user2.name)
     assertNotNull(newToken2)
     assertFalse(token2.equals(newToken2))
 
-    assertEquals("test_user2", systemConfigStore.getUserByToken(newToken2).name)
+    assertEquals(user2.name, systemConfigStore.getUserByToken(newToken2).name)
     try {
       systemConfigStore.getUserByToken(token2)
       fail("Should have thrown MissingObjectException")
@@ -627,54 +622,17 @@ class HibernateDomainConfigStoreTest {
           e.getMessage.contains(name))
     }
   }
-
-  private def expectConstraintViolation(f: => Unit) {
-    try {
-      f
-      fail("Expected ConstraintViolationException")
-    } catch {
-      case e:ConstraintViolationException => 
-    }
-  }
 }
 
 object HibernateDomainConfigStoreTest {
-  lazy val config =
-      new Configuration().
-        addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
-        addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
-        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/domainConfigStore")).
-        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
-        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
-        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
-        setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
-        setProperty("hibernate.generate_statistics", "true").
-        setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
-                                                               // otherwise the preparation step will not get committed
+  private[HibernateDomainConfigStoreTest] val env =
+    DatabaseEnvironment.customEnvironment("target/domainConfigStore")
 
-  lazy val sessionFactory = {
-    val sf = config.buildSessionFactory
-    (new HibernateConfigStorePreparationStep).prepare(sf, config)
-    sf
-  }
+  private[HibernateDomainConfigStoreTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
 
-  lazy val cacheManager = new CacheManager()
-  lazy val pairCache = new PairCache(cacheManager)
-  val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
-
-  lazy val hookManager = new HookManager(config)
-  lazy val domainConfigStore = new HibernateDomainConfigStore(sessionFactory, pairCache, hookManager)
-  lazy val systemConfigStore = new HibernateSystemConfigStore(sessionFactory, pairCache)
-  lazy val domainDifferenceStore = new HibernateDomainDifferenceStore(sessionFactory, cacheManager, dialect, hookManager)
-
-  def clearAllConfig = {
-    try {
-      domainDifferenceStore.removeDomain("domain")
-      systemConfigStore.deleteDomain("domain")
-    }
-    catch {
-      case e:MissingObjectException => // ignore non-existent domain, since the point of this call was to delete it anyway
-    }
+  @AfterClass
+  def tearDown {
+    storeReferences.tearDown
   }
 }

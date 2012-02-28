@@ -13,12 +13,13 @@ import org.joda.time.{DateTimeZone, DateTime, Interval}
 import java.math.BigInteger
 import java.util.List
 import org.jadira.usertype.dateandtime.joda.columnmapper.TimestampColumnDateTimeMapper
-import org.hibernate.dialect.Dialect
 import java.sql.{Types, Timestamp}
 import net.lshift.diffa.kernel.config.DomainScopedKey._
 import net.lshift.diffa.kernel.config.Domain._
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, DiffaPair}
+import org.hibernate.dialect.{Oracle10gDialect, Dialect}
+import net.lshift.hibernate.migrations.dialects.{OracleDialectExtension, DialectExtensionSelector}
 
 /**
  * Hibernate backed Domain Cache provider.
@@ -151,13 +152,24 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     })
   })
 
+  /**
+   * Convert all unmatched DifferenceEvents with a lastSeen time earlier
+   * than the cut-off to matched DifferenceEvents (matched: false -> true).
+   */
   def matchEventsOlderThan(pair:DiffaPairRef, cutoff: DateTime) = {
 
-     def convertOldEvent(s:Session, old:ReportedDifferenceEvent) {
+    /**
+     * Convert an unmatched difference event to a matched difference event
+     * and set its lastSeen and detectedAt values to the current time.
+     * Converting from unmatched to matched means setting its matched value to 'true'.
+     */
+    def convertOldEvent(s:Session, old:ReportedDifferenceEvent) {
       s.delete(old)
       val lastSeen = new DateTime
-      saveAndConvertEvent(s, ReportedDifferenceEvent(null, old.objId, new DateTime, true, old.upstreamVsn, old.upstreamVsn, lastSeen) )
-     }
+      val detectedAt = lastSeen
+      val matched = true // 'convert' to matched
+      saveAndConvertEvent(s, ReportedDifferenceEvent(null, old.objId, detectedAt, matched, old.upstreamVsn, old.upstreamVsn, lastSeen) )
+    }
 
      val params = Map("domain" -> pair.domain,
                       "pair"   -> pair.key,
@@ -178,7 +190,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
       }
       if (!evt.ignored) {
         // Remove this event, and replace it with a new event. We do this to ensure that consumers watching the updates
-        // (or even just monitoring sequence ids) see a noticable change.
+        // (or even just monitoring sequence ids) see a noticeable change.
         s.delete(evt)
         saveAndConvertEvent(s, ReportedDifferenceEvent(null, evt.objId, evt.detectedAt, false,
           evt.upstreamVsn, evt.downstreamVsn, evt.lastSeen, ignored = true))
@@ -303,8 +315,16 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
   })
 
   private def readIntColumn(column:Object, small:Boolean, dialect:Dialect) : Int = {
-    if (dialect.getClass.getName.contains("Oracle")) {
-      column.asInstanceOf[java.math.BigDecimal].intValue()
+    // The following obscure code is to deal with the fact that Oracle drivers pre-10g
+    // will return a BigDecimal in calls to getObject on all INTEGER columns, whereas
+    // the 10g driver may return an Int (but not always!)
+    if (DialectExtensionSelector.select(dialect).isInstanceOf[OracleDialectExtension]) {
+      try {
+        column.asInstanceOf[Int].intValue()
+      } catch {
+        case classCastEx: java.lang.ClassCastException =>
+          column.asInstanceOf[java.math.BigDecimal].intValue()
+      }
     }
     else {
       if (small) {

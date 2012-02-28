@@ -19,7 +19,6 @@ import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.matching.MatchingManager
 import net.lshift.diffa.kernel.scheduler.ScanScheduler
 import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelationStoreFactory}
-import org.junit.{Test, Before}
 import org.junit.Assert._
 import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.config._
@@ -27,22 +26,21 @@ import scala.collection.JavaConversions._
 import org.easymock.IArgumentMatcher
 import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.frontend.DiffaConfig._
-import collection.mutable.HashSet
 import scala.collection.JavaConversions._
-import system.{HibernateSystemConfigStore, SystemConfigStore}
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
-import net.sf.ehcache.CacheManager
-import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
 import org.hibernate.cfg.{Configuration => HibernateConfig}
-import net.lshift.diffa.kernel.util.DatabaseEnvironment
-import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.junit.{AfterClass, Test, Before}
 
 /**
  * Test cases for the Configuration frontend.
  */
 class ConfigurationTest {
+  private val storeReferences = ConfigurationTest.storeReferences
+
   private val matchingManager = createMock("matchingManager", classOf[MatchingManager])
   private val versionCorrelationStoreFactory = createMock("versionCorrelationStoreFactory", classOf[VersionCorrelationStoreFactory])
   private val pairManager = createMock("pairManager", classOf[ActivePairManager])
@@ -53,10 +51,8 @@ class ConfigurationTest {
   private val pairPolicyClient = createMock(classOf[PairPolicyClient])
 
   // TODO This is a strange mixture of mock and real objects
-  private val pairCache = new PairCache(new CacheManager())
-  private val systemConfigStore = new HibernateSystemConfigStore(ConfigurationTest.sessionFactory, pairCache)
-  private val domainConfigStore = new HibernateDomainConfigStore(ConfigurationTest.sessionFactory, pairCache,
-    new HookManager(ConfigurationTest.config))
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val domainConfigStore = storeReferences.domainConfigStore
 
   private val configuration = new Configuration(domainConfigStore,
                                                 systemConfigStore,
@@ -71,8 +67,6 @@ class ConfigurationTest {
 
   val domainName = "domain"
   val domain = Domain(name = domainName)
-
-
 
   @Before
   def clearConfig = {
@@ -118,8 +112,11 @@ class ConfigurationTest {
 
     // Create users that have membership references in the domain config
 
-    systemConfigStore.createOrUpdateUser(User(name = "abc"))
-    systemConfigStore.createOrUpdateUser(User(name = "def"))
+    val user1 = User(name = "abc", email = "dev_null1@lshift.net", passwordEnc = "TEST")
+    val user2 = User(name = "def", email = "dev_null1@lshift.net", passwordEnc = "TEST")
+
+    systemConfigStore.createOrUpdateUser(user1)
+    systemConfigStore.createOrUpdateUser(user2)
 
     val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234",
                 inboundUrl = "http://inbound",
@@ -204,7 +201,9 @@ class ConfigurationTest {
         PairDef("ad", "same", 5, "upstream1", "downstream2")),
       // name of repair action is changed
       repairActions = Set(RepairActionDef("Resend Source", "resend", "pair", "ab")),
-      escalations = Set(EscalationDef("Resend Another Missing", "ab", "Resend Source", "repair", "downstream-missing", "scan")),
+      escalations = Set(EscalationDef(name = "Resend Another Missing", pair = "ab",
+                                      action = "Resend Source", actionType = "repair",
+                                      event = "downstream-missing", origin = "scan")),
       reports = Set(PairReportDef("Bulk Send Reports Elsewhere", "ab", "differences", "http://location:5431/diffhandler"))
     )
 
@@ -289,24 +288,15 @@ class ConfigurationTest {
     null
   }
 }
-object ConfigurationTest {
-  lazy val config =
-      new HibernateConfig().
-        addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
-        addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-        setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
-        setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("target/configTest")).
-        setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
-        setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
-        setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
-        setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
-        setProperty("hibernate.generate_statistics", "true").
-        setProperty("hibernate.connection.autocommit", "true") // Turn this on to make the tests repeatable,
-                                                               // otherwise the preparation step will not get committed
 
-  lazy val sessionFactory = {
-    val sf = config.buildSessionFactory
-    (new HibernateConfigStorePreparationStep).prepare(sf, config)
-    sf
+object ConfigurationTest {
+  private[ConfigurationTest] val env = DatabaseEnvironment.customEnvironment("target/configTest")
+
+  private[ConfigurationTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  @AfterClass
+  def cleanupSchema {
+    storeReferences.tearDown
   }
 }

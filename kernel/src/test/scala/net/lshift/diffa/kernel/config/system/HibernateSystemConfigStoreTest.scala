@@ -17,20 +17,17 @@
 package net.lshift.diffa.kernel.config.system
 
 import org.junit.Assert._
-import collection.JavaConversions._
-import net.lshift.diffa.kernel.util.SessionHelper._
-import org.junit.{Before, Test}
-import net.lshift.diffa.kernel.util.MissingObjectException
-import net.lshift.diffa.kernel.config.{PairCache, User, Domain, HibernateDomainConfigStoreTest}
-import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.config.{User, Domain}
+import net.lshift.diffa.kernel.util.{DatabaseEnvironment, MissingObjectException}
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.junit.{AfterClass, Before, Test}
 
 class HibernateSystemConfigStoreTest {
+  private val storeReferences = HibernateSystemConfigStoreTest.storeReferences
 
-  private val sf = HibernateDomainConfigStoreTest.domainConfigStore.sessionFactory
-  private val pairCache = new PairCache(new CacheManager())
-  private val systemConfigStore:SystemConfigStore = new HibernateSystemConfigStore(sf,pairCache)
+  private val systemConfigStore = storeReferences.systemConfigStore
 
-  val domainName = "domain"
+  val domainName = storeReferences.defaultDomain
   val domain = Domain(name=domainName)
 
   val TEST_USER = User(name = "foo", email = "foo@bar.com", passwordEnc = "84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec", superuser = false)
@@ -38,18 +35,10 @@ class HibernateSystemConfigStoreTest {
 
   @Before
   def setup() {
-    try {
-      systemConfigStore.deleteDomain(domainName)
-    }
-    catch {
-      case e:MissingObjectException => // ignore any missing domains, since the objective of the call was to
-                                       // delete one if it exists
-    }
-
+    storeReferences.clearConfiguration(domainName)
     systemConfigStore.createOrUpdateDomain(domain)
 
-    // Deleting every user isn't something that the API exposes
-    sf.withSession( s => s.createCriteria(classOf[User]).list.foreach(s.delete(_)))
+    storeReferences.clearUserConfig
   }
 
   @Test
@@ -110,5 +99,18 @@ class HibernateSystemConfigStoreTest {
     assertEquals(expected.email, actual.email)
     assertEquals(expected.passwordEnc, actual.passwordEnc)
     assertEquals(expected.superuser, actual.superuser)
+  }
+}
+
+object HibernateSystemConfigStoreTest {
+  private[HibernateSystemConfigStoreTest] val env =
+    DatabaseEnvironment.customEnvironment("target/systemConfigStore")
+
+  private[HibernateSystemConfigStoreTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  @AfterClass
+  def cleanupSchema {
+    storeReferences.tearDown
   }
 }

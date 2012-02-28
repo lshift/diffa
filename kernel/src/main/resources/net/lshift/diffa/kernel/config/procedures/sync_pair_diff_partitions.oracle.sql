@@ -14,7 +14,7 @@ BEGIN
       hex_string := rawtohex(utl_raw.cast_to_raw(h_string));
       part_name := 'P_' || substr(hex_string, 0, 28);
   
-      select count(*) into matching from all_tab_partitions where table_name=diffs_table_name and partition_name=part_name;
+      select count(*) into matching from user_tab_partitions where table_name=diffs_table_name and partition_name=part_name;
       
       if matching = 0 then
         dbms_output.enable;

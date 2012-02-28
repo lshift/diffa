@@ -17,6 +17,9 @@ package net.lshift.hibernate.migrations.dialects;
 
 import net.lshift.hibernate.migrations.HibernateHelper;
 import net.lshift.hibernate.migrations.MigrationBuilder;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.dialect.Dialect;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Types;
@@ -40,5 +43,19 @@ public class OracleDialectSupportTest {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
     mb.alterTable("foo").addColumn("bar", Types.BIT, 1, true, 0);
     verifyMigrationBuilder(mb, "alter table foo add bar number(1,0) default 0");
+  }
+  
+  @Test
+  public void shouldSetColumnNullable() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
+    mb.alterTable("foo").setColumnNullable("bar", true);
+    verifyMigrationBuilder(mb, "alter table foo modify (bar null)");
+  }
+
+  @Test
+  public void shouldSetColumnNotNull() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
+    mb.alterTable("foo").setColumnNullable("bar", false);
+    verifyMigrationBuilder(mb, "alter table foo modify (bar not null)");
   }
 }

@@ -1,38 +1,39 @@
 package net.lshift.diffa.kernel.reporting
 
 import collection.mutable.{ListBuffer}
-import org.junit.{Before, Test}
 import net.lshift.diffa.kernel.frontend.{PairReportDef, EndpointDef, PairDef}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.events.VersionID
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, HibernateDomainConfigStoreTest}
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.differencing.{HibernateDomainDifferenceStore}
 import org.junit.Assert._
-import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain}
+import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.junit.{AfterClass, Before, Test}
 
 class ReportManagerTest {
-  val domain = "reportingDomain"
-  val pair = DiffaPairRef(key = "p1", domain = domain)
+  private val storeReferences = ReportManagerTest.storeReferences
+
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val domainConfigStore = storeReferences.domainConfigStore
+  private val domainDiffStore = storeReferences.domainDifferenceStore
+
+  val domainName = "reportingDomain"
+  val domain = Domain(domainName)
+  val pair = DiffaPairRef(key = "p1", domain = domainName)
   val diagnostics = createNiceMock(classOf[DiagnosticsManager])
 
-  val configStore = HibernateDomainConfigStoreTest.domainConfigStore
-  val systemConfigStore = HibernateDomainConfigStoreTest.systemConfigStore
-  val diffStore =new HibernateDomainDifferenceStore(
-    HibernateDomainConfigStoreTest.sessionFactory, HibernateDomainConfigStoreTest.cacheManager,
-    HibernateDomainConfigStoreTest.dialect, new HookManager(HibernateDomainConfigStoreTest.config))
-  val reportManager = new ReportManager(configStore, diffStore, diagnostics)
+  val reportManager = new ReportManager(domainConfigStore, domainDiffStore, diagnostics)
 
   @Before
   def prepareEnvironment() {
-    HibernateDomainConfigStoreTest.clearAllConfig
-    diffStore.clearAllDifferences
+    storeReferences.clearConfiguration(domainName)
+    domainDiffStore.clearAllDifferences
 
-    systemConfigStore.createOrUpdateDomain(Domain(domain))
-    configStore.createOrUpdateEndpoint(domain,
-      EndpointDef("e"))
-    configStore.createOrUpdatePair(domain,
+    systemConfigStore.createOrUpdateDomain(domain)
+    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e"))
+    domainConfigStore.createOrUpdatePair(domainName,
       PairDef(pair.key, versionPolicyName = "same", upstreamName = "e", downstreamName = "e"))
   }
 
@@ -41,12 +42,13 @@ class ReportManagerTest {
     val reports = new ListBuffer[String]
     ReportListenerUtil.withReportListener(reports, reportListenerUrl => {
       // Create our report
-      configStore.createOrUpdateReport(domain, PairReportDef("send diffs", "p1", "differences", reportListenerUrl))
+      domainConfigStore.createOrUpdateReport(domainName,
+        PairReportDef("send diffs", "p1", "differences", reportListenerUrl))
 
       // Add some differences
-      diffStore.addReportableUnmatchedEvent(VersionID(pair, "id1"), new DateTime, "a", "b", new DateTime)
-      diffStore.addReportableUnmatchedEvent(VersionID(pair, "id2"), new DateTime, null, "b", new DateTime)
-      diffStore.addReportableUnmatchedEvent(VersionID(pair, "id3"), new DateTime, "a", null, new DateTime)
+      domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "id1"), new DateTime, "a", "b", new DateTime)
+      domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "id2"), new DateTime, null, "b", new DateTime)
+      domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "id3"), new DateTime, "a", null, new DateTime)
 
       // Run the report
       reportManager.executeReport(pair, "send diffs")
@@ -72,5 +74,18 @@ class ReportManagerTest {
       assertEquals("missing-from-upstream", id2("state"))
       assertEquals("missing-from-downstream", id3("state"))
     })
+  }
+}
+
+object ReportManagerTest {
+  private[ReportManagerTest] val env =
+    DatabaseEnvironment.customEnvironment("target/reportManagerTest")
+
+  private[ReportManagerTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  @AfterClass
+  def cleanupSchema {
+    storeReferences.tearDown
   }
 }

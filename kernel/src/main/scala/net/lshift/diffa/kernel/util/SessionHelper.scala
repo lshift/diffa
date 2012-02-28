@@ -18,6 +18,8 @@ package net.lshift.diffa.kernel.util
 
 import org.hibernate.{Session, SessionFactory}
 import org.slf4j.LoggerFactory
+import java.sql.Connection
+import org.hibernate.jdbc.Work
 
 /**
  * Hibernate session convenience class/object
@@ -33,12 +35,52 @@ class SessionHelper(val sessionFactory:SessionFactory) {
       session.flush
 
       result
+    } catch {
+      case ex: Exception => ex.getCause match {
+        case recov: java.sql.SQLRecoverableException =>
+          log.warn("Retrying failed operation: %s".format(recov.getMessage))
+          try {
+            val session = sessionFactory.openSession
+            val result = f(session)
+            session.flush
 
+            result
+          }
+        case _ =>
+          throw ex
+      }
+      case exc =>
+        throw exc
     } finally {
       session.close
     }
   }
 
+  def executeOnSession(work: (Connection => Unit)) {
+    withSession(session => {
+      session.doWork(new Work {
+        def execute(connection: Connection) {
+          work(connection)
+        }
+      })
+    })
+  }
+  
+  def executeStatements(statements: Seq[String], treatErrorsAsFatal: Boolean) {
+    executeOnSession(connection => {
+      val stmt = connection.createStatement
+      statements foreach  { stmtText => {
+        try {
+          stmt.execute(stmtText)
+        } catch {
+          case ex =>
+            println("Failed to execute prep stmt: %s".format(stmtText))
+            if (treatErrorsAsFatal) throw ex
+        }
+      }}
+      stmt.close
+    })
+  }
 }
 
 object SessionHelper {

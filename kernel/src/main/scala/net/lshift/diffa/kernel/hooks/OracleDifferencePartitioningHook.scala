@@ -58,7 +58,7 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
   def generatePartitionName(domain:String, key:String) = "p_" + DigestUtils.md5Hex(domain + "_" + key).substring(0, 28)
 
   def hasPartition(s:Session, name:String) = {
-    val query = s.createSQLQuery("select count(*) from all_tab_partitions where table_name='DIFFS' and partition_name=:name")
+    val query = s.createSQLQuery("select count(*) from user_tab_partitions where table_name='DIFFS' and partition_name=:name")
     query.setString("name", name.toUpperCase)   // Oracle will have forced the partition names to uppercase
     query.uniqueResult().asInstanceOf[java.math.BigDecimal].longValue() > 0
   }

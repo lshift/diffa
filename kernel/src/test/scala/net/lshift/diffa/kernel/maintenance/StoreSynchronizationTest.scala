@@ -28,20 +28,15 @@ import net.lshift.diffa.kernel.participants.ParticipantFactory
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import org.junit.Assert._
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
-import net.lshift.diffa.kernel.config.{HibernateDomainConfigStoreTest, DomainConfigStore, DiffaPairRef}
 import net.lshift.diffa.kernel.config.{Domain,Endpoint,DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
-import net.lshift.diffa.kernel.config.system.{HibernateSystemConfigStoreTest, SystemConfigStore}
-import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
-import org.hibernate.dialect.Dialect
 import net.lshift.diffa.kernel.diag.{LocalDiagnosticsManager, DiagnosticsManager}
 import java.io.File
-import org.apache.lucene.store.MMapDirectory
 import org.apache.commons.io.FileUtils
-import org.junit.{After, Before, Test}
 import net.lshift.diffa.kernel.matching.{MatchingStatusListener, MatchingManager, EventMatcher}
-import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.StoreReferenceContainer
+import org.junit.{AfterClass, After, Before, Test}
 
 class StoreSynchronizationTest {
 
@@ -74,20 +69,14 @@ class StoreSynchronizationTest {
   checkOrder(pairPolicyClient, false)
 
   // Real Wiring
+  private val storeReferences = StoreSynchronizationTest.storeReferences
 
-  val domainConfigStore = HibernateDomainConfigStoreTest.domainConfigStore
-  val systemConfigStore = HibernateDomainConfigStoreTest.systemConfigStore
-  val sf = HibernateDomainConfigStoreTest.sessionFactory
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val domainConfigStore = storeReferences.domainConfigStore
+  private val domainDiffsStore = storeReferences.domainDifferenceStore
 
-  val dialect = Class.forName(DatabaseEnvironment.DIALECT).newInstance().asInstanceOf[Dialect]
-  val domainDifferenceStore = new HibernateDomainDifferenceStore(sf, new CacheManager(), dialect,
-    new HookManager(HibernateDomainConfigStoreTest.config))
-
-  val indexDir = "target/storeSynchronizationTest"
-  val explainDir = "target/storeSynchronizationTest-explain"
-
-
-  val diagnosticsManager = new LocalDiagnosticsManager(domainConfigStore, explainDir)
+  val diagnosticsManager: DiagnosticsManager =
+    new LocalDiagnosticsManager(domainConfigStore, StoreSynchronizationTest.explainDir)
 
   var store:VersionCorrelationStore = null
   var stores:LuceneVersionCorrelationStoreFactory = null
@@ -95,23 +84,24 @@ class StoreSynchronizationTest {
   // Wire in the diffs manager
 
   val diffsManager = new DefaultDifferencesManager(
-    systemConfigStore, domainConfigStore, domainDifferenceStore, matchingManager,
+    systemConfigStore, domainConfigStore, domainDiffsStore, matchingManager,
     participantFactory, listener)
 
   @Before
   def prepareScenario = {
-    val dir = new File(indexDir)
+    val dir = new File(StoreSynchronizationTest.indexDir)
     if (dir.exists()) {
       FileUtils.deleteDirectory(dir)
     }
-    stores = new LuceneVersionCorrelationStoreFactory(indexDir, systemConfigStore, diagnosticsManager)
+    stores = new LuceneVersionCorrelationStoreFactory(
+      StoreSynchronizationTest.indexDir, systemConfigStore, diagnosticsManager)
     store = stores(pairRef)
 
     systemConfigStore.createOrUpdateDomain(domain)
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(u))
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(d))
     domainConfigStore.createOrUpdatePair(domainName, toPairDef(pair))
-    domainDifferenceStore.removeLatestRecordedVersion(pairRef)
+    domainDiffsStore.removeLatestRecordedVersion(pairRef)
 
     assertEquals(None, diffsManager.lastRecordedVersion(pairRef))
   }
@@ -209,5 +199,21 @@ class StoreSynchronizationTest {
     replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
     assertEquals(Some(2L), diffsManager.lastRecordedVersion(pairRef))
 
+  }
+}
+
+object StoreSynchronizationTest {
+  private[StoreSynchronizationTest] val indexDir = "target/storeSynchronizationTest"
+  private[StoreSynchronizationTest] val explainDir = "target/storeSynchronizationTest-explain"
+
+  private[StoreSynchronizationTest] val env =
+    DatabaseEnvironment.customEnvironment(indexDir)
+
+  private[StoreSynchronizationTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  @AfterClass
+  def cleanupSchema {
+    storeReferences.tearDown
   }
 }

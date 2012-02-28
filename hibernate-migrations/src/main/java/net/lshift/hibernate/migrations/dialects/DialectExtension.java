@@ -15,6 +15,8 @@
  */
 package net.lshift.hibernate.migrations.dialects;
 
+import org.hibernate.cfg.Environment;
+
 import java.util.Map;
 
 /**
@@ -22,7 +24,6 @@ import java.util.Map;
  * extension, this base extension will be used.
  */
 public abstract class DialectExtension {
-
 
   public abstract String getDialectName() ;
 
@@ -40,6 +41,10 @@ public abstract class DialectExtension {
    */
   public String addColumnString() {
     return "add column";
+  }
+  
+  public String setColumnNullString() {
+    return " set ";
   }
 
   /**
@@ -100,5 +105,13 @@ public abstract class DialectExtension {
    */
   public String analyzeTableString(String table) {
     throw new RuntimeException("analyze table is not supported by this dialect");
+  }
+
+  public boolean supportsPrimaryKeyReplace() {
+    return false;
+  }
+
+  public String schemaPropertyName() {
+    return Environment.DEFAULT_SCHEMA;
   }
 }

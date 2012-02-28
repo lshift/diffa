@@ -87,7 +87,7 @@ public class CreateTableBuilderTest {
     Configuration config = new Configuration().setProperty("hibernate.dialect", "org.hibernate.dialect.Oracle10gDialect");
     String[] statements = {
       "create table foo (bar number(10,0) not null, baz long, primary key (bar))",
-      "create sequence bar"
+      "create sequence foo_sequence"
     };
     expectCreateTableStatements(config, true, statements);
   }
