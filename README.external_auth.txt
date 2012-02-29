@@ -18,7 +18,7 @@ This can be configured via the REST API as such (assuming a Diffa instance runni
 with the default user still in place):
 
 curl -u guest:guest -XPOST -d"activedirectory.domain=mydomain.com&activedirectory.server=ldap://dc.mydomain.com" \
-  -H"Content-Type: application/x-www-form-urlencoded" http://localhost:19093/diffa-agent/rest/root/system/config
+  -H"Content-Type: application/x-www-form-urlencoded" http://localhost:19093/diffa-agent/root/system/config
 
 If settings are applied successfully, the server log should include a line such as:
 
@@ -26,8 +26,8 @@ If settings are applied successfully, the server log should include a line such 
 
 To disable Active Directory integration, remove the configuration options:
 
-curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/rest/root/system/config/activedirectory.domain
-curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/rest/root/system/config/activedirectory.server
+curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/root/system/config/activedirectory.domain
+curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/root/system/config/activedirectory.server
 
 
 Enabling LDAP Authentication
@@ -64,7 +64,7 @@ These properties can be configured via the REST API as such (assuming a Diffa in
 with the default user still in place):
 
 curl -u guest:guest -XPOST -d"ldap.url=ldap://server.mydomain.com/dc=mydomain,dc=com&ldap.userdn.pattern=uid={0},ou=People" \
-  -H"Content-Type: application/x-www-form-urlencoded" http://localhost:19093/diffa-agent/rest/root/system/config
+  -H"Content-Type: application/x-www-form-urlencoded" http://localhost:19093/diffa-agent/root/system/config
 
 If settings are applied successfully, the server log should include a line such as:
 
@@ -72,8 +72,8 @@ If settings are applied successfully, the server log should include a line such 
 
 To disable LDAP integration, remove all ldap.* configuration options, for example:
 
-curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/rest/root/system/config/ldap.url
-curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/rest/root/system/config/ldap.userdn.pattern
+curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/root/system/config/ldap.url
+curl -u guest:guest -XDELETE http://localhost:19093/diffa-agent/root/system/config/ldap.userdn.pattern
 (etc)
 
 
@@ -87,7 +87,7 @@ to users by creating internal accounts matching their username, or matching the 
 For instance, if you had a user 'frank.diffman' with the groups 'Development' and 'Support'. If you wanted to make this
 user a root system user, then you'd create a Diffa user (with a dummy password) marked as a superuser. For example:
 
-  curl -u guest:guest -XPOST -d'{"name":"frank.diffman","email":"frank.diffman@example.com","superuser":true,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
+  curl -u guest:guest -XPOST -d'{"name":"frank.diffman","email":"frank.diffman@example.com","superuser":true,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/security/users
 
 Note that the above command specifies that the user is external. This allows the user to be defined without a password,
 ensuring that the only way they can log in is with external acceptance. Specifying a password instead would allow
@@ -95,11 +95,11 @@ the user to log in with either their external password or the stored Diffa passw
 
 If you wanted to allow all Support users to log into the 'staging' Diffa domain, then you'd create a user such as:
 
-  curl -u guest:guest -XPOST -d'{"name":"Support","email":"support@example.com","superuser":false,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/rest/security/users
+  curl -u guest:guest -XPOST -d'{"name":"Support","email":"support@example.com","superuser":false,"external":true}' -H"Content-Type: application/json" http://localhost:19093/diffa-agent/security/users
 
 Then assign it to the domain 'staging':
 
-  curl -u guest:guest -XPOST http://localhost:19093/diffa-agent/rest/staging/config/members/Support
+  curl -u guest:guest -XPOST http://localhost:19093/diffa-agent/staging/config/members/Support
 
 
 Debugging

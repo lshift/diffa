@@ -19,7 +19,7 @@ $resource.entityName$
 
 URL
 ---
-http://server:port/diffa-agent/rest/$resource.nicePath$
+http://server:port/diffa-agent/$resource.nicePath$
 
 $if(resource.mandatoryParameters)$ 
 Mandatory Parameters
