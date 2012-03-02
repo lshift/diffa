@@ -63,14 +63,14 @@ public class AlterTableBuilderTest {
   @Test
   public void shouldSetColumnNullable() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
-    mb.alterTable("foo").setColumnNullable("bar", true);
+    mb.alterTable("foo").setColumnNullable("bar", Types.VARCHAR, 255, true);
     VerificationUtil.verifyMigrationBuilder(mb, "alter table foo alter column bar set null");
   }
   
   @Test
   public void shouldSetColumnNotNull() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
-    mb.alterTable("foo").setColumnNullable("bar", false);
+    mb.alterTable("foo").setColumnNullable("bar", Types.VARCHAR, 255, false);
     VerificationUtil.verifyMigrationBuilder(mb, "alter table foo alter column bar set not null");
   }
 

@@ -16,6 +16,7 @@
 package net.lshift.hibernate.migrations.dialects;
 
 import org.hibernate.cfg.Environment;
+import org.hibernate.dialect.Dialect;
 
 import java.util.Map;
 
@@ -113,5 +114,21 @@ public abstract class DialectExtension {
 
   public String schemaPropertyName() {
     return Environment.DEFAULT_SCHEMA;
+  }
+  
+  public String getTypeStringForSetColumnNullability(Dialect dialect, int sqlType, int length) {
+    return "";
+  }
+  
+  public String getDropIndex(String name) {
+    return "drop index " + name;
+  }
+  
+  public boolean indexDropsWithForeignKey() {
+    return true;
+  }
+  
+  public boolean supportsFractionalSeconds() {
+    return true;
   }
 }

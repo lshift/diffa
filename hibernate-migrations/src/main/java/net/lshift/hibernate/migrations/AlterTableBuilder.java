@@ -68,9 +68,12 @@ public class AlterTableBuilder extends TraceableMigrationElement {
     return this;
   }
 
-  public AlterTableBuilder setColumnNullable(String name, boolean nullable) {
+  public AlterTableBuilder setColumnNullable(String name, int sqlType, int length, boolean nullable) {
+    // TODO: clean this up, it is awful.
     alterFragments.add(dialectExtension.alterColumnString() + " " +
-        maybeBracketTerm(name + dialectExtension.setColumnNullString() + String.format("%snull", nullable ? "" : "not "),
+        maybeBracketTerm(name + dialectExtension.getTypeStringForSetColumnNullability(dialect, sqlType, length)
+            + dialectExtension.setColumnNullString()
+            + String.format("%snull", nullable ? "" : "not "),
             dialectExtension.shouldBracketAlterColumnStatement()));
     return this;
   }
@@ -134,7 +137,12 @@ public class AlterTableBuilder extends TraceableMigrationElement {
   }
 
   public AlterTableBuilder dropForeignKey(String name) {
-    alterFragments.add(dialect.getDropForeignKeyString() + name);
+    String dropForeignKey = dialect.getDropForeignKeyString() + name;
+    if (dialectExtension.indexDropsWithForeignKey()) {
+      alterFragments.add(dropForeignKey);
+    } else {
+      alterFragments.add(dropForeignKey + ", drop index " + name);
+    }
     return this;
   }
 

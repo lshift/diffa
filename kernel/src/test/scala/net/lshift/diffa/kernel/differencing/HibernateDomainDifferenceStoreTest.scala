@@ -30,6 +30,7 @@ import org.joda.time.{DateTime, Interval, DateTimeZone}
 import org.hibernate.dialect.Dialect
 import net.lshift.diffa.kernel.util.DatabaseEnvironment
 import net.lshift.diffa.kernel.StoreReferenceContainer
+import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
 
 /**
  * Test cases for the HibernateDomainDifferenceStore.
@@ -79,7 +80,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldPublishUpgradedUnmatchedEventInAllUnmatchedList() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"), timestamp, "uV", "dV", timestamp)
     domainDiffStore.upgradePendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"))
 
@@ -101,7 +102,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldOverwritePendingEventsWhenNewPendingEventsArrive() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"), timestamp, "uV", "dV", timestamp)
     domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"), timestamp, "uV2", "dV2", timestamp)
     domainDiffStore.upgradePendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"))
@@ -152,7 +153,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldPublishAnAddedReportableUnmatchedEvent() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), timestamp, "uV", "dV", timestamp)
 
     val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
@@ -362,7 +363,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldAddIgnoredEventThatOverridesUnmatchedEventWhenAskingForSequenceUpdate() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), timestamp, "uuV", "ddV", timestamp)
 
     val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
@@ -383,15 +384,16 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldAddMatchedEventThatOverridesIgnoredEventWhenAskingForSequenceUpdate() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val newUnmatched = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), timestamp, "uuV", "ddV", timestamp)
 
+    def sortBySeqId(a: DifferenceEvent, b: DifferenceEvent) = a.sequenceId < b.sequenceId
     val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
-    val unmatched = domainDiffStore.retrieveUnmatchedEvents("domain", interval)
+    val unmatched = domainDiffStore.retrieveUnmatchedEvents("domain", interval).sortWith(_.sequenceId < _.sequenceId)
     val lastSeq = unmatched.last.seqId
 
     domainDiffStore.ignoreEvent("domain", newUnmatched.seqId)
-    val updates = domainDiffStore.retrieveEventsSince("domain", lastSeq)
+    val updates = domainDiffStore.retrieveEventsSince("domain", lastSeq).sortWith(_.sequenceId < _.sequenceId)
 
     assertEquals(1, updates.length)
     assertEquals(MatchState.IGNORED, updates.head.state)  // Match events for ignored differences have a state IGNORED
@@ -431,8 +433,8 @@ class HibernateDomainDifferenceStoreTest {
   @Test
   def shouldOverrideOlderUnmatchedEventsWhenNewMismatchesOccurWithDifferentDetails() {
     // Add two events for the same object, and then ensure the old list only includes the most recent one
-    val timestamp = new DateTime()
-    val seen = new DateTime().plusSeconds(5)
+    val timestamp = currentDateTime
+    val seen = timestamp.plusSeconds(5)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id2"), timestamp, "uV", "dV", timestamp)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id2"), timestamp, "uV2", "dV2", seen)
 
@@ -445,8 +447,8 @@ class HibernateDomainDifferenceStoreTest {
   @Test
   def shouldRetainOlderUnmatchedEventsWhenNewEventsAreAddedWithSameDetailsButUpdateTheSeenTime() {
     // Add two events for the same object with all the same details, and ensure that we don't modify the event
-    val timestamp = new DateTime()
-    val newSeen = new DateTime().plusSeconds(5)
+    val timestamp = currentDateTime
+    val newSeen = timestamp.plusSeconds(5)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id2"), timestamp, "uV", "dV", timestamp)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id2"), timestamp.plusSeconds(15), "uV", "dV", newSeen)
 
@@ -474,7 +476,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldRemoveEventsNotSeenAfterTheGivenCutoff() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val seen1 = timestamp.plusSeconds(5)
     val seen2 = timestamp.plusSeconds(8)
     val cutoff = timestamp.plusSeconds(9)
@@ -491,7 +493,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldNotRemoveEventsFromADifferentPair() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val seen1 = timestamp.plusSeconds(5)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id1"), timestamp, "uV", "dV", seen1)
     domainDiffStore.matchEventsOlderThan(DiffaPairRef("pair2","domain"), seen1)
@@ -503,7 +505,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldNotRemoveEventsSeenExactlyAtTheGivenCutoff() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val seen1 = timestamp.plusSeconds(5)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id1"), timestamp, "uV", "dV", seen1)
     domainDiffStore.matchEventsOlderThan(DiffaPairRef(domain = "domain", key = "pair2"), seen1)
@@ -515,7 +517,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldAddMatchEventsForThoseRemovedByACutoff() {
-    val now = new DateTime
+    val now = currentDateTime
     val timestamp = now .minusSeconds(10)
     val seen1 = now .plusSeconds(5)
     val seen2 = now .plusSeconds(8)
@@ -536,7 +538,7 @@ class HibernateDomainDifferenceStoreTest {
   }
   @Test
   def shouldNotRemoveOrDuplicateMatchEventsSeenBeforeTheCutoff() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val seen1 = timestamp.plusSeconds(5)
     val cutoff = timestamp.plusSeconds(20)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id1"), timestamp, "uV", "dV", seen1)
@@ -550,7 +552,7 @@ class HibernateDomainDifferenceStoreTest {
 
   @Test
   def shouldAllowRetrievalOfReportedEvent() {
-    val timestamp = new DateTime()
+    val timestamp = currentDateTime
     val evt = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), timestamp, "uV", "dV", timestamp)
 
     val retrieved = domainDiffStore.getEvent("domain", evt.seqId)
@@ -873,6 +875,19 @@ class HibernateDomainDifferenceStoreTest {
   //
   // Helpers
   //
+
+  private def currentDateTime = {
+    if (DialectExtensionSelector.select(domainDiffStore.dialect).supportsFractionalSeconds) {
+      DateTime.now
+    } else {
+      // Truncate the DateTime to the nearest second in order to work around
+      // a limitation in MySQL: prior to version 5.6.4, there is no column type
+      // that will keep fractional seconds.  Therefore, we should use this
+      // dialect-specific truncation in order to satisfy time ordering
+      // expectations.
+      new DateTime(DateTime.now.getMillis / 1000 * 1000)
+    }
+  }
 
   def validateUnmatchedEvent(event:DifferenceEvent, id:VersionID, usVsn:String, dsVsn:String, timestamp:DateTime, seen:DateTime) {
     assertEquals(id, event.objId)

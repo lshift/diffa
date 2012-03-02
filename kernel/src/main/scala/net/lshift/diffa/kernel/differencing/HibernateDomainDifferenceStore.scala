@@ -19,7 +19,7 @@ import net.lshift.diffa.kernel.config.Domain._
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, DiffaPair}
 import org.hibernate.dialect.{Oracle10gDialect, Dialect}
-import net.lshift.hibernate.migrations.dialects.{OracleDialectExtension, DialectExtensionSelector}
+import net.lshift.hibernate.migrations.dialects.{MySQL5DialectExtension, OracleDialectExtension, DialectExtensionSelector}
 
 /**
  * Hibernate backed Domain Cache provider.
@@ -325,8 +325,15 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
         case classCastEx: java.lang.ClassCastException =>
           column.asInstanceOf[java.math.BigDecimal].intValue()
       }
-    }
-    else {
+      // Also, MySQL may return objects as BigIntegers from Int columns
+    } else if (DialectExtensionSelector.select(dialect).isInstanceOf[MySQL5DialectExtension]) {
+      try {
+        column.asInstanceOf[Int].intValue()
+      } catch {
+        case classCastEx: java.lang.ClassCastException =>
+          column.asInstanceOf[java.math.BigInteger].intValue()
+      }
+    } else {
       if (small) {
         column.asInstanceOf[Int].intValue()
       }

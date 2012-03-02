@@ -358,10 +358,10 @@ object HibernateConfigStorePreparationStep {
           addColumn("domain", Types.VARCHAR, 255, false, "diffa").
           addForeignKey("FK2B3C687E2E298B6C", Array("pair_key", "domain"), "pair", Array("pair_key", "domain"))
         migration.alterTable("pair").
-          addColumn("uep_domain", Types.VARCHAR, 255, true, null).
-          addColumn("dep_domain", Types.VARCHAR, 255, true, null).
-          addForeignKey("FK3462DAF2DA557F", Array("downstream, dep_domain"), "endpoint", Array("name", "domain")).
-          addForeignKey("FK3462DAF68A3C7", Array("upstream, uep_domain"), "endpoint", Array("name", "domain"))
+          addColumn("uep_domain", Types.VARCHAR, 255, false, "diffa").
+          addColumn("dep_domain", Types.VARCHAR, 255, false, "diffa").
+          addForeignKey("FK3462DAF2DA557F", Array("downstream", "dep_domain"), "endpoint", Array("name", "domain")).
+          addForeignKey("FK3462DAF68A3C7", Array("upstream", "uep_domain"), "endpoint", Array("name", "domain"))
         migration.alterTable("repair_actions").
           addColumn("domain", Types.VARCHAR, 255, false, "diffa").
           addForeignKey("FKF6BE324B2E298B6C", Array("pair_key", "domain"), "pair", Array("pair_key", "domain"))
@@ -465,7 +465,7 @@ object HibernateConfigStorePreparationStep {
           pk("domain", "pair")
 
         migration.alterTable("store_checkpoints").
-          addForeignKey("FK50EE698DF6FDBACC", Array("pair", "domain"), "pair", Array("pair", "domain"))
+          addForeignKey("FK50EE698DF6FDBACC", Array("pair", "domain"), "pair", Array("pair_key", "domain"))
 
         migration
       }
@@ -515,7 +515,7 @@ object HibernateConfigStorePreparationStep {
         migration.alterTable("endpoint_views").
           addForeignKey("FKBE0A5744D532E642", Array("endpoint", "domain"), "endpoint", Array("name", "domain"))
         migration.alterTable("endpoint_views_categories").
-          addForeignKey("FKF03ED1F7B6D4F2CB", Array("category_descriptor_id"), "category_descriptor", Array("id"))
+          addForeignKey("FKF03ED1F7B6D4F2CB", Array("category_descriptor_id"), "category_descriptor", Array("category_id"))
         migration.alterTable("pair_views").
           addForeignKey("FKE0BDD4C9F6FDBACC", Array("pair", "domain"), "pair", Array("pair_key", "domain"))
 
@@ -563,11 +563,11 @@ object HibernateConfigStorePreparationStep {
           pk("name", "pair_key", "domain")
 
         migration.alterTable("pair_reports").
-          addForeignKey("FKCEC6E15A2E298B6C", Array("pair_key", "domain"), "pair", Array("key", "domain"))
+          addForeignKey("FKCEC6E15A2E298B6C", Array("pair_key", "domain"), "pair", Array("pair_key", "domain"))
 
         // Report escalations don't have a configured origin, so relax the constraint on origin being mandatory
         migration.alterTable("escalations").
-          setColumnNullable("origin", true)
+          setColumnNullable("origin", Types.VARCHAR, 255, true)
 
         migration
       }
@@ -732,8 +732,8 @@ object HibernateConfigStorePreparationStep {
 
         // Remove the existing constraints on domain/endpoint pairs, and then remove the endpoint domain columns
         migration.alterTable("pair").
-          dropConstraint("FK3462DAF68A3C7").
-          dropConstraint("FK3462DAF2DA557F").
+          dropForeignKey("FK3462DAF68A3C7").
+          dropForeignKey("FK3462DAF2DA557F").
           dropColumn("dep_domain").
           dropColumn("uep_domain")
 
@@ -743,6 +743,8 @@ object HibernateConfigStorePreparationStep {
 
         migration
       }
-    }
+    },
+
+    HibernateMigrationStep20
   )
 }

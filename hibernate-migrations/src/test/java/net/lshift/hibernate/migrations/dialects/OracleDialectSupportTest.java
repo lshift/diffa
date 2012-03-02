@@ -48,14 +48,14 @@ public class OracleDialectSupportTest {
   @Test
   public void shouldSetColumnNullable() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
-    mb.alterTable("foo").setColumnNullable("bar", true);
+    mb.alterTable("foo").setColumnNullable("bar", Types.VARCHAR, 255, true);
     verifyMigrationBuilder(mb, "alter table foo modify (bar null)");
   }
 
   @Test
   public void shouldSetColumnNotNull() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
-    mb.alterTable("foo").setColumnNullable("bar", false);
+    mb.alterTable("foo").setColumnNullable("bar", Types.VARCHAR, 255, false);
     verifyMigrationBuilder(mb, "alter table foo modify (bar not null)");
   }
 }

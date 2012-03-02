@@ -55,16 +55,16 @@ class HibernateDomainConfigStoreTest {
 
   val setView = EndpointViewDef(name = "a-only", categories = Map(dateCategoryName -> new SetCategoryDescriptor(Set("a"))))
 
-  val upstream1 = new EndpointDef(name = "TEST_UPSTREAM", scanUrl = "testScanUrl1",
+  val upstream1 = new EndpointDef(name = "e1", scanUrl = "testScanUrl1",
                                   categories = dateRangeCategoriesMap)
-  val upstream2 = new EndpointDef(name = "TEST_UPSTREAM_ALT", scanUrl = "testScanUrl2",
+  val upstream2 = new EndpointDef(name = "e2", scanUrl = "testScanUrl2",
                                   contentRetrievalUrl = "contentRetrieveUrl1",
                                   categories = setCategoriesMap,
                                   views = Seq(setView))
 
-  val downstream1 = new EndpointDef(name = "TEST_DOWNSTREAM", scanUrl = "testScanUrl3",
+  val downstream1 = new EndpointDef(name = "e3", scanUrl = "testScanUrl3",
                                     categories = intRangeCategoriesMap)
-  val downstream2 = new EndpointDef(name = "TEST_DOWNSTREAM_ALT", scanUrl = "testScanUrl4",
+  val downstream2 = new EndpointDef(name = "e4", scanUrl = "testScanUrl4",
                                     versionGenerationUrl = "generateVersionUrl1",
                                     categories = stringPrefixCategoriesMap)
 
@@ -112,7 +112,7 @@ class HibernateDomainConfigStoreTest {
   def setUp = storeReferences.clearConfiguration(domainName)
 
   def exists (e:EndpointDef, count:Int, offset:Int) : Unit = {
-    val endpoints = domainConfigStore.listEndpoints(domainName)
+    val endpoints = domainConfigStore.listEndpoints(domainName).sortWith((a, b) => a.name < b.name)
     assertEquals(count, endpoints.length)
     assertEquals(e.name, endpoints(offset).name)
     assertEquals(e.inboundUrl, endpoints(offset).inboundUrl)

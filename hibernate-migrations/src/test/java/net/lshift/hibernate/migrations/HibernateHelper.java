@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.*;
 public class HibernateHelper {
   public static final String HSQL_DIALECT = "org.hibernate.dialect.HSQLDialect";
   public static final String ORACLE_DIALECT = "org.hibernate.dialect.Oracle10gDialect";
+  public static final String MYSQL_DIALECT = "org.hibernate.dialect.MySQL5Dialect";
 
   private static Map<String, Configuration> config = new HashMap<String, Configuration>();
 

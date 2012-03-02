@@ -17,7 +17,7 @@ object HibernateMigrationStep0 extends HibernateMigrationStep {
 
     migration.createTable("category_descriptor").
       column("category_id", Types.INTEGER, false).
-      column("constraint_type", Types.VARCHAR, 255, false).
+      column("constraint_type", Types.VARCHAR, 20, false).
       column("prefix_length", Types.INTEGER, true).
       column("max_length", Types.INTEGER, true).
       column("step", Types.INTEGER, true).
