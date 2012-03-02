@@ -35,7 +35,7 @@
   </bean>
 
   <bean id="configUploader" lazy-init="true" class="net.lshift.diffa.util.ConfigUploader">
-    <constructor-arg value="${demo.agentUrl}/rest/domains/${demo.domain}/config/xml"/>
+    <constructor-arg value="${demo.agentUrl}/domains/${demo.domain}/config/xml"/>
     <constructor-arg value="${demo.agentUser}"/>
     <constructor-arg value="${demo.agentPassword}"/>
     <constructor-arg>
