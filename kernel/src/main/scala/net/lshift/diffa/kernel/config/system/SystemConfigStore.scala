@@ -27,6 +27,7 @@ trait SystemConfigStore {
 
   def createOrUpdateDomain(domain: Domain) : Unit
   def deleteDomain(name: String): Unit
+  def doesDomainExist(name: String): Boolean
   def listDomains : Seq[Domain]
   
   /**

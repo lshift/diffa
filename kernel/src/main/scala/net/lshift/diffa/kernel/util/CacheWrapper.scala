@@ -41,7 +41,6 @@ class CacheWrapper[A, B](cacheName:String, manager:CacheManager) extends Closeab
    */
   def close() = manager.removeCache(cacheName)
 
-
   /**
    * Removes all values from this cache
    */
@@ -61,16 +60,9 @@ class CacheWrapper[A, B](cacheName:String, manager:CacheManager) extends Closeab
   /**
    * Retrieve a value from the value by its key
    */
-  def get(key:A) : Option[B] = {
-    val element = cache.get(key)
-    if (element != null) {
-      Some(element.getValue.asInstanceOf[B])
-    }
-    else {
-      None
-    }
-  }
-
+  def get(key:A) : Option[B] =
+    Option(cache.get(key)).map(_.getValue.asInstanceOf[B])
+  
   /**
    * Add an value to the cache
    */

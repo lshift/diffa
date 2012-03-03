@@ -84,7 +84,7 @@ class ConfigurationTest {
     replayAll
 
     configuration.applyConfiguration("domain", DiffaConfig())
-    assertEquals(DiffaConfig(), configuration.retrieveConfiguration("domain"))
+    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration("domain"))
   }
 
   @Test
@@ -165,7 +165,7 @@ class ConfigurationTest {
     replayAll
 
     configuration.applyConfiguration("domain", config)
-    assertEquals(config, configuration.retrieveConfiguration("domain"))
+    assertEquals(Some(config), configuration.retrieveConfiguration("domain"))
     verifyAll
   }
 
@@ -239,7 +239,7 @@ class ConfigurationTest {
     replayAll
 
     configuration.applyConfiguration("domain",config)
-    val newConfig = configuration.retrieveConfiguration("domain")
+    val Some(newConfig) = configuration.retrieveConfiguration("domain")
     assertEquals(config, newConfig)
 
     // check that the action was updated
@@ -273,7 +273,7 @@ class ConfigurationTest {
     replayAll
 
     configuration.applyConfiguration("domain",DiffaConfig())
-    assertEquals(DiffaConfig(), configuration.retrieveConfiguration("domain"))
+    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration("domain"))
     verifyAll
   }
 

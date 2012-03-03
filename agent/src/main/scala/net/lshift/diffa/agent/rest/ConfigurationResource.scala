@@ -17,7 +17,7 @@
 package net.lshift.diffa.agent.rest
 
 import javax.ws.rs._
-import core.UriInfo
+import core.{Response, UriInfo}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.docgen.annotations.{MandatoryParams, Description}
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
@@ -25,6 +25,7 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.agent.rest.ResponseUtils._
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
+import com.sun.jersey.api.NotFoundException
 
 /**
  * This is a REST interface to the Configuration abstraction.
@@ -37,7 +38,8 @@ class ConfigurationResource(val config:Configuration,
   @GET
   @Path("/xml")
   @Produces(Array("application/xml"))
-  def retrieveConfiguration():DiffaConfig = config.retrieveConfiguration(domain)
+  def retrieveConfiguration() =
+    config.retrieveConfiguration(domain).get // existence will have been checked in DomainResource
 
   @POST
   @Path("/xml")

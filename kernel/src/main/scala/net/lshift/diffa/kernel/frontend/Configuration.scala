@@ -87,19 +87,25 @@ class Configuration(val configStore: DomainConfigStore,
     val removedEndpoints = configStore.listEndpoints(domain).filter(currE => diffaConfig.endpoints.find(newE => newE.name == currE.name).isEmpty)
     removedEndpoints.foreach(e => deleteEndpoint(domain, e.name))
   }
-  def retrieveConfiguration(domain:String) : DiffaConfig = {
-    DiffaConfig(
-      properties = configStore.allConfigOptions(domain),
-      members = configStore.listDomainMembers(domain).map(_.user.name).toSet,
-      endpoints = configStore.listEndpoints(domain).toSet,
-      pairs = configStore.listPairs(domain).map(
-        p => PairDef(p.key, p.versionPolicyName, p.matchingTimeout, p.upstreamName, p.downstreamName, p.scanCronSpec)).toSet,
-      repairActions = configStore.listRepairActions(domain).map(
-        a => RepairActionDef(a.name, a.url, a.scope, a.pair)).toSet,
-      escalations = configStore.listEscalations(domain).toSet,
-      reports = configStore.listReports(domain).toSet
-    )
-  }
+
+  def doesDomainExist(domain: String) = systemConfigStore.doesDomainExist(domain)
+
+  def retrieveConfiguration(domain:String) : Option[DiffaConfig] =
+    if (doesDomainExist(domain))
+      Some(DiffaConfig(
+        properties = configStore.allConfigOptions(domain),
+        members = configStore.listDomainMembers(domain).map(_.user.name).toSet,
+        endpoints = configStore.listEndpoints(domain).toSet,
+        pairs = configStore.listPairs(domain).map(
+          p => PairDef(p.key, p.versionPolicyName, p.matchingTimeout, p.upstreamName, p.downstreamName, p.scanCronSpec)).toSet,
+        repairActions = configStore.listRepairActions(domain).map(
+          a => RepairActionDef(a.name, a.url, a.scope, a.pair)).toSet,
+        escalations = configStore.listEscalations(domain).toSet,
+        reports = configStore.listReports(domain).toSet
+      ))
+    else
+      None
+
   def clearDomain(domain:String) {
     applyConfiguration(domain, DiffaConfig())
   }
