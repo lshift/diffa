@@ -94,4 +94,9 @@ $(function() {
   // Install a global handler to capture errors in AJAX requests
   jQuery(document).ajaxSuccess(DiffaCommon.ErrorView.handleAjaxSuccess);
   jQuery(document).ajaxError(DiffaCommon.ErrorView.handleAjaxError);
+
+  $(".top-navigation-link a.domain-page").each(function(i, link) {
+    link = $(link);
+    link.attr("href", link.attr("href") + "?domain=" + Diffa.currentDomain);
+  });
 });
