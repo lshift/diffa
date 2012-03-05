@@ -100,6 +100,11 @@
     <env-entry-type>java.lang.String</env-entry-type>
   </env-entry>
   <env-entry>
+    <env-entry-name>diffaRootAuthToken</env-entry-name>
+    <env-entry-value>__token__</env-entry-value>
+    <env-entry-type>java.lang.String</env-entry-type>
+  </env-entry>
+  <env-entry>
     <env-entry-name>diffaHibernateDialect</env-entry-name>
     <env-entry-value>org.hibernate.dialect.HSQLDialect</env-entry-value>
     <env-entry-type>java.lang.String</env-entry-type>

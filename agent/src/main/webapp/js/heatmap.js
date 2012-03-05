@@ -86,7 +86,7 @@ Diffa.Models.Blobs = Backbone.Model.extend({
     startTime = endTime.add({seconds: -1 * self.get('bucketSize') * ( self.maxColumns -1 ) });
     var dayBeforeNow = startTime.toString(TIME_FORMAT);
 
-    $.getJSON(API_BASE + "/domains/" + Diffa.currentDomain + "/diffs/tiles/" + self.get('zoomLevel') + "?range-start=" + dayBeforeNow + "&range-end=" + now, function(data) {
+    $.getJSON("/domains/" + Diffa.currentDomain + "/diffs/tiles/" + self.get('zoomLevel') + "?range-start=" + dayBeforeNow + "&range-end=" + now, function(data) {
       var swimlaneLabels = self.get('swimlaneLabels').slice(0);     // Retrieve a cloned copy of the swimlane labels
       var buckets = [];
       var maxRows = self.get('maxRows');
@@ -189,7 +189,7 @@ Diffa.Models.Diff = Backbone.Model.extend({
 
     // Only retrieve the pair info if we don't already have it
     if (!self.get('upstreamName') || !self.get('downstreamName')) {
-      $.get(API_BASE + "/domains/" + Diffa.currentDomain + "/config/pairs/" + this.get('objId').pair.key, function(data, status, xhr) {
+      $.get("/domains/" + Diffa.currentDomain + "/config/pairs/" + this.get('objId').pair.key, function(data, status, xhr) {
         self.set({upstreamName: data.upstreamName, downstreamName: data.downstreamName});
       });
     }
@@ -205,7 +205,7 @@ Diffa.Models.Diff = Backbone.Model.extend({
       }
 
       pendingRequest = $.ajax({
-            url: API_BASE + "/domains/" + Diffa.currentDomain + "/diffs/events/" + self.id + "/" + upOrDown,
+            url: "/domains/" + Diffa.currentDomain + "/diffs/events/" + self.id + "/" + upOrDown,
             success: function(data) {
               setContent(data || "no content found for " + upOrDown);
             },
@@ -230,7 +230,7 @@ Diffa.Models.Diff = Backbone.Model.extend({
    */
   ignore: function() {
     $.ajax({
-      url: API_BASE + "/domains/" + Diffa.currentDomain + "/diffs/events/" + this.id,
+      url: "/domains/" + Diffa.currentDomain + "/diffs/events/" + this.id,
       type: 'DELETE',
       success: function(data) {
         Diffa.BlobsModel.sync();
@@ -263,7 +263,7 @@ Diffa.Collections.Diffs = Backbone.Collection.extend({
     if (this.range == null) {
       this.reset([]);
     } else {
-      var url = API_BASE + "/domains/" + Diffa.currentDomain + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
+      var url = "/domains/" + Diffa.currentDomain + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
           + this.range.start + "&range-end=" + this.range.end
           + "&offset=" + (this.page * this.listSize) + "&length=" + this.listSize;
 
@@ -1102,7 +1102,7 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
       });
     };
 
-    $.ajax({ url: API_BASE + "/domains/" + Diffa.currentDomain + '/actions/' + pairKey + '?scope=entity', success: actionListCallback });
+    $.ajax({ url: "/domains/" + Diffa.currentDomain + '/actions/' + pairKey + '?scope=entity', success: actionListCallback });
   }
 });
 

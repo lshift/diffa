@@ -38,8 +38,16 @@
         } else {
           apiRoot = customRoot;
         }
+
+        // Allow changing the auth token through the environment
+        String authToken = (java.lang.String) myenv.lookup("diffaRootAuthToken");
+
+        if (authToken.equals("__token__")) {
+          authToken = "";
+        }
       %>
-      var API_BASE = "<%= apiRoot %>"
+      var API_BASE = "<%= apiRoot %>";
+      var USER_AUTH_TOKEN = "<%= authToken %>";
     </script>
 
     <title><decorator:title default="Diffa"/></title>
@@ -51,7 +59,14 @@
     <link rel="stylesheet/less" type="text/css" href="less/styling.less"/>
     <script src="js/thirdparty/less-1.1.3.min.js"></script>
 
+    <script type="text/javascript" src="js/thirdparty/jquery-1.6.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/thirdparty/jquery.color.js"></script>
+    <script type="text/javascript" src="js/thirdparty/jquery.scrollTo-1.4.2-min.js"></script>
+    <script src="js/thirdparty/jquery.query-2.1.7.js"></script>
+    <script type="text/javascript" src="js/thirdparty/json2.js"></script>
+
     <script src="js/current-domain.js"></script>
+    <script src="js/diffa-ajax-setup.js"></script>
 
     <decorator:head/>
 

@@ -117,7 +117,7 @@ Diffa.Models.Endpoint = Backbone.Model.extend({
     Diffa.Helpers.CategoriesHelper.extractCategories(this);
     Diffa.Helpers.ViewsHelper.extractViews(this, Diffa.Collections.EndpointViews);
   },
-  urlRoot: function() { return API_BASE + "/domains/" + Diffa.currentDomain + "/config/endpoints"; },
+  urlRoot: function() { return "/domains/" + Diffa.currentDomain + "/config/endpoints"; },
   prepareForSave: function() {
     Diffa.Helpers.CategoriesHelper.packCategories(this);
     Diffa.Helpers.ViewsHelper.packViews(this);
@@ -134,7 +134,7 @@ Diffa.Models.EndpointView = Backbone.Model.extend({
 });
 Diffa.Models.Pair = Backbone.Model.extend({
   idAttribute: "key",
-  urlRoot: function() { return API_BASE + "/domains/" + Diffa.currentDomain + "/config/pairs"; },
+  urlRoot: function() { return "/domains/" + Diffa.currentDomain + "/config/pairs"; },
   initialize: function() {
     Diffa.Helpers.ViewsHelper.extractViews(this);
   },
@@ -165,7 +165,7 @@ Diffa.Collections.CollectionBase = Backbone.Collection.extend({
 });
 Diffa.Collections.Endpoints = Diffa.Collections.CollectionBase.extend({
   model: Diffa.Models.Endpoint,
-  url: function() { return API_BASE + "/domains/" + Diffa.currentDomain + "/config/endpoints"; },
+  url: function() { return "/domains/" + Diffa.currentDomain + "/config/endpoints"; },
   comparator: function(endpoint) { return endpoint.get('name'); }
 });
 Diffa.Collections.EndpointViews = Backbone.Collection.extend({
@@ -173,7 +173,7 @@ Diffa.Collections.EndpointViews = Backbone.Collection.extend({
 })
 Diffa.Collections.Pairs = Diffa.Collections.CollectionBase.extend({
   model: Diffa.Models.Pair,
-  url: function() { return API_BASE + "/domains/" + Diffa.currentDomain + "/config/pairs"; },
+  url: function() { return "/domains/" + Diffa.currentDomain + "/config/pairs"; },
   comparator: function(endpoint) { return endpoint.get('name'); }
 });
 Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
