@@ -46,6 +46,11 @@ case class DiffaConfig(
   }
 }
 
+object DefaultLimits {
+  val KEY_LENGTH_LIMIT = 50
+  val URL_LENGTH_LIMIT = 1024
+}
+
 /**
  * Serializable representation of an Endpoint within the context of a domain.
  */
@@ -71,6 +76,7 @@ case class EndpointDef (
 
     val endPointPath = ValidationUtil.buildPath(path, "endpoint", Map("name" -> name))
     ValidationUtil.requiredAndNotEmpty(endPointPath, "name", this.name);
+    ValidationUtil.ensureLengthLimit(endPointPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     ValidationUtil.ensureLengthLimit(endPointPath, "scanUrl", scanUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "contentRetrievalUrl", contentRetrievalUrl, DEFAULT_URL_LENGTH_LIMIT)
@@ -91,7 +97,8 @@ case class EndpointViewDef(
   def validate(owner:EndpointDef, path:String = null) {
     val viewPath = ValidationUtil.buildPath(path, "views", Map("name" -> this.name))
 
-    ValidationUtil.requiredAndNotEmpty(viewPath, "name", this.name);
+    ValidationUtil.requiredAndNotEmpty(viewPath, "name", this.name)
+    ValidationUtil.ensureLengthLimit(viewPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     categories.keySet().foreach(viewCategory => {
       if (!owner.categories.containsKey(viewCategory)) {
@@ -130,6 +137,7 @@ case class PairDef(
     val pairPath = ValidationUtil.buildPath(path, "pair", Map("key" -> key))
 
     ValidationUtil.requiredAndNotEmpty(pairPath, "key", key)
+    ValidationUtil.ensureLengthLimit(pairPath, "key", key, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Nullify the cronspecs if they are blank
     scanCronSpec = ValidationUtil.maybeNullify(scanCronSpec)
@@ -172,6 +180,7 @@ case class PairViewDef(
     val viewPath = ValidationUtil.buildPath(path, "views", Map("name" -> this.name))
 
     ValidationUtil.requiredAndNotEmpty(viewPath, "name", this.name)
+    ValidationUtil.ensureLengthLimit(viewPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure we have both upstream and downstream endpoint views corresponding to this view
     upstreamEp.views.find(v => v.name == this.name).
@@ -211,6 +220,8 @@ case class RepairActionDef (
       ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
       "repair-action", Map("name" -> name))
 
+    ValidationUtil.ensureLengthLimit(actionPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
+
     // Ensure that the scope is supported
     this.scope = scope match {
       case ENTITY_SCOPE | PAIR_SCOPE => scope
@@ -243,6 +254,8 @@ case class EscalationDef (
     val escalationPath = ValidationUtil.buildPath(
       ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
       "escalation", Map("name" -> name))
+
+    ValidationUtil.ensureLengthLimit(escalationPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the action type is supported, and validate the parameters that depend on it
     actionType match {
@@ -290,8 +303,10 @@ case class PairReportDef(
 
   def validate(path:String = null) {
     val escalationPath = ValidationUtil.buildPath(
-      ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
-      "report", Map("name" -> name))
+        ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
+    "report", Map("name" -> name))
+
+    ValidationUtil.ensureLengthLimit(escalationPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     reportType match {
       case DIFFERENCES  =>

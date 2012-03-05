@@ -39,6 +39,7 @@ case class UserDef(@BeanProperty var name: String = null,
     val userPath = ValidationUtil.buildPath(path, "user", Map("name" -> name))
 
     ValidationUtil.requiredAndNotEmpty(userPath, "name", name)
+    ValidationUtil.ensureLengthLimit(userPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
     ValidationUtil.requiredAndNotEmpty(userPath, "email", email)
 
     if (!external) {

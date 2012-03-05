@@ -22,6 +22,7 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.config._
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import org.junit.runner.RunWith
+import DiffaConfigValidatorConverter._
 
 @RunWith(classOf[Theories])
 class ConfigValidationTest {
@@ -64,6 +65,19 @@ class ConfigValidationTest {
   }
 
   @Test
+  def shouldRejectEndpointWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/endpoint[name=%s]: name",
+      name => EndpointDef(name = name))
+  }
+
+  @Test
+  def shouldAcceptEndpointWithNameThatIsMaxLength {
+    ("a" :: "a" * DefaultLimits.KEY_LENGTH_LIMIT :: Nil) foreach { key =>
+      EndpointDef(name = key).validate("config/endpoint")
+    }
+  }
+
+  @Test
   def shouldRejectEndpointViewWithoutName() {
     validateError(
       new EndpointDef(name = "a", views = List(EndpointViewDef())),
@@ -78,7 +92,13 @@ class ConfigValidationTest {
       "config/endpoint[name=a]/views[name=a]: 'a' is not a unique name"
     )
   }
-  
+
+  @Test
+  def shouldRejectEndpointViewWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/endpoint[name=a]/views[name=%s]: name",
+      name => new EndpointDef(name = "a", views = List(EndpointViewDef(name = name))))
+  }
+
   @Test
   def shouldRejectPairWithoutKey() {
     validateError(
@@ -86,6 +106,12 @@ class ConfigValidationTest {
       Set(),
       "config/pair[key=null]: key cannot be null or empty"
     )
+  }
+  
+  @Test
+  def shouldRejectPairWithKeyThatIsTooLong {
+    validateExceedsMaxKeyLength("config/pair[key=%s]: key",
+      key => PairDef(key = key))
   }
 
   @Test
@@ -324,6 +350,13 @@ class ConfigValidationTest {
       "config/pair[key=p]/views[name=abc]: Schedule '1 2 3' is not a valid: Unexpected end of expression."
     )
   }
+  
+  @Test
+  def shouldRejectPairViewWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/pair[key=a]/views[name=%s]: name",
+      name => PairDef(key = "a", upstreamName = "u", downstreamName = "d",
+        views = List(PairViewDef(name = name, scanCronSpec = "1 2 3"))))
+  }
 
   @Test
   def shouldAcceptReportWithValidReportType() {
@@ -359,11 +392,24 @@ class ConfigValidationTest {
   }
 
   @Test
+  def shouldRejectReportWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/pair[key=p]/report[name=%s]: name",
+      name => PairReportDef(name = name, pair = "p", reportType = "differences",
+        target="http://someapp.com/handle_report"))
+  }
+
+  @Test
   def shouldRejectUserWithoutName() {
     validateError(
       UserDef(email = "user@domain.com", password = "password"),
       "config/user[name=null]: name cannot be null or empty"
     )
+  }
+
+  @Test
+  def shouldRejectUserWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/user[name=%s]: name",
+      name => UserDef(name = name, email = "user@domain.com", password = "password"))
   }
 
   @Test
@@ -388,6 +434,18 @@ class ConfigValidationTest {
     userDef.validate("config")
   }
 
+  @Test
+  def shouldRejectRepairActionWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/pair[key=p]/repair-action[name=%s]: name",
+      name => RepairActionDef(name = name, scope = "pair", pair = "p"))
+  }
+
+  @Test
+  def shouldRejectEscalationWithNameThatIsTooLong {
+    validateExceedsMaxKeyLength("config/pair[key=p]/escalation[name=%s]: name",
+      name => EscalationDef(name = name, pair = "p", actionType = "report", event = "scan-completed"))
+  }
+
   type Validatable = {
     def validate(path:String)
   }
@@ -410,9 +468,18 @@ class ConfigValidationTest {
         assertEquals(msg, e.getMessage)
     }
   }
+
+  private def validateExceedsMaxKeyLength(msg: String, fn: String => Validatable) {
+    val len = DefaultLimits.KEY_LENGTH_LIMIT + 1
+    val name = "a" * len
+    validateError(
+      fn(name), msg.format(name) + " is too long. Limit is %d, value %s is %d".format(
+        DefaultLimits.KEY_LENGTH_LIMIT, name, len))
+  }
 }
 
 case class RangeScenario(dataType:String, lower:String, upper:String, justBefore:String, justAfter:String, wayAfter:String, lowerMid:String, upperMid:String)
+
 object ConfigValidationTest {
   @DataPoint def dateRange = RangeScenario(
     dataType = "date",
@@ -434,4 +501,18 @@ object ConfigValidationTest {
     justBefore = "51", justAfter ="105",
     wayAfter = "150",
     lowerMid = "58", upperMid = "101")
+}
+
+object DiffaConfigValidatorConverter {
+  implicit def pairDefToValidatable(pairDef: PairDef): ValidatablePairDef =
+    ValidatablePairDef(pairDef)
+}
+
+case class ValidatablePairDef(pairDef: PairDef) {
+  def validate(path: String) {
+    pairDef.validate(path, endpoints = Set(
+      EndpointDef(name = "u", views = List(EndpointViewDef(name = "abc"))),
+      EndpointDef(name = "d", views = List(EndpointViewDef(name = "abc")))
+    ))
+  }
 }
