@@ -25,58 +25,7 @@ import org.junit.runner.RunWith
 import DiffaConfigValidatorConverter._
 
 @RunWith(classOf[Theories])
-class ConfigValidationTest {
-
-  @Test
-  def shouldRejectEndpointWithScanUrlThatIsTooLong = {
-    validateError(
-      EndpointDef(name = "a", scanUrl = "*" * 1025),
-      "config/endpoint[name=a]: scanUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
-    )
-  }
-
-  @Test
-  def shouldRejectEndpointWithContentRetrievalUrlThatIsTooLong = {
-    validateError(
-      EndpointDef(name = "a", contentRetrievalUrl = "*" * 1025),
-      "config/endpoint[name=a]: contentRetrievalUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
-    )
-  }
-
-  @Test
-  def shouldRejectEndpointWithVersionGenerationUrlThatIsTooLong = {
-    validateError(
-      EndpointDef(name = "a", versionGenerationUrl = "*" * 1025),
-      "config/endpoint[name=a]: versionGenerationUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
-    )
-  }
-
-  @Test
-  def shouldRejectEndpointWithInboundUrlThatIsTooLong = {
-    validateError(
-      EndpointDef(name = "a", inboundUrl = "*" * 1025),
-      "config/endpoint[name=a]: inboundUrl is too long. Limit is 1024, value " + ("*" * 1025) + " is 1025"
-    )
-  }
-
-  @Test
-  def shouldRejectEndpointWithoutName() {
-    validateError(new EndpointDef(name = null), "config/endpoint[name=null]: name cannot be null or empty")
-  }
-
-  @Test
-  def shouldRejectEndpointWithNameThatIsTooLong {
-    validateExceedsMaxKeyLength("config/endpoint[name=%s]: name",
-      name => EndpointDef(name = name))
-  }
-
-  @Test
-  def shouldAcceptEndpointWithNameThatIsMaxLength {
-    ("a" :: "a" * DefaultLimits.KEY_LENGTH_LIMIT :: Nil) foreach { key =>
-      EndpointDef(name = key).validate("config/endpoint")
-    }
-  }
-
+class ConfigValidationTest extends DefValidationTestBase {
   @Test
   def shouldRejectEndpointViewWithoutName() {
     validateError(
@@ -359,46 +308,6 @@ class ConfigValidationTest {
   }
 
   @Test
-  def shouldAcceptReportWithValidReportType() {
-    val reportDef = PairReportDef(name = "Process Differences", pair ="p", reportType = "differences",
-                                  target = "http://someapp.com/handle_report")
-    reportDef.validate("config")
-  }
-
-  @Test
-  def shouldRejectReportWithInvalidReportType() {
-    validateError(
-      PairReportDef(name = "Process Differences", pair ="p", reportType = "blah-blah",
-                    target = "http://someapp.com/handle_report"),
-      "config/pair[key=p]/report[name=Process Differences]: Invalid report type: blah-blah"
-    )
-  }
-
-  @Test
-  def shouldRejectReportWithMissingTarget() {
-    validateError(
-      PairReportDef(name = "Process Differences", pair ="p", reportType = "differences"),
-      "config/pair[key=p]/report[name=Process Differences]: Missing target"
-    )
-  }
-
-  @Test
-  def shouldRejectReportWithInvalidTarget() {
-    validateError(
-      PairReportDef(name = "Process Differences", pair ="p", reportType = "differences",
-                    target = "random-target"),
-      "config/pair[key=p]/report[name=Process Differences]: Invalid target (not a URL): random-target"
-    )
-  }
-
-  @Test
-  def shouldRejectReportWithNameThatIsTooLong {
-    validateExceedsMaxKeyLength("config/pair[key=p]/report[name=%s]: name",
-      name => PairReportDef(name = name, pair = "p", reportType = "differences",
-        target="http://someapp.com/handle_report"))
-  }
-
-  @Test
   def shouldRejectUserWithoutName() {
     validateError(
       UserDef(email = "user@domain.com", password = "password"),
@@ -434,31 +343,6 @@ class ConfigValidationTest {
     userDef.validate("config")
   }
 
-  @Test
-  def shouldRejectRepairActionWithNameThatIsTooLong {
-    validateExceedsMaxKeyLength("config/pair[key=p]/repair-action[name=%s]: name",
-      name => RepairActionDef(name = name, scope = "pair", pair = "p"))
-  }
-
-  @Test
-  def shouldRejectEscalationWithNameThatIsTooLong {
-    validateExceedsMaxKeyLength("config/pair[key=p]/escalation[name=%s]: name",
-      name => EscalationDef(name = name, pair = "p", actionType = "report", event = "scan-completed"))
-  }
-
-  type Validatable = {
-    def validate(path:String)
-  }
-
-  def validateError(v:Validatable, msg:String) {
-    try {
-      v.validate("config")
-      fail("Should have thrown ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertEquals(msg, e.getMessage)
-    }
-  }
   def validateError(v:PairDef, endpoints:Set[EndpointDef], msg:String) {
     try {
       v.validate("config", endpoints)
@@ -467,14 +351,6 @@ class ConfigValidationTest {
       case e:ConfigValidationException =>
         assertEquals(msg, e.getMessage)
     }
-  }
-
-  private def validateExceedsMaxKeyLength(msg: String, fn: String => Validatable) {
-    val len = DefaultLimits.KEY_LENGTH_LIMIT + 1
-    val name = "a" * len
-    validateError(
-      fn(name), msg.format(name) + " is too long. Limit is %d, value %s is %d".format(
-        DefaultLimits.KEY_LENGTH_LIMIT, name, len))
   }
 }
 

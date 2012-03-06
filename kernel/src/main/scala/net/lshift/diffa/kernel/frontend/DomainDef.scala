@@ -17,6 +17,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import reflect.BeanProperty
+import net.lshift.diffa.kernel.config.ValidationUtil
 
 /**
  * Serializable representation of a domain within the context of a domain.
@@ -25,6 +26,10 @@ case class DomainDef(@BeanProperty var name: String = null) {
 
   def this() = this(name = null)
 
-  def validate(path:String = null) {}
+  def validate(path:String = null) {
+    val domainPath = ValidationUtil.buildPath(path, "domain", Map("name" -> name))
+
+    ValidationUtil.ensureLengthLimit(domainPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
+  }
 
 }

@@ -221,6 +221,7 @@ case class RepairActionDef (
       "repair-action", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(actionPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(actionPath, "pair", pair, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the scope is supported
     this.scope = scope match {
@@ -256,6 +257,8 @@ case class EscalationDef (
       "escalation", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(escalationPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(escalationPath, "pair", pair, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(escalationPath, "action", action, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the action type is supported, and validate the parameters that depend on it
     actionType match {
@@ -307,6 +310,7 @@ case class PairReportDef(
     "report", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(escalationPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(escalationPath, "pair", this.pair, DefaultLimits.KEY_LENGTH_LIMIT)
 
     reportType match {
       case DIFFERENCES  =>

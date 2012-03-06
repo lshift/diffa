@@ -80,7 +80,6 @@ trait DomainConfigStore {
 
   /**
    * Sets the given configuration option to the given value.
-   * @param isInternal options marked as internal will not be returned by the allConfigOptions method. This allows
    *   properties to be prevented from being shown in the user-visible system configuration views.
    */
   def setConfigOption(domain:String, key:String, value:String)
