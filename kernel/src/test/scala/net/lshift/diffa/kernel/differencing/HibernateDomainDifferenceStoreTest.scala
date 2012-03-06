@@ -37,10 +37,8 @@ import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
  */
 @RunWith(classOf[Theories])
 class HibernateDomainDifferenceStoreTest {
-  private val utilConfig = HibernateDomainDifferenceStoreTest.env.getHibernateConfiguration
-
   private val storeReferences = HibernateDomainDifferenceStoreTest.storeReferences
-  private val indexRebuilder = IndexRebuilder.dialectSpecificRebuilder(Dialect.getDialect(utilConfig.getProperties))
+  private val indexRebuilder = IndexRebuilder.dialectSpecificRebuilder(storeReferences.dialect)
 
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
@@ -51,9 +49,8 @@ class HibernateDomainDifferenceStoreTest {
 
   @Before
   def clear() {
-    val idxRebuilderSessions = utilConfig.buildSessionFactory
     domainDiffStore.clearAllDifferences
-    indexRebuilder.rebuild(idxRebuilderSessions)
+    indexRebuilder.rebuild(storeReferences.sessionFactory)
 
     systemConfigStore.createOrUpdateDomain(domain)
     val us = EndpointDef(name = "upstream")

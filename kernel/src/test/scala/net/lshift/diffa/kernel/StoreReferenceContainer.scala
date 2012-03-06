@@ -26,6 +26,8 @@ object StoreReferenceContainer {
  * interface for simple initialisation of their configuration.
  */
 trait StoreReferenceContainer {
+  def sessionFactory: SessionFactory
+  def dialect: Dialect
   def systemConfigStore: HibernateSystemConfigStore
   def domainConfigStore: HibernateDomainConfigStore
   def domainDifferenceStore: HibernateDomainDifferenceStore
@@ -58,28 +60,33 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     setProperty("hibernate.generate_statistics", "true").
     setProperty("hibernate.connection.autocommit", "true")  // Turn this on to make the tests repeatable,
                                                             // otherwise the preparation step will not get committed
-  private val dialect = Dialect.getDialect(applicationConfig.getProperties)
-  private var sessionFactory: Option[SessionFactory] = None
+  val dialect = Dialect.getDialect(applicationConfig.getProperties)
+  private var _sessionFactory: Option[SessionFactory] = None
 
   private val cacheManager = new CacheManager
   private val pairCache = new PairCache(cacheManager)
   private val hookManager = new HookManager(applicationConfig)
 
-  private lazy val _systemConfigStore = sessionFactory match {
+  def sessionFactory = _sessionFactory match {
+    case Some(sf) => sf
+    case None => throw new IllegalStateException("Failed to initialize environment before using SessionFactory")
+  }
+
+  private lazy val _systemConfigStore = _sessionFactory match {
     case Some(sf) =>
       new HibernateSystemConfigStore(sf, pairCache)
     case None =>
       throw new IllegalStateException("Failed to initialize environment before using SystemConfigStore")
   }
 
-  private lazy val _domainConfigStore = sessionFactory match {
+  private lazy val _domainConfigStore = _sessionFactory match {
     case Some(sf) =>
       new HibernateDomainConfigStore(sf, pairCache, hookManager)
     case None =>
       throw new IllegalStateException("Failed to initialize environment before using DomainConfigStore")
   }
 
-  private lazy val _domainDifferenceStore = sessionFactory match {
+  private lazy val _domainDifferenceStore = _sessionFactory match {
     case Some(sf) =>
       new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager)
     case None =>
@@ -93,13 +100,11 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   def prepareEnvironmentForStores {
     performCleanerAction(cleaner => cleaner.clean)
 
-    sessionFactory = Some(applicationConfig.buildSessionFactory)
-    sessionFactory foreach { sf =>
+    _sessionFactory = Some(applicationConfig.buildSessionFactory)
+    _sessionFactory foreach { sf =>
       (new HibernateConfigStorePreparationStep).prepare(sf, applicationConfig)
-      log.info("Schema created, now destroying session factory")
-      sf.close
+      log.info("Schema created")
     }
-    sessionFactory = Some(applicationConfig.buildSessionFactory)
   }
 
   def tearDown {
@@ -109,6 +114,8 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     } catch {
       case _ =>
     }
+    _sessionFactory.get.close()
+    _sessionFactory = None
   }
 
   private def performCleanerAction(action: SchemaCleaner => (DatabaseEnvironment, DatabaseEnvironment) => Unit) {
@@ -126,8 +133,8 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   }
 
   override def clearUserConfig {
-    sessionFactory.get.withSession(s => s.createCriteria(classOf[User]).list.foreach(s.delete(_)))
+    _sessionFactory.get.withSession(s => s.createCriteria(classOf[User]).list.foreach(s.delete(_)))
   }
 
-  def sessionStatistics = sessionFactory.get.getStatistics
+  def sessionStatistics = _sessionFactory.get.getStatistics
 }
