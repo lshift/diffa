@@ -129,6 +129,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   def reset() {
     writer.deleteAll()
     writer.commit()
+    updatedDocs.clear()
   }
 
   def close() {
@@ -232,7 +233,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
 
         // Update the match status of the document. A document with neither participant is matched (and will be seen
         // as a tombstone)
-        updateField(doc, boolField("isMatched", hasUpstream(doc) || hasDownstream(doc)))
+        updateField(doc, boolField("isMatched", !hasUpstream(doc) && !hasDownstream(doc)))
 
         prepareUpdate(id, doc)
 

@@ -13,7 +13,7 @@
 
 ## General Maintenance
 
-* [?] - ...
+* [54] - Corrected a behavior whereby when a correlation that previous had upstream and downstream elements has one of the elements removed, the correlation would get (incorrectly) marked as matched.
 
 ## Library Upgrades
 

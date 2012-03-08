@@ -274,6 +274,36 @@ class LuceneVersionCorrelationStoreTest {
   }
 
   @Test
+  def unmatchedPairsAfterUpstreamRemoved = {
+    val timestamp = new DateTime()
+
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id5"), emptyAttributes,DEC_31_2009, "upstreamVsnA")
+    writer.storeDownstreamVersion(VersionID(pair, "id5"), emptyAttributes, DEC_31_2009, "upstreamVsnA", "downstreamVsnA")
+    writer.clearUpstreamVersion(VersionID(pair, "id5"))
+    writer.flush()
+
+    val unmatched = store.unmatchedVersions(Seq(), Seq(), None)
+    assertEquals(1, unmatched.size)
+    assertCorrelationEquals(new Correlation(null, pair, "id5", emptyStrAttributes, emptyStrAttributes, DEC_31_2009, timestamp, null, "upstreamVsnA", "downstreamVsnA", false), unmatched(0))
+  }
+
+  @Test
+  def unmatchedPairsAfterDownstreamRemoved = {
+    val timestamp = new DateTime()
+
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id5"), emptyAttributes,DEC_31_2009, "upstreamVsnA")
+    writer.storeDownstreamVersion(VersionID(pair, "id5"), emptyAttributes, DEC_31_2009, "upstreamVsnA", "downstreamVsnA")
+    writer.clearDownstreamVersion(VersionID(pair, "id5"))
+    writer.flush()
+
+    val unmatched = store.unmatchedVersions(Seq(), Seq(), None)
+    assertEquals(1, unmatched.size)
+    assertCorrelationEquals(new Correlation(null, pair, "id5", emptyStrAttributes, emptyStrAttributes, DEC_31_2009, timestamp, "upstreamVsnA", null, null, false), unmatched(0))
+  }
+
+  @Test
   def unmatchedPairsAfterChangesShouldBeIndicatedInReturnValue = {
     val timestamp = new DateTime()
 
@@ -293,7 +323,7 @@ class LuceneVersionCorrelationStoreTest {
     writer.storeUpstreamVersion(VersionID(pair, "id7"), bizDateTimeMap(DEC_1_2009), DEC_1_2009, "upstreamVsn-id7")
     val corr = writer.clearUpstreamVersion(VersionID(pair, "id6"))
     writer.flush()
-    assertCorrelationEquals(new Correlation(null, pair, "id6", null, null, null, null, null, null, null, false), corr)
+    assertCorrelationEquals(new Correlation(null, pair, "id6", null, null, null, null, null, null, null, true), corr)
 
     val collector = new Collector
     store.queryUpstreams(List(new TimeRangeConstraint("bizDateTime", DEC_1_2009, endOfDay(DEC_1_2009))), collector.collectUpstream)
@@ -325,7 +355,7 @@ class LuceneVersionCorrelationStoreTest {
     val writer2 = store.openWriter()
     val corr = writer2.clearDownstreamVersion(VersionID(pair, "id6"))
     writer2.flush()
-    assertCorrelationEquals(new Correlation(null, pair, "id6", null, null, null, null, null, null, null, false), corr)
+    assertCorrelationEquals(new Correlation(null, pair, "id6", null, null, null, null, null, null, null, true), corr)
 
     val collector = new Collector
     val digests = store.queryDownstreams(List(new TimeRangeConstraint("bizDateTime", DEC_1_2009, endOfDay(DEC_1_2009))), collector.collectDownstream)

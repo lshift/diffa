@@ -139,22 +139,25 @@ class StoreSynchronizationTest {
 
     writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
     writer.storeDownstreamVersion(id, attributes, lastUpdated.plusMinutes(1), "v2", "v3") // Should produce store version 2
+    writer.flush()
     writer.clearUpstreamVersion(id) // Should produce store version 3
     writer.clearDownstreamVersion(id) // Should produce store version 4
 
     writer.flush()
 
-    def checkUnmatched(expectation:Int) = {
-      val unmatched = store.unmatchedVersions(Seq(), Seq(), None)
-      assertEquals(expectation, unmatched.toSeq.length)
-    }
-
-    checkUnmatched(1)
+    val before = store.retrieveCurrentCorrelation(id)
+    assertTrue(before.isDefined)
+    assertTrue(before.get.isMatched)
 
     replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)
-    assertEquals(Some(4L), diffsManager.lastRecordedVersion(pairRef))
 
-    checkUnmatched(0)
+      // The last recorded version won't change, since all we processed was a tombstone - which doesn't increment the
+      // last processed version.
+    assertEquals(Some(0L), diffsManager.lastRecordedVersion(pairRef))
+
+
+    val after = store.retrieveCurrentCorrelation(id)
+    assertFalse(after.isDefined)
   }
 
   @Test
