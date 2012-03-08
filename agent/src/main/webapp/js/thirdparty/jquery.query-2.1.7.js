@@ -202,12 +202,13 @@ new function(settings) {
           var newKey = function(key) {
             return !base || base == "" ? [key].join("") : [base, "[", key, "]"].join("");
           };
-          jQuery.each(obj, function(key, value) {
+          for (var key in obj) {
+            var value = obj[key];
             if (typeof value == 'object') 
               build(value, newKey(key));
             else
               addFields(chunks, newKey(key), value);
-          });
+          }
         };
         
         build(this.keys);
