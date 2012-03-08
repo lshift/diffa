@@ -172,13 +172,15 @@ case class DiffaPair(
   @BeanProperty var matchingTimeout: Int = DiffaPair.NO_MATCHING,
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView]) {
+  @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView],
+  @BeanProperty var eventsToLog: Int = 0,
+  @BeanProperty var maxExplainFiles: Int = 0) {
 
   def this() = this(key = null)
 
   def identifier = asRef.identifier
 
-  def asRef = DiffaPairRef(key,domain.name)
+  def asRef = DiffaPairRef(key, domain.name)
 
   override def equals(that:Any) = that match {
     case p:DiffaPair => p.key == key && p.domain == domain
@@ -233,7 +235,6 @@ case class DiffaPairRef(@BeanProperty var key: String = null,
   def identifier = "%s/%s".format(domain,key)
 
   def toInternalFormat = DiffaPair(key = key, domain = Domain(name = domain))
-
 }
 
 object DiffaPair {
@@ -402,4 +403,9 @@ case class PairScopedName(@BeanProperty var name:String = null,
                           @BeanProperty var pair:DiffaPair = null) extends java.io.Serializable
 {
   def this() = this(name = null)
+}
+
+object ConfigOption {
+  val eventExplanationLimitKey = "maxEventsToExplainPerPair"
+  val explainFilesLimitKey = "maxExplainFilesPerPair"
 }

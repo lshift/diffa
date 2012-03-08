@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
  * This Step 'migrates' a schema/database to version 0 -
  * that is, it creates the base schema from scratch.
  */
-object HibernateMigrationStep0 extends HibernateMigrationStep {
+object HibernateMigrationStep0000 extends HibernateMigrationStep {
   def versionId = 0
   def name = "Create schema"
   def createMigration(config: Configuration) = {

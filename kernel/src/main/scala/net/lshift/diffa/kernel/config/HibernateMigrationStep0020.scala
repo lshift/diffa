@@ -7,7 +7,7 @@ import java.sql.Types
 /**
  * Upgrade the diffa database schema to version 20.
  */
-object HibernateMigrationStep20 extends HibernateMigrationStep {
+object HibernateMigrationStep0020 extends HibernateMigrationStep {
   def versionId = 20
   def name = "Shorten columns lengths for more complete MySQL support"
 

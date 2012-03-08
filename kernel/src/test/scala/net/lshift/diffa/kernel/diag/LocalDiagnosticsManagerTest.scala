@@ -7,12 +7,13 @@ import org.joda.time.DateTime
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.util.HamcrestDateTimeHelpers._
 import net.lshift.diffa.kernel.differencing.{PairScanState}
-import net.lshift.diffa.kernel.frontend.FrontendConversions
 import org.junit.{Before, Test}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, Domain, DiffaPair}
 import java.io.{FileInputStream, File}
 import org.apache.commons.io.{IOUtils, FileDeleteStrategy}
 import java.util.zip.ZipInputStream
+import org.junit.experimental.theories.{DataPoints, DataPoint, Theory}
+import net.lshift.diffa.kernel.frontend.{PairDef, FrontendConversions}
+import net.lshift.diffa.kernel.config._
 
 class LocalDiagnosticsManagerTest {
   val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
@@ -21,13 +22,13 @@ class LocalDiagnosticsManagerTest {
   val diagnostics = new LocalDiagnosticsManager(domainConfigStore, explainRoot.getPath)
 
   val domainName = "domain"
-  val domain = Domain(name=domainName)
+  val testDomain = Domain(name=domainName)
 
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
-  val pair1 = DiffaPair(key = "pair1", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
-  val pair2 = DiffaPair(key = "pair2", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
+  val pair1 = DiffaPair(key = "pair1", domain = testDomain, maxExplainFiles = 1, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
+  val pair2 = DiffaPair(key = "pair2", domain = testDomain, eventsToLog = 0, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
 
   @Before
   def cleanupExplanations() {
@@ -36,9 +37,12 @@ class LocalDiagnosticsManagerTest {
 
   @Test
   def shouldAcceptAndStoreLogEventForPair() {
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pair1.asRef, "Some msg")
+    val key = "moderateLoggingPair"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, 10, 1)
+    diagnostics.logPairEvent(DiagnosticLevel.INFO, pair, "Some msg")
 
-    val events = diagnostics.queryEvents(pair1.asRef, 100)
+    val events = diagnostics.queryEvents(pair, 100)
     assertEquals(1, events.length)
     assertThat(events(0).timestamp,
       is(allOf(after((new DateTime).minusSeconds(5)), before((new DateTime).plusSeconds(1)))))
@@ -47,18 +51,19 @@ class LocalDiagnosticsManagerTest {
   }
 
   @Test
-  def shouldLimitNumberOfStoredLogEvents() {
+  def shouldLimitNumberOfStoredLogEventsToMax() {
+    val key = "maxLoggingPair"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, 100, 1)
     for (i <- 1 until 1000)
-      diagnostics.logPairEvent(DiagnosticLevel.INFO, pair1.asRef, "Some msg")
+      diagnostics.logPairEvent(DiagnosticLevel.INFO, pair, "Some msg")
 
-    assertEquals(100, diagnostics.queryEvents(pair1.asRef, 1000).length)
+    assertEquals(100, diagnostics.queryEvents(pair, 1000).length)
   }
 
   @Test
   def shouldTrackStateOfPairsWithinDomain() {
-    expect(domainConfigStore.listPairs(domainName)).
-        andStubReturn(Seq(FrontendConversions.toPairDef(pair1), FrontendConversions.toPairDef(pair2)))
-    replayAll()
+    expectPairListFromConfigStore(pair1 :: pair2 :: Nil)
 
     // Query for the states associated. We should get back an entry for pair in "unknown"
     assertEquals(Map("pair1" -> PairScanState.UNKNOWN, "pair2" -> PairScanState.UNKNOWN),
@@ -85,9 +90,7 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldNotReportStateOfDeletedPairs() {
     // Wire up pair1 and pair2 to exist, and provide a status
-    expect(domainConfigStore.listPairs(domainName)).
-        andStubReturn(Seq(FrontendConversions.toPairDef(pair1), FrontendConversions.toPairDef(pair2)))
-    replayAll()
+    expectPairListFromConfigStore(pair1 :: pair2 :: Nil)
 
     diagnostics.pairScanStateChanged(pair1.asRef, PairScanState.SCANNING)
     assertEquals(Map("pair1" -> PairScanState.SCANNING, "pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain("domain"))
@@ -103,21 +106,24 @@ class LocalDiagnosticsManagerTest {
   
   @Test
   def shouldNotGenerateAnyOutputWhenCheckpointIsCalledOnASilentPair() {
-    diagnostics.checkpointExplanations(DiffaPairRef("quiet", "domain"))
+    val key = "quiet"
+    diagnostics.checkpointExplanations(DiffaPairRef(key, domainName))
 
-    val pairDir = new File(explainRoot, "domain/quiet")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     if (pairDir.exists())
       assertEquals(0, pairDir.listFiles().length)
   }
 
   @Test
   def shouldGenerateOutputWhenExplanationsHaveBeenLogged() {
-    val pair = DiffaPairRef("explained", "domain")
+    val key = "explained"
+    val pair = DiffaPairRef(key, domainName)
 
+    setPairExplainLimits(key, 1, 1)
     diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(pair)
 
-    val pairDir = new File(explainRoot, "domain/explained")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -133,14 +139,16 @@ class LocalDiagnosticsManagerTest {
 
   @Test
   def shouldIncludeContentsOfObjectsAdded() {
-    val pair = DiffaPairRef("explainedobj", "domain")
+    val key = "explainedobj"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, 1, 1)
 
     diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
     diagnostics.checkpointExplanations(pair)
 
-    val pairDir = new File(explainRoot, "domain/explainedobj")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -159,14 +167,16 @@ class LocalDiagnosticsManagerTest {
 
   @Test
   def shouldAddLogMessageIndicatingObjectWasAttached() {
-    val pair = DiffaPairRef("explainedobj", "domain")
+    val key = "explainedobj"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, 1, 1)
 
     diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
     diagnostics.checkpointExplanations(pair)
 
-    val pairDir = new File(explainRoot, "domain/explainedobj")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -185,7 +195,9 @@ class LocalDiagnosticsManagerTest {
 
   @Test
   def shouldCreateMultipleOutputsWhenMultipleNonQuietRunsHaveBeenMade() {
-    val pair = DiffaPairRef("explained", "domain")
+    val key = "explained_20_2"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, 50, 2)
 
     diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(pair)
@@ -193,7 +205,7 @@ class LocalDiagnosticsManagerTest {
     diagnostics.logPairExplanation(pair, "Test Case" , "Diffa did something else")
     diagnostics.checkpointExplanations(pair)
 
-    val pairDir = new File(explainRoot, "domain/explained")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     val zips = pairDir.listFiles()
 
     assertEquals(2, zips.length)
@@ -201,27 +213,158 @@ class LocalDiagnosticsManagerTest {
 
   @Test
   def shouldKeepNumberOfExplanationFilesUnderControl() {
-    val pair = DiffaPairRef("controlled", "domain")
+    val filesToKeep = 20
+    val generateCount = 100
+    val key = "controlled_100_20"
+    val pair = DiffaPairRef(key, domainName)
+    setPairExplainLimits(key, generateCount, filesToKeep)
 
-    for (i <- 1 until 100) {
+    for (i <- 1 until generateCount) {
       diagnostics.logPairExplanation(pair, "Test Case", i.toString)
       diagnostics.checkpointExplanations(pair)
     }
 
-    val pairDir = new File(explainRoot, "domain/controlled")
+    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     val zips = pairDir.listFiles()
 
-    assertEquals(20, zips.length)
-    zips.foreach(z => {
-      val zipInputStream = new ZipInputStream(new FileInputStream(z))
-      zipInputStream.getNextEntry
-      val content = IOUtils.toString(zipInputStream)
-      zipInputStream.close()
+    assertEquals(filesToKeep, zips.length)
 
-      val entryNum = content.trim().split(" ").last
-      assertThat(new Integer(entryNum), is(greaterThanOrEqualTo(new Integer(80))))
-    })
+    zips.foreach(z => verifyZipContent(generateCount - filesToKeep)(z))
   }
+  
+  private def verifyZipContent(earliestEntryNum: Int)(zipFile: File) {
+    val zipInputStream = new ZipInputStream(new FileInputStream(zipFile))
+    zipInputStream.getNextEntry
+    val content = IOUtils.toString(zipInputStream)
+    zipInputStream.close()
+    
+    val entryNum = content.trim().split(" ").last
+    assertThat(new Integer(entryNum), is(greaterThanOrEqualTo(new Integer(earliestEntryNum))))
+  }
+
+  @Test
+  def shouldMakeOnlyAsManyExplanationFilesAsConfiguredForPair {
+    val someExtra = 100 // a few more than the limit, to ensure that the limit works.
+
+    List(0, 1, 2, 3, 5, 10, 20) foreach { i =>
+      val key = "limited_to_%d_%d".format(i + someExtra, i)
+      setPairExplainLimits(key, i + someExtra, i)
+      verifyExplanationFileCount(i, DiffaPairRef(key, domainName))
+      reset(domainConfigStore)
+    }
+  }
+
+  @Test
+  def shouldMakeNoExplanationFilesForDefaultConfiguredPair {
+    val key = "limited_to_0_by_default"
+    setDefaultPairExplainLimits(key)
+    verifyExplanationFileCount(0, DiffaPairRef(key, domainName))
+  }
+
+  @Test
+  def shouldLimitExplanationFilesDespitePairConfiguration {
+    val key = "limited_to_fixed_file_count"
+    setPairExplainLimits(key, 500, 22)
+    verifyExplanationFileCount(20, DiffaPairRef(key, domainName))
+  }
+
+  @Test
+  def shouldUsePairConfigurationToLimitExplanations {
+    val key = "limited_by_pair_to_0_files"
+    setDefaultPairExplainLimits(key)
+
+    verifyExplanationFileCount(0, DiffaPairRef(key, domainName))
+  }
+  
+  @Test
+  def shouldLimitExplanationFilesToSystemLimit {
+    val key = "limited_to_2_by_system_config"
+    val systemExplanationFileLimit = 2
+    setPairExplainLimitsWithSystemLimits(key, 50, 10, 20, systemExplanationFileLimit)
+    verifyExplanationFileCount(systemExplanationFileLimit, DiffaPairRef(key, domainName))
+  }
+
+  private def expectPairListFromConfigStore(pairs: Seq[DiffaPair]) {
+    val pairDefs = pairs map FrontendConversions.toPairDef
+    expect(domainConfigStore.listPairs(domainName)).
+      andStubReturn(pairDefs)
+
+    pairDefs foreach { pairDef =>
+      expect(domainConfigStore.getPairDef(domainName, pairDef.key)).
+        andStubReturn(pairDef)
+    }
+    replayAll()
+  }
+
+  private def setDefaultPairExplainLimits(key: String) {
+    val pair = makeDiffaPair(key)
+
+    expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
+      andStubReturn(FrontendConversions.toPairDef(pair))
+    replayAll()
+  }
+
+  private def setPairExplainLimitsWithSystemLimits(key: String,
+                                                   pairEventsToLog: Int,
+                                                   pairMaxExplainFiles: Int,
+                                                   systemEventsToLog: Int,
+                                                   systemMaxExplainFiles: Int) {
+    val pair = makeDiffaPairWithLimits(key, pairEventsToLog, pairMaxExplainFiles)
+
+    expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
+      andStubReturn(FrontendConversions.toPairDef(pair))
+
+    expect(domainConfigStore.maybeConfigOption(pair.domain.name, ConfigOption.eventExplanationLimitKey)).
+      andStubReturn(Some(String.valueOf(systemEventsToLog)))
+    expect(domainConfigStore.maybeConfigOption(pair.domain.name, ConfigOption.explainFilesLimitKey)).
+      andStubReturn(Some(String.valueOf(systemMaxExplainFiles)))
+
+    replayAll()
+  }
+
+  private def setPairExplainLimits(key: String, eventsToLog: Int, maxExplainFiles: Int) {
+    val pair = makeDiffaPairWithLimits(key, eventsToLog, maxExplainFiles)
+
+    expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
+      andStubReturn(FrontendConversions.toPairDef(pair))
+    replayAll()
+  }
+
+  private def verifyExplanationFileCount(expectedCount: Int, diffaPair: DiffaPairRef) {
+    val key = diffaPair.key
+    val domain = diffaPair.domain
+    val generationCount = 21
+
+    for (i <- 1 to generationCount) {
+      diagnostics.logPairExplanation(diffaPair, "Non-standard explanation count", "Test action %d".format(i))
+      diagnostics.checkpointExplanations(diffaPair)
+      // a hack to allow time for the filesystem to write the file and
+      // provide discrete timestamps on the explanation files.
+      Thread.sleep(1)
+    }
+
+    val pairDir = new File(explainRoot, "%s/%s".format(domain, key))
+    val zips = pairDir.listFiles
+    val zipsFound = zips match {
+      case null => 0
+      case _ => zips.length
+    }
+
+    assertEquals(expectedCount, zipsFound)
+
+    if (zips != null) {
+      zips foreach verifyZipContent(generationCount - zipsFound)
+    }
+  }
+
+  private def makeDiffaPair(key: String) = DiffaPair(
+    domain = testDomain, key = key, versionPolicyName = "policy", upstream = u.name, downstream = d.name
+  )
+
+  private def makeDiffaPairWithLimits(key: String, eventsToLog: Int, maxExplainFiles: Int) = DiffaPair(
+    domain = testDomain, key = key, versionPolicyName = "policy", upstream = u.name, downstream = d.name,
+    eventsToLog = eventsToLog, maxExplainFiles = maxExplainFiles
+  )
 
   def replayAll() { replay(domainConfigStore) }
 }

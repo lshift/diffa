@@ -3,13 +3,13 @@ package net.lshift.diffa.kernel.diag
 import org.joda.time.DateTime
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.differencing.{PairScanState, PairScanListener}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import org.slf4j.LoggerFactory
 import java.io._
 import org.joda.time.format.ISODateTimeFormat
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
+import net.lshift.diffa.kernel.config.{ConfigOption, DiffaPairRef, DomainConfigStore}
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
@@ -21,10 +21,12 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
     with PairScanListener
     with AgentLifecycleAware {
   private val pairs = HashMap[DiffaPairRef, PairDiagnostics]()
-  private val maxEventsPerPair = 100
-  private val maxExplainFilesPerPair = 20
+  private val defaultMaxEventsPerPair = 100
+  private val defaultMaxExplainFilesPerPair = 20
 
   private val timeFormatter = ISODateTimeFormat.time()
+  
+  def getPairFromRef(ref: DiffaPairRef) = domainConfigStore.getPairDef(ref.domain, ref.key)
 
   def checkpointExplanations(pair: DiffaPairRef) {
     maybeGetPair(pair).map(p => p.checkpointExplanations())
@@ -56,14 +58,14 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
     pairs.synchronized {
       domainPairs.map(p => pairs.get(DiffaPairRef(p.key, domain)) match {
         case None           => p.key -> PairScanState.UNKNOWN
-        case Some(pairDiag) => p.key -> pairDiag.scanScate
+        case Some(pairDiag) => p.key -> pairDiag.scanState
       }).toMap
     }
   }
 
   def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) = pairs.synchronized {
     val pairDiag = getOrCreatePair(pair)
-    pairDiag.scanScate = scanState
+    pairDiag.scanState = scanState
   }
 
   /**
@@ -101,7 +103,22 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
   private class PairDiagnostics(pair:DiffaPairRef) {
     private val pairExplainRoot = new File(explainRootDir, pair.identifier)
     private val log = ListBuffer[PairEvent]()
-    var scanScate:PairScanState = PairScanState.UNKNOWN
+    var scanState:PairScanState = PairScanState.UNKNOWN
+    private val pairDef = getPairFromRef(pair)
+    private val domainEventsPerPair = getConfigOrElse(pair.domain,
+      ConfigOption.eventExplanationLimitKey, defaultMaxEventsPerPair)
+    private val domainExplainFilesPerPair = getConfigOrElse(pair.domain,
+      ConfigOption.explainFilesLimitKey, defaultMaxExplainFilesPerPair)
+
+    private def getConfigOrElse(domain: String, configKey: String, defaultVal: Int) = try {
+      domainConfigStore.maybeConfigOption(domain, configKey).get.toInt
+    } catch {
+      case _ => defaultVal
+    }
+
+    private val maxEvents = math.min(domainEventsPerPair, pairDef.eventsToLog)
+    private val maxExplainFiles = math.min(domainExplainFilesPerPair, pairDef.maxExplainFiles)
+    private val isLoggingEnabled = maxExplainFiles > 0 && maxEvents > 0
 
     private val explainLock = new Object
     private var explainDir:File = null
@@ -111,7 +128,7 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
       log.synchronized {
         log += evt
 
-        val drop = log.length - maxEventsPerPair
+        val drop = log.length - maxEvents
         if (drop > 0)
           log.remove(0, drop)
       }
@@ -147,26 +164,30 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
     }
 
     def logPairExplanation(source:String, msg:String) {
-      explainLock.synchronized {
-        if (explanationWriter == null) {
-          explanationWriter = new PrintWriter(new FileWriter(new File(currentExplainDirectory, "explain.log")))
-        }
+      if (isLoggingEnabled) {
+        explainLock.synchronized {
+          if (explanationWriter == null) {
+            explanationWriter = new PrintWriter(new FileWriter(new File(currentExplainDirectory, "explain.log")))
+          }
 
-        explanationWriter.println("%s: [%s] %s".format(timeFormatter.print(new DateTime()), source, msg))
+          explanationWriter.println("%s: [%s] %s".format(timeFormatter.print(new DateTime()), source, msg))
+        }
       }
     }
 
     def writePairExplanationObject(source:String, objName: String, f:OutputStream => Unit) {
-      explainLock.synchronized {
-        val outputFile = new File(currentExplainDirectory, objName)
-        val outputStream = new FileOutputStream(outputFile)
-        try {
-          f(outputStream)
-        } finally {
-          outputStream.close()
-        }
+      if (isLoggingEnabled) {
+        explainLock.synchronized {
+          val outputFile = new File(currentExplainDirectory, objName)
+          val outputStream = new FileOutputStream(outputFile)
+          try {
+            f(outputStream)
+          } finally {
+            outputStream.close()
+          }
 
-        logPairExplanation(source, "Attached object " + objName)
+          logPairExplanation(source, "Attached object " + objName)
+        }
       }
     }
 
@@ -210,9 +231,9 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
       val explainFiles = pairExplainRoot.listFiles(new FilenameFilter() {
         def accept(dir: File, name: String) = name.endsWith(".zip")
       })
-      if (explainFiles != null && explainFiles.length > maxExplainFilesPerPair) {
+      if (explainFiles != null && explainFiles.length > maxExplainFiles) {
         val orderedFiles = explainFiles.toSeq.sortBy(f => (f.lastModified, f.getName))
-        orderedFiles.take(explainFiles.length - maxExplainFilesPerPair).foreach(f => f.delete())
+        orderedFiles.take(explainFiles.length - maxExplainFiles).foreach(f => f.delete())
       }
     }
   }
