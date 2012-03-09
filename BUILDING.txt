@@ -56,6 +56,49 @@ Please do not overlook the previous note about perm gen. To build Diffa, just us
 
 This will run the the test suite that comes with Diffa.
 
+
+To verify against a database other than the default (hsqldb), follow the instructions below.
+
+* Oracle DBMS
+Note: please refer to the README for further details on using this profile.
+
+Set profile to 'oracle' (-Poracle)
+Set these parameters (either MAVEN_OPTS="-Dparam1 -Dparam2 ..." or mvn -Dparam1 -Dparam2 ...)
+  diffa.jdbc.driver=oracle.jdbc.OracleDriver
+  diffa.hibernate.dialect=org.hibernate.dialect.Oracle10gDialect
+  diffa.jdbc.sys.url=<URL of the target Oracle database instance>
+  diffa.jdbc.sys.username=<username of a privileged Oracle database user>
+  diffa.jdbc.sys.password=<password of the above user>
+  diffa.jdbc.url=<same as diffa.jdbc.sys.url>
+  diffa.jdbc.username=<username of the owner of the diffa agent database>
+  diffa.jdbc.password=<the owning user's password>
+
+Note on diffa.jdbc.sys.username
+The user identified by this username must have privileges to create a schema
+and grant create session and dba privileges.  This user is only needed for
+testing; in a production environment, the application database user is
+provisioned manually with suitable privileges.
+
+Note on diffa.jdbc.username/password
+This user is created during the testing/verification process.  The user MUST
+NOT be the same as diffa.jdbc.sys.username.
+
+
+* MySQL
+Set profile to 'mysql' (-Pmysql)
+Set these parameters (either MAVEN_OPTS="-Dparam1 -Dparam2 ..." or mvn -Dparam1 -Dparam2 ...)
+  diffa.jdbc.driver=com.mysql.jdbc.Driver
+  diffa.hibernate.dialect=org.hibernate.dialect.MySQL5Dialect
+  diffa.jdbc.dbname=<name of the diffa agent database to create>
+  diffa.jdbc.sys.url=<URL of the base MySQL instance (without database name)>
+  diffa.jdbc.sys.username=<username of a privileged MySQL database user (will
+                          create the db owner)>
+  diffa.jdbc.sys.password=<password of the above user>
+  diffa.jdbc.url=<URL of the target MySQL database (with database name)>
+  diffa.jdbc.username=<username of the owner of the diffa agent database>
+  diffa.jdbc.password=<the owning user's password>
+
+
 Booting The Agent
 -----------------
 
