@@ -26,8 +26,11 @@
     <http-basic />
     <custom-filter ref="tokenFilter" before="BASIC_AUTH_FILTER" />
 
-    <!-- Allow the status page to be seen by anyone -->
+    <!-- Allow the status page and UI resources to be seen by anyone -->
     <intercept-url pattern="/status" access="permitAll" />
+    <intercept-url pattern="/less/**" access="permitAll" />
+    <intercept-url pattern="/js/**" access="permitAll" />
+    <intercept-url pattern="/images/**" access="permitAll" />
 
     <!-- All operations within the interface require a user role -->
     <intercept-url pattern="/**" access="hasRole('user')" />
