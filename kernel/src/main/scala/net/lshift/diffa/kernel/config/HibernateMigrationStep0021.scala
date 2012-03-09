@@ -12,6 +12,9 @@ object HibernateMigrationStep0021 extends HibernateMigrationStep {
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
+    migration.alterTable("config_options").
+      replacePrimaryKey("opt_key", "domain")
+
     migration.alterTable("pair").
       addColumn("events_to_log", Types.INTEGER, 11, false, 0).
       addColumn("max_explain_files", Types.INTEGER, 11, false, 0)
@@ -23,17 +26,6 @@ object HibernateMigrationStep0021 extends HibernateMigrationStep {
     migration.insert("system_config_options").values(Map(
       "opt_key" -> ConfigOption.explainFilesLimitKey,
       "opt_val" -> "20"))
-
-    migration.sql("""
-insert into config_options (domain, opt_key, opt_val)
-select name, o.opt_key, o.opt_val
-from domains d, system_config_options o
-where o.opt_key in (
-  '%s',
-  '%s')
-""".format(
-      ConfigOption.eventExplanationLimitKey,
-      ConfigOption.explainFilesLimitKey))
 
     migration
   }

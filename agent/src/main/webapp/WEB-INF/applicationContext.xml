@@ -401,6 +401,7 @@
   -->
 
   <bean id="diagnosticsManager" class="net.lshift.diffa.kernel.diag.LocalDiagnosticsManager">
+    <constructor-arg ref="systemConfigStore" />
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg>
       <bean class="org.springframework.jndi.JndiObjectFactoryBean">

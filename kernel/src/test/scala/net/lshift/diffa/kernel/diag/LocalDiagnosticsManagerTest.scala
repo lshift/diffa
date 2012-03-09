@@ -14,12 +14,14 @@ import java.util.zip.ZipInputStream
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theory}
 import net.lshift.diffa.kernel.frontend.{PairDef, FrontendConversions}
 import net.lshift.diffa.kernel.config._
+import system.SystemConfigStore
 
 class LocalDiagnosticsManagerTest {
   val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
+  val systemConfigStore = createStrictMock(classOf[SystemConfigStore])
 
   val explainRoot = new File("target/explain")
-  val diagnostics = new LocalDiagnosticsManager(domainConfigStore, explainRoot.getPath)
+  val diagnostics = new LocalDiagnosticsManager(systemConfigStore, domainConfigStore, explainRoot.getPath)
 
   val domainName = "domain"
   val testDomain = Domain(name=domainName)
@@ -99,7 +101,7 @@ class LocalDiagnosticsManagerTest {
     reset(domainConfigStore)
     expect(domainConfigStore.listPairs(domainName)).
         andStubReturn(Seq(FrontendConversions.toPairDef(pair2)))
-    replayAll()
+    replayDomainConfig
     diagnostics.onDeletePair(pair1.asRef)
     assertEquals(Map("pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain(domainName))
   }
@@ -293,7 +295,7 @@ class LocalDiagnosticsManagerTest {
       expect(domainConfigStore.getPairDef(domainName, pairDef.key)).
         andStubReturn(pairDef)
     }
-    replayAll()
+    replayDomainConfig
   }
 
   private def setDefaultPairExplainLimits(key: String) {
@@ -301,7 +303,7 @@ class LocalDiagnosticsManagerTest {
 
     expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
       andStubReturn(FrontendConversions.toPairDef(pair))
-    replayAll()
+    replayDomainConfig
   }
 
   private def setPairExplainLimitsWithSystemLimits(key: String,
@@ -314,12 +316,12 @@ class LocalDiagnosticsManagerTest {
     expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
       andStubReturn(FrontendConversions.toPairDef(pair))
 
-    expect(domainConfigStore.maybeConfigOption(pair.domain.name, ConfigOption.eventExplanationLimitKey)).
+    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.eventExplanationLimitKey)).
       andStubReturn(Some(String.valueOf(systemEventsToLog)))
-    expect(domainConfigStore.maybeConfigOption(pair.domain.name, ConfigOption.explainFilesLimitKey)).
+    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.explainFilesLimitKey)).
       andStubReturn(Some(String.valueOf(systemMaxExplainFiles)))
 
-    replayAll()
+    replay(domainConfigStore, systemConfigStore)
   }
 
   private def setPairExplainLimits(key: String, eventsToLog: Int, maxExplainFiles: Int) {
@@ -327,7 +329,7 @@ class LocalDiagnosticsManagerTest {
 
     expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
       andStubReturn(FrontendConversions.toPairDef(pair))
-    replayAll()
+    replayDomainConfig
   }
 
   private def verifyExplanationFileCount(expectedCount: Int, diffaPair: DiffaPairRef) {
@@ -340,7 +342,7 @@ class LocalDiagnosticsManagerTest {
       diagnostics.checkpointExplanations(diffaPair)
       // a hack to allow time for the filesystem to write the file and
       // provide discrete timestamps on the explanation files.
-      Thread.sleep(1)
+      Thread.sleep(2)
     }
 
     val pairDir = new File(explainRoot, "%s/%s".format(domain, key))
@@ -366,5 +368,11 @@ class LocalDiagnosticsManagerTest {
     eventsToLog = eventsToLog, maxExplainFiles = maxExplainFiles
   )
 
-  def replayAll() { replay(domainConfigStore) }
+  def replayDomainConfig {
+    replay(domainConfigStore)
+  }
+  
+  def replaySystemConfig {
+    replay(systemConfigStore)
+  }
 }

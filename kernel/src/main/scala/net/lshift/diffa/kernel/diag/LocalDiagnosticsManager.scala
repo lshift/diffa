@@ -10,13 +10,14 @@ import org.joda.time.format.ISODateTimeFormat
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
 import net.lshift.diffa.kernel.config.{ConfigOption, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.system.SystemConfigStore
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
  *
  *   TODO: Release resources when pair is removed
  */
-class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDir:String)
+class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfigStore:DomainConfigStore, explainRootDir:String)
     extends DiagnosticsManager
     with PairScanListener
     with AgentLifecycleAware {
@@ -111,7 +112,7 @@ class LocalDiagnosticsManager(domainConfigStore:DomainConfigStore, explainRootDi
       ConfigOption.explainFilesLimitKey, defaultMaxExplainFilesPerPair)
 
     private def getConfigOrElse(domain: String, configKey: String, defaultVal: Int) = try {
-      domainConfigStore.maybeConfigOption(domain, configKey).get.toInt
+      systemConfigStore.maybeSystemConfigOption(configKey).get.toInt
     } catch {
       case _ => defaultVal
     }
