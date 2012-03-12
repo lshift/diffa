@@ -17,10 +17,8 @@
 package net.lshift.diffa.kernel.config;
 
 
-import net.lshift.diffa.participant.scanning.DateRangeConstraint;
-import net.lshift.diffa.participant.scanning.IntegerRangeConstraint;
-import net.lshift.diffa.participant.scanning.RangeConstraint;
-import net.lshift.diffa.participant.scanning.TimeRangeConstraint;
+import net.lshift.diffa.kernel.util.InvalidConstraintException;
+import net.lshift.diffa.participant.scanning.*;
 
 /**
  * This describes a category that can be constrained by range.
@@ -144,6 +142,47 @@ public class RangeCategoryDescriptor extends CategoryDescriptor {
       return new IntegerRangeConstraint(name, this.lower, this.upper);
     } else {
       throw new IllegalArgumentException("Unknown data type " + this.dataType);
+    }
+  }
+
+  @Override
+  public void validateConstraint(ScanConstraint constraint) {
+    if (dataType.equals("date")) {
+      if (!(constraint instanceof DateRangeConstraint)) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          "Date Categories only support Date Range Constraints - provided constraint was " + constraint.getClass().getName());
+      }
+
+      DateRangeConstraint dConstraint = (DateRangeConstraint) constraint;
+      DateRangeConstraint catConstraint = (DateRangeConstraint) toConstraint(constraint.getAttributeName());
+      if (!catConstraint.containsRange(dConstraint.getStart(), dConstraint.getEnd())) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          dConstraint + " isn't contained within " + catConstraint);
+      }
+    } else if (dataType.equals("datetime")) {
+      if (!(constraint instanceof TimeRangeConstraint)) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          "Date Categories only support Time Range Constraints - provided constraint was " + constraint.getClass().getName());
+      }
+
+      TimeRangeConstraint tConstraint = (TimeRangeConstraint) constraint;
+      TimeRangeConstraint catConstraint = (TimeRangeConstraint) toConstraint(constraint.getAttributeName());
+      if (!catConstraint.containsRange(tConstraint.getStart(), tConstraint.getEnd())) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          tConstraint + " isn't contained within " + catConstraint);
+      }
+    } else if (dataType.equals("int")) {
+      if (!(constraint instanceof IntegerRangeConstraint)) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          "Integer Categories only support Integer Range Constraints - provided constraint was " + constraint.getClass().getName());
+      }
+
+      IntegerRangeConstraint iConstraint = (IntegerRangeConstraint) constraint;
+      IntegerRangeConstraint catConstraint = (IntegerRangeConstraint) toConstraint(constraint.getAttributeName());
+      if (!catConstraint.containsRange(iConstraint.getStart(), iConstraint.getEnd())) {
+        throw new InvalidConstraintException(constraint.getAttributeName(),
+          iConstraint + " isn't contained within " + catConstraint);
+      }
     }
   }
 

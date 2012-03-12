@@ -19,12 +19,14 @@ package net.lshift.diffa.kernel.frontend
 import net.lshift.diffa.kernel.matching.MatchingManager
 import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.events._
-import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.DomainConfigStore
 import net.lshift.diffa.kernel.differencing.AttributesUtil
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.participant.changes.ChangeEvent
+import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
+import net.lshift.diffa.kernel.actors.{UpstreamEndpoint, DownstreamEndpoint, PairPolicyClient}
+import net.lshift.diffa.kernel.util.CategoryUtil
 
 /**
  * Front-end for reporting changes.
@@ -58,8 +60,8 @@ class Changes(val domainConfig:DomainConfigStore,
 
       // Validate that the entities provided meet the constraints of the endpoint
       val endpointCategories = targetEndpoint.categories.toMap
-      val issues = AttributesUtil.detectMissingAttributes(endpointCategories, evt.getAttributes.toMap) ++
-        AttributesUtil.detectOutsideConstraints(targetEndpoint.initialConstraints(None), evtAttributes)
+      val issues = AttributesUtil.detectAttributeIssues(
+        endpointCategories, targetEndpoint.initialConstraints(None), evt.getAttributes.toMap, evtAttributes)
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)
@@ -81,4 +83,35 @@ class Changes(val domainConfig:DomainConfigStore,
       }
     })
   }
+
+  def submitInventory(domain:String, endpoint:String, constraints:Seq[ScanConstraint], entries:Seq[ScanResultEntry]) {
+    val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
+    val endpointCategories = targetEndpoint.categories.toMap
+    val fullConstraints = CategoryUtil.mergeAndValidateConstraints(endpointCategories, constraints)
+
+    // Validate the provided entries
+    entries.zipWithIndex.foreach { case (entry,idx) =>
+      val issues = AttributesUtil.detectAttributeIssues(endpointCategories, fullConstraints, entry.getAttributes.toMap)
+
+      if (issues.size > 0) {
+        throw new InvalidInventoryException(
+          "Entry %s was invalid. Identified issues were: %s".format(
+            idx+1,
+            issues.map { case (k, v) => k + ": " + v }.mkString(", ")
+          ))
+      }
+    }
+
+    domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
+      val side = if (pair.upstream == endpoint) UpstreamEndpoint else DownstreamEndpoint
+
+      // Propagate the change event to the corresponding policy
+      changeEventClient.submitInventory(pair.asRef, side, constraints, entries)
+    })
+  }
 }
+
+/**
+ * Exception for indicating than an inventory was invalid.
+ */
+class InvalidInventoryException(reason:String) extends RuntimeException(reason)

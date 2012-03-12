@@ -16,6 +16,8 @@
 
 package net.lshift.diffa.kernel.config;
 
+import net.lshift.diffa.kernel.util.InvalidConstraintException;
+import net.lshift.diffa.participant.scanning.ScanConstraint;
 import org.codehaus.jackson.annotate.JsonSubTypes;
 import org.codehaus.jackson.annotate.JsonTypeInfo;
 
@@ -65,4 +67,11 @@ abstract public class CategoryDescriptor {
    *  <code>isRefinement</code> method.
    */
   public abstract CategoryDescriptor applyRefinement(CategoryDescriptor refinement);
+
+  /**
+   * Ensures that the given constraint is acceptable to this category.
+   * @param constraint the constraint to validate.
+   * @throws InvalidConstraintException if the constraint is invalid.
+   */
+  public abstract void validateConstraint(ScanConstraint constraint);
 }

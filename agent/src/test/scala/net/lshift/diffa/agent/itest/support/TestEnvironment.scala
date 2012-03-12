@@ -76,6 +76,9 @@ class TestEnvironment(val pairKey: String,
   // Domain
   val domain = DomainDef(name="domain")
 
+  // Pair
+  val pairRef = DiffaPairRef(key = pairKey, domain = domain.name)
+
   def serverRoot = agentURL
   val matchingTimeout = 1  // 1 second
 
@@ -108,6 +111,10 @@ class TestEnvironment(val pairKey: String,
   val usersClient:UsersRestClient = new UsersRestClient(serverRoot)
   val scanningClient:ScanningRestClient = new ScanningRestClient(serverRoot, domain.name)
   val systemConfig = new SystemConfigRestClient(serverRoot)
+  val inventoryClient = new InventoryRestClient(serverRoot, domain.name)
+
+  // Helpers
+  val differencesHelper = new DifferencesHelper(pairKey, diffClient)
 
   // Actions
   val entityScopedActionName = "Resend Source"

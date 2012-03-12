@@ -26,6 +26,7 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.{VersionID, PairChangeEvent}
 import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore, DiffaPair}
+import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 
 case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                systemConfig:SystemConfigStore,
@@ -94,6 +95,10 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   }
 
   def propagateChangeEvent(event:PairChangeEvent) = findActor(event.id) ! ChangeMessage(event)
+
+  def submitInventory(pair:DiffaPairRef, side:EndpointSide, constraints:Seq[ScanConstraint], entries:Seq[ScanResultEntry]) {
+    findActor(pair) ! InventoryMessage(side, constraints, entries)
+  }
 
   def difference(pairRef:DiffaPairRef) =
     findActor(pairRef) ! DifferenceMessage

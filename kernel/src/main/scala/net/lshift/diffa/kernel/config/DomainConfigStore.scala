@@ -21,10 +21,10 @@ import scala.collection.JavaConversions._
 import java.util.HashMap
 import net.lshift.diffa.kernel.differencing.AttributesUtil
 import net.lshift.diffa.kernel.participants._
-import net.lshift.diffa.participant.scanning.{SetConstraint, ScanConstraint}
 import scala.Option._
 import net.lshift.diffa.kernel.util.CategoryUtil
 import net.lshift.diffa.kernel.frontend._
+import net.lshift.diffa.participant.scanning.{ConstraintsBuilder, SetConstraint, ScanConstraint}
 
 /**
  * Provides general configuration options within the scope of a particular domain.
@@ -145,6 +145,14 @@ case class Endpoint(
    */
   def initialConstraints(view:Option[String]) =
     CategoryUtil.initialConstraintsFor(CategoryUtil.fuseViewCategories(categories.toMap, views, view))
+
+  /**
+   * Allows constraints relevant to this endpoint to be built by instructing a constraints builder of the category
+   * types supported by this endpoint.
+   */
+  def buildConstraints(builder:ConstraintsBuilder) {
+    CategoryUtil.buildConstraints(builder, categories.toMap)
+  }
 }
 
 case class EndpointView(

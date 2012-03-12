@@ -17,6 +17,7 @@
 package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.kernel.participants._
+import net.lshift.diffa.participant.scanning.ConstraintsBuilder
 
 /**
  * Simple registry to be allow to dispatching on RangeCategoryDescriptors by their data type.
@@ -33,6 +34,14 @@ object RangeTypeRegistry {
     case "date"     => defaultOrMaxGranularity(attrName, desc, DateDataType)
     case "datetime" => defaultOrMaxGranularity(attrName, desc, TimeDataType)
     case "int"      => Some(IntegerCategoryFunction(attrName, 1000, 10))
+  }
+
+  def buildConstraint(builder:ConstraintsBuilder, attrName:String, desc:RangeCategoryDescriptor) {
+    desc.dataType match {
+      case "date"     => builder.maybeAddDateRangeConstraint(attrName)
+      case "datetime" => builder.maybeAddTimeRangeConstraint(attrName)
+      case "int"      => builder.maybeAddIntegerRangeConstraint(attrName)
+    }
   }
 
   /**

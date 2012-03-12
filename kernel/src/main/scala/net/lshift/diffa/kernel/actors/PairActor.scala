@@ -32,6 +32,7 @@ import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 import net.lshift.diffa.kernel.config.{Endpoint, DiffaPair}
+import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -204,6 +205,7 @@ case class PairActor(pair:DiffaPair,
       }
     }
     case c:ChangeMessage                   => handleChangeMessage(c)
+    case i:InventoryMessage                => handleInventoryMessage(i)
     case DifferenceMessage                 => handleDifferenceMessage()
     case FlushWriterMessage                => writer.flush()
     case c:VersionCorrelationWriterCommand => {
@@ -351,6 +353,22 @@ case class PairActor(pair:DiffaPair,
     lastEventTime = System.currentTimeMillis()
   }
 
+  def handleInventoryMessage(message:InventoryMessage) = {
+    val ep = message.side match {
+      case UpstreamEndpoint   => us
+      case DownstreamEndpoint => ds
+    }
+
+    policy.processInventory(pair.asRef, ep, writer, message.side, message.constraints, message.entries)
+
+    // always flush after an inventory
+    writer.flush()
+    lastEventTime = System.currentTimeMillis()
+
+    // Play events from the correlation store into the differences manager
+    replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByScan)
+  }
+
   /**
    * Runs a simple replayUnmatchedDifferences for the pair.
    */
@@ -494,6 +512,7 @@ abstract class Deferrable
 case class ChangeMessage(event: PairChangeEvent) extends Deferrable
 case object DifferenceMessage extends Deferrable
 case class ScanMessage(scanView:Option[String])
+case class InventoryMessage(side:EndpointSide, constraints:Seq[ScanConstraint], entries:Seq[ScanResultEntry])
 
 /**
  * This message indicates that this actor should cancel all current and pending scan operations.

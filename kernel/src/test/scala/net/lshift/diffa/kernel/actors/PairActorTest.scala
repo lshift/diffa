@@ -37,7 +37,8 @@ import net.lshift.diffa.kernel.util.{EasyMockScalaUtils, AlertCodes}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
-import net.lshift.diffa.participant.scanning.ScanConstraint
+import scala.collection.JavaConversions._
+import net.lshift.diffa.participant.scanning.{ScanResultEntry, SetConstraint, ScanConstraint}
 
 class PairActorTest {
   import PairActorTest._
@@ -148,14 +149,26 @@ class PairActorTest {
     expectDownstreamScan()
   }
 
-  def expectDifferencesReplay(assertFlush:Boolean = true) = {
+  def expectDifferencesReplay(assertFlush:Boolean = true, writerCloseMonitor:Object = null) = {
     if (assertFlush) writer.flush(); expectLastCall.atLeastOnce()
     diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Calculating differences"); expectLastCall
     expect(store.unmatchedVersions(anyObject[Seq[ScanConstraint]], anyObject[Seq[ScanConstraint]], EasyMock.eq[Option[Long]](None))).andReturn(Seq())
     expect(store.tombstoneVersions(None)).andReturn(Seq())
     diffWriter.evictTombstones(Seq()); expectLastCall
     writer.clearTombstones(); expectLastCall
-    diffWriter.close(); expectLastCall()
+    diffWriter.close()
+
+    if (writerCloseMonitor != null) {
+      expectLastCall().andAnswer(new IAnswer[Unit] {
+        def answer = {
+          writerCloseMonitor.synchronized {
+            writerCloseMonitor.notifyAll
+          }
+        }
+      })
+    } else {
+      expectLastCall()
+    }
   }
 
   def expectWriterRollback() {
@@ -503,6 +516,35 @@ class PairActorTest {
 
     verify(versionPolicy)
   }
+
+  @Test
+  def propagateUpstreamInventory() { propagateInventory(upstream, UpstreamEndpoint) }
+
+  @Test
+  def propagateDownstreamInventory() { propagateInventory(downstream, DownstreamEndpoint) }
+
+  def propagateInventory(endpoint:Endpoint, side:EndpointSide) = {
+    val monitor = new Object
+    val constraints = Seq(new SetConstraint("foo", Set("a", "b")))
+    val entries = Seq(ScanResultEntry.forEntity("id1", "v1", new DateTime, Map("foo" -> "a")))
+
+    expect(versionPolicy.processInventory(pairRef, endpoint, writer, side, constraints, entries))
+    expectDifferencesReplay(assertFlush = true, writerCloseMonitor = monitor)
+
+    replay(store, diffWriter, versionPolicy, writer)
+
+    supervisor.startActor(pair)
+    supervisor.submitInventory(pairRef, side, constraints, entries)
+
+    // submitInventory is an aysnc call, so yield the test thread to allow the actor to invoke the policy
+    monitor.synchronized {
+      monitor.wait(1000)
+    }
+
+    verify(versionPolicy, writer, diffWriter)
+  }
+
+
 
   @Test
   def scheduledFlush {

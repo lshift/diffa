@@ -184,7 +184,7 @@ trait CommonDifferenceTests {
     runScanAndWaitForCompletion(yearAgo, today)
     env.addAndNotifyUpstream("abc", "abcdef", someDate = yesterday, someString = "ss")
 
-    val diffs = pollForAllDifferences(yearAgo, nextYear)
+    val diffs = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
 
     assertFalse("Expected to find differences in range: %s -> %s".format(yearAgo, nextYear),diffs.isEmpty)
   }
@@ -200,7 +200,7 @@ trait CommonDifferenceTests {
     env.upstream.addEntity("def", datetime = yesterday, someString = "tt", body = "abcdef", lastUpdated = new DateTime)
     runScanAndWaitForCompletion(yearAgo, nextYear, view = Some("tt-only"))
 
-    val events = pollForAllDifferences(yearAgo, nextYear)
+    val events = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
     assertEquals(1, events.length)
     assertEquals("def", events(0).objId.id)
   }
@@ -213,7 +213,7 @@ trait CommonDifferenceTests {
     runScanAndWaitForCompletion(yearAgo, today)
     env.addAndNotifyUpstream("abc", "abcdef", someDate = yesterday, someString = "abcdef")
 
-    val diffs = pollForAllDifferences(yearAgo, nextYear)
+    val diffs = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
 
     assertTrue("Expected not to find differences for realtime event", diffs.isEmpty)
   }
@@ -242,14 +242,14 @@ trait CommonDifferenceTests {
 
     val offset = 5
 
-    val diffs1 = tryAgain((d:DifferencesRestClient) => d.getEvents(env.pairKey, start, end, offset, size))
+    val diffs1 = env.differencesHelper.tryAgain((d:DifferencesRestClient) => d.getEvents(env.pairKey, start, end, offset, size))
     val max = size - offset
     val length = diffs1.size
     assertTrue("Diffs was %s, but should have been maximally %s".format(length,max), max >= length)
 
     // Select the 7th and 8th differences and validate their content
     val subset = 2
-    val diffs2 = tryAgain((d:DifferencesRestClient) => d.getEvents(env.pairKey, start, end, 6, subset))
+    val diffs2 = env.differencesHelper.tryAgain((d:DifferencesRestClient) => d.getEvents(env.pairKey, start, end, 6, subset))
 
     assertTrue("Diffs was %s, but should have been maximally %s".format(diffs2.length,subset), subset >= diffs2.length)
     // TODO [#224] Put back in
@@ -272,7 +272,7 @@ trait CommonDifferenceTests {
     runScanAndWaitForCompletion(yearAgo, nextYear)
     env.addAndNotifyUpstream("abc", up, someDate = yesterday, someString = "ss")
 
-    val diffs = pollForAllDifferences(yearAgo, nextYear)
+    val diffs = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
     val seqId1 = diffs(0).seqId
 
     val up1 = env.diffClient.eventDetail(seqId1, ParticipantType.UPSTREAM)
@@ -283,7 +283,7 @@ trait CommonDifferenceTests {
 
     env.addAndNotifyDownstream("abc", down, someDate = yesterday, someString = "ss")
     Thread.sleep(2000)
-    val diffs2 = pollForAllDifferences(yearAgo, nextYear)
+    val diffs2 = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
     assertEquals(1, diffs2.length)
     val seqId2 = diffs2(0).seqId
 
@@ -371,26 +371,10 @@ trait CommonDifferenceTests {
     env.upstream.addEntity("abc", yesterday, "ss", yesterday, "abcdef")
 
     runScanAndWaitForCompletion(yearAgo, today)
-    val diffs = pollForAllDifferences(yearAgo, today)
+    val diffs = env.differencesHelper.pollForAllDifferences(yearAgo, today)
 
     assertNotNull(diffs)
     assertFalse(diffs.isEmpty)
-    diffs
-  }
-
-  def pollForAllDifferences(from:DateTime, until:DateTime, n:Int = 20, wait:Int = 100) =
-    tryAgain((d:DifferencesRestClient) => d.getEvents(env.pairKey, from, until, 0, 100) ,n,wait)
-
-  def tryAgain(poll:DifferencesRestClient => Seq[DifferenceEvent], n:Int = 20, wait:Int = 100) : Seq[DifferenceEvent]= {
-    var i = n
-    var diffs = poll(env.diffClient)
-    while(diffs.isEmpty && i > 0) {
-      Thread.sleep(wait)
-
-      diffs = poll(env.diffClient)
-      i-=1
-    }
-    assertNotNull(diffs)
     diffs
   }
 

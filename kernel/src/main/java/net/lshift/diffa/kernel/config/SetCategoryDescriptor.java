@@ -16,6 +16,10 @@
 
 package net.lshift.diffa.kernel.config;
 
+import net.lshift.diffa.kernel.util.InvalidConstraintException;
+import net.lshift.diffa.participant.scanning.ScanConstraint;
+import net.lshift.diffa.participant.scanning.SetConstraint;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -55,6 +59,20 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
     if (!isRefinement(refinement)) throw new IllegalArgumentException(refinement + " is not a refinement of " + this);
 
     return refinement;
+  }
+
+  @Override
+  public void validateConstraint(ScanConstraint constraint) {
+    if (!(constraint instanceof SetConstraint)) {
+      throw new InvalidConstraintException(constraint.getAttributeName(),
+        "Set Categories only support Set Constraints - provided constraint was " + constraint.getClass().getName());
+    }
+
+    SetConstraint sConstraint = (SetConstraint) constraint;
+    if (!this.values.containsAll(sConstraint.getValues())) {
+      throw new InvalidConstraintException(constraint.getAttributeName(),
+        "Not all of the values " + sConstraint.getValues() + " are supported by category " + getValues());
+    }
   }
 
   @Override

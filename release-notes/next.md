@@ -6,6 +6,7 @@
 
 ## New Features
 
+* [60] - Experimental support for submitting inventories of entities
 * [??] -
 
 ## General Maintenance

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2010-2012 LShift Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package net.lshift.diffa.kernel.util
 
 import net.lshift.diffa.kernel.participants.StringPrefixCategoryFunction._
@@ -5,7 +20,7 @@ import scala.Option._
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.participants.{StringPrefixCategoryFunction, CategoryFunction}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.participant.scanning.{SetConstraint, ScanConstraint}
+import net.lshift.diffa.participant.scanning.{ConstraintsBuilder, SetConstraint, ScanConstraint}
 
 /**
  * Utility for transforming categories into
@@ -91,4 +106,38 @@ object CategoryUtil {
         }
       }
     }).toList
+
+  /**
+   * Configures a ConstraintBuilder based on the given category descriptors.
+   */
+  def buildConstraints(builder:ConstraintsBuilder, descriptors:Map[String, CategoryDescriptor]) {
+    descriptors.foreach {
+      case (name, _:SetCategoryDescriptor)    => builder.maybeAddSetConstraint(name)
+      case (name, _:PrefixCategoryDescriptor) => builder.maybeAddStringPrefixConstraint(name)
+      case (name, r:RangeCategoryDescriptor)  => RangeTypeRegistry.buildConstraint(builder, name, r)
+    }
+  }
+
+  /**
+   * Merges a provided set of constraints with the initial constraints for the given category. Also ensures that the
+   * provided constraints are valid based upon the category definitions.
+   */
+  def mergeAndValidateConstraints(categories:Map[String, CategoryDescriptor], constraints:Seq[ScanConstraint]) = {
+    // Validate that the provided constraints are valid for the categories
+    constraints.foreach(c => {
+      val category:CategoryDescriptor = categories.get(c.getAttributeName) match {
+        case None => throw new InvalidConstraintException(c.getAttributeName,  "No matching category")
+        case Some(cat) => cat
+      }
+
+      category.validateConstraint(c)
+    })
+
+    // Merge with default constraints
+    val coveredCategories = constraints.map(c => c.getAttributeName).toSet
+    val defaultConstraints = initialConstraintsFor(
+      categories.filter { case (name, _) => !coveredCategories.contains(name) })
+
+    constraints ++ defaultConstraints
+  }
 }

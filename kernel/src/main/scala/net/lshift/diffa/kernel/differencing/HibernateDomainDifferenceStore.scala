@@ -149,6 +149,9 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
                        "entity_id"   -> event.id)
       executeUpdate(s, "removeDiffsByEntityId", params)
       executeUpdate(s, "removePendingDiffsByEntityId", params)
+
+        // TODO: Update cache for removed event region
+      //updateZoomCache(pair, event.detectedAt)
     })
   })
 

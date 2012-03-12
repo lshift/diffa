@@ -17,6 +17,10 @@
 package net.lshift.diffa.kernel.config;
 
 
+import net.lshift.diffa.kernel.util.InvalidConstraintException;
+import net.lshift.diffa.participant.scanning.ScanConstraint;
+import net.lshift.diffa.participant.scanning.StringPrefixConstraint;
+
 /**
  * This describes a category that can be constrained by a prefix.
  */
@@ -69,6 +73,24 @@ public class PrefixCategoryDescriptor extends CategoryDescriptor {
     if (!isRefinement(refinement)) throw new IllegalArgumentException(refinement + " is not a refinement of " + this);
 
     return refinement;
+  }
+
+  @Override
+  public void validateConstraint(ScanConstraint constraint) {
+    if (!(constraint instanceof StringPrefixConstraint)) {
+      throw new InvalidConstraintException(constraint.getAttributeName(),
+        "Prefix Categories only support Prefix Constraints - provided constraint was " + constraint.getClass().getName());
+    }
+
+    StringPrefixConstraint pConstraint = (StringPrefixConstraint) constraint;
+    if (pConstraint.getPrefix().length() < this.getPrefixLength()) {
+      throw new InvalidConstraintException(constraint.getAttributeName(),
+        "Prefix " + pConstraint.getPrefix() + " is shorter than configured start length " + getPrefixLength());
+    }
+    if (pConstraint.getPrefix().length() > this.getMaxLength()) {
+      throw new InvalidConstraintException(constraint.getAttributeName(),
+        "Prefix " + pConstraint.getPrefix() + " is longer than configured max length " + getMaxLength());
+    }
   }
 
   @Override

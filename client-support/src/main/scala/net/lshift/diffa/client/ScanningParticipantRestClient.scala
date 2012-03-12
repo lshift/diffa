@@ -36,25 +36,8 @@ class ScanningParticipantRestClient(scanUrl:String, params: RestClientParams = R
   def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = {
   	log.debug("Querying constraints %s, aggregated by %s".format(constraints, aggregations))
     val params = new MultivaluedMapImpl()
-    constraints.foreach {
-      case sqc:SetConstraint   =>
-        sqc.getValues.foreach(v => params.add(sqc.getAttributeName, v))
-      case rc:RangeConstraint =>
-        if (rc.hasLowerBound) {
-          params.add(rc.getAttributeName + "-start", rc.getStartText)  
-        }
-        if (rc.hasUpperBound) {
-          params.add(rc.getAttributeName + "-end", rc.getEndText)
-        }
-      case pc:StringPrefixConstraint =>
-        params.add(pc.getAttributeName + "-prefix", pc.getPrefix)
-    }
-    aggregations.foreach {
-      case spf:StringPrefixCategoryFunction =>
-        params.add(spf.getAttributeName + "-length", spf.prefixLength.toString)
-      case f =>
-        params.add(f.getAttributeName + "-granularity", f.name)
-    }
+    RequestBuildingHelper.constraintsToQueryArguments(params, constraints)
+    RequestBuildingHelper.aggregationsToQueryArguments(params, aggregations)
 
     val jsonEndpoint = resource.queryParams(params).`type`(MediaType.APPLICATION_JSON_TYPE)
     val response = jsonEndpoint.get(classOf[ClientResponse])

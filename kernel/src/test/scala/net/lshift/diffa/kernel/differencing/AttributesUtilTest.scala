@@ -60,32 +60,26 @@ class AttributesUtilTest {
   }
 
   @Test
-  def shouldNotDetectMissingAttributesWhenNoneAreMissing() {
-    val result = AttributesUtil.detectMissingAttributes(categories, allAttributes)
+  def shouldNotDetectProblemsWhenThereAreNoIssues() {
+    val result = AttributesUtil.detectAttributeIssues(categories, constraints, allAttributes)
     assertEquals(result, Map[String, String]())
   }
 
   @Test
   def shouldNotComplainAboutTooManyAttributes() {
-    val result = AttributesUtil.detectMissingAttributes(categories, allAttributes ++ Map("extra" -> "abc"))
+    val result = AttributesUtil.detectAttributeIssues(categories, constraints, allAttributes ++ Map("extra" -> "abc"))
     assertEquals(result, Map[String, String]())
   }
 
   @Test
   def shouldDetectMissingAttributes() {
-    val result = AttributesUtil.detectMissingAttributes(categories, allAttributes -- Seq("someString", "someInt"))
+    val result = AttributesUtil.detectAttributeIssues(categories, constraints, allAttributes -- Seq("someString", "someInt"))
     assertEquals(result, Map("someString" -> "property is missing", "someInt" -> "property is missing"))
   }
 
   @Test
-  def shouldNotDetectInConstraintAttributes() {
-    val result = AttributesUtil.detectOutsideConstraints(constraints, AttributesUtil.toTypedMap(categories, allAttributes))
-    assertEquals(result, Map())
-  }
-
-  @Test
   def shouldDetectOutOfConstraintAttributes() {
-    val result = AttributesUtil.detectOutsideConstraints(constraints, AttributesUtil.toTypedMap(categories, allWrongAttributes))
+    val result = AttributesUtil.detectAttributeIssues(categories, constraints, allWrongAttributes)
     assertEquals(result, Map(
       "someString" -> "gadadads does not have the prefix abcdef",
       "someDate" -> "2012-05-01 is not in range 2011-01-01 -> 2011-12-31",
