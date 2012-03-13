@@ -15,16 +15,8 @@
  * limitations under the License.
  */
 
-var Diffa = {
-  Routers: {},
-  Views: {},
-  Collections: {},
-  Models: {},
-  Config: {
-    LogPollInterval:    2000,     // How frequently (in ms) we poll for log updates
-    PairStateInterval:  5000      // How frequently (in ms) we poll for pair state updates
-  }
-};
+Diffa.Config.LogPollInterval = 2000;     // How frequently (in ms) we poll for log updates
+Diffa.Config.PairStateInterval =  5000;      // How frequently (in ms) we poll for pair state updates
 
 $(function() {
 

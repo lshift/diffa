@@ -15,6 +15,16 @@
  * limitations under the License.
  */
 
+var Diffa = {
+  Routers: {},
+  Views: {},
+  Collections: {},
+  Models: {},
+  Config: {},
+  Binders: {},
+  Helpers: {}
+};
+
 function appendActionButtonToContainer($container, action, pairKey, itemID, $repairStatus) {
   // Reset the status box
   if ($repairStatus != null) $repairStatus.text("No repairs in progress");
@@ -97,6 +107,6 @@ $(function() {
 
   $(".top-navigation-link a.domain-page").each(function(i, link) {
     link = $(link);
-    link.attr("href", link.attr("href") + "?domain=" + Diffa.currentDomain);
+    link.attr("href", link.attr("href") + "?domain=" + currentDiffaDomain);
   });
 });

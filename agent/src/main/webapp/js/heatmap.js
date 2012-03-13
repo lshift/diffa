@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-var Diffa = {
-  Routers: {},
-  Views: {},
-  Collections: {},
-  Models: {},
-  Config: {
-    BlobInterval:     5000,     // How frequently (in ms) we poll for blob changes
-    DiffInterval:     5000      // How frequently (in ms) we poll for diff changes
-  }
-};
+Diffa.Config.BlobInterval = 5000;     // How frequently (in ms) we poll for blob changes
+Diffa.Config.DiffInterval = 5000;      // How frequently (in ms) we poll for diff changes
 
 $(function() {
 const TIME_FORMAT = "yyyyMMddTHHmmssZ";
