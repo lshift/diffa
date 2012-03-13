@@ -49,6 +49,13 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public void validate(String path) {
+    if (values == null || values.size() == 0) {
+      throw new ConfigValidationException(path, "Set Category must have at least one element");
+    }
+  }
+
+  @Override
   public boolean isRefinement(CategoryDescriptor other) {
     return other instanceof SetCategoryDescriptor &&
       this.values.containsAll(((SetCategoryDescriptor) other).values);

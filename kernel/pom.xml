@@ -175,18 +175,32 @@
     <finalName>${project.artifactId}-${buildVersion}</finalName>    
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
       </plugin>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <!--
+          We're using Scala classes in the Java code, so we need to let Scala do its compilation first. To achieve
+          that, we'll remove the default compilation execution, then create a new one. Since we've already added
+          the Scala plugin above here, it will then be before this Java compilation in the build sequence.
+        -->
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <phase>none</phase>
+          </execution>
+          <execution>
+            <id>after-scala-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>

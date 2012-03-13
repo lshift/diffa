@@ -47,6 +47,13 @@ abstract public class CategoryDescriptor {
   }
 
   /**
+   * Requests that the descriptor ensure its content is valid. This method will be called when new descriptors
+   * are received from clients.
+   * @param path the path to this category descriptor, to be included in any validation errors.
+   */
+  public abstract void validate(String path);
+
+  /**
    * Determines whether the given other category descriptor is a refinement of this category descriptor. This allows
    * for validation of views - ensuring that they don't specify configuration that isn't achievable.
    * @param other the other category descriptor to validate.

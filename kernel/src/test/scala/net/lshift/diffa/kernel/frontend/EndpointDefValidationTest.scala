@@ -1,6 +1,8 @@
 package net.lshift.diffa.kernel.frontend
 
 import org.junit.Test
+import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
+import scala.collection.JavaConversions._
 
 /**
  * Verify that EndpointDef constraints are enforced.
@@ -50,5 +52,19 @@ class EndpointDefValidationTest extends DefValidationTestBase {
   def shouldRejectEndpointWithInboundUrlThatIsTooLong {
     validateExceedsMaxUrlLength("config/endpoint[name=a]: inboundUrl",
       url => EndpointDef(name = "a", inboundUrl = url))
+  }
+
+  @Test
+  def shouldRejectEndpointWithUnnamedCategory() {
+    validateError(
+      new EndpointDef(name = "e1", categories = Map("" -> new RangeCategoryDescriptor())),
+      "config/endpoint[name=e1]/category[name=]: name cannot be null or empty")
+  }
+
+  @Test
+  def shouldRejectEndpointWithInvalidCategoryDescriptor() {
+    validateError(
+      new EndpointDef(name = "e1", categories = Map("cat1" -> new RangeCategoryDescriptor())),
+      "config/endpoint[name=e1]/category[name=cat1]: dataType cannot be null or empty")
   }
 }

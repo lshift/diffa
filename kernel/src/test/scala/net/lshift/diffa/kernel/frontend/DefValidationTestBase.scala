@@ -22,6 +22,10 @@ trait DefValidationTestBase {
     }
   }
 
+  def validateAcceptsAll(values:Seq[String], fn: String => Validatable) {
+    values.foreach(v => fn(v).validate("config"))
+  }
+
   def validateExceedsMaxKeyLength(msg: String, fn: String => Validatable) {
     validateExceedsMaxColLength(DefaultLimits.KEY_LENGTH_LIMIT, msg, fn)
   }

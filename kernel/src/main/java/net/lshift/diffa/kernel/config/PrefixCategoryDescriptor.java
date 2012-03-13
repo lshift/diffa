@@ -64,6 +64,22 @@ public class PrefixCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public void validate(String path) {
+    if (getPrefixLength() < 0) {
+      throw new ConfigValidationException(path, "length cannot be negative");
+    }
+    if (getMaxLength() < 1) {
+      throw new ConfigValidationException(path, "maximum must be at least 1");
+    }
+    if (getStep() < 1) {
+      throw new ConfigValidationException(path, "step must be at least 1");
+    }
+    if (getPrefixLength() > getMaxLength()) {
+      throw new ConfigValidationException(path, "maximum must be equal to or larger than initial prefix length");
+    }
+  }
+
+  @Override
   public boolean isRefinement(CategoryDescriptor other) {
     return (other instanceof PrefixCategoryDescriptor);
   }

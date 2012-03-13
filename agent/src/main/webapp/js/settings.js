@@ -186,8 +186,10 @@ Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
     var self = this;
 
     this.each(function(cat) {
-      target[cat.get('name')] = $.extend({}, cat.attributes, {'@type': self.categoryType});
-      delete target[cat.get('name')].name;
+      var name = cat.get('name') || "";
+
+      target[name] = $.extend({}, cat.attributes, {'@type': self.categoryType});
+      delete target[name].name;
     });
   },
   unpack: function(source) {

@@ -83,6 +83,13 @@ case class EndpointDef (
     ValidationUtil.ensureLengthLimit(endPointPath, "versionGenerationUrl", versionGenerationUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "inboundUrl", inboundUrl, DEFAULT_URL_LENGTH_LIMIT)
 
+    categories.foreach { case (k, c) => {
+      val categoryPath = ValidationUtil.buildPath(endPointPath, "category", Map("name" -> k))
+
+      ValidationUtil.requiredAndNotEmpty(categoryPath, "name", k)
+      c.validate(categoryPath)
+    }}
+
     ValidationUtil.ensureUniqueChildren(endPointPath, "views", "name", views.map(v => v.name))
     views.foreach(v => v.validate(this, endPointPath))
   }
@@ -101,6 +108,9 @@ case class EndpointViewDef(
     ValidationUtil.ensureLengthLimit(viewPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
 
     categories.keySet().foreach(viewCategory => {
+      val categoryPath = ValidationUtil.buildPath(viewPath, "category", Map("name" -> viewCategory))
+      ValidationUtil.requiredAndNotEmpty(categoryPath, "name", viewCategory)
+
       if (!owner.categories.containsKey(viewCategory)) {
         // Ensure that we don't expose any categories that aren't known to the parent
         throw new ConfigValidationException(viewPath,
@@ -108,6 +118,8 @@ case class EndpointViewDef(
       } else {
         val ourCategory = categories.get(viewCategory)
         val ownerCategory = owner.categories.get(viewCategory)
+
+        ourCategory.validate(categoryPath)
 
         if (!ownerCategory.isRefinement(ourCategory)) {
           throw new ConfigValidationException(viewPath,

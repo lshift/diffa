@@ -96,6 +96,13 @@ public class RangeCategoryDescriptor extends CategoryDescriptor {
     this.upper = upper;
   }
 
+  public void validate(String path) {
+    ValidationUtil.requiredAndNotEmpty(path, "dataType", dataType);
+    if (!dataType.equals("date") && !dataType.equals("datetime") && !dataType.equals("int")) {
+      throw new ConfigValidationException(path, "dataType " + dataType + " is not valid. Must be one of [date,datetime,int]");
+    }
+  }
+
   @Override
   public boolean isRefinement(CategoryDescriptor other) {
     if (other instanceof RangeCategoryDescriptor && ((RangeCategoryDescriptor) other).dataType.equals(this.dataType)) {

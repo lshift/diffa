@@ -20,6 +20,6 @@ package net.lshift.diffa.kernel.config
  * Exception indicating that a given configuration element is invalid.
  */
 
-class ConfigValidationException(path:String, msg:String) extends Exception(path + ": " + msg) {
+class ConfigValidationException(path:String, msg:String) extends RuntimeException(path + ": " + msg) {
 
 }
