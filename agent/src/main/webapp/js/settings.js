@@ -393,8 +393,9 @@ Diffa.Views.TableEditor = Backbone.View.extend({
   rowEditor: undefined,   /* Must be overriden by subclasses */
 
   initialize: function() {
-    _.bindAll(this, "addOne", "render", "createRow");
+    _.bindAll(this, "addOne", "removeOne", "render", "createRow");
     this.collection.bind("add", this.addOne);
+    this.collection.bind("remove", this.removeOne);
     this.collection.bind("reset", this.render);
 
     this.$('>.add-link').click(this.createRow);
@@ -417,10 +418,14 @@ Diffa.Views.TableEditor = Backbone.View.extend({
 
   addOne: function(added) {
     // Create a row with the table template
-    var row = $(this.template()).addClass('editable-row').appendTo(this.table);
+    var row = $(this.template()).addClass('editable-row').appendTo(this.table).attr('data-row-id', added.cid);
 
     // Bind the model to the row
     var rowView = new this.rowEditor({el: row, model: added});
+  },
+
+  removeOne: function(removed) {
+    this.$('[data-row-id=' + removed.cid + ']').remove();
   },
 
   createRow: function(e) {
@@ -437,24 +442,39 @@ Diffa.Views.TableEditor = Backbone.View.extend({
   }
 });
 Diffa.Views.CategoryEditor = Backbone.View.extend({
+  events: {
+    "click .remove-category": 'remove'
+  },
   initialize: function() {
     Backbone.ModelBinding.bind(this, {all: "data-el-key"});
 
     new Diffa.Binders.ListBinder(this, "data-el-list-key");
+  },
+  remove: function() {
+    this.model.collection.remove(this.model);
   }
 });
 Diffa.Views.CategoriesEditor = Diffa.Views.TableEditor.extend({
   rowEditor: Diffa.Views.CategoryEditor
 });
 Diffa.Views.PairViewEditor = Backbone.View.extend({
+  events: {
+    "click .remove-view": 'remove'
+  },
   initialize: function() {
     Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+  },
+  remove: function() {
+    this.model.collection.remove(this.model);
   }
 });
 Diffa.Views.PairViewsEditor = Diffa.Views.TableEditor.extend({
   rowEditor: Diffa.Views.PairViewEditor
 });
 Diffa.Views.EndpointViewEditor = Backbone.View.extend({
+  events: {
+    "click .remove-view": 'remove'
+  },
   initialize: function() {
     this.categoryEditors = [
       new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
@@ -462,6 +482,9 @@ Diffa.Views.EndpointViewEditor = Backbone.View.extend({
       new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')})
     ];
     Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+  },
+  remove: function() {
+    this.model.collection.remove(this.model);
   }
 });
 Diffa.Views.EndpointViewsEditor = Diffa.Views.TableEditor.extend({

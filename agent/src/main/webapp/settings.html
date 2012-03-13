@@ -75,21 +75,21 @@
             <dt>Range Categories</dt>
             <dd class="range-categories">
               <table class="editable-table" data-template="range-category-template">
-                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td></tr></thead>
+                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
             <dt>Set Categories</dt>
             <dd class="set-categories">
               <table class="editable-table" data-template="set-category-template">
-                <thead><tr><td>Name</td><td>Values</td></tr></thead>
+                <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
             <dt>Prefix Categories</dt>
             <dd class="prefix-categories">
               <table class="editable-table" data-template="prefix-category-template">
-                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td></tr></thead>
+                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
@@ -125,7 +125,7 @@
             <dt>Views</dt>
             <dd class="views">
               <table class="editable-table" data-template="pair-view-template">
-                <thead><tr><td>Name</td><td>View Scan Cron Specification</td></tr></thead>
+                <thead><tr><td>Name</td><td>View Scan Cron Specification</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
@@ -140,6 +140,7 @@
       <tr>
         <td><input data-el-key="name" type="text"></td>
         <td><input data-el-key="scanCronSpec" type="text"></td>
+        <td><a href="javascript:" class="remove-view">Remove</a></td>
       </tr>
     </script>
     <script type="text/template" id="range-category-template">
@@ -148,12 +149,14 @@
         <td><input data-el-key="dataType" type="text"></td>
         <td><input data-el-key="lower" type="text"></td>
         <td><input data-el-key="upper" type="text"></td>
+        <td><a href="javascript:" class="remove-category">Remove</a></td>
       </tr>
     </script>
     <script type="text/template" id="set-category-template">
       <tr>
         <td><input data-el-key="name" type="text"></td>
         <td data-el-list-key="values"></td>
+        <td><a href="javascript:" class="remove-category">Remove</a></td>
       </tr>
     </script>
     <script type="text/template" id="prefix-category-template">
@@ -162,31 +165,35 @@
         <td><input data-el-key="prefixLength" type="text"></td>
         <td><input data-el-key="maxLength" type="text"></td>
         <td><input data-el-key="step" type="text"></td>
+        <td><a href="javascript:" class="remove-category">Remove</a></td>
       </tr>
     </script>
     <script type="text/template" id="endpoint-view-template">
       <tr>
-        <td><input data-el-key="name" type="text"></td>
+        <td>
+          <input data-el-key="name" type="text"><br>
+          <a href="javascript:" class="remove-view">Remove</a>
+        </td>
         <td>
           <dl>
             <dt>Range Categories</dt>
             <dd class="range-categories">
               <table class="editable-table" data-template="range-category-template">
-                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td></tr></thead>
+                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
             <dt>Set Categories</dt>
             <dd class="set-categories">
               <table class="editable-table" data-template="set-category-template">
-                <thead><tr><td>Name</td><td>Values</td></tr></thead>
+                <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
             <dt>Prefix Categories</dt>
             <dd class="prefix-categories">
               <table class="editable-table" data-template="prefix-category-template">
-                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td></tr></thead>
+                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
               </table>
               <a class="add-link" href="">Add New</a>
             </dd>
