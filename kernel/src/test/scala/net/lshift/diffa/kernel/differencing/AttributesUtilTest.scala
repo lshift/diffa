@@ -66,9 +66,9 @@ class AttributesUtilTest {
   }
 
   @Test
-  def shouldNotComplainAboutTooManyAttributes() {
+  def shouldComplainAboutTooManyAttributes() {
     val result = AttributesUtil.detectAttributeIssues(categories, constraints, allAttributes ++ Map("extra" -> "abc"))
-    assertEquals(result, Map[String, String]())
+    assertEquals(result, Map("extra" -> "no matching category defined"))
   }
 
   @Test

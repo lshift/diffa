@@ -67,7 +67,7 @@ object AttributesUtil {
   def detectAttributeIssues(categories:Map[String, CategoryDescriptor], constraints:Seq[ScanConstraint],
                             attrs:Map[String, String], typedAttrs:Map[String, TypedAttribute]):Map[String, String] = {
     detectMissingAttributes(categories, attrs) ++
-//      detectExcessAttributes(categories, attrs) ++      // TODO: Do we want to detect excess attributes?
+      detectExcessAttributes(categories, attrs) ++
       detectOutsideConstraints(constraints, typedAttrs)
   }
 
