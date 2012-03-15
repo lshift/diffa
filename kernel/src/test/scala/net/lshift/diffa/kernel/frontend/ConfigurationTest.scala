@@ -122,18 +122,21 @@ class ConfigurationTest {
                 inboundUrl = "http://inbound",
                 categories = Map(
                   "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
-                  "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
+                  "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))),
+                views = List(EndpointViewDef("v1")))
     val ep2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
             "d" -> new PrefixCategoryDescriptor(1, 6, 1)
-          ))
+          ),
+          views = List(EndpointViewDef("v1")))
     val config = new DiffaConfig(
       properties = Map("diffa.host" -> "localhost:1234", "a" -> "b"),
       members = Set("abc","def"),
       endpoints = Set(ep1, ep2),
       pairs = Set(
-        PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?"),
+        PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
+          allowManualScans = true, views = List(PairViewDef("v1")), eventsToLog = 12, maxExplainFiles = 6),
         PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?")),
       repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair", "ab")),
       reports = Set(PairReportDef("Bulk Send Differences", "ab", "differences", "http://location:5432/diffhandler")),

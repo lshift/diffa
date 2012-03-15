@@ -123,6 +123,12 @@
     <field name="allowManualScans" type="boolean">
       <bind-xml name="allow-manual-scans" node="attribute" />
     </field>
+    <field name="eventsToLog" type="int">
+      <bind-xml name="events-to-log" node="attribute" />
+    </field>
+    <field name="maxExplainFiles" type="int">
+      <bind-xml name="max-explain-files" node="attribute" />
+    </field>
     <field name="repairActions" type="net.lshift.diffa.kernel.frontend.RepairActionDef" collection="arraylist">
       <bind-xml name="repair-action" />
     </field>

@@ -96,8 +96,7 @@ class Configuration(val configStore: DomainConfigStore,
         properties = configStore.allConfigOptions(domain),
         members = configStore.listDomainMembers(domain).map(_.user.name).toSet,
         endpoints = configStore.listEndpoints(domain).toSet,
-        pairs = configStore.listPairs(domain).map(
-          p => PairDef(p.key, p.versionPolicyName, p.matchingTimeout, p.upstreamName, p.downstreamName, p.scanCronSpec)).toSet,
+        pairs = configStore.listPairs(domain).toSet,
         repairActions = configStore.listRepairActions(domain).map(
           a => RepairActionDef(a.name, a.url, a.scope, a.pair)).toSet,
         escalations = configStore.listEscalations(domain).toSet,
