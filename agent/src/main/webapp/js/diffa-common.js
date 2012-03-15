@@ -32,7 +32,7 @@ function appendActionButtonToContainer($container, action, pairKey, itemID, $rep
     .click(function(e) {
       e.preventDefault();
       var $button = $(this);
-      var url = API_BASE + ((itemID == null) ? action.path : action.path.replace("${id}", itemID));
+      var url = (itemID == null) ? action.path : action.path.replace("${id}", itemID);
 
       if ($button.hasClass('disabled')) {
         return false;

@@ -60,7 +60,7 @@ case class Actionable (
 
 object Actionable {
   def fromRepairAction(domain:String, a: RepairActionDef): Actionable = {
-    val path = "/" + domain + "/actions/" + a.pair + "/" + a.name + (a.scope match {
+    val path = "/domains/" + domain + "/actions/" + a.pair + "/" + a.name + (a.scope match {
       case ENTITY_SCOPE =>  "/${id}"
       case PAIR_SCOPE => ""
     })

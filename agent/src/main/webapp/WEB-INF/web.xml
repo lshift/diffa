@@ -41,6 +41,15 @@
   </filter-mapping>
 
   <filter>
+    <filter-name>WebResourceOptimizer</filter-name>
+    <filter-class>ro.isdc.wro.http.WroFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>WebResourceOptimizer</filter-name>
+    <url-pattern>/assets/*</url-pattern>
+  </filter-mapping>
+
+  <filter>
     <filter-name>jerseyspring</filter-name>
     <filter-class>com.sun.jersey.spi.spring.container.servlet.SpringServlet</filter-class>
     <load-on-startup>1</load-on-startup>

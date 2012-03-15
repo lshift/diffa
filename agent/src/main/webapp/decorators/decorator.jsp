@@ -52,18 +52,10 @@
 
     <title><decorator:title default="Diffa"/></title>
 
-    <link rel="stylesheet" href="css/blueprint/screen.css" type="text/css" media="screen, projection">
-    <link rel="stylesheet" href="css/blueprint/print.css" type="text/css" media="print">
-    <link rel="stylesheet" href="css/blueprint/ie.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="assets/diffa-core.css" type="text/css" media="screen, projection">
 
-    <link rel="stylesheet/less" type="text/css" href="less/styling.less"/>
-    <script src="js/thirdparty/less-1.1.3.min.js"></script>
-
-    <script type="text/javascript" src="js/thirdparty/jquery-1.6.min.js" charset="utf-8"></script>
-    <script type="text/javascript" src="js/thirdparty/jquery.color.js"></script>
-    <script type="text/javascript" src="js/thirdparty/jquery.scrollTo-1.4.2-min.js"></script>
-    <script src="js/thirdparty/jquery.query-2.1.7.js"></script>
-    <script type="text/javascript" src="js/thirdparty/json2.js"></script>
+    <script type="text/javascript" src="js/thirdparty/jquery-1.7.1.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="assets/diffa-core.js" charset="utf-8"></script>
 
     <script src="js/current-domain.js"></script>
     <script src="js/diffa-ajax-setup.js"></script>

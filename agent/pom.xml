@@ -182,6 +182,17 @@
       <version>${accent.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>ro.isdc.wro4j</groupId>
+      <artifactId>wro4j-core</artifactId>
+      <version>1.4.4</version>
+    </dependency>
+    <dependency>
+      <groupId>ro.isdc.wro4j</groupId>
+      <artifactId>wro4j-extensions</artifactId>
+      <version>1.4.4</version>
+    </dependency>
+
     <!-- Used to support testing LDAP support -->
     <dependency>
       <groupId>org.apache.directory.server</groupId>
@@ -379,6 +390,12 @@
               <directory>${basedir}/src/main/webapp/decorators</directory>
               <targetPath>decorators</targetPath>
               <filtering>true</filtering>
+            </resource>
+
+            <!-- Allow alternate WEB-INF configuration files when we're packaging -->
+            <resource>
+              <directory>${basedir}/src/main/packaging/WEB-INF</directory>
+              <targetPath>WEB-INF</targetPath>
             </resource>
           </webResources>
         </configuration>

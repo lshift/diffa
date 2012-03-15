@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<groups xmlns="http://www.isdc.ro/wro"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.isdc.ro/wro wro.xsd">
+
+  <group name="diffa-core">
+    <js>/js/thirdparty/jquery.color.js</js>
+    <js>/js/thirdparty/jquery.scrollTo-1.4.2-min.js</js>
+    <js>/js/thirdparty/jquery.query-2.1.7.js</js>
+    <js>/js/thirdparty/json2.js</js>
+    <js>/js/thirdparty/underscore-1.3.1.min.js</js>
+    <js>/js/thirdparty/backbone-0.9.1.min.js</js>
+    <js>/js/thirdparty/backbone.modelbinding-0.5.0-patched.js</js>
+    <js>/js/datejs/date-en-GB.js</js>
+    <js>/js/datejs/extras.js</js>
+    <js>/js/diffa-common.js</js>
+    <js>/js/models.js</js>
+
+    <css>/less/styling.less</css>
+  </group>
+
+  <group name="heatmap">
+    <js>/js/templates/heatmap/*.jst</js>
+    <js>/js/heatmap.js</js>
+  </group>
+
+  <group name="data">
+    <js>/js/templates/data/*.jst</js>
+    <js>/js/data.js</js>
+  </group>
+
+  <group name="status">
+    <js>/js/templates/status/*.jst</js>
+    <js>/js/status.js</js>
+  </group>
+
+  <group name="settings">
+    <js>/js/settings.js</js>
+  </group>
+</groups>

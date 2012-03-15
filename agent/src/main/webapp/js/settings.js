@@ -30,21 +30,21 @@ Diffa.Routers.Config = Backbone.Router.extend({
 
   createEndpoint: function() {
     var newEndpoint = new Diffa.Models.Endpoint();
-    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: newEndpoint, collection: Diffa.EndpointsCollection}) });
+    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: newEndpoint, collection: Diffa.domain.endpoints}) });
   },
   createPair: function() {
     var newPair = new Diffa.Models.Pair();
-    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: newPair, collection: Diffa.PairsCollection}) });
+    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: newPair, collection: Diffa.domain.pairs}) });
   },
 
   manageEndpoint: function(endpointName) {
-    var endpoint = Diffa.EndpointsCollection.get(endpointName);
-    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: endpoint, collection: Diffa.EndpointsCollection}) });
+    var endpoint = Diffa.domain.endpoints.get(endpointName);
+    this.updateEditor(function() { return new Diffa.Views.EndpointEditor({model: endpoint, collection: Diffa.domain.endpoints}) });
   },
 
   managePair: function(pairName) {
-    var pair = Diffa.PairsCollection.get(pairName);
-    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: pair, collection: Diffa.PairsCollection}) });
+    var pair = Diffa.domain.pairs.get(pairName);
+    this.updateEditor(function() { return new Diffa.Views.PairEditor({model: pair, collection: Diffa.domain.pairs}) });
   },
 
   updateEditor: function(newEditorBuilder) {
@@ -232,7 +232,7 @@ Diffa.Views.PairEditor = Diffa.Views.FormEditor.extend({
     var selections = this.$('select.endpoint-selection');
 
     selections.empty();
-    Diffa.EndpointsCollection.each(function(ep) {
+    Diffa.domain.endpoints.each(function(ep) {
       selections.append('<option value="' + ep.get('name') + '">' + ep.get('name') + '</option>');
     });
 
@@ -391,16 +391,15 @@ Diffa.Binders.ListBinder = Diffa.Binder.extend({
 
 Diffa.currentDomain = currentDiffaDomain;
 Diffa.SettingsApp = new Diffa.Routers.Config();
-Diffa.EndpointsCollection = new Diffa.Collections.Endpoints();
-Diffa.PairsCollection = new Diffa.Collections.Pairs();
+Diffa.domain = new Diffa.Models.Domain({name: Diffa.currentDomain});
 Diffa.EndpointElementListView = new Diffa.Views.ElementList({
   el: $('#endpoints-list'),
-  collection: Diffa.EndpointsCollection,
+  collection: Diffa.domain.endpoints,
   elementType: 'endpoint'
 });
 Diffa.EndpointElementListView = new Diffa.Views.ElementList({
   el: $('#pairs-list'),
-  collection: Diffa.PairsCollection,
+  collection: Diffa.domain.pairs,
   elementType: 'pair'
 });
 
@@ -420,7 +419,7 @@ var preloadCollections = function(colls, callback) {
 };
 
 // Preload useful collections, and then start processing history
-preloadCollections([Diffa.EndpointsCollection, Diffa.PairsCollection], function() {
+preloadCollections([Diffa.domain.endpoints, Diffa.domain.pairs], function() {
   Backbone.history.start();
 });
 });

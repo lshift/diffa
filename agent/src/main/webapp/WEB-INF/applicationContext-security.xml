@@ -32,6 +32,7 @@
     <intercept-url pattern="/css/**" access="permitAll" />
     <intercept-url pattern="/js/**" access="permitAll" />
     <intercept-url pattern="/images/**" access="permitAll" />
+    <intercept-url pattern="/assets/**" access="permitAll" />
 
     <!-- All operations within the interface require a user role -->
     <intercept-url pattern="/**" access="hasRole('user')" />

@@ -355,7 +355,6 @@ Diffa.Collections.Diffs = Backbone.Collection.extend({
 });
 
 Diffa.Views.Heatmap = Backbone.View.extend({
-  el: $('#heatmap'),
   minRows: 5,         // Minimum number of rows to be displayed
 
   // The original version of the heatmap was statically sized to 800x400 with 5 swimlanes @ 78 plus a 10 pixel gutter
@@ -386,15 +385,18 @@ Diffa.Views.Heatmap = Backbone.View.extend({
     this.model.bind('change:polling',         this.update);
 
     this.render();
+    this.zoomControls = new Diffa.Views.ZoomControls({el: this.$('.heatmap-controls'), model: this.model});
 
     // Attach a mousedown handler to the overlay
     this.overlay.onmousedown = this.mouseDown;
   },
 
   render: function() {
-    this.heatmap = document.getElementById("heatmap");
-    this.underlay = document.getElementById("underlay");
-    this.scale = document.getElementById("scale");
+    $(this.el).html(JST['heatmap/map']());
+
+    this.heatmap = $(this.el)[0];
+    this.underlay = this.$('.underlay')[0];
+    this.scale = this.$(".scale")[0];
 
     this.resizeLayer(this.underlay, this.underlay.offsetWidth);
     this.canvas = this.createLayer(this.heatmap, 2);
@@ -434,10 +436,10 @@ Diffa.Views.Heatmap = Backbone.View.extend({
     this.scale.height = this.scaleHeight;
     this.rightLimit = (this.model.maxColumns * this.gridSize) - this.canvas.width;
 
-    $('#heatmap-controls').
+    this.$('.heatmap-controls').
         show().
-        css('top', $('#heatmap').offset().top + 20).
-        css('left', $('#heatmap').offset().left - $('#heatmap-controls')[0].offsetWidth);
+        css('top', $(this.heatmap).offset().top + 20).
+        css('left', $(this.heatmap).offset().left - this.$('.heatmap-controls')[0].offsetWidth);
   },
   recalibrateHeatmap: function() {
     this.resizeLayer(this.underlay, this.underlay.offsetWidth);
@@ -820,13 +822,12 @@ Diffa.Views.Heatmap = Backbone.View.extend({
 });
 
 Diffa.Views.ZoomControls = Backbone.View.extend({
-  el: $('#heatmap-controls'),
   events: {
-    "click  #zoomIn":   "zoomIn",
-    "click  #zoomOut":  "zoomOut",
+    "click  .zoomIn":   "zoomIn",
+    "click  .zoomOut":  "zoomOut",
 
-    "focus  #zoomIn":   "preventFocus",
-    "focus  #zoomOut":  "preventFocus"
+    "focus  .zoomIn":   "preventFocus",
+    "focus  .zoomOut":  "preventFocus"
   },
 
   initialize: function() {
@@ -861,8 +862,8 @@ Diffa.Views.ZoomControls = Backbone.View.extend({
       }
     }
 
-    toggleControl('#zoomIn', !this.shouldAllowMoreZoomIn());
-    toggleControl('#zoomOut', !this.shouldAllowMoreZoomOut());
+    toggleControl('.zoomIn', !this.shouldAllowMoreZoomIn());
+    toggleControl('.zoomOut', !this.shouldAllowMoreZoomOut());
   },
 
   shouldAllowMoreZoomIn: function() {
@@ -879,8 +880,6 @@ Diffa.Views.ZoomControls = Backbone.View.extend({
 });
 
 Diffa.Views.DiffList = Backbone.View.extend({
-  el: "#diff-list-container",
-
   events: {
     "click #previous": "previousPage",
     "click #next":     "nextPage"
@@ -917,17 +916,18 @@ Diffa.Views.DiffList = Backbone.View.extend({
       return true;
     });
 
+    $(this.el).html(JST['heatmap/difflist']());
     this.renderNavigation();
   },
 
   rebuildDiffList: function() {
     var self = this;
 
-    $('#difflist-row').empty();   // Empty the current difflist out since we'll re-render everything
+    this.$('.difflist-row').empty();   // Empty the current difflist out since we'll re-render everything
 
     this.model.forEach(function(diff) {
       var view = new Diffa.Views.DiffListItem({model: diff, collection: self.model});
-      this.$('#difflist-row').append(view.render().el);
+      this.$('.difflist-row').append(view.render().el);
     });
   },
 
@@ -935,8 +935,8 @@ Diffa.Views.DiffList = Backbone.View.extend({
     var startIdx = (this.model.page * this.model.listSize) + 1;
     var endIdx = Math.min(startIdx + this.model.listSize - 1, this.model.totalEvents);
 
-    this.$("#pagecount").text("Showing " + startIdx + " - " + endIdx + " of " + this.model.totalEvents + " differences");
-    this.$("#navigation").toggle(this.model.totalPages > 1);
+    this.$(".pagecount").text("Showing " + startIdx + " - " + endIdx + " of " + this.model.totalEvents + " differences");
+    this.$(".navigation").toggle(this.model.totalPages > 1);
   },
 
   nextPage: function(e) { e.preventDefault(); this.model.nextPage(); },
@@ -991,7 +991,6 @@ Diffa.Views.DiffListItem = Backbone.View.extend({
 });
 
 Diffa.Views.DiffDetail = Backbone.View.extend({
-  el: $('#contentviewer'),
   lastSelected: null,
 
   initialize: function() {
@@ -999,6 +998,7 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
 
     this.model.bind("change:selectedEvent", this.updateSelected);
 
+    $(this.el).html(JST['heatmap/contentviewer']());
     this.render();
   },
 
@@ -1023,16 +1023,16 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
 
     // Clear the state if we don't have a selected event
     if (event == null) {
-      this.$('#content-label').text('No item selected');
-      this.$('#item1 .upstreamLabel').text('upstream');
-      this.$('#item1 .diff-hash').text('');
-      this.$('#item2 .downstreamLabel').text('downstream');
-      this.$('#item2 .diff-hash').text('');
-      this.$('#item1 pre').text('');
-      this.$('#item2 pre').text('');
+      this.$('.content-label').text('No item selected');
+      this.$('.item1 .upstreamLabel').text('upstream');
+      this.$('.item1 .diff-hash').text('');
+      this.$('.item2 .downstreamLabel').text('downstream');
+      this.$('.item2 .diff-hash').text('');
+      this.$('.item1 pre').text('');
+      this.$('.item2 pre').text('');
 
-      $("#controllist").hide();
-      $("#actionlist").empty();
+      this.$(".controllist").hide();
+      this.$(".actionlist").empty();
       return;
     }
 
@@ -1044,52 +1044,53 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
         upstreamContent = event.get("upstreamContent"),
         downstreamContent = event.get("downstreamContent");
 
-    $('#content-label').text('Content for item ID: ' + itemID);
+    this.$('.content-label').text('Content for item ID: ' + itemID);
 
-    $('#item1 .upstreamLabel').text(upstreamLabel);
-    $('#item1 .diff-hash').text(upstreamVersion);
+    this.$('.item1 .upstreamLabel').text(upstreamLabel);
+    this.$('.item1 .diff-hash').text(upstreamVersion);
 
-    $('#item2 .downstreamLabel').text(downstreamLabel);
-    $('#item2 .diff-hash').text(downstreamVersion);
+    this.$('.item2 .downstreamLabel').text(downstreamLabel);
+    this.$('.item2 .diff-hash').text(downstreamVersion);
 
     var ignoreButton = $('<button class="repair">Ignore</button>');
-    $('#controllist').empty().append(ignoreButton).show();
+    this.$('.controllist').empty().append(ignoreButton).show();
     ignoreButton.click(function() {
       event.ignore();
     });
 
 
     function waitForOrDisplayContent(selector, content) {
-      var busy = $(selector).prev();
+      var busy = this.$(selector).prev();
 
       if (content == null) {
-        $(selector).hide();
+        this.$(selector).hide();
         busy.show();
       } else {
-        $(selector).text(content).show();
+        this.$(selector).text(content).show();
         busy.hide();
       }
     }
-    waitForOrDisplayContent("#item1 pre", upstreamContent);
-    waitForOrDisplayContent("#item2 pre", downstreamContent);
+    waitForOrDisplayContent(".item1 pre", upstreamContent);
+    waitForOrDisplayContent(".item2 pre", downstreamContent);
 
     this.renderEntityScopedActions();
   },
 
   renderEntityScopedActions: function() {
     var event = this.model.selectedEvent;
+    var self = this;
 
     var pairKey = event.get('objId').pair.key;
     var itemID = event.get('objId').id;
-    var actionListContainer = $("#actionlist").empty();
+    var actionListContainer = this.$(".actionList").empty();
     var actionListCallback = function(actionList, status, xhr) {
       if (!actionList) {
         return;
       }
       
-      $("#actionlist").empty();
+      self.$(".actionlist").empty();
       $.each(actionList, function(i, action) {
-        var repairStatus = $('#repairstatus');
+        var repairStatus = self.$('.repairstatus');
         appendActionButtonToContainer(actionListContainer, action, pairKey, itemID, repairStatus);
       });
     };
@@ -1107,10 +1108,9 @@ Diffa.currentDomain = currentDiffaDomain;
 Diffa.BlobsApp = new Diffa.Routers.Blobs();
 Diffa.BlobsModel = new Diffa.Models.Blobs();
 Diffa.DiffsCollection = new Diffa.Collections.Diffs();
-Diffa.HeatmapView = new Diffa.Views.Heatmap({model: Diffa.BlobsModel});
-Diffa.HeatmapZoomControlsView = new Diffa.Views.ZoomControls({model: Diffa.BlobsModel});
-Diffa.DiffListView = new Diffa.Views.DiffList({model: Diffa.DiffsCollection});
-Diffa.DiffDetailView = new Diffa.Views.DiffDetail({model: Diffa.DiffsCollection});
+Diffa.HeatmapView = new Diffa.Views.Heatmap({el: $('#heatmap'), model: Diffa.BlobsModel});
+Diffa.DiffListView = new Diffa.Views.DiffList({el: $('#diff-list-container'), model: Diffa.DiffsCollection});
+Diffa.DiffDetailView = new Diffa.Views.DiffDetail({el: $('#contentviewer'), model: Diffa.DiffsCollection});
 Backbone.history.start();
 
 Diffa.BlobsModel.sync();

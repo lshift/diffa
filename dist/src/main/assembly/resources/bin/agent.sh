@@ -21,4 +21,4 @@ set -e
 ROOT_PATH=`dirname $0`/..
 
 cd $ROOT_PATH
-java -jar jetty-start-*.jar
+java -jar -Xmx256m -XX:MaxPermSize=128m jetty-start-*.jar

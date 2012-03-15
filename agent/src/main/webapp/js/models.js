@@ -159,3 +159,13 @@ Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
     });
   }
 });
+
+/**
+ * Root object constructed to create a Diffa domain, and all constituent collections.
+ */
+Diffa.Models.Domain = Backbone.Model.extend({
+  initialize: function() {
+    this.endpoints = new Diffa.Collections.Endpoints();
+    this.pairs = new Diffa.Collections.Pairs();
+  }
+});

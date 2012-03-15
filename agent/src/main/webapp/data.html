@@ -20,14 +20,7 @@
   <head>
     <title>Diffa Data</title>
 
-    <script type="text/javascript" src="js/thirdparty/underscore-1.1.6.min.js"></script>
-    <script type="text/javascript" src="js/thirdparty/backbone-0.5.1.min.js"></script>
-    <script type="text/javascript" src="js/datejs/date-en-GB.js" charset="utf-8"></script>
-    <script type="text/javascript" src="js/datejs/extras.js" charset="utf-8"></script>
-
-    <script type="text/javascript" src="js/diffa-common.js" charset="utf-8"></script>
-    <script type="text/javascript" src="js/models.js"></script>
-    <script type="text/javascript" src="js/data.js"></script>
+    <script type="text/javascript" src="assets/data.js"></script>
   </head>
 
   <body>
@@ -44,20 +37,7 @@
 
       <div class="inventory-panel">
         <h4>Upload an Inventory</h4>
-        <div id="inventory-uploader">
-          <div class="status" style="display:none"></div>
-          <form>
-            <input type="file" name="inventory" class="fileSelector">
-
-            Endpoint: <select name="endpoint"></select>
-
-            <div class="constraints">
-
-            </div>
-            
-            <input type="submit" value="Upload">
-          </form>
-        </div>
+        <div id="inventory-uploader"></div>
       </div>
     </div>
 

@@ -23,12 +23,7 @@
   <title>Diffa</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-  <script type="text/javascript" src="js/thirdparty/underscore-1.1.6.min.js"></script>
-  <script type="text/javascript" src="js/thirdparty/backbone-0.5.1.min.js"></script>
-  <script type="text/javascript" src="js/datejs/date-en-GB.js" charset="utf-8"></script>
-  <script type="text/javascript" src="js/datejs/extras.js" charset="utf-8"></script>
-  <script type="text/javascript" src="js/diffa-common.js" charset="utf-8"></script>
-  <script type="text/javascript" src="js/heatmap.js" charset="utf-8"></script>
+  <script type="text/javascript" src="assets/heatmap.js"></script>
 
   <!--
   This can be used to reload the less templates automatically in dev mode
@@ -52,74 +47,11 @@
       <a class="domain-page" href="settings.html">Settings</a>
     </div>
 
-    <div id="heatmap-controls">
-      <button id="zoomIn" class="zoomButton">+</button>
-      <button id="zoomOut" class="zoomButton">-</button>
-    </div>
+    <div id="heatmap"></div>
 
-    <div id="heatmap">
-      <canvas id="underlay"></canvas>
-      <canvas id="scale"></canvas>
-    </div>
+    <div id="diff-list-container"></div>
 
-    <div id="diff-list-container">
-
-      <div id="diffList">
-
-        <div id="difflist-header">
-          <div class="date-span">Date</div>
-          <div class="time-span">Time</div>
-          <div class="pairing-span">Pairing</div>
-          <div class="item-id-span">Item ID</div>
-          <div class="difference-span">Difference</div>
-        </div>
-
-        <hr class="space"/>
-
-        <div id="difflist-row">
-          <div>No items loaded yet...</div>
-        </div>
-
-      </div>
-
-      <hr class="space"/>
-
-      <div id="navigation">
-        <div id="previous"><a href="#">&lt;-Previous</a></div>
-        <div id="pagecount">nn of XX pages</div>
-        <div id="next"><a href="#">Next-&gt;</a></div>
-      </div>
-
-    </div>
-
-    <div id="contentviewer">
-      <div id="content-label" class="section-label">No item selected</div>
-
-      <div id="item1" class="diff-set">
-        <div class="upstreamLabel">upstream</div>
-        <div class="diff-hash"></div>
-        <div class="code-box">
-          <img class="busy" src="images/busy.gif"/>
-          <pre>&nbsp;</pre>
-        </div>
-      </div>
-
-      <div id="item2" class="diff-set">
-        <div class="downstreamLabel">downstream</div>
-        <div class="diff-hash"></div>
-        <div class="code-box">
-          <img class="busy" src="images/busy.gif"/>
-          <pre>&nbsp;</pre>
-        </div>
-      </div>
-
-      <div id="diffRepair" class="diff-repair">
-        <div class="section-label">Repair options</div>
-        <div class="action-item" id="controllist"> </div>
-        <div class="action-item" id="actionlist"> </div>
-        <div class="action-item" id="repairstatus">No repairs in progress</div>
-      </div>
-    </div>
+    <div id="contentviewer"></div>
 
   </body>
 </html>
