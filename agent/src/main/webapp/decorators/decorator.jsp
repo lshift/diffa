@@ -60,6 +60,8 @@
     <script src="js/current-domain.js"></script>
     <script src="js/diffa-ajax-setup.js"></script>
 
+    <script type="text/javascript" src="assets/widgets.js"></script>
+
     <decorator:head/>
 
   </head>

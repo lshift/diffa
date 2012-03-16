@@ -18,40 +18,40 @@
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<%
+  // Allow the domain to be provided via a query parameter
+  String domain = request.getParameter("domain");
+  if (domain == null || domain.equals("")) {
+    domain = "diffa";
+  }
+%>
+
 <html>
 <head>
   <title>Diffa</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-
-  <script type="text/javascript" src="assets/heatmap.js"></script>
-
-  <!--
-  This can be used to reload the less templates automatically in dev mode
-  <script type="text/javascript" charset="utf-8">
-    less.env = "development";
-    less.watch();
-  </script>
-  -->
-
 </head>
 
   <body>
 
-    <div class="main-logo">
-      <h1>Diffa</h1>
+    <div class="diffa-heatmap-page" data-domain="<%= domain %>">
+      <div class="main-logo">
+        <h1>Diffa</h1>
+      </div>
+
+      <div class="top-navigation-link">
+        <a class="domain-page" href="data.html">Data</a>
+        <a class="domain-page" href="status.html">Status</a>
+        <a class="domain-page" href="settings.html">Settings</a>
+      </div>
+
+      <div id="heatmap" class="diffa-heatmap" data-domain="<%= domain %>"></div>
+
+      <div id="diff-list-container" class="diffa-difflist" data-domain="<%= domain %>"></div>
+
+      <div id="contentviewer" class="diffa-contentviewer" data-domain="<%= domain %>"></div>
     </div>
-
-    <div class="top-navigation-link">
-      <a class="domain-page" href="data.html">Data</a>
-      <a class="domain-page" href="status.html">Status</a>
-      <a class="domain-page" href="settings.html">Settings</a>
-    </div>
-
-    <div id="heatmap"></div>
-
-    <div id="diff-list-container"></div>
-
-    <div id="contentviewer"></div>
 
   </body>
 </html>

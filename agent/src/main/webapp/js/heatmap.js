@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-Diffa.Config.BlobInterval = 5000;     // How frequently (in ms) we poll for blob changes
-Diffa.Config.DiffInterval = 5000;      // How frequently (in ms) we poll for diff changes
-
 $(function() {
 const TIME_FORMAT = "yyyyMMddTHHmmssZ";
 var directions = {
@@ -38,23 +35,33 @@ Diffa.Routers.Blobs = Backbone.Router.extend({
     "blobs/:pair/:start-:end":      "viewBlob"   // # blobs/WEB-1/20110801134500/3600/5
   },
 
+  initialize: function(opts) {
+    var self = this;
+    this.domain = opts.domain;
+
+    opts.el.on('blob:selected', function(event, selectedPair, startTime, endTime) {
+      self.navigate("blobs/" + selectedPair + '/' + startTime + '-' + endTime, true);
+    });
+  },
+
   index: function() {
   },
 
   viewBlob: function(pairKey, start, end) {
     // Currently, only the Diff list displays selection. When #320 is done, this will also need to inform the heatmap.
-    Diffa.DiffsCollection.select(pairKey, start, end);
+    this.domain.diffs.select(pairKey, start, end);
   }
 });
 
-Diffa.Models.Blobs = Backbone.Model.extend({
+Diffa.Models.Blobs = Backbone.Model.extend(Diffa.Collections.Watchable).extend({
+  watchInterval: 5000,      // How frequently we poll for blob updates
   maxColumns: 96,           // Maybe make variable?
   defaultBucketSize: 3600,
   defaultZoomLevel:4,       // HOURLY
   defaultMaxRows: 10,       // Will change as more pairs arrive
 
   initialize: function() {
-    _.bindAll(this, "sync", "periodicSync", "stopPolling", "startPolling");
+    _.bindAll(this, "sync", "stopPolling", "startPolling");
 
     this.set({
       zoomLevel: this.defaultZoomLevel,
@@ -66,19 +73,23 @@ Diffa.Models.Blobs = Backbone.Model.extend({
       startTime: nearestHour().add({seconds: -1 * this.defaultBucketSize * this.maxColumns}),
       selectedCell: null
     });
+    this.domain = this.get('domain');   // Pull the domain out as a top-level attribute
   },
 
   sync: function() {
+    // Don't do the poll if we're not polling
+    if (!this.get('polling')) return;
+
     var self = this;
 
-    endTime = nearestHour();
+    var endTime = nearestHour();
 
     var now = endTime.toString(TIME_FORMAT);
 
-    startTime = endTime.add({seconds: -1 * self.get('bucketSize') * ( self.maxColumns -1 ) });
+    var startTime = endTime.add({seconds: -1 * self.get('bucketSize') * ( self.maxColumns -1 ) });
     var dayBeforeNow = startTime.toString(TIME_FORMAT);
 
-    $.getJSON("/domains/" + Diffa.currentDomain + "/diffs/tiles/" + self.get('zoomLevel') + "?range-start=" + dayBeforeNow + "&range-end=" + now, function(data) {
+    $.getJSON("/domains/" + this.domain.id + "/diffs/tiles/" + self.get('zoomLevel') + "?range-start=" + dayBeforeNow + "&range-end=" + now, function(data) {
       var swimlaneLabels = self.get('swimlaneLabels').slice(0);     // Retrieve a cloned copy of the swimlane labels
       var buckets = [];
       var maxRows = self.get('maxRows');
@@ -115,11 +126,6 @@ Diffa.Models.Blobs = Backbone.Model.extend({
       // Update the swimlane labels and buckets
       self.set({swimlaneLabels: swimlaneLabels, buckets: buckets, maxRows: maxRows, startTime: startTime});
     });
-  },
-
-  periodicSync: function() {
-    // Only poll if polling is enabled
-    if (this.get('polling')) this.sync();
   },
 
   startPolling: function() {
@@ -181,7 +187,7 @@ Diffa.Models.Diff = Backbone.Model.extend({
 
     // Only retrieve the pair info if we don't already have it
     if (!self.get('upstreamName') || !self.get('downstreamName')) {
-      $.get("/domains/" + Diffa.currentDomain + "/config/pairs/" + this.get('objId').pair.key, function(data, status, xhr) {
+      $.get("/domains/" + self.collection.domain.id + "/config/pairs/" + this.get('objId').pair.key, function(data, status, xhr) {
         self.set({upstreamName: data.upstreamName, downstreamName: data.downstreamName});
       });
     }
@@ -197,7 +203,7 @@ Diffa.Models.Diff = Backbone.Model.extend({
       }
 
       pendingRequest = $.ajax({
-            url: "/domains/" + Diffa.currentDomain + "/diffs/events/" + self.id + "/" + upOrDown,
+            url: "/domains/" + self.collection.domain.id + "/diffs/events/" + self.id + "/" + upOrDown,
             success: function(data) {
               setContent(data || "no content found for " + upOrDown);
             },
@@ -221,12 +227,14 @@ Diffa.Models.Diff = Backbone.Model.extend({
    * Instructs the agent to ignore this difference.
    */
   ignore: function() {
+    var self = this;
+
     $.ajax({
-      url: "/domains/" + Diffa.currentDomain + "/diffs/events/" + this.id,
+      url: "/domains/" + this.collection.domain.id + "/diffs/events/" + this.id,
       type: 'DELETE',
       success: function(data) {
-        Diffa.BlobsModel.sync();
-        Diffa.DiffsCollection.sync();
+        self.collection.domain.blobs.sync();
+        self.collection.domain.diffs.sync();
       },
       error: function(xhr, status, ex) {
         // TODO: 
@@ -235,7 +243,8 @@ Diffa.Models.Diff = Backbone.Model.extend({
   }
 });
 
-Diffa.Collections.Diffs = Backbone.Collection.extend({
+Diffa.Collections.Diffs = Diffa.Collections.CollectionBase.extend({
+  watchInterval: 5000,      // How frequently we poll for diff updates
   range: null,
   page: 0,
   listSize: 20,
@@ -245,8 +254,10 @@ Diffa.Collections.Diffs = Backbone.Collection.extend({
   totalPages: 0,
   lastSeqId: null,
 
-  initialize: function() {
+  initialize: function(models, opts) {
     _.bindAll(this, "sync", "select", "selectEvent", "selectNextEvent");
+
+    this.domain = opts.domain;
   },
 
   sync: function(force) {
@@ -255,7 +266,7 @@ Diffa.Collections.Diffs = Backbone.Collection.extend({
     if (this.range == null) {
       this.reset([]);
     } else {
-      var url = "/domains/" + Diffa.currentDomain + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
+      var url = "/domains/" + self.domain.id + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
           + this.range.start + "&range-end=" + this.range.end
           + "&offset=" + (this.page * this.listSize) + "&length=" + this.listSize;
 
@@ -379,6 +390,8 @@ Diffa.Views.Heatmap = Backbone.View.extend({
 
     $(document).mouseup(this.mouseUp);
     $(document).mousemove(this.mouseMove);
+
+    this.model.watch($(this.el));
 
     this.model.bind('change:buckets',         this.update);
     this.model.bind('change:maxRows',         this.update);
@@ -770,8 +783,7 @@ Diffa.Views.Heatmap = Backbone.View.extend({
 
         var selectionStartTime = new Date(gridStartTime.getTime() + (selectedIdx * bucketSize * 1000));
         var selectionEndTime = new Date(selectionStartTime.getTime() + (bucketSize * 1000));
-        var hash = "blobs/" + selectedPair + '/' + selectionStartTime.toString(TIME_FORMAT) + '-' + selectionEndTime.toString(TIME_FORMAT);
-        Diffa.BlobsApp.navigate(hash, true);
+        $(this.el).trigger('blob:selected', [selectedPair, selectionStartTime.toString(TIME_FORMAT), selectionEndTime.toString(TIME_FORMAT)]);
       }
     } else {
       if (Math.abs(this.o_x) >= this.rightLimit) {
@@ -889,6 +901,8 @@ Diffa.Views.DiffList = Backbone.View.extend({
     var self = this;
 
     _.bindAll(this, "rebuildDiffList", "renderNavigation");
+
+    this.model.watch($(this.el));
 
     this.model.bind("reset",              this.rebuildDiffList);
     this.model.bind("change:totalEvents", this.renderNavigation);
@@ -1095,7 +1109,7 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
       });
     };
 
-    $.ajax({ url: "/domains/" + Diffa.currentDomain + '/actions/' + pairKey + '?scope=entity', success: actionListCallback });
+    $.ajax({ url: "/domains/" + this.model.domain.id + '/actions/' + pairKey + '?scope=entity', success: actionListCallback });
   }
 });
 
@@ -1104,17 +1118,23 @@ function nearestHour() {
   return Date.today().add({hours: hours});
 }
 
-Diffa.currentDomain = currentDiffaDomain;
-Diffa.BlobsApp = new Diffa.Routers.Blobs();
-Diffa.BlobsModel = new Diffa.Models.Blobs();
-Diffa.DiffsCollection = new Diffa.Collections.Diffs();
-Diffa.HeatmapView = new Diffa.Views.Heatmap({el: $('#heatmap'), model: Diffa.BlobsModel});
-Diffa.DiffListView = new Diffa.Views.DiffList({el: $('#diff-list-container'), model: Diffa.DiffsCollection});
-Diffa.DiffDetailView = new Diffa.Views.DiffDetail({el: $('#contentviewer'), model: Diffa.DiffsCollection});
-Backbone.history.start();
+$('.diffa-heatmap').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+  new Diffa.Views.Heatmap({el: $(this), model: domain.blobs});
+});
+$('.diffa-difflist').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+  new Diffa.Views.DiffList({el: $(this), model: domain.diffs});
+});
+$('.diffa-contentviewer').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+  new Diffa.Views.DiffDetail({el: $(this), model: domain.diffs});
+});
 
-Diffa.BlobsModel.sync();
-Diffa.DiffsCollection.sync();
-setInterval('Diffa.BlobsModel.periodicSync()', Diffa.Config.BlobInterval);
-setInterval('Diffa.DiffsCollection.sync()', Diffa.Config.DiffInterval);
+$('.diffa-heatmap-page').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+
+  new Diffa.Routers.Blobs({domain: domain, el: $(this)});
+  Backbone.history.start();
+});
 });

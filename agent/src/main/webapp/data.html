@@ -16,11 +16,17 @@
 
 -->
 
+<%
+  // Allow the domain to be provided via a query parameter
+  String domain = request.getParameter("domain");
+  if (domain == null || domain.equals("")) {
+    domain = "diffa";
+  }
+%>
+
 <html>
   <head>
     <title>Diffa Data</title>
-
-    <script type="text/javascript" src="assets/data.js"></script>
   </head>
 
   <body>
@@ -37,7 +43,7 @@
 
       <div class="inventory-panel">
         <h4>Upload an Inventory</h4>
-        <div id="inventory-uploader"></div>
+        <div id="inventory-uploader" class="diffa-inventory-uploader" data-domain="<%= domain %>"></div>
       </div>
     </div>
 

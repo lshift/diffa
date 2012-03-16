@@ -16,16 +16,21 @@
 
 -->
 
+<%
+  // Allow the domain to be provided via a query parameter
+  String domain = request.getParameter("domain");
+  if (domain == null || domain.equals("")) {
+    domain = "diffa";
+  }
+%>
+
 <html>
   <head>
     <title>Diffa Settings</title>
-
-    <script type="text/javascript" src="assets/settings.js"></script>
-
   </head>
 
   <body>
-    <div id="settings-page" class="container">
+    <div id="settings-page" class="container diffa-settings-page" data-domain="<%= domain %>">
 
       <div class="main-logo">
         <h1>Diffa Settings</h1>
@@ -36,13 +41,13 @@
       </div>
 
       <div id="elements">
-        <div id="endpoints-list" class="element-list-panel"></div>
-        <div id="pairs-list" class="element-list-panel"></div>
+        <div id="endpoints-list" class="diffa-endpoint-list element-list-panel" data-domain="<%= domain %>"></div>
+        <div id="pairs-list" class="diffa-pair-list element-list-panel" data-domain="<%= domain %>"></div>
       </div>
 
       <div id="details">
-        <div style="display:none" id="endpoint-editor"></div>
-        <div style="display:none" id="pair-editor"></div>
+        <div style="display:none" id="endpoint-editor" class="diffa-endpoint-editor" data-domain="<%= domain %>"></div>
+        <div style="display:none" id="pair-editor" class="diffa-pair-editor" data-domain="<%= domain %>"></div>
       </div>
     </div>
   </body>

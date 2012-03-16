@@ -56,6 +56,7 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
     this.selectList = this.$('select[name=endpoint]');
 
     this.render();
+    this.collection.ensureFetched();
   },
 
   render: function() {
@@ -187,12 +188,12 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   }
 });
 
-Diffa.currentDomain = currentDiffaDomain;
-Diffa.EndpointsCollection = new Diffa.Collections.Endpoints();
-Diffa.InventoryUploaderView =  new Diffa.Views.InventoryUploader({
-  el: $('#inventory-uploader'),
-  collection: Diffa.EndpointsCollection
-});
+$('.diffa-inventory-uploader').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
 
-Diffa.EndpointsCollection.fetch();
+  new Diffa.Views.InventoryUploader({
+    el: $(this),
+    collection: domain.endpoints
+  });
+});
 });

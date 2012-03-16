@@ -27,13 +27,11 @@
 <html>
   <head>
     <title>Diffa Status</title>
-
-    <script type="text/javascript" src="assets/status.js"></script>
   </head>
 
   <body>
 
-    <div class="container">
+    <div class="container diffa-status-page" data-domain="<%= domain %>">
 
       <div class="main-logo">
         <h1>Diffa Status</h1>
@@ -43,13 +41,9 @@
         <a class="domain-page" href="index.html">Diffa</a>
       </div>
 
-      <div id="all-pairings">
-        <a id="scan_all" href="#">Scan All Pairings For Differences</a>
-      </div>
+      <div data-domain="<%= domain %>" id="pair-list" class="diffa-pair-status-list"></div>
 
-      <div id="pair-list"></div>
-
-      <div id="pair-actions" class="pair-info-panel" style="display:none"></div>
+      <div id="pair-actions" data-domain="<%= domain %>" class="diffa-pair-actions pair-info-panel" style="display:none"></div>
 
       <div id="pair-log" data-domain="<%= domain %>" class="diffa-pair-log pair-info-panel" style="display:none"></div>
     </div>
