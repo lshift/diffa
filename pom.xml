@@ -20,6 +20,7 @@
     <module>docgen-maven-plugin</module>
     <module>dist</module>
     <module>hibernate-migrations</module>
+    <module>jst-packaging</module>
   </modules>
 
   <properties>

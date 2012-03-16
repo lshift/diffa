@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.diffa.agent.assets
+package net.lshift.diffa.assets;
 
-import ro.isdc.wro.extensions.manager.ExtensionsConfigurableWroManagerFactory
-import java.util.Map
-import java.lang.String
-import ro.isdc.wro.model.resource.processor.ResourcePreProcessor
+import ro.isdc.wro.extensions.manager.ExtensionsConfigurableWroManagerFactory;
+
+import java.util.Map;
+import java.lang.String;
+import ro.isdc.wro.model.resource.processor.ResourcePreProcessor;
 
 /**
  * Custom factory allowing html templates to be used as a pre-processor.
  */
-class DiffaWroManagerFactory extends ExtensionsConfigurableWroManagerFactory {
-  override def contributePreProcessors(map: Map[String, ResourcePreProcessor]) {
-    super.contributePreProcessors(map)
+public class DiffaWroManagerFactory extends ExtensionsConfigurableWroManagerFactory {
+  @Override
+  public void contributePreProcessors(Map<String, ResourcePreProcessor> map) {
+    super.contributePreProcessors(map);
 
-    map.put("jstTemplates", new JstTemplatesPreProcessor)
+    map.put("jstTemplates", new JstTemplatesPreProcessor());
   }
 }

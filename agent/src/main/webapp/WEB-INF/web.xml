@@ -59,7 +59,7 @@
     </init-param>
     <init-param>
       <param-name>com.sun.jersey.config.property.WebPageContentRegex</param-name>
-      <param-value>/(|.*\.html|(images|less|js|css)/.*)</param-value>
+      <param-value>/(|.*\.html|(assets|images|less|js|css)/.*)</param-value>
     </init-param>
 
   </filter>
