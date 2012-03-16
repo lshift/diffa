@@ -131,6 +131,13 @@ Diffa.Views.FormEditor = Backbone.View.extend({
   initialize: function() {
     _.bindAll(this, 'render', 'close');
 
+    // If we have a template, then instantiate it and re-bind events (since the default backbone event binding will have
+    // failed).
+    if (this.template) {
+      $(this.el).html(this.template());
+      this.delegateEvents(this.events);
+    }
+
     this.model.bind('fetch', this.render);
 
     this.render();
@@ -143,6 +150,8 @@ Diffa.Views.FormEditor = Backbone.View.extend({
     $('input[data-key]', this.el).val('');    // Clear the contents of all bound fields
     Backbone.ModelBinding.bind(this, {all: "data-key"});
 
+    this.postBind();
+
     var nameContainer = $('.name-container', this.el);
 
     $('input', nameContainer).toggle(this.model.isNew());
@@ -153,6 +162,7 @@ Diffa.Views.FormEditor = Backbone.View.extend({
 
   // Callback function to be implemented by subclasses that need to add field values before binding.
   preBind: function() {},
+  postBind: function() {},
   postClose: function() {},
 
   close: function() {
@@ -208,8 +218,9 @@ Diffa.Views.FormEditor = Backbone.View.extend({
 Diffa.Views.EndpointEditor = Diffa.Views.FormEditor.extend({
   el: $('#endpoint-editor'),
   elementType: "endpoint",
+  template: window.JST['settings/endpointeditor'],
 
-  preBind: function() {
+  postBind: function() {
     // Attach categories
     this.categoryEditors = [
       new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
@@ -227,6 +238,7 @@ Diffa.Views.EndpointEditor = Diffa.Views.FormEditor.extend({
 Diffa.Views.PairEditor = Diffa.Views.FormEditor.extend({
   el: $('#pair-editor'),
   elementType: "pair",
+  template: window.JST['settings/paireditor'],
 
   preBind: function() {
     var selections = this.$('select.endpoint-selection');
@@ -235,7 +247,8 @@ Diffa.Views.PairEditor = Diffa.Views.FormEditor.extend({
     Diffa.domain.endpoints.each(function(ep) {
       selections.append('<option value="' + ep.get('name') + '">' + ep.get('name') + '</option>');
     });
-
+  },
+  postBind: function() {
     this.viewsEditor = new Diffa.Views.PairViewsEditor({collection: this.model.views, el: this.$('.views')});
   },
   postClose: function() {
@@ -256,7 +269,7 @@ Diffa.Views.TableEditor = Backbone.View.extend({
 
     this.templateName = this.$('table').data('template');
     if (!this.templateName) console.error("Missing template name", this);
-    this.template = _.template($('#' + this.templateName).html());
+    this.template = window.JST['settings/' + this.templateName];
 
     this.table = this.$('>table');
 
@@ -330,12 +343,13 @@ Diffa.Views.EndpointViewEditor = Backbone.View.extend({
     "click .remove-view": 'remove'
   },
   initialize: function() {
+    Backbone.ModelBinding.bind(this, {all: "data-el-key"});
+    
     this.categoryEditors = [
       new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
       new Diffa.Views.CategoriesEditor({collection: this.model.setCategories, el: this.$('.set-categories')}),
       new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')})
     ];
-    Backbone.ModelBinding.bind(this, {all: "data-el-key"});
   },
   remove: function() {
     this.model.collection.remove(this.model);
@@ -393,12 +407,12 @@ Diffa.currentDomain = currentDiffaDomain;
 Diffa.SettingsApp = new Diffa.Routers.Config();
 Diffa.domain = new Diffa.Models.Domain({name: Diffa.currentDomain});
 Diffa.EndpointElementListView = new Diffa.Views.ElementList({
-  el: $('#endpoints-list'),
+  el: $('#endpoints-list').html(window.JST['settings/endpointlist']()),
   collection: Diffa.domain.endpoints,
   elementType: 'endpoint'
 });
 Diffa.EndpointElementListView = new Diffa.Views.ElementList({
-  el: $('#pairs-list'),
+  el: $('#pairs-list').html(window.JST['settings/pairlist']()),
   collection: Diffa.domain.pairs,
   elementType: 'pair'
 });

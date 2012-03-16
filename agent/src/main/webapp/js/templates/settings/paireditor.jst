@@ -1,0 +1,27 @@
+<div class="error"></div>
+<dl>
+  <dt>Key:</dt><dd class="name-container"><input data-key="key" type="text"><span data-bind="key"></span></dd>
+  <dt>Version Policy:</dt><dd>
+    <select data-key="versionPolicyName">
+      <option value="same">Same</option>
+      <option value="correlated">Correlated</option>
+    </select>
+  </dd>
+  <dt>Upstream:</dt><dd><select class="endpoint-selection" data-key="upstreamName"></select></dd>
+  <dt>Downstream:</dt><dd><select class="endpoint-selection" data-key="downstreamName"></select></dd>
+  <dt>Allow Manual Scans:</dt><dd>
+    <input data-key="allowManualScans" type="checkbox" id="allowPairManualScans">
+    <label for="allowPairManualScans">Allow Manual Scans</label>
+  </dd>
+  <dt>Scan Cron Specification:</dt><dd><input data-key="scanCronSpec" type="text"></dd>
+  <dt>Matching Timeout:</dt><dd><input data-key="matchingTimeout" type="number"></dd>
+  <dt>Views</dt>
+  <dd class="views">
+    <table class="editable-table" data-template="pair-view">
+      <thead><tr><td>Name</td><td>View Scan Cron Specification</td><td>Actions</td></tr></thead>
+    </table>
+    <a class="add-link" href="">Add New</a>
+  </dd>
+
+  <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+</dl>

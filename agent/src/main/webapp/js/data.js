@@ -160,6 +160,7 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
 
     applyStatus('Uploading...', 'info');
     endpoint.uploadInventory(inventoryFile, constraints, {
+      global: false,        // Don't invoke global event handlers - we'll deal with errors here locally
       success: function() {
         submitButton.removeAttr('disabled');
         applyStatus('Inventory Submitted', 'success');

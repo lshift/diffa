@@ -25,7 +25,6 @@
   </head>
 
   <body>
-
     <div id="settings-page" class="container">
 
       <div class="main-logo">
@@ -37,163 +36,15 @@
       </div>
 
       <div id="elements">
-        <div id="endpoints-list" class="element-list-panel">
-          <h4>Endpoints</h4>
-          <span class="none-message">No endpoints configured</span>
-          <ul class="element-list"></ul>
-          <span class="loading"><img src="images/busy.gif"/></span>
-          <a id="addEndpoint" href="#endpoint" class="add-element">Add New</a>
-        </div>
-
-        <div id="pairs-list" class="element-list-panel">
-          <h4>Pairs</h4>
-          <span class="none-message">No pairs configured</span>
-          <span class="loading"><img src="images/busy.gif"/></span>
-          <ul class="element-list"></ul>
-          <a id="addPair" href="#pair" class="add-element">Add New</a>
-        </div>
-
+        <div id="endpoints-list" class="element-list-panel"></div>
+        <div id="pairs-list" class="element-list-panel"></div>
       </div>
 
       <div id="details">
-        <div style="display:none" id="endpoint-editor">
-          <div class="error"></div>
-          <dl>
-            <dt>Name:</dt><dd class="name-container"><input data-key="name" type="text"><span data-bind="name"></span></dd>
-            <dt>Scan URL:</dt><dd><input data-key="scanUrl" type="text" size="60"></dd>
-            <dt>Content Retrieval URL:</dt><dd><input data-key="contentRetrievalUrl" type="text" size="60"></dd>
-            <dt>Version Generation URL:</dt><dd><input data-key="versionGenerationUrl" type="text" size="60"></dd>
-            <dt>Inbound URL:</dt><dd><input data-key="inboundUrl" type="text" size="60"></dd>
-
-            <dt>Range Categories</dt>
-            <dd class="range-categories">
-              <table class="editable-table" data-template="range-category-template">
-                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-            <dt>Set Categories</dt>
-            <dd class="set-categories">
-              <table class="editable-table" data-template="set-category-template">
-                <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-            <dt>Prefix Categories</dt>
-            <dd class="prefix-categories">
-              <table class="editable-table" data-template="prefix-category-template">
-                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-            <dt>Views</dt>
-            <dd class="views">
-              <table class="editable-table" data-template="endpoint-view-template">
-                <thead><tr><td>Name</td><td>Details</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-
-            <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
-          </dl>
-        </div>
-        <div style="display:none" id="pair-editor">
-          <div class="error"></div>
-          <dl>
-            <dt>Key:</dt><dd class="name-container"><input data-key="key" type="text"><span data-bind="key"></span></dd>
-            <dt>Version Policy:</dt><dd>
-              <select data-key="versionPolicyName">
-                <option value="same">Same</option>
-                <option value="correlated">Correlated</option>
-              </select>
-            </dd>
-            <dt>Upstream:</dt><dd><select class="endpoint-selection" data-key="upstreamName"></select></dd>
-            <dt>Downstream:</dt><dd><select class="endpoint-selection" data-key="downstreamName"></select></dd>
-            <dt>Allow Manual Scans:</dt><dd>
-              <input data-key="allowManualScans" type="checkbox" id="allowPairManualScans">
-              <label for="allowPairManualScans">Allow Manual Scans</label>
-            </dd>
-            <dt>Scan Cron Specification:</dt><dd><input data-key="scanCronSpec" type="text"></dd>
-            <dt>Matching Timeout:</dt><dd><input data-key="matchingTimeout" type="number"></dd>
-            <dt>Views</dt>
-            <dd class="views">
-              <table class="editable-table" data-template="pair-view-template">
-                <thead><tr><td>Name</td><td>View Scan Cron Specification</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-
-            <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
-          </dl>
-        </div>
+        <div style="display:none" id="endpoint-editor"></div>
+        <div style="display:none" id="pair-editor"></div>
       </div>
     </div>
-
-    <script type="text/template" id="pair-view-template">
-      <tr>
-        <td><input data-el-key="name" type="text"></td>
-        <td><input data-el-key="scanCronSpec" type="text"></td>
-        <td><a href="javascript:" class="remove-view">Remove</a></td>
-      </tr>
-    </script>
-    <script type="text/template" id="range-category-template">
-      <tr>
-        <td><input data-el-key="name" type="text"></td>
-        <td><input data-el-key="dataType" type="text"></td>
-        <td><input data-el-key="lower" type="text"></td>
-        <td><input data-el-key="upper" type="text"></td>
-        <td><a href="javascript:" class="remove-category">Remove</a></td>
-      </tr>
-    </script>
-    <script type="text/template" id="set-category-template">
-      <tr>
-        <td><input data-el-key="name" type="text"></td>
-        <td data-el-list-key="values"></td>
-        <td><a href="javascript:" class="remove-category">Remove</a></td>
-      </tr>
-    </script>
-    <script type="text/template" id="prefix-category-template">
-      <tr>
-        <td><input data-el-key="name" type="text"></td>
-        <td><input data-el-key="prefixLength" type="text"></td>
-        <td><input data-el-key="maxLength" type="text"></td>
-        <td><input data-el-key="step" type="text"></td>
-        <td><a href="javascript:" class="remove-category">Remove</a></td>
-      </tr>
-    </script>
-    <script type="text/template" id="endpoint-view-template">
-      <tr>
-        <td>
-          <input data-el-key="name" type="text"><br>
-          <a href="javascript:" class="remove-view">Remove</a>
-        </td>
-        <td>
-          <dl>
-            <dt>Range Categories</dt>
-            <dd class="range-categories">
-              <table class="editable-table" data-template="range-category-template">
-                <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-            <dt>Set Categories</dt>
-            <dd class="set-categories">
-              <table class="editable-table" data-template="set-category-template">
-                <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-            <dt>Prefix Categories</dt>
-            <dd class="prefix-categories">
-              <table class="editable-table" data-template="prefix-category-template">
-                <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
-              </table>
-              <a class="add-link" href="">Add New</a>
-            </dd>
-          </dl>
-        </td>
-      </tr>
-    </script>
   </body>
 
 </html>

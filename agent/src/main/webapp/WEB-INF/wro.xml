@@ -35,6 +35,7 @@
   </group>
 
   <group name="settings">
+    <js>/js/templates/settings/*.jst</js>
     <js>/js/settings.js</js>
   </group>
 </groups>

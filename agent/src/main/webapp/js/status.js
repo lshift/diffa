@@ -234,7 +234,7 @@ Diffa.Views.PairList = Backbone.View.extend({
 Diffa.Views.PairSelector = Backbone.View.extend({
   tagName: "div",
   className: "pair",
-  template: _.template($('#pair-selector-template').html()),
+  template: window.JST['status/pairselector-item'],
 
   events: {
     "click":  "select"
