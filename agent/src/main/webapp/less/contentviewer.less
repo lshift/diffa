@@ -24,93 +24,9 @@
 
 @text-padding: 0 5px;
 
-div.section-label {
-  background-color: @yellow-background;
-  padding: @text-padding;
-  .last;
-}
-
-/* Common width definition */
-.viewer-outer-span {
-  .span-9;
-}
-
-/* Common width definition */
-.viewer-inner-span {
-  .span-2;
-}
-
 #contentviewer {
-  .viewer-outer-span;
+  .span-9;
   .last;
   border: @dotted-border;
   width: @content-viewer-width;
-}
-
-.endpoint-label {
-  .viewer-inner-span;
-  background-color: @background-grey;
-  color: white;
-  padding: @text-padding;
-}
-
-div.upstreamLabel {
-  .endpoint-label;
-}
-
-div.downstreamLabel {
-  .endpoint-label;
-}
-
-div.diff-set {
-  .viewer-outer-span;
-  .last;
-  width: @content-viewer-width;
-  height: @content-viewer-height;
-}
-
-div.codebox {
-  .viewer-outer-span;
-  .last;
-}
-
-div.diff-repair {
-  .viewer-outer-span;
-  .last;
-  width: @content-viewer-width;
-  min-height: @content-viewer-height / 1.5;
-}
-
-div.action-item {
-  .last;
-  padding: 0 0 10px 10px;
-}
-
-div.controllist {
-  margin: 0 5 0 5;
-  padding: 0 0 10 5;
-  border-bottom: @dotted-border;
-}
-
-div.diff-hash {
-  .last;
-  background-color: @light-grey-background;
-  // Add the height of 1 row as the minimum height so that an empty div will be colored in correctly
-  min-height: @min-line-height;
-}
-
-.contentviewer pre {
-  font-size: @small-font-size;
-  font-family: lucida mono, monospace, andale mono;
-  height: @content-viewer-height - @min-line-height - 10;
-  max-width: 100%;
-  display: block;
-  overflow: auto;
-  white-space: pre;
-  padding: 5px;
-  margin: 0;
-}
-
-.repairstatus {
-  font-style: italic;
 }

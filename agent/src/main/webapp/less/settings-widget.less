@@ -16,9 +16,41 @@
 
 */
 
-/* Styles the difflist container */
+/* Definitions for the settings widgets */
 
-#diff-list-container {
-  .span-14;
-  .append-1;
+.diffa-endpoint-list, .diffa-pair-list {
+  .add-element {
+    display: block;
+    text-align: right;
+  }
 }
+
+.diffa-endpoint-editor, .diffa-pair-editor {
+  .error {
+    margin-top: 10px;
+  }
+
+  .editable-table {
+    border-collapse: collapse;
+
+    thead td {
+      font-weight: bold;
+    }
+    td {
+      border: 1px solid black;
+    }
+
+    margin-bottom: 0;
+  }
+
+  .add-link {
+    text-align: right;
+  }
+
+  dd.controls {
+    margin-top: 10px;
+    border-top: 1px dashed black;
+    padding-top: 5px;
+  }
+}
+

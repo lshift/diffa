@@ -1,0 +1,113 @@
+/*
+
+    Copyright (C) 2010-2011 LShift Ltd.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+*/
+
+/** Styles imported from Blueprint */
+.bp-last {margin-right:0;padding-right:0;}
+.bp-span {float:left;margin-right:10px;}
+.bp-span-2 {.bp-span; width:70px;}
+.bp-span-9 {.bp-span; width:350px;}
+
+div.section-label {
+  background-color: @yellow-background;
+  padding: @text-padding;
+  .bp-last;
+}
+
+@content-viewer-width: 8 * (@column-width + @right-margin) + @column-width - 2 * @border-thickness;
+@content-viewer-height: 150px;
+
+@text-padding: 0 5px;
+
+/* Common width definition */
+.viewer-outer-span {
+  .bp-span-9;
+}
+
+/* Common width definition */
+.viewer-inner-span {
+  .bp-span-2;
+}
+
+.endpoint-label {
+  .viewer-inner-span;
+  background-color: @background-grey;
+  color: white;
+  padding: @text-padding;
+}
+
+div.upstreamLabel {
+  .endpoint-label;
+}
+
+div.downstreamLabel {
+  .endpoint-label;
+}
+
+div.diff-set {
+  .viewer-outer-span;
+  .bp-last;
+  width: @content-viewer-width;
+  height: @content-viewer-height;
+}
+
+div.codebox {
+  .viewer-outer-span;
+  .bp-last;
+}
+
+div.diff-repair {
+  .viewer-outer-span;
+  .bp-last;
+  width: @content-viewer-width;
+  min-height: @content-viewer-height / 1.5;
+}
+
+div.action-item {
+  .bp-last;
+  padding: 0 0 10px 10px;
+}
+
+div.controllist {
+  margin: 0 5 0 5;
+  padding: 0 0 10 5;
+  border-bottom: @dotted-border;
+}
+
+div.diff-hash {
+  .bp-last;
+  background-color: @light-grey-background;
+  // Add the height of 1 row as the minimum height so that an empty div will be colored in correctly
+  min-height: @min-line-height;
+}
+
+/* Styles the content viewer panel */
+.contentviewer pre {
+  font-size: @small-font-size;
+  font-family: lucida mono, monospace, andale mono;
+  height: @content-viewer-height - @min-line-height - 10;
+  max-width: 100%;
+  display: block;
+  overflow: auto;
+  white-space: pre;
+  padding: 5px;
+  margin: 0;
+}
+
+.repairstatus {
+  font-style: italic;
+}

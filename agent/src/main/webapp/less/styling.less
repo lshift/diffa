@@ -19,61 +19,14 @@
 /* Reference the blueprint definitions in files renamed from .css to .less so that we can mix them in */
 @import "blueprint/screen.less";
 
+@import "theme.less";
+
 /* Bind in all of the constituent parts of the stylesheet */
 @import "difflist.less";
 @import "contentviewer.less";
 @import "heatmap.less";
 @import "status.less";
 @import "settings.less";
-@import "data.less";
-
-/* Define all of the colors used throughout */
-@heatmap-blue: #cfe2f3;
-@yellow-background: #FFF2CC;
-@background-grey: #757575;
-@text-grey: #545454;
-@text-light-grey: @background-grey;
-@link-orange: #fca961;
-@light-grey-background: #edece1;
-@bright-yellow: #FFFD94;
-@dark-text: #333;
-@light-border: #ccc;
-@yellow-error-background: #F9EDBE;
-
-@min-line-height: 18px;
-
-@small-font-size: 0.85em;
-
-/* The column width and right margin are taken from Blueprint's definitions */
-@column-width: 30px;
-@right-margin: 10px;
-@border-thickness: 1px;
-
-@dotted-border: @border-thickness dotted silver;
-@solid-border: @border-thickness solid silver;
-
-/* Common border definition */
-.top-and-bottom-borders {
-  min-height: @min-line-height;
-  border-bottom: @dotted-border;
-  border-top: @dotted-border;
-}
-
-.rounded(@radius: 10px) {
-  -webkit-border-radius: @radius;
-  -moz-border-radius: @radius;
-  border-radius: @radius;
-}
-
-.round-left(@radius: 10px) {
-  -webkit-border-top-left-radius: @radius;
-  -moz-border-radius-topleft: @radius;
-  border-top-left-radius: @radius;
-
-  -webkit-border-bottom-left-radius: @radius;
-  -moz-border-radius-bottomleft: @radius;
-  border-bottom-left-radius: @radius;
-}
 
 // Mixin certain Blueprint definitions into various object classes
 div.main-logo {
@@ -111,37 +64,4 @@ h1 {
 a {
   color: @link-orange;
   text-decoration: underline;
-}
-
-.busy {
-  padding-left: 135;
-  padding-top: 30;
-  display:none;
-  position:absolute;
-}
-
-.loading {
-  padding: 10px 0px 10px 30px;
-}
-
-button.repair {
-  color: @dark-text;
-  background-color: @bright-yellow;
-  margin: 10px 5px 0 0;
-  border: 1px solid @light-border;
-  cursor: pointer;
-}
-
-.error-display {
-  margin: 0 auto;
-  width: 500px;
-  background-color: @yellow-error-background;
-  padding: 3px 10px;
-  text-align: center;
-
-  .prefix {
-    font-weight: bold;
-  }
-  .description {
-  }
 }

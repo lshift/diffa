@@ -25,94 +25,9 @@
 #pair-list {
   .prepend-top;
   .span-24;
-
-  .pair-row {
-    .last;
-
-    .name {
-      .span-2;
-    }
-    .state {
-      .span-4;
-    }
-  }
-
-  @pair-margin: 10px;
-
-  .pair {
-    .span-6;
-    .rounded(10px);
-
-    border: @solid-border;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: @pair-margin;
-  }
-
-  .selected-pair {
-    @selected-border-width: 2px;
-    @selected-background-colour: #E8E9EB;
-
-    border: @selected-border-width solid black;
-    background-color: @selected-background-colour;
-    margin-bottom: @pair-margin - @selected-border-width;
-  }
 }
 
-#pairlist-header {
-  .top-and-bottom-borders;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-div.pair-name-span {
-  .span-2;
-}
-
-div.pair-state-span {
-  .span-4;
-}
-
-div.pair-action-span {
-  .span-8;
-  .last;
-}
-
-.pair-info-panel {
+#pair-actions, #pair-log{
   .prepend-top;
   .span-24;
-
-  border: @dotted-border;
-  padding: 10px;
-
-  h3 {
-    border-bottom: @solid-border;
-    padding-bottom: 4px;
-    margin: 5px 0px 10px 0px;
-  }
-}
-
-#pair-actions {
-  .control-set {
-    border-top: @dotted-border;
-    padding-bottom: 10px;
-  }
-
-  .pair-controls {
-    padding-bottom: 10px;
-  }
-}
-
-#pair-log {
-  margin-bottom: 10px;
-
-  .entry .timestamp {
-    margin-right: 15px;
-  }
-  .entry-info .msg {
-    color: green;
-  }
-  .entry-error .msg {
-    color: red;
-  }
 }

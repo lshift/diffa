@@ -15,7 +15,9 @@
     <js>/js/datejs/extras.js</js>
     <js>/js/diffa-common.js</js>
     <js>/js/models.js</js>
+  </group>
 
+  <group name="styling">
     <css>/less/styling.less</css>
   </group>
 
@@ -28,5 +30,7 @@
     <js>/js/data.js</js>
     <js>/js/status.js</js>
     <js>/js/settings.js</js>
+
+    <css>/less/widgets.less</css>
   </group>
 </groups>

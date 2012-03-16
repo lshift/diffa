@@ -52,7 +52,8 @@
 
     <title><decorator:title default="Diffa"/></title>
 
-    <link rel="stylesheet" href="assets/diffa-core.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="assets/widgets.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="assets/styling.css" type="text/css" media="screen, projection">
 
     <script type="text/javascript" src="js/thirdparty/jquery-1.7.1.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="assets/diffa-core.js" charset="utf-8"></script>
