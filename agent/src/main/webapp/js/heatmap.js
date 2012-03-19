@@ -1012,7 +1012,9 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
 
     this.model.bind("change:selectedEvent", this.updateSelected);
 
-    $(this.el).html(JST['heatmap/contentviewer']());
+    var template = JST['heatmap/contentviewer'];
+
+    $(this.el).html(template({API_BASE: API_BASE}));
     this.render();
   },
 

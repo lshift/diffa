@@ -139,7 +139,9 @@ Diffa.Views.PairActions = Diffa.Views.PairSelectionView.extend({
   initialize: function() {
     Diffa.Views.PairSelectionView.prototype.initialize.call(this);
 
-    $(this.el).html(window.JST['status/pairactions']());
+    var template = window.JST['status/pairactions'];
+
+    $(this.el).html(template({API_BASE: API_BASE}));
 
     new Diffa.Views.PairControls({el: this.$('.pair-controls'), model: this.model});
     new Diffa.Views.PairRepairs({el: this.$('.pair-repairs'), model: this.model});
@@ -292,7 +294,8 @@ Diffa.Views.PairLog = Diffa.Views.PairSelectionView.extend({
   initialize: function() {
     Diffa.Views.PairSelectionView.prototype.initialize.call(this);
 
-    $(this.el).html(window.JST['status/pairlog']());
+    var template = window.JST['status/pairlog'];
+    $(this.el).html(template({API_BASE: API_BASE}));
 
     _.bindAll(this, "render");
 

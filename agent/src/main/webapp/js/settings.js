@@ -423,8 +423,10 @@ Diffa.Binders.ListBinder = Diffa.Binder.extend({
 Diffa.Helpers.bindEndpointList = function(el) {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
 
+  var template = window.JST['settings/endpointlist'];
+
   new Diffa.Views.ElementList({
-    el: $(el).html(window.JST['settings/endpointlist']()),
+    el: $(el).html(template({API_BASE: API_BASE})),
     collection: domain.endpoints,
     elementType: 'endpoint'
   });
@@ -432,8 +434,10 @@ Diffa.Helpers.bindEndpointList = function(el) {
 Diffa.Helpers.bindPairList = function(el) {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
 
+  var template = window.JST['settings/pairlist'];
+
   new Diffa.Views.ElementList({
-    el: $(el).html(window.JST['settings/pairlist']()),
+    el: $(el).html(template({API_BASE: API_BASE})),
     collection: domain.pairs,
     elementType: 'pair'
   });
