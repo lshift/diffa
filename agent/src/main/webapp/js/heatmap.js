@@ -15,7 +15,6 @@
  */
 
 $(function() {
-const TIME_FORMAT = "yyyyMMddTHHmmssZ";
 var directions = {
   left: 'left',
   right: 'right'
@@ -27,6 +26,10 @@ var colours = {
   red: '#d12f19',
   transparent: 'rgba(0,0,0,0)',
   white: 'white'
+};
+
+var toISOString = function(d) {
+  return d.toISOString().replace(/-/g, "").replace(/:/g, "").replace(/\.\d\d\d/g, "");
 };
 
 Diffa.Routers.Blobs = Backbone.Router.extend({
@@ -84,10 +87,10 @@ Diffa.Models.Blobs = Backbone.Model.extend(Diffa.Collections.Watchable).extend({
 
     var endTime = nearestHour();
 
-    var now = endTime.toString(TIME_FORMAT);
+    var now = toISOString(endTime);
 
     var startTime = endTime.add({seconds: -1 * self.get('bucketSize') * ( self.maxColumns -1 ) });
-    var dayBeforeNow = startTime.toString(TIME_FORMAT);
+    var dayBeforeNow = toISOString(startTime);
 
     $.getJSON("/domains/" + this.domain.id + "/diffs/tiles/" + self.get('zoomLevel') + "?range-start=" + dayBeforeNow + "&range-end=" + now, function(data) {
       var swimlaneLabels = self.get('swimlaneLabels').slice(0);     // Retrieve a cloned copy of the swimlane labels
@@ -269,6 +272,7 @@ Diffa.Collections.Diffs = Diffa.Collections.CollectionBase.extend({
       var url = "/domains/" + self.domain.id + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
           + this.range.start + "&range-end=" + this.range.end
           + "&offset=" + (this.page * this.listSize) + "&length=" + this.listSize;
+      console.log(url);
 
       $.get(url, function(data) {
         if (!force && data.seqId == self.lastSeqId) return;
@@ -783,7 +787,7 @@ Diffa.Views.Heatmap = Backbone.View.extend({
 
         var selectionStartTime = new Date(gridStartTime.getTime() + (selectedIdx * bucketSize * 1000));
         var selectionEndTime = new Date(selectionStartTime.getTime() + (bucketSize * 1000));
-        $(this.el).trigger('blob:selected', [selectedPair, selectionStartTime.toString(TIME_FORMAT), selectionEndTime.toString(TIME_FORMAT)]);
+        $(this.el).trigger('blob:selected', [selectedPair, toISOString(selectionStartTime), toISOString(selectionEndTime)]);
       }
     } else {
       if (Math.abs(this.o_x) >= this.rightLimit) {
