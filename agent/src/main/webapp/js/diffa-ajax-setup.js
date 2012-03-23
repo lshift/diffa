@@ -19,12 +19,17 @@ function addAuthToken(path) {
    * if there are existing query parameters, maintain them but set authToken.
    * if there are no query parameters, just append the authToken param.
    */
-  plainPath = path.split("?")[0];
-  query = $.query.load(path);
+  var parts = path.split("?");
+  var plainPath = parts[0];
+  var query = parts[1];
   if (typeof USER_AUTH_TOKEN !== "undefined" && USER_AUTH_TOKEN.length > 0) {
-    query = query.set("authToken", USER_AUTH_TOKEN);
+    if (!query) {
+      query = "authToken=" + USER_AUTH_TOKEN;
+    } else {
+      query = query + "&authToken=" + USER_AUTH_TOKEN;
+    }
   }
-  return plainPath + query.toString();
+  return plainPath + (!!query ? ("?" + query) : "");
 };
 
 $.ajaxSetup({
