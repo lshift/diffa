@@ -58,11 +58,13 @@ class HibernatePreparationTest {
       "content_type"   // Removed as of the v15 migration
     )
   )
+
+  val startingVersion = 22
   
   @Test
   def migrationStepsShouldBeOrderedCorrectly = {
     val steps = HibernateConfigStorePreparationStep.migrationSteps
-    for (i <- 0 until steps.length) {
+    for (i <- startingVersion until steps.length) {
       val msg = "Attempting to verify version id of step [%s]".format(steps(i).name)
       assertEquals(msg, i, steps(i).versionId)
     }

@@ -64,7 +64,27 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   }
 
   public CreateTableBuilder column(String name, int sqlType, boolean nullable) {
-    return column(name, sqlType, Column.DEFAULT_LENGTH, nullable);
+    return column(name, sqlType, Column.DEFAULT_LENGTH, nullable, null);
+  }
+
+  public CreateTableBuilder column(String name, int sqlType, boolean nullable, Object defaultVal) {
+    return column(name, sqlType, Column.DEFAULT_LENGTH, nullable, defaultVal);
+  }
+
+  public CreateTableBuilder column(String name, int sqlType, int length, boolean nullable) {
+    return column(name, sqlType, length, nullable, null);
+  }
+
+  public CreateTableBuilder column(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
+    Column col = new Column(name);
+    col.setNullable(nullable);
+    col.setSqlTypeCode(sqlType);
+    col.setLength(length);
+    col.setDefaultValue(defaultVal != null ? defaultVal.toString() : null);
+
+    columns.add(col);
+
+    return this;
   }
 
   public CreateTableBuilder virtualColumn(String name, int sqlType, int length, String generator) {
@@ -78,16 +98,6 @@ public class CreateTableBuilder extends TraceableMigrationElement {
     return this;
   }
 
-  public CreateTableBuilder column(String name, int sqlType, int length, boolean nullable) {
-    Column col = new Column(name);
-    col.setNullable(nullable);
-    col.setSqlTypeCode(sqlType);
-    col.setLength(length);
-    columns.add(col);
-
-    return this;
-  }
-  
   public CreateTableBuilder hashPartitions(int partitions, String ... columns) {
     partitionHelper.defineHashPartitions(partitions, columns);
     return this;
@@ -113,12 +123,12 @@ public class CreateTableBuilder extends TraceableMigrationElement {
         new StringBuffer(dialect.getCreateTableString()).append(' ').append(dialect.quote(name)).append(" (");
 
     for (Column col : columns) {
-      if (primaryKeys.contains(col.getName())) {
-        if (useNativeIdentityGenerator && dialect.supportsIdentityColumns()) {
-          buffer.append(generateIdentityColumnString(dialect, col));
-        } else {
-          buffer.append( generateNonIdentityColumnString(dialect, col) );
-        }
+      int indexOfPrimaryKey = primaryKeys.indexOf(col.getName());
+      if (indexOfPrimaryKey == 0 && useNativeIdentityGenerator && dialect.supportsIdentityColumns()) {
+        // only apply native identity generator to first column of primary key
+        buffer.append(generateIdentityColumnString(dialect, col));
+      } else if (indexOfPrimaryKey >= 0) {
+          buffer.append(generateNonIdentityColumnString(dialect, col));
       } else {
         buffer.append(generateColumnString(dialect, col, true));
       }

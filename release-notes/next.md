@@ -10,7 +10,7 @@
 
 ## General Maintenance
 
-* [??] -
+* [77] - Collapsed database migrations down into a single version
 
 ## Library Upgrades
 
