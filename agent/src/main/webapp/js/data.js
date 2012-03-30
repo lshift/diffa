@@ -34,9 +34,11 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
                       '</div>'),
     setConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
                         '<span class="name"><%= name %> Values</span>' +
+                        '<br>' +
                         '<% _.each(values, function(value) { %>' +
                           '<input type="checkbox" value="<%= value %>" id="constraint_<%= name %>_<%= value %>">' +
                           '<label for="constraint_<%= name %>_<%= value %>"><%= value %></label>' +
+                          '<br>' +
                         '<% }); %>' +
                       '</div>')
   },
