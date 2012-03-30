@@ -1,5 +1,6 @@
 package net.lshift.diffa.kernel.hooks
 
+import net.lshift.diffa.kernel.differencing.OracleIndexRebuilder
 import net.lshift.diffa.kernel.util.SessionHelper._
 import org.apache.commons.lang.StringEscapeUtils
 import org.apache.commons.codec.digest.DigestUtils
@@ -17,8 +18,9 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
       val partitionName = generatePartitionName(domain, key)
 
       if (!hasPartition(s, partitionName)) {
-        val query = s.createSQLQuery("alter table diffs add partition " + partitionName + " values('" + escapedVal + "')");
+        val query = s.createSQLQuery("alter table diffs add partition " + partitionName + " values('" + escapedVal + "')")
         query.executeUpdate()
+        new OracleIndexRebuilder("diffs").rebuild(sessionFactory)
       }
     })
   }
@@ -31,6 +33,7 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
       if (hasPartition(s, partitionName)) {
         val query = s.createSQLQuery("alter table diffs drop partition " + partitionName)
         query.executeUpdate()
+        new OracleIndexRebuilder("diffs").rebuild(sessionFactory)
       }
     })
   }
