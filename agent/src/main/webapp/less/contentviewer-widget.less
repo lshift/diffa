@@ -29,7 +29,8 @@ div.section-label {
 }
 
 @content-viewer-width: 8 * (@column-width + @right-margin) + @column-width - 2 * @border-thickness;
-@content-viewer-height: 150px;
+@content-viewer-height: 200px;
+@code-box-height: @content-viewer-height - 50px;
 
 @text-padding: 0 5px;
 
@@ -65,9 +66,15 @@ div.diff-set {
   height: @content-viewer-height;
 }
 
-div.codebox {
+div.code-box {
+  height: @code-box-height;
   .viewer-outer-span;
   .bp-last;
+}
+
+div.code-box pre {
+  overflow: auto;
+  height: 100%;
 }
 
 div.diff-repair {
