@@ -897,8 +897,8 @@ Diffa.Views.ZoomControls = Backbone.View.extend({
 
 Diffa.Views.DiffList = Backbone.View.extend({
   events: {
-    "click #previous": "previousPage",
-    "click #next":     "nextPage"
+    "click .previous": "previousPage",
+    "click .next":     "nextPage"
   },
 
   initialize: function() {
