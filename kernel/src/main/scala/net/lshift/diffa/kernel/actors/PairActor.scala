@@ -140,7 +140,7 @@ case class PairActor(pair:DiffaPair,
     val timeout = 60
 
     def clearUpstreamVersion(id: VersionID) = call( _.clearUpstreamVersion(id) )
-    def clearDownstreamVersion(id: VersionID) = call( _.clearUpstreamVersion(id) )
+    def clearDownstreamVersion(id: VersionID) = call( _.clearDownstreamVersion(id) )
     def storeDownstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, uvsn: String, dvsn: String)
       = call( _.storeDownstreamVersion(id, attributes, lastUpdated, uvsn, dvsn) )
     def storeUpstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, vsn: String)
