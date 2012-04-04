@@ -149,24 +149,29 @@ class DefaultDifferencesManager(
 
   // TODO The fact that 3 lambdas are passed in probably indicates bad factoring
   // -> the participant factory call is probably low hanging fruit for refactoring
-  def withValidEvent(domain:String, evtSeqId:String,
+  private def withValidEvent(domain:String, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
                      resolve:(DiffaPair) => String,
                      p:(Endpoint) => Participant): String = {
     val event = domainDifferenceStore.getEvent(domain, evtSeqId)
+
     check(event) match {
+      case false => "Expanded detail not available"
       case true  => {
        val id = event.objId
        val pair = systemConfig.getPair(id.pair.domain, id.pair.key)
        val endpointName = resolve(pair)
        val endpoint = domainConfig.getEndpoint(domain, endpointName)
-       if (!participants.contains(endpoint)) {
-         participants(endpoint) = p(endpoint)
+       if (endpoint.contentRetrievalUrl != null) {
+         if (!participants.contains(endpoint)) {
+           participants(endpoint) = p(endpoint)
+         }
+         val participant = participants(endpoint)
+         participant.retrieveContent(id.id)
+       } else {
+         "Content retrieval not supported"
        }
-       val participant = participants(endpoint)
-       participant.retrieveContent(id.id)
       }
-      case false => "Expanded detail not available"
     }
 
   }

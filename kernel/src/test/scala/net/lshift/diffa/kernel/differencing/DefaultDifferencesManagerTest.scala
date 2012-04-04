@@ -46,6 +46,16 @@ class StubParticipantProtocolFactory
     def close() {}
   }
 }
+class StubContentParticipantProtocolFactory
+    extends ContentParticipantFactory {
+
+  def supportsAddress(address:String) = true
+
+  def createParticipantRef(address: String) = new ContentParticipantRef {
+    def retrieveContent(identifier: String) = "Some Content for " + identifier
+    def close() {}
+  }
+}
 
 @RunWith(classOf[Theories])
 class DefaultDifferencesManagerTest {
@@ -59,7 +69,7 @@ class DefaultDifferencesManagerTest {
   val domain2 = Domain(name=domainName2)
 
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
-  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
+  val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes", contentRetrievalUrl = "http://foo.com/content")
 
   val pair1 = DiffaPair(key = "pair1", domain = domain1, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
   val pair2 = DiffaPair(key = "pair2", domain = domain1, versionPolicyName = "policy", upstream = u.name, downstream = d.name, matchingTimeout = 5)
@@ -91,6 +101,7 @@ class DefaultDifferencesManagerTest {
   val participantFactory = new ParticipantFactory()
   participantFactory.registerScanningFactory(protocol1)
   participantFactory.registerScanningFactory(protocol2)
+  participantFactory.registerContentFactory(new StubContentParticipantProtocolFactory)
 
   val pairPolicyClient = createStrictMock("pairPolicyClient", classOf[PairPolicyClient])
   EasyMock.checkOrder(pairPolicyClient, false)
@@ -210,6 +221,32 @@ class DefaultDifferencesManagerTest {
 
     manager.onMismatch(id, now, "u", "d", LiveWindow, Unfiltered)
     manager.onDownstreamExpired(id, "d")
+  }
+
+  @Test
+  def shouldRetrieveContentFromAnEndpointWithContentRetrievalUrl() {
+    expect(domainDifferenceStore.getEvent(domainName, "123")).
+      andReturn(DifferenceEvent(seqId = "123", objId = VersionID(pair1.asRef, "id1"), upstreamVsn = "u", downstreamVsn = "d"))
+    replay(domainDifferenceStore)
+    reset(domainConfigStore)
+    expect(domainConfigStore.getEndpoint(domainName, d.name)).andReturn(d)
+    replay(domainConfigStore)
+
+    val content = manager.retrieveEventDetail(domainName, "123", ParticipantType.DOWNSTREAM)
+    assertEquals("Some Content for id1", content)
+  }
+
+  @Test
+  def shouldNotAttemptToRetrieveContentFromEndpointWithNoContentRetrievalUrl() {
+    expect(domainDifferenceStore.getEvent(domainName, "123")).
+      andReturn(DifferenceEvent(seqId = "123", objId = VersionID(pair1.asRef, "id1"), upstreamVsn = "u", downstreamVsn = "d"))
+    replay(domainDifferenceStore)
+    reset(domainConfigStore)
+    expect(domainConfigStore.getEndpoint(domainName, u.name)).andStubReturn(u)
+    replay(domainConfigStore)
+
+    val content = manager.retrieveEventDetail(domainName, "123", ParticipantType.UPSTREAM)
+    assertEquals("Content retrieval not supported", content)
   }
 
   @Theory

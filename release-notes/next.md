@@ -10,7 +10,7 @@
 
 ## General Maintenance
 
-* [??] -
+* [66] - Differentiate between whether an endpoint actually supports content retrieval in general as opposed to not returning content for a specific id
 
 ## Library Upgrades
 
