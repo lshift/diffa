@@ -25,6 +25,7 @@ object AlertCodes {
 
   def formatAlertCode(pair:DiffaPairRef, code:Int) = "%s [%s/%s]".format(code, pair.domain, pair.key)
   def formatAlertCode(domain:String, pair:String, code:Int) = "%s [%s/%s]".format(code, domain, pair)
+  def formatAlertCode(domain:String, code:Int) = "%s [%s]".format(code, domain)
 
   // 1xx Informational
 
@@ -57,13 +58,23 @@ object AlertCodes {
   
   // Indicates the system is not configured properly.
   val INVALID_SYSTEM_CONFIGURATION = 500
-  //Indicates a given domain is not valid or does not exist.
+  // Indicates a given domain is not valid or does not exist.
   val INVALID_DOMAIN = 501
-  
+
+  // 51x General scan errors
+  val UPSTREAM_SCAN_FAILURE = 510
+  val DOWNSTREAM_SCAN_FAILURE = 511
+  val SCAN_INITIALIZATION_FAILURE = 512
+
   // 52x Scheduled scan errors
   
   val BASIC_SCHEDULED_SCAN_FAILED = 530
   val VIEW_SCHEDULED_SCAN_FAILED = 531
+
+  // 55x Differencing errors
+
+  val DIFFERENCING_FAILURE = 550
+  val DIFFERENCE_REPLAY_FAILURE = 551
 
 
   // 6xx Errors interacting with external systems, generally speaking these are outbound requests
@@ -88,5 +99,8 @@ object AlertCodes {
   val SPURIOUS_ACTOR_MESSAGE = 711
   //Occurs when an actor receives an out of order message. This can occur as a result of a downstream error.
   val OUT_OF_ORDER_MESSAGE = 712
+
+  // 72x Potential auth bugs
+  val SPURIOUS_AUTH_TOKEN = 720
 
 }

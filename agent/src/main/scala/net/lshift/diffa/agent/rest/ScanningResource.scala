@@ -32,7 +32,8 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
                        val config:Configuration,
                        val domainConfigStore:DomainConfigStore,
                        val diagnostics:DiagnosticsManager,
-                       val domain:String) {
+                       val domain:String,
+                       val currentUser:String) {
 
   private val log: Logger = LoggerFactory.getLogger(getClass)
 
@@ -50,8 +51,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @MandatoryParams(Array(new MandatoryParam(name="pairKey", datatype="string", description="Pair Key")))
   @OptionalParam(name = "view", datatype="string", description="Child View to Scan")
   def startScan(@PathParam("pairKey") pairKey:String, @FormParam("view") view:String) = {
-    // TODO log out who kicked this scan off
-    log.info(formatAlertCode(domain, pairKey, API_SCAN_STARTED))
+    log.info(formatAlertCode(domain, pairKey, API_SCAN_STARTED) + " scan initiated by " + currentUser)
     pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), if (view != null) Some(view) else None)
     Response.status(Response.Status.ACCEPTED).build
   }

@@ -22,14 +22,15 @@ import net.lshift.diffa.kernel.alerting.Alerter
 import org.slf4j.LoggerFactory
 import concurrent.SyncVar
 import net.lshift.diffa.participant.scanning.{ScanConstraint, DigestBuilder, ScanResultEntry}
-import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.participant.common.JSONHelper
-import java.io.PrintWriter
-import collection.JavaConversions._
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
 import net.lshift.diffa.kernel.actors.{UpstreamEndpoint, DownstreamEndpoint, EndpointSide}
+import org.joda.time.{DateTimeZone, DateTime, Interval}
+import org.joda.time.format.DateTimeFormat
+import java.io.{OutputStream, PrintWriter}
+import collection.JavaConversions._
+import net.lshift.diffa.kernel.diag.{DiagnosticsManager, DiagnosticLevel}
 
 /**
  * Standard behaviours supported by scanning version policies.
@@ -42,6 +43,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
   protected val alerter = Alerter.forClass(getClass)
 
   val logger = LoggerFactory.getLogger(getClass)
+
+  val fileNameFormatter = DateTimeFormat.forPattern(DiagnosticsManager.fileSystemFriendlyDateFormat)
 
   /**
    * Handles a participant change. Due to the need to later correlate data, event information is cached to the
@@ -165,14 +168,17 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                        handle:FeedbackHandle) {
       
       checkForCancellation(handle, pair)
-      diagnostics.logPairEvent(DiagnosticLevel.TRACE, pair, "Scanning aggregates for %s with (constraints=%s, bucketing=%s)".format(endpoint.name, constraints, bucketing))
 
+      val requestTimestamp = new DateTime
       val remoteDigests = participant.scan(constraints, bucketing)
+      val responseTimestamp = new DateTime
+
       val localDigests = getAggregates(pair, bucketing, constraints)
 
       // Generate a diagnostic object detailing the response provided by the participant
-      diagnostics.writePairExplanationObject(pair, "Version Policy", name + "-Aggregates-" + System.currentTimeMillis() + ".json", os => {
+      diagnostics.writePairExplanationObject(pair, "Version Policy", name + "-Aggregates-" + fileNameFormatter.print(requestTimestamp)  + ".json", os => {
         val pw = new PrintWriter(os)
+        writeCommonHeader(pw, pair, endpoint, requestTimestamp, responseTimestamp)
         pw.println("Bucketing: %s".format(bucketing))
         pw.println("Constraints: %s".format(constraints))
         pw.println("------------------------")
@@ -180,13 +186,6 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
 
         JSONHelper.formatQueryResult(os, remoteDigests)
       })
-
-      if (log.isTraceEnabled) {
-        log.trace("Bucketing: %s".format(bucketing))
-        log.trace("Constraints: %s".format(constraints))
-        log.trace("Remote digests: %s".format(remoteDigests))
-        log.trace("Local digests: %s".format(localDigests))
-      }
 
       DigestDifferencingUtils.differenceAggregates(remoteDigests, localDigests, bucketing, constraints).foreach(o => o match {
         case AggregateQueryAction(narrowBuckets, narrowConstraints) =>
@@ -204,25 +203,23 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                      listener:DifferencingListener,
                      handle:FeedbackHandle) {
       checkForCancellation(handle, pair)
-      diagnostics.logPairEvent(DiagnosticLevel.TRACE, pair, "Scanning entities for %s with (constraints=%s)".format(endpoint.name, constraints))
 
+      val requestTimestamp = new DateTime
       val remoteVersions = participant.scan(constraints, Seq())
+      val responseTimestamp = new DateTime
+
       val cachedVersions = getEntities(pair, constraints)
 
       // Generate a diagnostic object detailing the response provided by the participant
-      diagnostics.writePairExplanationObject(pair, "Version Policy", name + "-Entities-" + System.currentTimeMillis() + ".json", os => {
+      diagnostics.writePairExplanationObject(pair, "Version Policy", name + "-Entities-" + fileNameFormatter.print(requestTimestamp) + ".json", os => {
         val pw = new PrintWriter(os)
+        writeCommonHeader(pw, pair, endpoint, requestTimestamp, responseTimestamp)
         pw.println("Constraints: %s".format(constraints))
         pw.println("------------------------")
         pw.flush()
 
         JSONHelper.formatQueryResult(os, remoteVersions)
       })
-
-      if (log.isTraceEnabled) {
-        log.trace("Remote versions: %s".format(remoteVersions))
-        log.trace("Local versions: %s".format(cachedVersions))
-      }
 
       // Validate that the entities provided meet the constraints of the endpoint
       val endpointCategories = endpoint.categories.toMap
@@ -243,6 +240,15 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
 
       DigestDifferencingUtils.differenceEntities(endpointCategories, validRemoteVersions, cachedVersions, constraints)
         .foreach(handleMismatch(pair, writer, _, listener))
+    }
+
+    private def writeCommonHeader(pw:PrintWriter, pair:DiffaPairRef, endpoint:Endpoint, requestTimestamp:DateTime, responseTimestamp:DateTime) = {
+      pw.println("Pair: %s".format(pair))
+      pw.println("Endpoint at: %s".format(endpoint))
+      pw.println("Requested at: %s".format(requestTimestamp))
+      pw.println("Response received at: %s".format(responseTimestamp))
+      val timeTaken = new Interval(requestTimestamp,responseTimestamp).toPeriod()
+      pw.println("Time taken : %s".format(timeTaken))
     }
 
     def processInventory(pair:DiffaPairRef, endpoint:Endpoint, writer:LimitedVersionCorrelationWriter,

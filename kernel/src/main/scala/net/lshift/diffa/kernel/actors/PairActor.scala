@@ -17,7 +17,6 @@
 package net.lshift.diffa.kernel.actors
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
-import org.slf4j.{Logger, LoggerFactory}
 import net.jcip.annotations.ThreadSafe
 import java.util.concurrent.ScheduledFuture
 import net.lshift.diffa.kernel.differencing._
@@ -33,6 +32,7 @@ import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 import net.lshift.diffa.kernel.config.{Endpoint, DiffaPair}
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
+import org.slf4j.{LoggerFactory, Logger}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -288,7 +288,7 @@ case class PairActor(pair:DiffaPair,
         replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByScan)
       } catch {
         case ex =>
-          logger.error("Failed to apply unmatched differences to the differences manager", ex)
+          logger.error(formatAlertCode(pairRef, DIFFERENCE_REPLAY_FAILURE) + " failed to apply unmatched differences to the differences manager", ex)
       }
 
       // Re-queue all buffered commands
@@ -381,7 +381,7 @@ case class PairActor(pair:DiffaPair,
     } catch {
       case ex => {
         diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to Difference Pair: " + ex.getMessage)
-        logger.error("Failed to difference pair " + pairRef.identifier, ex)
+        logger.error(formatAlertCode(pairRef, DIFFERENCING_FAILURE), ex)
       }
     }
   }
@@ -417,7 +417,8 @@ case class PairActor(pair:DiffaPair,
             self ! ChildActorCompletionMessage(createdScan.uuid, Up, Cancellation)
           }
           case e:Exception => {
-            logger.error("Upstream scan failed: " + pairRef.identifier, e)
+            logger.error("%s upstream scan failed; scan id = %s".format(
+                          formatAlertCode(pairRef, UPSTREAM_SCAN_FAILURE), createdScan.uuid), e)
             diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Upstream scan failed: " + e.getMessage)
             self ! ChildActorCompletionMessage(createdScan.uuid, Up, Failure)
           }
@@ -435,7 +436,8 @@ case class PairActor(pair:DiffaPair,
             self ! ChildActorCompletionMessage(createdScan.uuid, Down, Cancellation)
           }
           case e:Exception => {
-            logger.error("Downstream scan failed: " + pairRef.identifier, e)
+            logger.error("%s downstream scan failed; scan id = %s".format(
+                         formatAlertCode(pairRef, DOWNSTREAM_SCAN_FAILURE), createdScan.uuid), e)
             diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Downstream scan failed: " + e.getMessage)
             self ! ChildActorCompletionMessage(createdScan.uuid, Down, Failure)
           }
@@ -452,7 +454,7 @@ case class PairActor(pair:DiffaPair,
 
     } catch {
       case x: Exception => {
-        logger.error("Failed to initiate scan for pair: " + pairRef.identifier, x)
+        logger.error(formatAlertCode(pairRef, SCAN_INITIALIZATION_FAILURE), x)
         diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to initiate scan for pair: " + x.getMessage)
         processBacklog(PairScanState.FAILED)
         false
@@ -482,6 +484,7 @@ case class PairActor(pair:DiffaPair,
 
 
   }
+
 }
 
 /**

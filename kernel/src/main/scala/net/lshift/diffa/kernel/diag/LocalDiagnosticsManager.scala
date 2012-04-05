@@ -1,16 +1,16 @@
 package net.lshift.diffa.kernel.diag
 
-import org.joda.time.DateTime
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.differencing.{PairScanState, PairScanListener}
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import org.slf4j.LoggerFactory
 import java.io._
-import org.joda.time.format.ISODateTimeFormat
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
 import net.lshift.diffa.kernel.config.{ConfigOption, DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
+import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
+import org.joda.time.{DateTimeZone, DateTime}
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
@@ -26,6 +26,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
   private val defaultMaxExplainFilesPerPair = 20
 
   private val timeFormatter = ISODateTimeFormat.time()
+  private val fileNameFormatter = DateTimeFormat.forPattern(DiagnosticsManager.fileSystemFriendlyDateFormat)
   
   def getPairFromRef(ref: DiffaPairRef) = domainConfigStore.getPairDef(ref.domain, ref.key)
 
@@ -194,7 +195,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
 
     private def currentExplainDirectory = {
       if (explainDir == null) {
-        explainDir = new File(pairExplainRoot, System.currentTimeMillis().toString)
+        explainDir = new File(pairExplainRoot, fileNameFormatter.print(new DateTime))
         explainDir.mkdirs()
       }
 
