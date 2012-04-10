@@ -613,7 +613,7 @@ Diffa.Views.Heatmap = Backbone.View.extend({
 
       if (size > 0) {
         // if the size has been limited, draw the outline slightly thicker
-        this.context.lineWidth = isOverMaximum ? 2 : 1;
+        this.context.lineWidth = isOverMaximum ? 3 : 2;
         this.context.strokeStyle = colours.black;
         this.context.fillStyle = colours.white;
         this.context.beginPath();
