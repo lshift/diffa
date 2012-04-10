@@ -168,6 +168,7 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                        handle:FeedbackHandle) {
       
       checkForCancellation(handle, pair)
+      diagnostics.logPairEvent(DiagnosticLevel.TRACE, pair, "Scanning aggregates for %s with (constraints=%s, bucketing=%s)".format(endpoint.name, constraints, bucketing))
 
       val requestTimestamp = new DateTime
       val remoteDigests = participant.scan(constraints, bucketing)
@@ -203,6 +204,7 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                      listener:DifferencingListener,
                      handle:FeedbackHandle) {
       checkForCancellation(handle, pair)
+      diagnostics.logPairEvent(DiagnosticLevel.TRACE, pair, "Scanning entities for %s with (constraints=%s)".format(endpoint.name, constraints))
 
       val requestTimestamp = new DateTime
       val remoteVersions = participant.scan(constraints, Seq())
