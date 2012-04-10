@@ -604,15 +604,20 @@ Diffa.Views.Heatmap = Backbone.View.extend({
     if (cell.column < this.model.maxColumns && cell.row < this.model.get('maxRows')) {
       var cell_x = i + Math.floor(this.gridSize / 2);
       var cell_y = j + this.gutterSize + Math.floor(this.gridSize / 2);
-      var size = this.limit(this.model.get('buckets')[cell.row][cell.column], Math.floor((this.gridSize - 1) / 2));
+      var bucketSize = this.model.get('buckets')[cell.row][cell.column];
+      var maximum = Math.floor((this.gridSize - 1) / 2);
 
-      if (size.value > 0) {
+      var cappedSize = this.limit(this.transformBucketSize(bucketSize, maximum), maximum);
+      var size = cappedSize.value;
+      var isOverMaximum = cappedSize.limited;
+
+      if (size > 0) {
         // if the size has been limited, draw the outline slightly thicker
-        this.context.lineWidth = size.limited ? 2 : 1;
+        this.context.lineWidth = isOverMaximum ? 2 : 1;
         this.context.strokeStyle = colours.black;
         this.context.fillStyle = colours.white;
         this.context.beginPath();
-        this.context.arc(cell_x, cell_y, size.value, 0, Math.PI * 2, false);
+        this.context.arc(cell_x, cell_y, size, 0, Math.PI * 2, false);
         this.context.closePath();
         this.context.stroke();
         this.context.fill();
@@ -723,6 +728,51 @@ Diffa.Views.Heatmap = Backbone.View.extend({
       "x": cell.column * this.gridSize,
       "y": cell.row * (2 * this.gutterSize + this.gridSize)
     };
+  },
+
+  /**
+   * Transforms the bucket value from the API into a value we can use for
+   * sizing the blob in the heatmap.
+   *
+   *   API   -> Size
+   *   0     -> 0
+   *   1     -> m     (1)
+   *   ...
+   *   100   -> M     (2)
+   *
+   * M is the maximum size. m is the minimum display size.
+   * Between (1) and (2), growth should be logarithmic based
+   * on the endpoints. Inputs over 100 follow the log function,
+   * to be limited in the caller.
+   *
+   * We'd like a function f on [0, 100] where
+   *
+   *   f(1)   = m,
+   *   f(100) = M
+   *
+   * and where f(x) is in some way logarithmic. So let
+   *
+   *   f(x) = a + b*log(x).
+   *
+   * (Note this is equivalent to f(x) = a + b*log(c*x))
+   *
+   * and solve for a, b:
+   *
+   *   f(1)   = a = m
+   *   f(100) = m + b*log(100) = M  =>  b = (M-m)/log(100)
+   */
+  transformBucketSize: function(size, maximum) {
+    var minimumIn = 1; // anything non-zero below this gets raised to valueFloor
+    var valueFloor = 2;
+    var maximumCutOff = 100; // anything over this is capped to the maximum
+
+    if (size == 0)             { return 0; }
+    if (size <= minimumIn)     { return valueFloor; }
+
+    var a = valueFloor;
+    var b = (maximum - valueFloor)/Math.log(maximumCutOff);
+
+    return a + b*Math.log(size);
   },
 
   /**
