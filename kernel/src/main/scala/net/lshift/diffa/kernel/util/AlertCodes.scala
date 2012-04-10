@@ -31,6 +31,7 @@ object AlertCodes {
 
   // 12x Informational scan events
   val CANCELLATION_REQUEST_RECEIVED = 120
+  val SCAN_QUERY_EVENT = 121
 
   // 2xx Successful
 
@@ -83,6 +84,9 @@ object AlertCodes {
   
   // Occurs when the agent fails to establish communication with a repair action endpoint
   val ACTION_ENDPOINT_FAILURE = 600
+
+  // 61x External scan errors
+  val EXTERNAL_SCAN_ERROR = 610
   
   // 65x Problems with messaging systems
   

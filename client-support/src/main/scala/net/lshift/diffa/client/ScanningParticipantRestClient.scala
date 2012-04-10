@@ -24,6 +24,8 @@ import net.lshift.diffa.participant.common.JSONHelper
 import org.apache.commons.io.IOUtils
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.scanning._
+import org.slf4j.LoggerFactory
+import net.lshift.diffa.kernel.util.AlertCodes._
 
 /**
  * JSON/REST scanning participant client.
@@ -33,18 +35,24 @@ class ScanningParticipantRestClient(scanUrl:String, params: RestClientParams = R
     extends AbstractRestClient(scanUrl, "", params)
     with ScanningParticipantRef {
 
+  val logger = LoggerFactory.getLogger(getClass)
+
   def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = {
-  	log.debug("Querying constraints %s, aggregated by %s".format(constraints, aggregations))
+
     val params = new MultivaluedMapImpl()
     RequestBuildingHelper.constraintsToQueryArguments(params, constraints)
     RequestBuildingHelper.aggregationsToQueryArguments(params, aggregations)
 
-    val jsonEndpoint = resource.queryParams(params).`type`(MediaType.APPLICATION_JSON_TYPE)
+    val query = resource.queryParams(params)
+    logger.debug("%s Querying participant: %s".format(SCAN_QUERY_EVENT, query))
+
+    val jsonEndpoint = query.`type`(MediaType.APPLICATION_JSON_TYPE)
+
     val response = jsonEndpoint.get(classOf[ClientResponse])
     response.getStatus match {
       case 200 => JSONHelper.readQueryResult(response.getEntityInputStream)
       case _   =>
-        log.error(response.getStatus + "")
+        logger.error("%s External scan error, response code: %s".format(EXTERNAL_SCAN_ERROR, response.getStatus))
         throw new Exception("Participant scan failed: " + response.getStatus + "\n" + IOUtils.toString(response.getEntityInputStream, "UTF-8"))
     }
   }
