@@ -30,9 +30,9 @@ import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
-import net.lshift.diffa.kernel.config.{Endpoint, DiffaPair}
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 import org.slf4j.{LoggerFactory, Logger}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, Endpoint, DiffaPair}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -47,6 +47,7 @@ case class PairActor(pair:DiffaPair,
                      differencesManager:DifferencesManager,
                      pairScanListener:PairScanListener,
                      diagnostics:DiagnosticsManager,
+                     domainConfigStore:DomainConfigStore,
                      changeEventBusyTimeoutMillis: Long,
                      changeEventQuietTimeoutMillis: Long) extends Actor {
 
@@ -138,8 +139,9 @@ case class PairActor(pair:DiffaPair,
    * thus allowing parallel access to the writer.
    */
   private def createWriterProxy(scanUuid:UUID) = new LimitedVersionCorrelationWriter() {
+
     // The receive timeout in seconds
-    val timeout = 60
+    val timeout = domainConfigStore.configOptionOrDefault(pairRef.domain, CorrelationWriterProxy.TIMEOUT_KEY, CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)
 
     def clearUpstreamVersion(id: VersionID) = call( _.clearUpstreamVersion(id) )
     def clearDownstreamVersion(id: VersionID) = call( _.clearDownstreamVersion(id) )
@@ -149,7 +151,7 @@ case class PairActor(pair:DiffaPair,
       = call( _.storeUpstreamVersion(id, attributes, lastUpdated, vsn) )
     def call(command:(LimitedVersionCorrelationWriter => Correlation)) = {
       val message = VersionCorrelationWriterCommand(scanUuid, command)
-      (self !!(message, 1000L * timeout)) match {
+      (self !!(message, 1000L * timeout.toInt)) match {
         case Some(CancelMessage)  => throw new ScanCancelledException(pairRef)
         case Some(result)         => result.asInstanceOf[Correlation]
         case None                 =>
@@ -488,6 +490,14 @@ case class PairActor(pair:DiffaPair,
 
   }
 
+}
+
+/**
+ * Configuration keys for the correlation writer proxy
+ */
+object CorrelationWriterProxy {
+  val TIMEOUT_KEY = "correlation.writer.proxy.timeout"
+  val TIMEOUT_DEFAULT_VALUE = "60" // 60 seconds
 }
 
 /**

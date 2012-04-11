@@ -6,7 +6,7 @@
 
 ## New Features
 
-* [??] -
+* [99] - Made the correlation writer proxy timeout a domain configuration option
 
 ## Deprecated Features
 
@@ -19,7 +19,7 @@
 
 ## Library Upgrades
 
-* Upgraded to ...
+* Upgraded to Scala 2.9.1-1
 
 ## Upgrading
 

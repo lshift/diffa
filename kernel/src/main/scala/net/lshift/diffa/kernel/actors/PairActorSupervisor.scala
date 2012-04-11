@@ -65,7 +65,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
             val pairActor = Actor.actorOf(
               new PairActor(pair, us, ds, usp, dsp, pol, stores(pair.asRef),
                             differencesManager, pairScanListener,
-                            diagnostics, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis)
+                            diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis)
             )
             pairActor.start
             log.info(formatAlertCode(pair.asRef, ACTOR_STARTED) +  " actor started")

@@ -88,6 +88,12 @@ class PairActorTest {
   expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(FrontendConversions.toPairDef(pair)))
   expect(domainConfigStore.getEndpoint(domainName, upstream.name)).andStubReturn(upstream)
   expect(domainConfigStore.getEndpoint(domainName, downstream.name)).andStubReturn(downstream)
+
+  expect(domainConfigStore.configOptionOrDefault(domainName,
+                                                 CorrelationWriterProxy.TIMEOUT_KEY,
+                                                 CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)).
+    andStubReturn(CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)
+
   replay(domainConfigStore)
 
   val writer = createMock("writer", classOf[ExtendedVersionCorrelationWriter])
