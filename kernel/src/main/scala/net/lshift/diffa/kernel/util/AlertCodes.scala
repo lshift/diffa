@@ -32,6 +32,7 @@ object AlertCodes {
   // 12x Informational scan events
   val CANCELLATION_REQUEST_RECEIVED = 120
   val SCAN_QUERY_EVENT = 121
+  val SCAN_REQUEST_IGNORED = 122
 
   // 2xx Successful
 

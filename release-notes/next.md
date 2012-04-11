@@ -15,6 +15,7 @@
 ## General Maintenance
 
 * [92] - Increased the minimum blob size in the heatmap and scaled it logarithmically
+* [98] - Addressed a match error in a receive loop of the pair actor that results in a spurious log entry
 
 ## Library Upgrades
 

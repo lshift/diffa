@@ -225,6 +225,66 @@ class PairActorTest {
   }
 
   @Test
+  def scanRequestsReceivedInScanningStateShouldBeIgnored = {
+
+    val timeToWait = 1000
+    val scanMonitor = new Object
+    val diagnosticsMonitor = new Object
+
+    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef),
+               EasyMock.eq(upstream),
+               EasyMock.eq(None),
+               EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
+               EasyMock.eq(us),
+               EasyMock.isA(classOf[DifferencingListener]),
+               EasyMock.isA(classOf[FeedbackHandle]))
+        ).andAnswer(new IAnswer[Unit] {
+          def answer = {
+            scanMonitor.synchronized { scanMonitor.notifyAll }
+            // Make sure that this scan blocks long enough to allow a second scan to get ignored
+            Thread.sleep(timeToWait * 5)
+          }
+        })
+
+    writer.flush(); expectLastCall.asStub()
+
+    expect(diagnostics.logPairEvent(DiagnosticLevel.INFO,
+                                    pairRef,
+                                    "Ignoring scan request received during current scan")
+          ).andAnswer(new IAnswer[Unit] {
+            def answer = {
+              diagnosticsMonitor.synchronized {
+                diagnosticsMonitor.notifyAll
+              }
+            }
+          })
+
+    replay(writer, store, versionPolicy, diagnostics)
+
+    supervisor.startActor(pair)
+    supervisor.scanPair(pairRef, None)
+
+    scanMonitor.synchronized {
+      scanMonitor.wait(timeToWait)
+    }
+
+    // Request a second scan that should get ignored by the actor that should be busy handling the first scan
+
+    supervisor.scanPair(pairRef, None)
+
+    verify(writer, store, versionPolicy)
+
+    // Since the notification via the diagnostics facility will be invoked asynchronously,
+    // we need a way to deterministically wait for the notification to come through
+
+    diagnosticsMonitor.synchronized {
+      diagnosticsMonitor.wait(timeToWait)
+    }
+
+    verify(diagnostics)
+  }
+
+  @Test
   def backlogShouldBeProcessedAfterScan = {
     val flushMonitor = new Object
     val eventMonitor = new Object

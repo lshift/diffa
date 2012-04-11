@@ -245,7 +245,10 @@ case class PairActor(pair:DiffaPair,
         logger.trace("Received writer command (%s) for different scan worker - sending cancellation".format(c), c.exception)
         self.reply(CancelMessage)
       }
-    case ScanMessage                        => // ignore any scan requests whilst scanning
+    case ScanMessage(scanView)              =>
+      // ignore any scan requests whilst scanning
+      diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Ignoring scan request received during current scan")
+      logger.warn("%s Ignoring scan request; view = %s".format(formatAlertCode(pairRef, SCAN_REQUEST_IGNORED), scanView))
     case d: Deferrable                      => deferred.enqueue(d)
     case a: ChildActorCompletionMessage     if isOwnedByActiveScan(a) => {
       a.logMessage(logger, Scanning, CHILD_SCAN_COMPLETED)
