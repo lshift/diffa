@@ -304,7 +304,7 @@ Diffa.Collections.PairStates = Diffa.Collections.CollectionBase.extend({
   initialize: function(models, options) {
     Diffa.Collections.PairStates.__super__.initialize.call(this, models, options);
 
-    _.bindAll(this, "sync", "scanAll", "select");
+    _.bindAll(this, "sync", "select");
 
     this.bind("add", function(pair) {
       pair.set({selected: pair.id == this.selectedPair});
@@ -337,27 +337,6 @@ Diffa.Collections.PairStates = Diffa.Collections.CollectionBase.extend({
         if (!self.get(key)) {
           self.add([{id: key, state: states[key]}]);
         }
-      }
-    });
-  },
-
-  scanAll: function() {
-    var self = this;
-
-    this.each(function(pair) {
-      pair.set({state: 'REQUESTING'});
-    });
-
-    $.ajax({
-      url: "/domains/" + this.domain.id + "/scanning/scan_all",
-      type: "POST",
-      success: function() {
-        self.each(function(pair) {
-          pair.set({state: 'SCANNING'});
-        });
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("Error in scan request: " + errorThrown);
       }
     });
   },
