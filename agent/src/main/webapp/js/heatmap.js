@@ -997,6 +997,10 @@ Diffa.Views.DiffList = Backbone.View.extend({
       var view = new Diffa.Views.DiffListItem({model: diff, collection: self.model});
       this.$('.difflist-row').append(view.render().el);
     });
+
+    if ($('.difflist-row').children().length == 0) {
+      $('.difflist-row').html("No differences.");
+    }
   },
 
   renderNavigation: function() {
