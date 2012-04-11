@@ -27,7 +27,7 @@
     <buildVersion>${project.version}</buildVersion>    <!-- Can be overridden via -D -->
     <diffa.build.number>${project.version}</diffa.build.number> <!-- Must be overridden on CI server via -D -->
 
-    <scala.version>2.9.1</scala.version>
+    <scala.version>2.9.1-1</scala.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
     <spring.version>3.1.0.RELEASE</spring.version>
 
