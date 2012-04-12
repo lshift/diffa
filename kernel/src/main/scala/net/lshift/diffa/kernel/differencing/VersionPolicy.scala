@@ -86,3 +86,9 @@ trait FeedbackHandle {
  * Thrown when a scan has been cancelled.
  */
 class ScanCancelledException(pair:DiffaPairRef) extends Exception(pair.identifier)
+
+/**
+ * Thrown when a participant driver encounters an issue that it can't solve, but is well known, so it uses this
+ * exception to keep the logging less noisy.
+ */
+class ScanFailedException(reason:String) extends Exception(reason)

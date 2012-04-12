@@ -87,8 +87,9 @@ object AlertCodes {
   val ACTION_ENDPOINT_FAILURE = 600
 
   // 61x External scan errors
-  val EXTERNAL_SCAN_ERROR = 610
-  
+  val SCAN_CONNECTION_REFUSED = 610
+  val EXTERNAL_SCAN_ERROR = 611
+
   // 65x Problems with messaging systems
   
   // Indicates that an error has occurred in the message processing infrastructure  

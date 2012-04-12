@@ -421,12 +421,7 @@ case class PairActor(pair:DiffaPair,
             logger.warn("Upstream scan on pair %s was cancelled".format(pair.identifier))
             self ! ChildActorCompletionMessage(createdScan.uuid, Up, Cancellation)
           }
-          case e:Exception => {
-            logger.error("%s upstream scan failed; scan id = %s".format(
-                          formatAlertCode(pairRef, UPSTREAM_SCAN_FAILURE), createdScan.uuid), e)
-            diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Upstream scan failed: " + e.getMessage)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Failure)
-          }
+          case x:Exception              => handleScanError(self, createdScan.uuid, Up, x)
         }
       }
 
@@ -440,12 +435,7 @@ case class PairActor(pair:DiffaPair,
             logger.warn("Downstream scan on pair %s was cancelled".format(pair.identifier))
             self ! ChildActorCompletionMessage(createdScan.uuid, Down, Cancellation)
           }
-          case e:Exception => {
-            logger.error("%s downstream scan failed; scan id = %s".format(
-                         formatAlertCode(pairRef, DOWNSTREAM_SCAN_FAILURE), createdScan.uuid), e)
-            diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Downstream scan failed: " + e.getMessage)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Failure)
-          }
+          case x:Exception              => handleScanError(self, createdScan.uuid, Down, x)
         }
       }
 
@@ -465,6 +455,26 @@ case class PairActor(pair:DiffaPair,
         false
       }
     }
+  }
+
+  private def handleScanError(actor:ActorRef, scanId:UUID, upOrDown:UpOrDown, x:Exception) = {
+
+    val (prefix, marker) = upOrDown match {
+      case Up   => (formatAlertCode(pairRef, UPSTREAM_SCAN_FAILURE), "Upstream")
+      case Down => (formatAlertCode(pairRef, DOWNSTREAM_SCAN_FAILURE), "Downstream")
+    }
+
+    val logTemplate = "%s " + marker + " scan failed; scan id = %s"
+
+    x match {
+      case f:ScanFailedException =>
+        logger.error(logTemplate.format(prefix, scanId) + "; reason was: " + f.getMessage)
+      case e:Exception =>
+        logger.error(logTemplate.format(prefix, scanId), e)
+    }
+
+    diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "%s scan failed: %s".format(marker, x.getMessage))
+    actor ! ChildActorCompletionMessage(scanId, upOrDown, Failure)
   }
 
   private def isOwnedByActiveScan(msg:ChildActorScanMessage) = activeScan != null && activeScan.uuid == msg.scanUuid
