@@ -60,9 +60,9 @@ class PairActorTest {
 
   val us = createStrictMock("upstreamParticipant", classOf[UpstreamParticipant])
   val ds = createStrictMock("downstreamParticipant", classOf[DownstreamParticipant])
-  val diagnostics = createStrictMock("diagnosticsManager", classOf[DiagnosticsManager])
+  val diagnostics = createMock("diagnosticsManager", classOf[DiagnosticsManager])
   diagnostics.checkpointExplanations(pairRef); expectLastCall().asStub()
-  
+
   val participantFactory = org.easymock.classextension.EasyMock.createStrictMock("participantFactory", classOf[ParticipantFactory])
   expect(participantFactory.createUpstreamParticipant(upstream)).andReturn(us)
   expect(participantFactory.createDownstreamParticipant(downstream)).andReturn(ds)
@@ -150,6 +150,12 @@ class PairActorTest {
                                         EasyMock.isA(classOf[FeedbackHandle])))
   }
 
+  def expectScanCommencement(times:Int) = {
+    expect(diagnostics.logPairEvent(EasyMock.eq(DiagnosticLevel.INFO),
+                                    EasyMock.eq(pairRef),
+                                    EasyMock.contains("Commencing"))).times(times)
+  }
+
   def expectScans() = {
     expectUpstreamScan()
     expectDownstreamScan()
@@ -220,6 +226,10 @@ class PairActorTest {
       def answer = { monitor.synchronized { monitor.notifyAll } }
     })
     diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan completed"); expectLastCall
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
+
     replay(writer, store, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair)
@@ -264,6 +274,9 @@ class PairActorTest {
               }
             }
           })
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
 
     replay(writer, store, versionPolicy, diagnostics)
 
@@ -404,6 +417,10 @@ class PairActorTest {
 
     writer.flush(); expectLastCall.asStub()
     expect(writer.rollback); expectLastCall
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
+
     replay(store, writer, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair)
@@ -429,6 +446,10 @@ class PairActorTest {
       failStateHandler = new IAnswer[Unit] {
           def answer { monitor.synchronized { monitor.notifyAll } }
         })
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
+
     replay(store, writer, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair)
@@ -450,6 +471,10 @@ class PairActorTest {
         wasMarkedAsCancelled.set(feedbackHandle.isCancelled)
       }
     })
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
+
     replay(writer, store, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair)
@@ -476,6 +501,10 @@ class PairActorTest {
         }
       }
     })
+
+    val numberOfScans = 1
+    expectScanCommencement(numberOfScans)
+
     replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair)
@@ -544,6 +573,9 @@ class PairActorTest {
         completionMonitor.synchronized { completionMonitor.notifyAll() }
       }
     }).once()
+
+    val numberOfScans = 2
+    expectScanCommencement(numberOfScans)
 
     replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
 

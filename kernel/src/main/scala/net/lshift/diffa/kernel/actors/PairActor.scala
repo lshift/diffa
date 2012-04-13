@@ -411,6 +411,13 @@ case class PairActor(pair:DiffaPair,
       feedbackHandle = new ScanningFeedbackHandle
       val currentFeedbackHandle = feedbackHandle
 
+      val infoMsg = scanView match {
+        case Some(name) => "Commencing scan on %s view for pair %s".format(name, pairRef.key)
+        case None =>       "Commencing non-filtered scan for pair %s".format(pairRef.key)
+      }
+
+      diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, infoMsg)
+
       Actor.spawn {
         try {
           policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
