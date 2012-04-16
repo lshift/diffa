@@ -124,18 +124,14 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   def findActor(id:VersionID) : ActorRef = findActor(id.pair)
 
   def findActor(pair:DiffaPairRef) = {
-    val actors = Actor.registry.actorsFor(pair.identifier)
-    actors.length match {
-      case 1 => actors(0)
-      case 0 => {
-        log.error("Could not resolve actor for key: " + pair.identifier)
-        log.error("Found %s actors: %s".format(Actor.registry.size, Actor.registry.actors))
-        throw new MissingObjectException(pair.identifier)
-      }
-      case x => {
-        log.error("Too many actors for key: " + pair.identifier + "; actors = " + x)
-        throw new RuntimeException("Too many actors: " + pair.identifier)
-      }
+    val key = ActorUtils.ActorKey(pair, (p: DiffaPairRef) => p.identifier)
+
+    ActorUtils.findActor(key).getOrElse {
+      log.error("{} Could not resolve actor for key: {}; registry contains {} actors: {}",
+        Array[Object](formatAlertCode(pair, MISSING_ACTOR_FOR_KEY), key,
+                      Integer.valueOf(Actor.registry.size), Actor.registry.actors))
+      throw new MissingObjectException(key.toString)
     }
   }
+
 }

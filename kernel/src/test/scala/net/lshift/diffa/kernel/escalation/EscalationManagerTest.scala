@@ -17,7 +17,6 @@
 package net.lshift.diffa.kernel.escalation
 
 import org.easymock.EasyMock._
-import org.easymock.EasyMock
 import net.lshift.diffa.kernel.client.{ActionableRequest, ActionsClient}
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
@@ -33,6 +32,8 @@ import org.easymock.classextension.{EasyMock => EasyMock4Classes}
 import org.junit.Assume._
 import org.hamcrest.CoreMatchers._
 import net.lshift.diffa.kernel.lifecycle.NotificationCentre
+import org.easymock.{IAnswer, EasyMock}
+import org.junit.After
 
 @RunWith(classOf[Theories])
 class EscalationManagerTest {
@@ -48,6 +49,9 @@ class EscalationManagerTest {
   val escalationManager = new EscalationManager(configStore, actionsClient, reportManager)
 
   escalationManager.onAgentInstantiationCompleted(notificationCentre)
+
+  @After
+  def shutdown = escalationManager.close()
 
   def expectConfigStoreWithRepairs(event:String) {
 
@@ -67,9 +71,19 @@ class EscalationManagerTest {
     replay(configStore)
   }
 
-  def expectActionsClient(count:Int) {
+  def expectActionsClient(count:Int, monitor: Object) {
     if (count > 0) {
-      expect(actionsClient.invoke(EasyMock.isA(classOf[ActionableRequest]))).andReturn(InvocationResult("200", "Success")).times(count)
+      val answer = new IAnswer[InvocationResult] {
+        var counter = 0
+        def answer = {
+          counter += 1
+          if (counter == count) monitor.synchronized {
+            monitor.notifyAll()
+          }
+          InvocationResult("200", "Success")
+        }
+      }
+      expect(actionsClient.invoke(EasyMock.isA(classOf[ActionableRequest]))).andAnswer(answer).times(count)
     }
     replay(actionsClient)
   }
@@ -86,11 +100,19 @@ class EscalationManagerTest {
     assumeThat(scenario, is(instanceOf(classOf[EntityScenario])))
     val entityScenario = scenario.asInstanceOf[EntityScenario]
 
+    val callCompletionMonitor = new Object
+
     expectConfigStoreWithRepairs(entityScenario.event)
-    expectActionsClient(entityScenario.invocations)
+    expectActionsClient(entityScenario.invocations, callCompletionMonitor)
     expectReportManager(0)
 
     notificationCentre.onMismatch(VersionID(pair.asRef, "id"), new DateTime(), entityScenario.uvsn, entityScenario.dvsn, entityScenario.matchOrigin, MatcherFiltered)
+
+    if (entityScenario.invocations > 0) {
+      callCompletionMonitor.synchronized {
+        callCompletionMonitor.wait()
+      }
+    }
 
     verifyAll()
   }
@@ -99,13 +121,13 @@ class EscalationManagerTest {
   def pairEscalationsSometimesTriggerReports(scenario:Scenario) = {
     assumeThat(scenario, is(instanceOf(classOf[PairScenario])))
     val pairScenario = scenario.asInstanceOf[PairScenario]
-
+    
     expectConfigStoreWithReports(pairScenario.event)
-    expectActionsClient(0)
+    expectActionsClient(0, new Object)
     expectReportManager(pairScenario.invocations)
-
+    
     notificationCentre.pairScanStateChanged(pair.asRef, pairScenario.state)
-
+    
     verifyAll()
   }
 

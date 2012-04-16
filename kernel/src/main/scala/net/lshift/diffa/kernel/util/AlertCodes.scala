@@ -107,6 +107,10 @@ object AlertCodes {
   val SPURIOUS_ACTOR_MESSAGE = 711
   //Occurs when an actor receives an out of order message. This can occur as a result of a downstream error.
   val OUT_OF_ORDER_MESSAGE = 712
+  // Occurs when no actor is found for a given key.
+  val MISSING_ACTOR_FOR_KEY = 713
+  // Occurs when multiple actors are registered with the same key. This indicates a bug in Diffa.
+  val MULTIPLE_ACTORS_FOR_KEY = 714
 
   // 72x Potential auth bugs
   val SPURIOUS_AUTH_TOKEN = 720

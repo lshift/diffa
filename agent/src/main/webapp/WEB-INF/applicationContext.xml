@@ -125,7 +125,9 @@
     =============================
   -->
 
-  <bean id="escalationManager" class="net.lshift.diffa.kernel.escalation.EscalationManager">
+  <bean id="escalationManager"
+        class="net.lshift.diffa.kernel.escalation.EscalationManager"
+        destroy-method="close">
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="actionsFrontend" />
     <constructor-arg ref="reportManager" />

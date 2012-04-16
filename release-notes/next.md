@@ -8,6 +8,7 @@
 
 * [76]  - Protection against endpoint category changes that would cause the stored data to become invalid
 * [99]  - Made the correlation writer proxy timeout a domain configuration option
+* [101] - Made escalations asynchronous
 * [102] - Made HTTP connection handling more robust in ActionsProxy
 
 ## Deprecated Features
