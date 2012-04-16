@@ -18,14 +18,17 @@ package net.lshift.diffa.kernel.frontend.wire
 
 import net.lshift.diffa.kernel.participants.ParticipantFactory
 import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest, ActionsClient}
-import InvocationResult._
-import org.apache.http.impl.client.DefaultHttpClient
-import org.apache.http.client.methods.HttpPost
-import io.Source
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
-import net.lshift.diffa.kernel.frontend.PairDef
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction, DiffaPair, DomainConfigStore}
+import net.lshift.diffa.kernel.util.AlertCodes._
+import org.apache.http.util.EntityUtils
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
+import org.slf4j.LoggerFactory
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.HttpClient
+import com.sun.xml.internal.ws.Closeable
 
 /**
  * This is a conduit to the actions that are provided by participants
@@ -34,6 +37,14 @@ class ActionsProxy(val config:DomainConfigStore,
                    val systemConfig:SystemConfigStore,
                    val factory:ParticipantFactory, val diagnostics:DiagnosticsManager)
     extends ActionsClient {
+
+  val log = LoggerFactory.getLogger(getClass)
+
+  // use arbitrary connection and socket timeouts of five minutes
+  // (this is not necessarily a sensible default, but if these parameters are not set the timeout becomes infinite)
+  val fiveMinutesinMillis = 5 * 60 * 1000
+  val connectionTimeoutMillis = fiveMinutesinMillis
+  val socketTimeoutMillis = fiveMinutesinMillis
 
   def listActions(pair:DiffaPairRef): Seq[Actionable] =
     withValidPair(pair) { p =>
@@ -47,7 +58,6 @@ class ActionsProxy(val config:DomainConfigStore,
   def invoke(request: ActionableRequest): InvocationResult =
     withValidPair(request.domain, request.pairKey) { pair =>
       val pairRef = pair.asRef
-      val client = new DefaultHttpClient
       val repairAction = config.getRepairActionDef(request.domain, request.actionId, request.pairKey)
       val url = repairAction.scope match {
         case RepairAction.ENTITY_SCOPE => repairAction.url.replace("{id}", request.entityId)
@@ -59,10 +69,12 @@ class ActionsProxy(val config:DomainConfigStore,
       })
       diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Initiating action " + actionDescription)
 
+
+      val httpClient = createHttpClient()
       try {
-        val httpResponse = client.execute(new HttpPost(url))
+        val httpResponse = httpClient.execute(new HttpPost(url))
         val httpCode = httpResponse.getStatusLine.getStatusCode
-        val httpEntity = Source.fromInputStream(httpResponse.getEntity.getContent).mkString
+        val httpEntity = EntityUtils.toString(httpResponse.getEntity)
 
         if (httpCode >= 200 && httpCode < 300) {
           diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Action " + actionDescription + " succeeded: " + httpEntity)
@@ -70,11 +82,12 @@ class ActionsProxy(val config:DomainConfigStore,
           diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Action " + actionDescription + " failed: " + httpEntity)
         }
         InvocationResult.received(httpCode, httpEntity)
-      }
-      catch {
-        case e =>
+      } catch {
+        case e: Exception =>
           diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Action " + actionDescription + " failed: " + e.getMessage)
           InvocationResult.failure(e)
+      } finally {
+        immediatelyShutDownClient(httpClient, pairRef)
       }
     }
 
@@ -84,5 +97,21 @@ class ActionsProxy(val config:DomainConfigStore,
     val p = systemConfig.getPair(domain, pairKey)
     f(p)
   }
+
+  private def createHttpClient() = {
+    val params = new BasicHttpParams
+    HttpConnectionParams.setConnectionTimeout(params, connectionTimeoutMillis)
+    HttpConnectionParams.setSoTimeout(params, socketTimeoutMillis)
+    new DefaultHttpClient(params)
+  }
+
+  private def immediatelyShutDownClient(client: HttpClient, pair: DiffaPairRef) =
+    try {
+      client.getConnectionManager.shutdown()
+    } catch {
+      case e: Exception =>
+        log.warn("{} Could not shut down HTTP client: {} {}",
+          Array[Object](formatAlertCode(pair, ACTION_HTTP_CLEANUP_FAILURE), e.getClass, e.getMessage))
+    }
 
 }

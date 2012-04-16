@@ -85,6 +85,8 @@ object AlertCodes {
   
   // Occurs when the agent fails to establish communication with a repair action endpoint
   val ACTION_ENDPOINT_FAILURE = 600
+  // The agent failed while attempting to clean up after an HTTP request
+  val ACTION_HTTP_CLEANUP_FAILURE = 601
 
   // 61x External scan errors
   val SCAN_CONNECTION_REFUSED = 610
