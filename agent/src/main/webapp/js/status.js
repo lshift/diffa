@@ -192,7 +192,7 @@ Diffa.Views.PairControls = Diffa.Views.PairSelectionView.extend({
       // Render scan buttons only if we're not currently doing a scan
       if (!scanIsRunning) {
         _.each(views, function(view) {
-          $('<button class="repair scan-button view-scan-button">Scan ' + view.name + '</button>').
+          $('<button class="repair view-scan-button">Scan ' + view.name + '</button>').
             appendTo(self.el).
             click(function(e) {
               e.preventDefault();
