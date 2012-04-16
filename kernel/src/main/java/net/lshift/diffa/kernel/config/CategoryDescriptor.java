@@ -54,6 +54,16 @@ abstract public class CategoryDescriptor {
   public abstract void validate(String path);
 
   /**
+   * Determines whether the given other category descriptor is of the same type as this category descriptor. This
+   * provides a fundamental compatibility check that can be applied before considering more complex checks like
+   * refinement.
+   * @param other the other category descriptor to check.
+   * @return true - the other descriptor is of the same type as this descriptor, leading to the possibility that it
+   *      may be a refinement or compatible change.
+   */
+  public abstract boolean isSameType(CategoryDescriptor other);
+
+  /**
    * Determines whether the given other category descriptor is a refinement of this category descriptor. This allows
    * for validation of views - ensuring that they don't specify configuration that isn't achievable.
    * @param other the other category descriptor to validate.

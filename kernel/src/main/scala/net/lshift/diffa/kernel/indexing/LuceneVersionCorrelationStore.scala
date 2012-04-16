@@ -32,11 +32,11 @@ import net.lshift.diffa.kernel.differencing._
 import org.apache.lucene.document._
 import net.lshift.diffa.participant.scanning._
 import org.joda.time.{DateTime, LocalDate, DateTimeZone}
-import net.lshift.diffa.kernel.util.AlertCodes
 import net.lshift.diffa.kernel.config.system.{InvalidSystemConfigurationException, SystemConfigStore}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore}
 import org.apache.lucene.index.{IndexWriterConfig, IndexReader, Term, IndexWriter}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
+import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.kernel.util._
 
 /**
  * Implementation of the VersionCorrelationStore that utilises Lucene to store (and index) the version information
@@ -130,6 +130,46 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
     val searcher = new IndexSearcher(writer.getReader)
     searcher.search(preventEmptyQuery(query), idOnlyCollector)
     idOnlyCollector.allSortedCorrelations(searcher).filter(c => c.downstreamUVsn != null)
+  }
+
+  def ensureUpgradeable(side:EndpointSide, changes:Seq[CategoryChange]) {
+    // Allows a query to be run against the appropriate side
+    def doQuery(constraints:Seq[ScanConstraint]) = side match {
+      case UpstreamEndpoint => queryUpstreams(constraints)
+      case DownstreamEndpoint => queryDownstreams(constraints)
+    }
+
+    lazy val existingCorrelationCount = doQuery(Seq()).size
+    lazy val hasCorrelations = existingCorrelationCount > 0
+
+    // We can't support additions if we have data.
+    val addition = changes.find(_.isAddition)
+    if (addition.isDefined && hasCorrelations) {
+      throw new IncompatibleCategoryChangeException(addition.get.name,
+        "Cannot add a category as existing data is stored for pair " + pair)
+    }
+
+    // Changes might be supported, depending on the details
+    changes.filter(_.isChange).foreach(c => {
+      val before = c.before.get
+      val after = c.after.get
+
+      // The type of a category can't be changed if we have data.
+      if (!before.isSameType(after) && hasCorrelations) {
+        throw new IncompatibleCategoryChangeException(c.name,
+          "Cannot change category type as existing data is stored for pair " + pair)
+      }
+
+      val newCorrelationCount = doQuery(CategoryUtil.initialConstraintsFor(Seq(c.name -> after))).size
+      val includesAllCorrelations = (existingCorrelationCount == newCorrelationCount)
+
+      // The new category descriptor should retrieve the same number of values from the correlation store as
+      // existing correlation.
+      if (!includesAllCorrelations) {
+        throw new IncompatibleCategoryChangeException(c.name,
+          "Updated category bounds do not cover all stored values for pair " + pair)
+      }
+    })
   }
 
   private def applyConstraints(query:BooleanQuery, constraints:Seq[ScanConstraint], partType:StoreParticipantType, allowMissing:Boolean) = {

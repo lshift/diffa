@@ -56,8 +56,13 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public boolean isSameType(CategoryDescriptor other) {
+    return other instanceof SetCategoryDescriptor;
+  }
+
+  @Override
   public boolean isRefinement(CategoryDescriptor other) {
-    return other instanceof SetCategoryDescriptor &&
+     return isSameType(other) &&
       this.values.containsAll(((SetCategoryDescriptor) other).values);
   }
 

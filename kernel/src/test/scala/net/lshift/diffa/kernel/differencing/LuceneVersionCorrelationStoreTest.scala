@@ -34,9 +34,10 @@ import org.easymock.EasyMock
 import org.joda.time.{LocalDate, DateTime}
 import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, DomainConfigStore}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
+import net.lshift.diffa.kernel.util.{CategoryChange, UpstreamEndpoint}
+import net.lshift.diffa.kernel.config._
 
 /**
  * Test cases for the Hibernate backed VersionCorrelationStore.
@@ -549,6 +550,123 @@ class LuceneVersionCorrelationStoreTest {
     val reopenedStore = stores(pair)
 
     assertEquals(0, reopenedStore.unmatchedVersions(Seq(), Seq(), None).length)
+  }
+
+  @Test
+  def shouldAllowCategoriesToBeAddedWhenEmpty() {
+    store.ensureUpgradeable(UpstreamEndpoint,
+      Seq(CategoryChange("newSet", None, Some(new SetCategoryDescriptor(Set("aaa"))))))
+  }
+
+  @Test
+  def shouldPreventAddingCategoryWhenDataExists() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"), emptyAttributes, DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    try {
+      store.ensureUpgradeable(UpstreamEndpoint,
+        Seq(CategoryChange("newSet", None, Some(new SetCategoryDescriptor(Set("aaa"))))))
+      fail("Expected IncompatibleCategoryChangeException")
+    } catch {
+      case e:IncompatibleCategoryChangeException =>
+        assertEquals(
+          "Change to category newSet is not allowed: Cannot add a category as existing data is stored for pair DiffaPairRef(pair,domain)",
+          e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldAllowAdditionOfSetCategoryValue() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"), Map("someSet" -> StringAttribute("aaa")), DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    store.ensureUpgradeable(UpstreamEndpoint,
+      Seq(CategoryChange("someSet",
+        Some(new SetCategoryDescriptor(Set("aaa"))),
+        Some(new SetCategoryDescriptor(Set("aaa", "bbb"))))))
+  }
+
+  @Test
+  def shouldNotAllowRemovalOfUsedSetCategoryValue() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"), Map("someSet" -> StringAttribute("aaa")), DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    try {
+      store.ensureUpgradeable(UpstreamEndpoint,
+        Seq(CategoryChange("someSet",
+          Some(new SetCategoryDescriptor(Set("aaa", "bbb"))),
+          Some(new SetCategoryDescriptor(Set("bbb"))))))
+      fail("Expected IncompatibleCategoryChangeException")
+    } catch {
+      case e:IncompatibleCategoryChangeException =>
+        assertEquals(
+          "Change to category someSet is not allowed: Updated category bounds do not cover all stored values for pair DiffaPairRef(pair,domain)",
+          e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldAllowRemovalOfUnusedSetCategoryValue() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"), Map("someSet" -> StringAttribute("aaa")), DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    store.ensureUpgradeable(UpstreamEndpoint,
+      Seq(CategoryChange("someSet",
+        Some(new SetCategoryDescriptor(Set("aaa", "bbb"))),
+        Some(new SetCategoryDescriptor(Set("aaa"))))))
+  }
+
+  @Test
+  def shouldAllowChangeOfAttributeTypeWhenDataIsNotPresent() {
+    store.ensureUpgradeable(UpstreamEndpoint,
+      Seq(CategoryChange("someSet",
+        Some(new SetCategoryDescriptor(Set("aaa", "bbb"))),
+        Some(new RangeCategoryDescriptor("date")))))
+  }
+
+  @Test
+  def shouldNotAllowChangeOfAttributeTypeWhenDataIsPresent() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"), Map("someSet" -> StringAttribute("aaa")), DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    try {
+      store.ensureUpgradeable(UpstreamEndpoint,
+        Seq(CategoryChange("someSet",
+          Some(new SetCategoryDescriptor(Set("aaa", "bbb"))),
+          Some(new RangeCategoryDescriptor("date")))))
+      fail("Expected IncompatibleCategoryChangeException")
+    } catch {
+      case e:IncompatibleCategoryChangeException =>
+        assertEquals(
+          "Change to category someSet is not allowed: Cannot change category type as existing data is stored for pair DiffaPairRef(pair,domain)",
+          e.getMessage)
+    }
+  }
+
+  @Test
+  def shouldNotAllowChangeOfRangeAttributeDataTypeWhenDataIsPresent() {
+    val writer = store.openWriter()
+    writer.storeUpstreamVersion(VersionID(pair, "id1"),
+      Map("someDate" -> DateAttribute(DEC_31_2009.toLocalDate)), DEC_31_2009, "upstreamVsn")
+    writer.flush()
+
+    try {
+      store.ensureUpgradeable(UpstreamEndpoint,
+        Seq(CategoryChange("someDate",
+          Some(new RangeCategoryDescriptor("date")),
+          Some(new RangeCategoryDescriptor("datetime")))))
+      fail("Expected IncompatibleCategoryChangeException")
+    } catch {
+      case e:IncompatibleCategoryChangeException =>
+        assertEquals(
+          "Change to category someDate is not allowed: Cannot change category type as existing data is stored for pair DiffaPairRef(pair,domain)",
+          e.getMessage)
+    }
   }
 
   private def assertCorrelationEquals(expected:Correlation, actual:Correlation) {

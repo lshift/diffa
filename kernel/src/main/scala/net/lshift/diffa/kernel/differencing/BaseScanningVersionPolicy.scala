@@ -25,12 +25,12 @@ import net.lshift.diffa.participant.scanning.{ScanConstraint, DigestBuilder, Sca
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.participant.common.JSONHelper
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
-import net.lshift.diffa.kernel.actors.{UpstreamEndpoint, DownstreamEndpoint, EndpointSide}
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.joda.time.format.DateTimeFormat
 import java.io.{OutputStream, PrintWriter}
 import collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.{DiagnosticsManager, DiagnosticLevel}
+import net.lshift.diffa.kernel.util.{DownstreamEndpoint, EndpointSide, UpstreamEndpoint}
 
 /**
  * Standard behaviours supported by scanning version policies.

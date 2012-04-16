@@ -140,4 +140,32 @@ object CategoryUtil {
 
     constraints ++ defaultConstraints
   }
+
+  /**
+   * Differences a set of existing categories against a set of updated categories, returning a list of category changes.
+   * A category change is a mapping from category name to (before, after). before and after are both optional - a missing
+   * before implies a new category, a missing after implies a removed category, both present indicates a category change.
+   */
+  def differenceCategories(existing: Map[String, CategoryDescriptor], updated: Map[String, CategoryDescriptor]):
+      Seq[CategoryChange] = {
+    val existingKeys = existing.keySet.toSet
+    val updatedKeys = updated.keySet.toSet
+
+    val removed:Seq[CategoryChange] = (existingKeys -- updatedKeys).
+      map(k => CategoryChange(k, Some(existing(k)), None)).toSeq
+    val added:Seq[CategoryChange] = (updatedKeys -- existingKeys).
+      map(k => CategoryChange(k, None, Some(updated(k)))).toSeq
+    val changed:Seq[CategoryChange] = (existingKeys intersect updatedKeys).
+      filter(k => !existing(k).equals(updated(k))).
+      map(k => CategoryChange(k, Some(existing(k)), Some(updated(k)))).toSeq
+
+    removed ++ added ++ changed
+  }
 }
+
+case class CategoryChange(name:String, before:Option[CategoryDescriptor], after:Option[CategoryDescriptor]) {
+  def isRemoval = after.isEmpty
+  def isAddition = before.isEmpty
+  def isChange = before.isDefined && after.isDefined
+}
+

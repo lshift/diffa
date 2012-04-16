@@ -6,6 +6,7 @@
 
 ## New Features
 
+* [76]  - Protection against endpoint category changes that would cause the stored data to become invalid
 * [99]  - Made the correlation writer proxy timeout a domain configuration option
 
 ## Deprecated Features

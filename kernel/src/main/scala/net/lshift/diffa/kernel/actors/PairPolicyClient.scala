@@ -20,6 +20,7 @@ import net.jcip.annotations.ThreadSafe
 import net.lshift.diffa.kernel.events.PairChangeEvent
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
+import net.lshift.diffa.kernel.util.EndpointSide
 
 /**
  * This is a thread safe entry point to an underlying version policy.
@@ -57,7 +58,3 @@ trait PairPolicyClient {
    */
   def cancelScans(pair:DiffaPairRef) : Boolean
 }
-
-abstract class EndpointSide
-case object UpstreamEndpoint extends EndpointSide
-case object DownstreamEndpoint extends EndpointSide

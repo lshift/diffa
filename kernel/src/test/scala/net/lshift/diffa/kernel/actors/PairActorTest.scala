@@ -33,12 +33,12 @@ import java.lang.RuntimeException
 import akka.actor._
 import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
-import net.lshift.diffa.kernel.util.{EasyMockScalaUtils, AlertCodes}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, SetConstraint, ScanConstraint}
+import net.lshift.diffa.kernel.util._
 
 class PairActorTest {
   import PairActorTest._

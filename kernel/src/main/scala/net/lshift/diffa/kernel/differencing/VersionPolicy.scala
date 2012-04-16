@@ -20,8 +20,8 @@ import net.lshift.diffa.kernel.events.PairChangeEvent
 import net.jcip.annotations.NotThreadSafe
 import net.lshift.diffa.kernel.participants.{UpstreamParticipant, DownstreamParticipant}
 import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
-import net.lshift.diffa.kernel.actors.EndpointSide
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
+import net.lshift.diffa.kernel.util.EndpointSide
 
 /**
  * Policy implementations of this trait provide different mechanism for handling the matching of upstream

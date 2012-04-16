@@ -20,13 +20,14 @@ import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.matching.MatchingManager
 import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelationStoreFactory}
-import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.scheduler.ScanScheduler
 import system.SystemConfigStore
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
 import org.joda.time.{Interval, DateTime, Period}
+import net.lshift.diffa.kernel.util.{CategoryUtil, MissingObjectException}
+import scala.collection.JavaConversions._
 
 class Configuration(val configStore: DomainConfigStore,
                     val systemConfigStore: SystemConfigStore,
@@ -117,6 +118,21 @@ class Configuration(val configStore: DomainConfigStore,
   def createOrUpdateEndpoint(domain:String, endpointDef: EndpointDef, restartPairs:Boolean = true) = {
     log.debug("[%s] Processing endpoint declare/update request: %s".format(domain, endpointDef.name))
     endpointDef.validate()
+
+    // Ensure that the data stored for each pair can be upgraded.
+    try {
+      val existing = configStore.getEndpointDef(domain, endpointDef.name)
+      val changes = CategoryUtil.differenceCategories(existing.categories.toMap, endpointDef.categories.toMap)
+
+      if (changes.length > 0) {
+        configStore.listPairsForEndpoint(domain, endpointDef.name).foreach(p => {
+          versionCorrelationStoreFactory(p.asRef).ensureUpgradeable(p.whichSide(existing), changes)
+        })
+      }
+    } catch {
+      case mo:MissingObjectException => // Ignore. The endpoint didn't previously exist
+    }
+
     val endpoint = configStore.createOrUpdateEndpoint(domain, endpointDef)
     endpointListener.onEndpointAvailable(endpoint)
 

@@ -21,13 +21,14 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.config.{CategoryDescriptor, DiffaPairRef}
+import net.lshift.diffa.kernel.util.{CategoryChange, EndpointSide}
 
 /**
  * Store used for caching version correlation information between a pair of participants.
  */
 trait VersionCorrelationStore extends Closeable {
-
   val logger = LoggerFactory.getLogger(classOf[VersionCorrelationStore])
 
   type UpstreamVersionHandler = (VersionID, Map[String, String], DateTime, String) => Unit
@@ -97,6 +98,15 @@ trait VersionCorrelationStore extends Closeable {
    * Queries for all downstream versions for the given pair based on the given constraints.
    */
   def queryDownstreams(constraints:Seq[ScanConstraint]) : Seq[Correlation]
+
+  /**
+   * Ensures that if a given list of category changes were made for a given endpoint side, then the datastore
+   * would remain in a valid state.
+   * @param side the side (upstream or downstream) that the changes are proposed for;
+   * @param changes a sequence of name/change pairs. A change is defined as an optional before and optional after value.
+   *  A before or after being missing would mean an addition or removal, respectively.
+   */
+  def ensureUpgradeable(side:EndpointSide, changes:Seq[CategoryChange])
 }
 
 object VersionCorrelationStore {
@@ -196,3 +206,5 @@ case class IntegerAttribute(int:Int) extends TypedAttribute {
   def value = int.toString
 }
 
+class IncompatibleCategoryChangeException(name:String, description:String)
+  extends RuntimeException("Change to category %s is not allowed: %s".format(name, description))

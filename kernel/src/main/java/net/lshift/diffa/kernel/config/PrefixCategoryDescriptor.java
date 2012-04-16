@@ -80,8 +80,13 @@ public class PrefixCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
-  public boolean isRefinement(CategoryDescriptor other) {
+  public boolean isSameType(CategoryDescriptor other) {
     return (other instanceof PrefixCategoryDescriptor);
+  }
+
+  @Override
+  public boolean isRefinement(CategoryDescriptor other) {
+    return isSameType(other);
   }
 
   @Override

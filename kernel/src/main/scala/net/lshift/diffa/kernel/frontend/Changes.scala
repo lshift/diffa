@@ -25,8 +25,8 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.participant.changes.ChangeEvent
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
-import net.lshift.diffa.kernel.actors.{UpstreamEndpoint, DownstreamEndpoint, PairPolicyClient}
-import net.lshift.diffa.kernel.util.CategoryUtil
+import net.lshift.diffa.kernel.actors.PairPolicyClient
+import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, CategoryUtil}
 
 /**
  * Front-end for reporting changes.

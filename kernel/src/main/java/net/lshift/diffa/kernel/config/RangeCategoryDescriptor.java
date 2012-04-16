@@ -104,8 +104,13 @@ public class RangeCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public boolean isSameType(CategoryDescriptor other) {
+    return other instanceof RangeCategoryDescriptor && ((RangeCategoryDescriptor) other).dataType.equals(this.dataType);
+  }
+
+  @Override
   public boolean isRefinement(CategoryDescriptor other) {
-    if (other instanceof RangeCategoryDescriptor && ((RangeCategoryDescriptor) other).dataType.equals(this.dataType)) {
+    if (isSameType(other)) {
       RangeCategoryDescriptor otherDesc = (RangeCategoryDescriptor) other;
 
       if (dataType.equals("date")) {

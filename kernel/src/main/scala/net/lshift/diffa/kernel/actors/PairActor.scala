@@ -33,6 +33,7 @@ import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
 import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, Endpoint, DiffaPair}
+import net.lshift.diffa.kernel.util.{EndpointSide, DownstreamEndpoint, UpstreamEndpoint}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.

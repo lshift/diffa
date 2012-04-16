@@ -206,6 +206,39 @@ class CategoryUtilTest {
       "bizTime: TimeRangeConstraint{name=bizTime, start=2011-05-01T15:14:13.000Z, end=2011-06-18T00:21:15.000Z} isn't contained within TimeRangeConstraint{name=bizTime, start=2011-06-01T15:14:13.000Z, end=2011-06-30T12:31:00.000Z}")
   }
 
+  @Test
+  def shouldDifferenceEmptyListsOfCategories() {
+    assertEquals(Seq(), CategoryUtil.differenceCategories(Map(), Map()))
+  }
+
+  @Test
+  def shouldDetectAddedCategoryDescriptor() {
+    val sc = new SetCategoryDescriptor(Set("aaa", "bbb"))
+    assertEquals(Seq(CategoryChange("someSet", None, Some(sc))),
+      CategoryUtil.differenceCategories(Map(), Map("someSet" -> sc)))
+  }
+
+  @Test
+  def shouldDetectRemovedCategoryDescriptor() {
+    val sc = new SetCategoryDescriptor(Set("aaa", "bbb"))
+    assertEquals(Seq(CategoryChange("someSet", Some(sc), None)),
+      CategoryUtil.differenceCategories(Map("someSet" -> sc), Map()))
+  }
+
+  @Test
+  def shouldNotDetectUnchangedCategoryDescriptor() {
+    val sc = new SetCategoryDescriptor(Set("aaa", "bbb"))
+    assertEquals(Seq(), CategoryUtil.differenceCategories(Map("someSet" -> sc), Map("someSet" -> sc)))
+  }
+
+  @Test
+  def shouldDetectChangedCategoryDescriptor() {
+    val sc = new SetCategoryDescriptor(Set("aaa", "bbb"))
+    val sc2 = new SetCategoryDescriptor(Set("aaa", "bbb", "ccc"))
+    assertEquals(Seq(CategoryChange("someSet", Some(sc), Some(sc2))),
+      CategoryUtil.differenceCategories(Map("someSet" -> sc), Map("someSet" -> sc2)))
+  }
+
   private def expectConstraintException(categories:Map[String, CategoryDescriptor], constraints:Seq[ScanConstraint], message:String) {
     try {
       CategoryUtil.mergeAndValidateConstraints(categories, constraints)
