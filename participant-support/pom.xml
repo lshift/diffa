@@ -12,6 +12,11 @@
 
   <url>http://github.com/lshift/diffa</url>
 
+  <properties>
+      <slf4j.version>1.6.4</slf4j.version>
+      <logback.version>1.0.0</logback.version>
+  </properties>
+
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -39,6 +44,12 @@
   <packaging>jar</packaging>
 
   <dependencies>
+      <dependency>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>logback-classic</artifactId>
+          <version>${logback.version}</version>
+          <scope>test</scope>
+      </dependency>
     <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
@@ -64,7 +75,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.6.1</version>
+      <version>${slf4j.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
@@ -87,7 +98,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>1.6.1</version>
+      <version>${slf4j.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

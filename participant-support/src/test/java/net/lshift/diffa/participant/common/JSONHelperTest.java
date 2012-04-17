@@ -15,6 +15,10 @@
  */
 package net.lshift.diffa.participant.common;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.AppenderBase;
 import net.lshift.diffa.participant.changes.ChangeEvent;
 import net.lshift.diffa.participant.correlation.ProcessingResponse;
 import net.lshift.diffa.participant.scanning.ScanResultEntry;
@@ -22,15 +26,15 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.InputStream;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -38,6 +42,38 @@ import static org.junit.Assert.assertEquals;
  * Tests for the JSON serialisation support.
  */
 public class JSONHelperTest {
+  private class CountingEventAppender extends AppenderBase<ILoggingEvent> {
+    private int eventCount = 0;
+    
+    public void resetCount() {
+      eventCount = 0;
+    }
+    
+    public int getEventCount() {
+      return eventCount;
+    }
+
+    @Override
+    protected void append(ILoggingEvent iLoggingEvent) {
+      eventCount++;
+    }
+  }
+
+  private CountingEventAppender logAppender = new CountingEventAppender();
+
+  {
+    LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
+    logAppender.setContext(ctx);
+    logAppender.start();
+    Logger jsonHelperLogger = (Logger) LoggerFactory.getLogger(JSONHelper.class);
+    jsonHelperLogger.addAppender(logAppender);
+  }
+
+  @Before
+  public void setup() {
+    logAppender.resetCount();
+  }
+
   @Test
   public void shouldSerialiseEmptyList() throws Exception {
     String emptyRes = serialiseResult(new ArrayList<ScanResultEntry>());
@@ -171,6 +207,51 @@ public class JSONHelperTest {
     assertEquals(e2, deserialised[1]);
   }
 
+  @Test
+  public void shouldLogScanResultEntryCountForEntityQuery() throws Exception {
+    //Given
+    String scanResult = "[" +
+        makeJsonEntityString("id1", ",\"attributes\":{\"a1\":\"v1\"}", "v1", "2011-06-05T15:03:00.000Z") + "," +
+        makeJsonEntityString("id2", ",\"attributes\":{\"a1\":\"v1\"}", "v2", "2011-06-05T15:03:00.000Z") +
+        "]";
+    InputStream in = new ByteArrayInputStream(scanResult.getBytes());
+
+    // When
+    JSONHelper.readQueryResult(in);
+
+    // Then
+    assertEquals("Should log exactly one event", 1, logAppender.getEventCount());
+  }
+  
+  @Test
+  public void shouldLogScanResultEntryCountForAggregateQuery() throws Exception {
+    // Given
+    String scanResult = "[" + makeJsonAggregateString("\"attributes\":{\"a1\":\"v1\"}", "v1") + "]";
+    InputStream in = new ByteArrayInputStream(scanResult.getBytes());
+
+    // When
+    JSONHelper.readQueryResult(in);
+
+    // Then
+    assertEquals("Should log exactly one event", 1, logAppender.getEventCount());
+  }
+
+  private static String makeJsonAggregateString(String attributes, String version) {
+    return makeJsonEntityString(null, attributes, version, null);
+  }
+
+  private static String makeJsonEntityString(String id, String attributes, String version, String lastUpdated) {
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append("{");
+    if (id != null)
+      stringBuilder.append("\"id\":\"" + id + "\"");
+    stringBuilder.append(attributes);
+    stringBuilder.append(",\"version\":\"" + version + "\"");
+    if (lastUpdated != null)
+      stringBuilder.append(",\"lastUpdated\":\"" + lastUpdated + "\"");
+    stringBuilder.append("}");
+    return stringBuilder.toString();
+  }
 
   private static String serialiseResult(Iterable<ScanResultEntry> entries) throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();

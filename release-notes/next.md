@@ -10,6 +10,7 @@
 
 ## General Maintenance
 
+* [109] - Log a summary of each Query triggered by a participant scan.
 * [??] -
 
 ## Library Upgrades
