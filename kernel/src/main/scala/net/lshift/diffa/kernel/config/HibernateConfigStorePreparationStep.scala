@@ -62,7 +62,8 @@ class HibernateConfigStorePreparationStep
         log.info("Current schema version is %d".format(vsn))
         vsn + 1
     }
-    val migrations = migrationSteps.slice(nextVersion, migrationSteps.length)
+
+    val migrations = migrationSteps.filter(s => s.versionId >= nextVersion)
 
     sf.withSession(s => {
       s.doWork(new Work {
