@@ -34,6 +34,9 @@ object AlertCodes {
   val SCAN_QUERY_EVENT = 121
   val SCAN_REQUEST_IGNORED = 122
 
+  // 13x Informational diagnostic events
+  val DIAGNOSTIC_EVENT = 130
+
   // 2xx Successful
 
   // 22x Successful manual scan events
@@ -53,6 +56,8 @@ object AlertCodes {
 
   // 4xx Errors that occur that as result of an invalid inbound request from a client
 
+  // 44x System limits
+  val SYSTEM_WIDE_LIMIT_BREACHED = 440
 
   // 5xx Errors
   

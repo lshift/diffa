@@ -21,6 +21,7 @@
 * [98]  - Addressed a match error in a receive loop of the pair actor that results in a spurious log entry
 * [100] - Reduced the verbosity of connection refused errors in the logs
 * [103] - Notify the commencement of a scan to the pair activity log
+* [104] - Fixed a bug in the diagnostics manager whereby turning off explain logging would also deactivate all diagnostics
 * [106] - Squashed a UI bug that resulted in scan requests being sent twice to the backend
 * [108] - Made sure that the DB migration works for an arbitrary number of steps
 

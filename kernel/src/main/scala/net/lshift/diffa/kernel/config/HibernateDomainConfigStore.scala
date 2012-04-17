@@ -82,6 +82,10 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
     sessionFactory.withSession(s => {
       p.validate()
 
+      // TODO We currently don't check whether the eventsToLog and maxExplainFiles exceed the
+      // current system limit. In practical terms, however, this will be checked by the diagnostics
+      // subsystem and the lesser of the two values will be used.
+
       pairCache.invalidate(domain)
 
       val dom = getDomain(domain)

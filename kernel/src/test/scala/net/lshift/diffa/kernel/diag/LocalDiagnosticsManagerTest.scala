@@ -64,6 +64,22 @@ class LocalDiagnosticsManagerTest {
   }
 
   @Test
+  def shouldLimitNumberOfStoredLogEventsToSystemMax() {
+    val key = "systemMaxLoggingPair"
+    val pair = DiffaPairRef(key, domainName)
+
+    val pairLimit = DefaultConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE + 1
+    val queryLimit = DefaultConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE * 2
+
+    setPairExplainLimitsWithSystemLimits(key, pairLimit, 1)
+
+    for (i <- 1 until queryLimit)
+      diagnostics.logPairEvent(DiagnosticLevel.INFO, pair, "Some msg")
+
+    assertEquals(DefaultConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE, diagnostics.queryEvents(pair, queryLimit).length)
+  }
+
+  @Test
   def shouldTrackStateOfPairsWithinDomain() {
     expectPairListFromConfigStore(pair1 :: pair2 :: Nil)
 
@@ -121,7 +137,10 @@ class LocalDiagnosticsManagerTest {
     val key = "explained"
     val pair = DiffaPairRef(key, domainName)
 
-    setPairExplainLimits(key, 1, 1)
+    val eventBufferSize = 0
+    val maxExplainFiles = 1
+
+    setPairExplainLimitsWithSystemLimits(key, 1, 1, eventBufferSize, maxExplainFiles)
     diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(pair)
 
@@ -143,7 +162,11 @@ class LocalDiagnosticsManagerTest {
   def shouldIncludeContentsOfObjectsAdded() {
     val key = "explainedobj"
     val pair = DiffaPairRef(key, domainName)
-    setPairExplainLimits(key, 1, 1)
+
+    val eventBufferSize = 0
+    val maxExplainFiles = 1
+
+    setPairExplainLimitsWithSystemLimits(key, 1, 1, eventBufferSize, maxExplainFiles)
 
     diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
@@ -171,7 +194,11 @@ class LocalDiagnosticsManagerTest {
   def shouldAddLogMessageIndicatingObjectWasAttached() {
     val key = "explainedobj"
     val pair = DiffaPairRef(key, domainName)
-    setPairExplainLimits(key, 1, 1)
+
+    val eventBufferSize = 0
+    val maxExplainFiles = 1
+
+    setPairExplainLimitsWithSystemLimits(key, 1, 1, eventBufferSize, maxExplainFiles)
 
     diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
@@ -199,7 +226,9 @@ class LocalDiagnosticsManagerTest {
   def shouldCreateMultipleOutputsWhenMultipleNonQuietRunsHaveBeenMade() {
     val key = "explained_20_2"
     val pair = DiffaPairRef(key, domainName)
-    setPairExplainLimits(key, 50, 2)
+
+    setPairExplainLimitsWithIdenticalSystemLimits(key, 50, 2)
+
 
     diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(pair)
@@ -219,7 +248,8 @@ class LocalDiagnosticsManagerTest {
     val generateCount = 100
     val key = "controlled_100_20"
     val pair = DiffaPairRef(key, domainName)
-    setPairExplainLimits(key, generateCount, filesToKeep)
+
+    setPairExplainLimitsWithIdenticalSystemLimits(key, generateCount, filesToKeep)
 
     for (i <- 1 until generateCount) {
       diagnostics.logPairExplanation(pair, "Test Case", i.toString)
@@ -250,7 +280,7 @@ class LocalDiagnosticsManagerTest {
 
     List(0, 1, 2, 3, 5, 10, 20) foreach { i =>
       val key = "limited_to_%d_%d".format(i + someExtra, i)
-      setPairExplainLimits(key, i + someExtra, i)
+      setPairExplainLimitsWithIdenticalSystemLimits(key, i + someExtra, i)
       verifyExplanationFileCount(i, DiffaPairRef(key, domainName))
       reset(domainConfigStore)
     }
@@ -266,8 +296,9 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldLimitExplanationFilesDespitePairConfiguration {
     val key = "limited_to_fixed_file_count"
-    setPairExplainLimits(key, 500, 22)
-    verifyExplanationFileCount(20, DiffaPairRef(key, domainName))
+    val systemExplainFileLimit = 20
+    setPairExplainLimitsWithSystemLimits(key, 500, 22, 500, systemExplainFileLimit)
+    verifyExplanationFileCount(systemExplainFileLimit, DiffaPairRef(key, domainName))
   }
 
   @Test
@@ -309,16 +340,18 @@ class LocalDiagnosticsManagerTest {
   private def setPairExplainLimitsWithSystemLimits(key: String,
                                                    pairEventsToLog: Int,
                                                    pairMaxExplainFiles: Int,
-                                                   systemEventsToLog: Int,
-                                                   systemMaxExplainFiles: Int) {
+                                                   systemEventsToLog: Int = DefaultConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE,
+                                                   systemMaxExplainFiles: Int = DefaultConfigOption.EXPLAIN_FILES_LIMIT) {
     val pair = makeDiffaPairWithLimits(key, pairEventsToLog, pairMaxExplainFiles)
+
+    reset(domainConfigStore, systemConfigStore)
 
     expect(domainConfigStore.getPairDef(pair.domain.name, pair.key)).
       andStubReturn(FrontendConversions.toPairDef(pair))
 
-    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.eventExplanationLimitKey)).
+    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE)).
       andStubReturn(Some(String.valueOf(systemEventsToLog)))
-    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.explainFilesLimitKey)).
+    expect(systemConfigStore.maybeSystemConfigOption(ConfigOption.EXPLAIN_FILES_LIMIT)).
       andStubReturn(Some(String.valueOf(systemMaxExplainFiles)))
 
     replay(domainConfigStore, systemConfigStore)
@@ -332,10 +365,14 @@ class LocalDiagnosticsManagerTest {
     replayDomainConfig
   }
 
+  private def setPairExplainLimitsWithIdenticalSystemLimits(key: String, eventsToLog: Int, maxExplainFiles: Int) {
+    setPairExplainLimitsWithSystemLimits(key, eventsToLog, maxExplainFiles, eventsToLog, maxExplainFiles)
+  }
+
   private def verifyExplanationFileCount(expectedCount: Int, diffaPair: DiffaPairRef) {
     val key = diffaPair.key
     val domain = diffaPair.domain
-    val generationCount = 21
+    val generationCount = expectedCount + 1
 
     for (i <- 1 to generationCount) {
       diagnostics.logPairExplanation(diffaPair, "Non-standard explanation count", "Test action %d".format(i))

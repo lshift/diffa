@@ -181,8 +181,8 @@ case class DiffaPair(
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
   @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView],
-  @BeanProperty var eventsToLog: Int = 0,
-  @BeanProperty var maxExplainFiles: Int = 0) {
+  @BeanProperty var eventsToLog: java.lang.Integer = null,
+  @BeanProperty var maxExplainFiles: java.lang.Integer = null) {
 
   def this() = this(key = null)
 
@@ -424,6 +424,16 @@ case class PairScopedName(@BeanProperty var name:String = null,
 }
 
 object ConfigOption {
-  val eventExplanationLimitKey = "maxEventsToExplainPerPair"
-  val explainFilesLimitKey = "maxExplainFilesPerPair"
+
+  @Deprecated val eventExplanationLimitKey = "maxEventsToExplainPerPair" // Superseded by DIAGNOSTIC_LOG_BUFFER_SIZE
+  @Deprecated val explainFilesLimitKey = "maxExplainFilesPerPair" // Superseded by EXPLAIN_FILES_LIMIT
+
+  val DIAGNOSTIC_LOG_BUFFER_SIZE = "diagnostic.log.buffer.size"
+  val EXPLAIN_FILES_LIMIT = "max.explain.files.per.pair"
+}
+
+object DefaultConfigOption {
+
+  val DIAGNOSTIC_LOG_BUFFER_SIZE = 100
+  val EXPLAIN_FILES_LIMIT = 0
 }

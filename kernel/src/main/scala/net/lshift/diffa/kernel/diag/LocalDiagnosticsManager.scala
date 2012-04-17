@@ -7,10 +7,11 @@ import org.slf4j.LoggerFactory
 import java.io._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
-import net.lshift.diffa.kernel.config.{ConfigOption, DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.joda.time.{DateTimeZone, DateTime}
+import net.lshift.diffa.kernel.config.{DefaultConfigOption, ConfigOption, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.util.AlertCodes._
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
@@ -103,14 +104,17 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     pairs.synchronized { pairs.get(pair) }
 
   private class PairDiagnostics(pair:DiffaPairRef) {
+
+    private val logger = LoggerFactory.getLogger(getClass)
+
     private val pairExplainRoot = new File(explainRootDir, pair.identifier)
     private val log = ListBuffer[PairEvent]()
     var scanState:PairScanState = PairScanState.UNKNOWN
     private val pairDef = getPairFromRef(pair)
-    private val domainEventsPerPair = getConfigOrElse(pair.domain,
-      ConfigOption.eventExplanationLimitKey, defaultMaxEventsPerPair)
-    private val domainExplainFilesPerPair = getConfigOrElse(pair.domain,
-      ConfigOption.explainFilesLimitKey, defaultMaxExplainFilesPerPair)
+    private val systemWideEventBufferLimit = getConfigOrElse(pair.domain,
+      ConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE, DefaultConfigOption.DIAGNOSTIC_LOG_BUFFER_SIZE)
+    private val systemWideExplainFilesPerPairLimit = getConfigOrElse(pair.domain,
+      ConfigOption.EXPLAIN_FILES_LIMIT, DefaultConfigOption.EXPLAIN_FILES_LIMIT)
 
     private def getConfigOrElse(domain: String, configKey: String, defaultVal: Int) = try {
       systemConfigStore.maybeSystemConfigOption(configKey).get.toInt
@@ -118,22 +122,57 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
       case _ => defaultVal
     }
 
-    private val maxEvents = math.min(domainEventsPerPair, pairDef.eventsToLog)
-    private val maxExplainFiles = math.min(domainExplainFilesPerPair, pairDef.maxExplainFiles)
-    private val isLoggingEnabled = maxExplainFiles > 0 && maxEvents > 0
+    // TODO PairDiagnostics should be made aware of the pair lifecyle such that {maxEvents,maxExplainFiles}
+    // are updated when the underlying pair is updated
+
+    private val maxEventBufferSize =
+      if (pairDef.eventsToLog == null) {
+        logger.info("%s no no per-pair maximum event buffer specified, using default %s".format(formatAlertCode(pair, DIAGNOSTIC_EVENT), systemWideEventBufferLimit))
+        systemWideEventBufferLimit
+      }
+      else {
+
+        if (pairDef.eventsToLog > systemWideEventBufferLimit) {
+          logger.warn("%s per-pair maximum event buffer size was %s, overriding wth system limit %s".format(
+            formatAlertCode(pair, SYSTEM_WIDE_LIMIT_BREACHED), pairDef.eventsToLog, systemWideEventBufferLimit))
+        }
+
+        math.min(systemWideEventBufferLimit, pairDef.eventsToLog)
+      }
+
+    private val maxExplainFiles =
+      if (pairDef.maxExplainFiles == null) {
+        logger.info("%s no per-pair explain file limit specified, using default %s".format(formatAlertCode(pair, DIAGNOSTIC_EVENT), systemWideExplainFilesPerPairLimit))
+        systemWideExplainFilesPerPairLimit
+      }
+      else {
+
+        if (pairDef.maxExplainFiles > systemWideExplainFilesPerPairLimit) {
+          logger.warn("%s per-pair explain file limit was %s, overriding wth system limit %s".format(
+            formatAlertCode(pair, SYSTEM_WIDE_LIMIT_BREACHED), pairDef.maxExplainFiles, systemWideExplainFilesPerPairLimit))
+        }
+
+        math.min(systemWideExplainFilesPerPairLimit, pairDef.maxExplainFiles)
+      }
+
+    private val areExplanationsEnabled = maxExplainFiles > 0
 
     private val explainLock = new Object
     private var explainDir:File = null
     private var explanationWriter:PrintWriter = null
 
     def logPairEvent(evt:PairEvent) {
-      log.synchronized {
-        log += evt
 
-        val drop = log.length - maxEvents
-        if (drop > 0)
-          log.remove(0, drop)
+      if (maxEventBufferSize > 0) {
+        log.synchronized {
+          log += evt
+
+          val drop = log.length - maxEventBufferSize
+          if (drop > 0)
+            log.remove(0, drop)
+        }
       }
+
     }
 
     def queryEvents(maxEvents:Int):Seq[PairEvent] = {
@@ -166,7 +205,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     }
 
     def logPairExplanation(source:String, msg:String) {
-      if (isLoggingEnabled) {
+      if (areExplanationsEnabled) {
         explainLock.synchronized {
           if (explanationWriter == null) {
             explanationWriter = new PrintWriter(new FileWriter(new File(currentExplainDirectory, "explain.log")))
@@ -178,7 +217,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     }
 
     def writePairExplanationObject(source:String, objName: String, f:OutputStream => Unit) {
-      if (isLoggingEnabled) {
+      if (areExplanationsEnabled) {
         explainLock.synchronized {
           val outputFile = new File(currentExplainDirectory, objName)
           val outputStream = new FileOutputStream(outputFile)

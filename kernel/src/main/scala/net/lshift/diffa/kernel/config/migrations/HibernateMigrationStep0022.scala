@@ -1,17 +1,36 @@
-package net.lshift.diffa.kernel.config
+/**
+ * Copyright (C) 2010-2012 LShift Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package net.lshift.diffa.kernel.config.migrations
 
 import org.hibernate.cfg.Configuration
 import java.sql.Types
 import scala.collection.JavaConversions._
 import net.lshift.hibernate.migrations.MigrationBuilder
+import net.lshift.diffa.kernel.config.{ConfigOption, DefinePartitionInformationTable, Domain, HibernateMigrationStep}
 
 /**
  * This Step 'migrates' a schema/database to version 22 -
  * that is, it creates the base schema from scratch.
  */
 object HibernateMigrationStep0022 extends HibernateMigrationStep {
+
   def versionId = 22
+
   def name = "Create schema"
+
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
@@ -90,7 +109,7 @@ object HibernateMigrationStep0022 extends HibernateMigrationStep {
       column("category_name", Types.VARCHAR, 50, false).
       column("category_descriptor_id", Types.INTEGER, false).
       pk("domain", "endpoint", "category_name", "name")
-    
+
     migration.createTable("escalations").
       column("domain", Types.VARCHAR, 50, false, Domain.DEFAULT_DOMAIN.name).
       column("name", Types.VARCHAR, 50, false).
@@ -105,7 +124,7 @@ object HibernateMigrationStep0022 extends HibernateMigrationStep {
       column("domain_name", Types.VARCHAR, 50, false).
       column("user_name", Types.VARCHAR, 50, false).
       pk("domain_name", "user_name")
-    
+
     migration.createTable("pair").
       column("domain", Types.VARCHAR, 50, false, Domain.DEFAULT_DOMAIN.name).
       column("pair_key", Types.VARCHAR, 50, false).
@@ -197,7 +216,7 @@ object HibernateMigrationStep0022 extends HibernateMigrationStep {
       column("superuser", Types.BIT, 1, false, 0).
       column("token", Types.VARCHAR, 50, true).
       pk("name")
-    
+
 
     migration.alterTable("config_options").
       addForeignKey("fk_cfop_dmns", "domain", "domains", "name")
@@ -270,7 +289,7 @@ object HibernateMigrationStep0022 extends HibernateMigrationStep {
 
 
     migration.insert("domains").values(Map("name" -> Domain.DEFAULT_DOMAIN.name))
-    
+
     migration.insert("config_options").
       values(Map("domain" -> Domain.DEFAULT_DOMAIN.name, "opt_key" -> "configStore.schemaVersion", "opt_val" -> "0"))
 
@@ -291,7 +310,7 @@ object HibernateMigrationStep0022 extends HibernateMigrationStep {
     migration.insert("schema_version").
       values(Map("version" -> new java.lang.Integer(versionId)))
 
-    
+
     if (migration.canAnalyze) {
       migration.analyzeTable("diffs");
     }

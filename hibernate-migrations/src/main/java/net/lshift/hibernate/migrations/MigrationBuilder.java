@@ -94,6 +94,10 @@ public class MigrationBuilder {
     return register(new RawSqlBuilder(sql));
   }
 
+  public UpdateBuilder updateTable(String table) {
+    return register(new UpdateBuilder(table));
+  }
+
   private <T extends MigrationElement> T register(T el) {
     elements.add(el);
     return el;

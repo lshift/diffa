@@ -122,7 +122,7 @@ class DiffaConfigReaderWriterTest {
           <view name="little-view" scan-schedule="0 0 0 * * 0" />
         </pair>
         <pair key="ac" upstream="upstream1" downstream="downstream1" version-policy="same" matching-timeout="5"
-              allow-manual-scans="false" events-to-log="0" max-explain-files="0" />
+              allow-manual-scans="false" events-to-log="100" max-explain-files="0" />
       </diffa-config>.toString
 
     ConfigComparisonUtil.assertConfigMatches(expectedXml, new String(baos.toByteArray, "UTF-8"))
