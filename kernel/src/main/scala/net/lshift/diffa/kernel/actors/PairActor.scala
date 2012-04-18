@@ -30,10 +30,10 @@ import collection.mutable.{SynchronizedQueue, Queue}
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.util.StoreSynchronizationUtils._
-import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, Endpoint, DiffaPair}
 import net.lshift.diffa.kernel.util.{EndpointSide, DownstreamEndpoint, UpstreamEndpoint}
+import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -210,7 +210,8 @@ case class PairActor(pair:DiffaPair,
       }
     }
     case c:ChangeMessage                   => handleChangeMessage(c)
-    case i:InventoryMessage                => handleInventoryMessage(i)
+    case i:InventoryMessage                => self.reply(handleInventoryMessage(i))
+    case i:StartInventoryMessage           => self.reply(handleStartInventoryMessage(i))
     case DifferenceMessage                 => handleDifferenceMessage()
     case FlushWriterMessage                => writer.flush()
     case c:VersionCorrelationWriterCommand => {
@@ -361,13 +362,23 @@ case class PairActor(pair:DiffaPair,
     lastEventTime = System.currentTimeMillis()
   }
 
+  def handleStartInventoryMessage(message:StartInventoryMessage):Seq[ScanRequest] = {
+    val ep = message.side match {
+      case UpstreamEndpoint   => us
+      case DownstreamEndpoint => ds
+    }
+
+    policy.startInventory(pair.asRef, ep, message.view, writer, message.side)
+  }
+
   def handleInventoryMessage(message:InventoryMessage) = {
     val ep = message.side match {
       case UpstreamEndpoint   => us
       case DownstreamEndpoint => ds
     }
 
-    policy.processInventory(pair.asRef, ep, writer, message.side, message.constraints, message.entries)
+    val nextRequests = policy.processInventory(pair.asRef, ep, writer, message.side,
+      message.constraints, message.aggregations, message.entries)
 
     // always flush after an inventory
     writer.flush()
@@ -375,6 +386,8 @@ case class PairActor(pair:DiffaPair,
 
     // Play events from the correlation store into the differences manager
     replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByScan)
+
+    nextRequests
   }
 
   /**
@@ -548,7 +561,8 @@ abstract class Deferrable
 case class ChangeMessage(event: PairChangeEvent) extends Deferrable
 case object DifferenceMessage extends Deferrable
 case class ScanMessage(scanView:Option[String])
-case class InventoryMessage(side:EndpointSide, constraints:Seq[ScanConstraint], entries:Seq[ScanResultEntry])
+case class StartInventoryMessage(side:EndpointSide, view:Option[String])
+case class InventoryMessage(side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry])
 
 /**
  * This message indicates that this actor should cancel all current and pending scan operations.

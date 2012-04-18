@@ -22,7 +22,7 @@ import org.joda.time.format.*;
 /**
  * Aggregation for a date.
  */
-public class DateAggregation extends AbstractScanAggregation {
+public class DateAggregation extends AbstractScanAggregation implements GranularityAggregation {
   private final DateTimeParser[] parsers = new DateTimeParser[] {
           ISODateTimeFormat.dateTime().getParser(),
           ISODateTimeFormat.date().getParser()
@@ -69,6 +69,11 @@ public class DateAggregation extends AbstractScanAggregation {
 
   public DateGranularityEnum getGranularity() {
     return granularity;
+  }
+
+  @Override
+  public String getGranularityString() {
+    return granularity.toString().toLowerCase();
   }
 
   public static DateGranularityEnum parseGranularity(String granStr) {

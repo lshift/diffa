@@ -73,7 +73,7 @@ abstract class DifferenceCondition {
 case class DiffCount(count:Int) extends DifferenceCondition {
   def isSatisfiedBy(diffs: Seq[DifferenceEvent]) = diffs.length == count
   def describeIssuesWith(diffs: Seq[DifferenceEvent]) =
-    "Didn't reach required diff count %s. Last attempt returned %s diffs".format(count, diffs.length)
+    "Didn't reach required diff count %s. Last attempt returned %s diffs (%s)".format(count, diffs.length, diffs)
 }
 case class DoesntIncludeObjId(id:String) extends DifferenceCondition {
   def isSatisfiedBy(diffs: Seq[DifferenceEvent]) = diffs.find(e => e.objId.id == id).isEmpty

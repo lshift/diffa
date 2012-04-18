@@ -16,9 +16,9 @@
 package net.lshift.diffa.client
 
 import javax.ws.rs.core.MultivaluedMap
-import net.lshift.diffa.participant.scanning.{StringPrefixConstraint, RangeConstraint, SetConstraint, ScanConstraint}
 import net.lshift.diffa.kernel.participants.{StringPrefixCategoryFunction, CategoryFunction}
 import scala.collection.JavaConversions._
+import net.lshift.diffa.participant.scanning._
 
 /**
  * Helper for building requests. Provides support for serialising various data types into request semantics.
@@ -40,12 +40,12 @@ object RequestBuildingHelper {
     }
   }
 
-  def aggregationsToQueryArguments(params:MultivaluedMap[String,String], aggregations:Seq[CategoryFunction]) {
+  def aggregationsToQueryArguments(params:MultivaluedMap[String,String], aggregations:Seq[ScanAggregation]) {
     aggregations.foreach {
-      case spf:StringPrefixCategoryFunction =>
-        params.add(spf.getAttributeName + "-length", spf.prefixLength.toString)
-      case f =>
-        params.add(f.getAttributeName + "-granularity", f.name)
+      case spf:StringPrefixAggregation =>
+        params.add(spf.getAttributeName + "-length", spf.getLength.toString)
+      case ga:GranularityAggregation =>
+        params.add(ga.getAttributeName + "-granularity", ga.getGranularityString)
     }
   }
 }

@@ -49,7 +49,7 @@ class InventoryReader extends MessageBodyReader[ScanResultList] {
       throw new InvalidInventoryException("CSV file appears to be empty. No header line was found")
     }
 
-    val idPosition = requireField("id", header)
+    val idPosition = maybeField("id", header)
     val vsnPosition = requireField("vsn", header)
     val updatedPosition = maybeField("updated", header)
 
@@ -75,7 +75,7 @@ class InventoryReader extends MessageBodyReader[ScanResultList] {
         }
 
         val entry = new ScanResultEntry
-        entry.setId(line(idPosition))
+        idPosition.foreach(p => entry.setId(line(p)))
         entry.setVersion(line(vsnPosition))
         updatedPosition.foreach(p => {
           try {

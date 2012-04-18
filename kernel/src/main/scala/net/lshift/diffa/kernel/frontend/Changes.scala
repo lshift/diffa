@@ -24,9 +24,9 @@ import net.lshift.diffa.kernel.differencing.AttributesUtil
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.participant.changes.ChangeEvent
-import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 import net.lshift.diffa.kernel.actors.PairPolicyClient
-import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, CategoryUtil}
+import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
+import net.lshift.diffa.kernel.util.{MissingObjectException, DownstreamEndpoint, UpstreamEndpoint, CategoryUtil}
 
 /**
  * Front-end for reporting changes.
@@ -84,9 +84,30 @@ class Changes(val domainConfig:DomainConfigStore,
     })
   }
 
-  def submitInventory(domain:String, endpoint:String, constraints:Seq[ScanConstraint], entries:Seq[ScanResultEntry]) {
+  def startInventory(domain: String, endpoint: String, view:Option[String]):Seq[ScanRequest] = {
+    val targetEndpoint = domainConfig.getEndpointDef(domain, endpoint)
+    val requests = scala.collection.mutable.Set[ScanRequest]()
+
+    view.foreach(v => {
+      if (targetEndpoint.views.find(vd => vd.name == v).isEmpty) {
+        // The user specified an unknown view
+        throw new MissingObjectException("view " + v)
+      }
+    })
+
+    domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
+      val side = pair.whichSide(targetEndpoint)
+
+      // Propagate the change event to the corresponding policy
+      requests ++= changeEventClient.startInventory(pair.asRef, side, view)
+    })
+
+    requests.toSeq
+  }
+
+  def submitInventory(domain:String, endpoint:String, view:Option[String], constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]):Seq[ScanRequest] = {
     val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
-    val endpointCategories = targetEndpoint.categories.toMap
+    val endpointCategories = CategoryUtil.fuseViewCategories(targetEndpoint.categories.toMap, targetEndpoint.views, view)
     val fullConstraints = CategoryUtil.mergeAndValidateConstraints(endpointCategories, constraints)
 
     // Validate the provided entries
@@ -102,12 +123,15 @@ class Changes(val domainConfig:DomainConfigStore,
       }
     }
 
+    val nextRequests = scala.collection.mutable.Set[ScanRequest]()
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
       val side = if (pair.upstream == endpoint) UpstreamEndpoint else DownstreamEndpoint
 
       // Propagate the change event to the corresponding policy
-      changeEventClient.submitInventory(pair.asRef, side, constraints, entries)
+      nextRequests ++= changeEventClient.submitInventory(pair.asRef, side, fullConstraints, aggregations, entries)
     })
+
+    nextRequests.toSeq
   }
 }
 

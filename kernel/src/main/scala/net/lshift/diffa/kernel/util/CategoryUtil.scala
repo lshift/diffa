@@ -18,9 +18,10 @@ package net.lshift.diffa.kernel.util
 import net.lshift.diffa.kernel.participants.StringPrefixCategoryFunction._
 import scala.Option._
 import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.participants.{StringPrefixCategoryFunction, CategoryFunction}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.participant.scanning.{ConstraintsBuilder, SetConstraint, ScanConstraint}
+import collection.immutable.Map
+import net.lshift.diffa.participant.scanning._
+import net.lshift.diffa.kernel.participants.{IntegerCategoryFunction, ByNameCategoryFunction, StringPrefixCategoryFunction, CategoryFunction}
 
 /**
  * Utility for transforming categories into
@@ -60,6 +61,26 @@ object CategoryUtil {
         }
       }
     }.toSeq
+  }
+
+  /**
+   * Creates Category Functions for the given aggregations.
+   */
+  def categoryFunctionsFor(aggregations:Seq[ScanAggregation], categories: Iterable[(String,CategoryDescriptor)]): Seq[CategoryFunction] = {
+    val mappedCategories = categories.toMap
+
+    aggregations.map {
+      case bn:ByNameAggregation       =>
+        ByNameCategoryFunction(bn.getAttributeName)
+      case sp:StringPrefixAggregation =>
+        val cat = mappedCategories(sp.getAttributeName).asInstanceOf[PrefixCategoryDescriptor]
+        StringPrefixCategoryFunction(sp.getAttributeName, sp.getLength, cat.maxLength, cat.step)
+      case i:IntegerAggregation =>
+        IntegerCategoryFunction(i.getAttributeName, i.getGranularity, 10)   // TODO: Allow the factor to be configured via the descriptor
+      case d:DateAggregation =>
+        val cat = mappedCategories(d.getAttributeName).asInstanceOf[RangeCategoryDescriptor]
+        RangeTypeRegistry.categoryFunctionFor(d.getAttributeName, d.getGranularity, cat.getDataType)
+    }
   }
 
   /**
@@ -115,6 +136,17 @@ object CategoryUtil {
       case (name, _:SetCategoryDescriptor)    => builder.maybeAddSetConstraint(name)
       case (name, _:PrefixCategoryDescriptor) => builder.maybeAddStringPrefixConstraint(name)
       case (name, r:RangeCategoryDescriptor)  => RangeTypeRegistry.buildConstraint(builder, name, r)
+    }
+  }
+
+  /**
+   * Configures an AggregationBuilder based on the given category descriptors.
+   */
+  def buildAggregations(builder: AggregationBuilder, descriptors: Map[String, CategoryDescriptor]) {
+    descriptors.foreach {
+      case (name, _:SetCategoryDescriptor)    => // Nothing to do
+      case (name, _:PrefixCategoryDescriptor) => builder.maybeAddStringPrefixAggregation(name)
+      case (name, r:RangeCategoryDescriptor)  => RangeTypeRegistry.buildAggregation(builder, name, r)
     }
   }
 

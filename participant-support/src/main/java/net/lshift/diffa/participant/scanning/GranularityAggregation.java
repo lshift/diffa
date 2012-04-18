@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,12 @@
 package net.lshift.diffa.participant.scanning;
 
 /**
- * An aggregation by the name of the attribute value. Generally used when aggregating based on elements
- * out of a set.
+ * Marks an aggregation that uses some form of granularity to aggregate.
  */
-public class ByNameAggregation extends AbstractScanAggregation implements GranularityAggregation {
-  public ByNameAggregation(String name) {
-    super(name);
-  }
-
-  @Override
-  public String bucket(String attributeVal) {
-    return attributeVal;
-  }
-
-  @Override
-  public String getGranularityString() {
-    return "by-name";
-  }
+public interface GranularityAggregation extends ScanAggregation {
+  /**
+   * Retrieves a string form of the associated granularity.
+   * @return the string form.
+   */
+  String getGranularityString();
 }

@@ -19,10 +19,10 @@ package net.lshift.diffa.kernel.differencing
 import net.lshift.diffa.kernel.events._
 import net.lshift.diffa.kernel.participants._
 import scala.collection.JavaConversions._
-import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanConstraint, ScanResultEntry}
 
 
 /**
@@ -44,7 +44,7 @@ class CorrelatedVersionPolicy(stores:VersionCorrelationStoreFactory,
     val name = "DownstreamCorrelating"
 
 
-    def getAggregates(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint]) = {
+    def getAggregates(pair:DiffaPairRef, bucketing:Seq[ScanAggregation], constraints:Seq[ScanConstraint]) = {
       val aggregator = new Aggregator(bucketing)
       stores(pair).queryDownstreams(constraints, aggregator.collectDownstream)
       aggregator.digests

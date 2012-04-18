@@ -6,7 +6,7 @@
 
 ## New Features
 
-* [??] -
+* [107] - Added the ability to initiate a scan from behind a firewall
 
 ## General Maintenance
 

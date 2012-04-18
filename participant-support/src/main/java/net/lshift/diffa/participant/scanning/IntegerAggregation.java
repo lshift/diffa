@@ -18,7 +18,7 @@ package net.lshift.diffa.participant.scanning;
 /**
  * Aggregation for integers.
  */
-public class IntegerAggregation extends AbstractScanAggregation {
+public class IntegerAggregation extends AbstractScanAggregation implements GranularityAggregation {
   private final int granularity;
 
 
@@ -41,6 +41,11 @@ public class IntegerAggregation extends AbstractScanAggregation {
 
   public int getGranularity() {
     return granularity;
+  }
+
+  @Override
+  public String getGranularityString() {
+    return Integer.toString(granularity) + "s";
   }
 
   public static int parseGranularity(String granStr) {

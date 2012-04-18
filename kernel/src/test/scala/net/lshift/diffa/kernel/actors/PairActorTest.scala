@@ -37,8 +37,8 @@ import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, 
 import net.lshift.diffa.kernel.frontend.FrontendConversions
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.participant.scanning.{ScanResultEntry, SetConstraint, ScanConstraint}
 import net.lshift.diffa.kernel.util._
+import net.lshift.diffa.participant.scanning._
 
 class PairActorTest {
   import PairActorTest._
@@ -623,16 +623,17 @@ class PairActorTest {
 
   def propagateInventory(endpoint:Endpoint, side:EndpointSide) = {
     val monitor = new Object
+    val aggregations = Seq[ScanAggregation](new IntegerAggregation("foo2", 5))
     val constraints = Seq(new SetConstraint("foo", Set("a", "b")))
     val entries = Seq(ScanResultEntry.forEntity("id1", "v1", new DateTime, Map("foo" -> "a")))
 
-    expect(versionPolicy.processInventory(pairRef, endpoint, writer, side, constraints, entries))
+    expect(versionPolicy.processInventory(pairRef, endpoint, writer, side, constraints, aggregations, entries)).andReturn(Seq())
     expectDifferencesReplay(assertFlush = true, writerCloseMonitor = monitor)
 
     replay(store, diffWriter, versionPolicy, writer)
 
     supervisor.startActor(pair)
-    supervisor.submitInventory(pairRef, side, constraints, entries)
+    supervisor.submitInventory(pairRef, side, constraints, aggregations, entries)
 
     // submitInventory is an aysnc call, so yield the test thread to allow the actor to invoke the policy
     monitor.synchronized {

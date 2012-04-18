@@ -30,15 +30,16 @@ import org.junit.experimental.theories.{Theory, Theories, DataPoint}
 import org.easymock.{IAnswer, EasyMock}
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.config._
-import org.joda.time.{LocalDate, DateTime}
 import concurrent.SyncVar
-import net.lshift.diffa.kernel.util.NonCancellingFeedbackHandle
 import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.junit.Assume._
+import org.junit.Assert._
 import java.util.HashMap
 import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
+import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, NonCancellingFeedbackHandle}
+import org.joda.time.{DateTime, LocalDate}
 
 /**
  * Framework and scenario definitions for data-driven policy tests.
@@ -214,6 +215,148 @@ abstract class AbstractDataDrivenPolicyTest {
     verifyAll
   }
 
+  /**
+   * When a request is made to detail how an inventory should be started, the top-level constraints and aggregations
+   * should be returned.
+   */
+  @Theory
+  def shouldRequestTopLevelConstraintsAndAggregationsWhenStartingInventory(scenario:Scenario) {
+    setupStubs(scenario)
+
+    val expectedRequests = scenario.tx.map {
+      case tx:AggregateTx => new ScanRequest(tx.constraints.toSet[ScanConstraint], tx.bucketing.toSet[ScanAggregation])
+      case tx:EntityTx    => new ScanRequest(tx.constraints.toSet[ScanConstraint], Set[ScanAggregation]())
+    }
+    val actualUpstreamRequests = policy.startInventory(scenario.pair.asRef, scenario.upstreamEp, None, writer, UpstreamEndpoint)
+    val actualDownstreamRequests = policy.startInventory(scenario.pair.asRef, scenario.downstreamEp, None, writer, DownstreamEndpoint)
+
+    assertEquals(expectedRequests.toSet, actualUpstreamRequests.toSet)
+    assertEquals(expectedRequests.toSet, actualDownstreamRequests.toSet)
+  }
+
+  /**
+   * When an inventory submits aggregates that match the aggregates in the store, no additional requests will be
+   * returned.
+   */
+  @Theory
+  def shouldStopAtTopLevelWhenSubmittedAggregatesMatch(scenario:Scenario) {
+    setupStubs(scenario)
+    assumeTrue(scenario.tx.forall(_.isInstanceOf[AggregateTx]))     // Only relevant in scenarios where aggregation occurs
+
+    scenario.tx.foreach { case tx:AggregateTx =>
+      expectUpstreamStoreQuery(scenario.pair.asRef, tx.bucketing, tx.constraints, tx.respBuckets)
+      expectDownstreamStoreQuery(scenario.pair.asRef, tx.bucketing, tx.constraints, tx.respBuckets)
+    }
+
+    replayAll
+
+    scenario.tx.foreach { case tx:AggregateTx =>
+      val nextUpstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.upstreamEp, writer, UpstreamEndpoint,
+        tx.constraints, tx.bucketing, participantDigestResponse(tx.respBuckets))
+      val nextDownstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.downstreamEp, writer, DownstreamEndpoint,
+        tx.constraints, tx.bucketing, participantDigestResponse(tx.respBuckets))
+
+      assertEquals(Seq(), nextUpstreamSteps)
+      assertEquals(Seq(), nextDownstreamSteps)
+    }
+
+    verifyAll
+  }
+
+  /**
+   * If our store is empty, then when the top level aggregates are submitted, a step should be returned for all data in
+   * the submitted top levels.
+   */
+  @Theory
+  def shouldRequestLowestLevelsStraightAfterTopWhenStoreIsEmpty(scenario:Scenario) {
+    setupStubs(scenario)
+    assumeTrue(scenario.tx.forall(_.isInstanceOf[AggregateTx]))     // Only relevant in scenarios where aggregation occurs
+
+    scenario.tx.foreach { case tx:AggregateTx =>
+      expectUpstreamStoreQuery(scenario.pair.asRef, tx.bucketing, tx.constraints, Seq())
+      expectDownstreamStoreQuery(scenario.pair.asRef, tx.bucketing, tx.constraints, Seq())
+    }
+
+    replayAll
+
+    scenario.tx.foreach { case tx:AggregateTx =>
+      val nextUpstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.upstreamEp, writer, UpstreamEndpoint,
+        tx.constraints, tx.bucketing, participantDigestResponse(tx.respBuckets))
+      val nextDownstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.downstreamEp, writer, DownstreamEndpoint,
+        tx.constraints, tx.bucketing, participantDigestResponse(tx.respBuckets))
+
+      // The requests will be scan requests for the bucket's bounds with no aggregation
+      val expectedRequests = tx.respBuckets.map(b => new ScanRequest(b.nextTx.constraints.toSet[ScanConstraint], Set[ScanAggregation]()))
+
+      assertEquals(expectedRequests.toSet, nextUpstreamSteps.toSet)
+      assertEquals(expectedRequests.toSet, nextDownstreamSteps.toSet)
+    }
+
+    verifyAll
+  }
+
+  /**
+   * Scenario with the store being out-of-date for a upstream leaf-node.
+   */
+  @Theory
+  def shouldGenerateRequestsToCorrectOutOfDateEntity(scenario:Scenario) {
+    setupStubs(scenario)
+
+    scenario.tx.foreach { tx =>
+      // Alter the version of the first entity in the upstream tree, then expect traversal to it
+      val updated = tx.alterFirstVsn("newVsn1")
+
+      // Expect traversal down the first branch of the tree
+      traverseFirstBranch(updated, tx) {
+        case (tx1:AggregateTx, tx2:AggregateTx) =>
+          expectUpstreamStoreQuery(scenario.pair.asRef, tx2.bucketing, tx2.constraints, tx2.respBuckets)
+          expectDownstreamStoreQuery(scenario.pair.asRef, tx2.bucketing, tx2.constraints, tx2.respBuckets)
+        case (tx1:EntityTx, tx2:EntityTx) =>
+          expectUpstreamStoreQuery(scenario.pair.asRef, tx2.constraints, tx2.entities)
+          expectDownstreamStoreQuery(scenario.pair.asRef, tx2.constraints, tx2.entities)
+      }
+      expectUpstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
+      expectDownstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
+
+      // Expect to see an event about the version being matched (since we told the datastore to report it as matched)
+      // We'll see this twice (once for upstream, once for downstream)
+      listener.onMatch(VersionID(scenario.pair.asRef, updated.firstVsn.id), updated.firstVsn.vsn, TriggeredByScan)
+      expectLastCall.times(2)
+    }
+
+    replayAll
+
+    scenario.tx.foreach { tx =>
+      // Alter the version of the first entity in the upstream tree, then expect traversal to it
+      val updated = tx.alterFirstVsn("newVsn1")
+
+      traverseFirstBranch(updated, tx) {
+        case (tx1:AggregateTx, tx2:AggregateTx) =>
+          val nextUpstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.upstreamEp, writer, UpstreamEndpoint,
+            tx1.constraints, tx1.bucketing, participantDigestResponse(tx1.respBuckets))
+          val nextDownstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.downstreamEp, writer, DownstreamEndpoint,
+            tx1.constraints, tx1.bucketing, participantDigestResponse(tx1.respBuckets))
+
+          val expectedNextTx = tx2.respBuckets.head.nextTx
+          val expectedNextRequest = expectedNextTx match {
+            case atx:AggregateTx => new ScanRequest(atx.constraints.toSet[ScanConstraint], atx.bucketing.toSet[ScanAggregation])
+            case etx:EntityTx    => new ScanRequest(etx.constraints.toSet[ScanConstraint], Set[ScanAggregation]())
+          }
+          assertEquals(Seq(expectedNextRequest), nextUpstreamSteps)
+          assertEquals(Seq(expectedNextRequest), nextDownstreamSteps)
+        case (tx1:EntityTx, tx2:EntityTx) =>
+          val nextUpstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.upstreamEp, writer, UpstreamEndpoint,
+            tx1.constraints, Seq(), participantEntityResponse(tx1.entities))
+          val nextDownstreamSteps = policy.processInventory(scenario.pair.asRef, scenario.downstreamEp, writer, DownstreamEndpoint,
+            tx1.constraints, Seq(), participantEntityResponse(tx1.entities))
+          assertEquals(Seq(), nextUpstreamSteps)
+          assertEquals(Seq(), nextDownstreamSteps)
+      }
+    }
+
+    verifyAll
+  }
+
 
   //
   // Helpers
@@ -226,18 +369,29 @@ abstract class AbstractDataDrivenPolicyTest {
   protected def expectUpstreamAggregateScan(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint],
                                             partResp:Seq[Bucket], storeResp:Seq[Bucket]) {
     expect(usMock.scan(asUnorderedList(constraints), asUnorderedList(bucketing))).andReturn(participantDigestResponse(partResp))
+    expectUpstreamStoreQuery(pair, bucketing, constraints, storeResp)
+  }
+  protected def expectUpstreamStoreQuery(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint],
+                                         storeResp:Seq[Bucket]) {
     store.queryUpstreams(asUnorderedList(constraints), anyUnitF4)
       expectLastCall[Unit].andAnswer(UpstreamVersionAnswer(pair, storeResp))
   }
   protected def expectDownstreamAggregateScan(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint],
                                               partResp:Seq[Bucket], storeResp:Seq[Bucket]) {
     expect(dsMock.scan(asUnorderedList(constraints), asUnorderedList(bucketing))).andReturn(participantDigestResponse(partResp))
+    expectDownstreamStoreQuery(pair, bucketing, constraints, storeResp)
+  }
+  protected def expectDownstreamStoreQuery(pair:DiffaPairRef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint],
+                                           storeResp:Seq[Bucket]) {
     store.queryDownstreams(asUnorderedList(constraints), anyUnitF5)
       expectLastCall[Unit].andAnswer(DownstreamVersionAnswer(pair, storeResp))
   }
 
   protected def expectUpstreamEntityScan(pair:DiffaPairRef, constraints:Seq[ScanConstraint], partResp:Seq[Vsn], storeResp:Seq[Vsn]) {
     expect(usMock.scan(asUnorderedList(constraints), EasyMock.eq(Seq()))).andReturn(participantEntityResponse(partResp))
+    expectUpstreamStoreQuery(pair, constraints, storeResp)
+  }
+  protected def expectUpstreamStoreQuery(pair:DiffaPairRef, constraints:Seq[ScanConstraint], storeResp:Seq[Vsn]) {
     val correlations = storeResp.map(v=> {
       Correlation(id = v.id, upstreamAttributes = v.strAttrs, lastUpdate = v.lastUpdated, upstreamVsn = v.vsn)
     })
@@ -246,6 +400,9 @@ abstract class AbstractDataDrivenPolicyTest {
   }
   protected def expectDownstreamEntityScan(pair:DiffaPairRef, constraints:Seq[ScanConstraint], partResp:Seq[Vsn], storeResp:Seq[Vsn]) {
     expect(dsMock.scan(asUnorderedList(constraints), EasyMock.eq(Seq()))).andReturn(participantEntityResponse(partResp))
+    expectDownstreamStoreQuery(pair, constraints, storeResp)
+  }
+  protected def expectDownstreamStoreQuery(pair:DiffaPairRef, constraints:Seq[ScanConstraint], storeResp:Seq[Vsn]) {
     val correlations = storeResp.map(v=> {
       Correlation(id = v.id, downstreamAttributes = v.strAttrs, lastUpdate = v.lastUpdated, downstreamDVsn = v.vsn)
     })
@@ -258,7 +415,7 @@ abstract class AbstractDataDrivenPolicyTest {
       val downstreamVsnToUse = if (matched) { v.vsn } else { null }   // If we're matched, make the vsn match
 
       expect(writer.storeUpstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn)).
-        andReturn(new Correlation(null, pair, v.id, v.strAttrs, null, v.lastUpdated, new DateTime, v.vsn, downstreamVsnToUse, downstreamVsnToUse, matched))
+        andReturn(new Correlation(null, pair, v.id, v.strAttrs, null, v.lastUpdated, now, v.vsn, downstreamVsnToUse, downstreamVsnToUse, matched))
     })
   }
   protected def expectDownstreamEntityStore(pair:DiffaPairRef, entities:Seq[Vsn], matched:Boolean) {
@@ -266,7 +423,7 @@ abstract class AbstractDataDrivenPolicyTest {
       val upstreamVsnToUse = if (matched) { v.vsn } else { null }   // If we're matched, make the vsn match
 
       expect(writer.storeDownstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn, v.vsn)).
-        andReturn(new Correlation(null, pair, v.id, null, v.strAttrs, v.lastUpdated, new DateTime, upstreamVsnToUse, v.vsn, v.vsn, matched))
+        andReturn(new Correlation(null, pair, v.id, null, v.strAttrs, v.lastUpdated, now, upstreamVsnToUse, v.vsn, v.vsn, matched))
     })
   }
 
@@ -330,6 +487,12 @@ object AbstractDataDrivenPolicyTest {
   val localDatePrimedDescriptor = new RangeCategoryDescriptor("datetime", START_2023.toString, END_2023.toString)
 
   val domain = Domain(name="domain")
+
+  /**
+   * Provides a stable definition of now that can be used for updated timestamps
+   */
+  val now = new DateTime()
+
 
   @DataPoint def noCategoriesScenario = Scenario(
     DiffaPair(key = "ab", domain = domain),
@@ -693,7 +856,7 @@ object AbstractDataDrivenPolicyTest {
   case class Vsn(id:String, attrs:Map[String, Any], vsn:String) {
     def typedAttrs = attrs.map { case (k, v) => k -> toTyped(v) }.toMap
     def strAttrs = attrs.map { case (k, v) => k -> v.toString }.toMap
-    lazy val lastUpdated = new DateTime
+    val lastUpdated = now
 
     def alterVsn(newVsn:String) = {
       Vsn(id, attrs, newVsn)
