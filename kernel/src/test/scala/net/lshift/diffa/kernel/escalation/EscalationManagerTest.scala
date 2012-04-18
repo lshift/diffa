@@ -106,10 +106,10 @@ class EscalationManagerTest {
     expectActionsClient(entityScenario.invocations, callCompletionMonitor)
     expectReportManager(0)
 
-    notificationCentre.onMismatch(VersionID(pair.asRef, "id"), new DateTime(), entityScenario.uvsn, entityScenario.dvsn, entityScenario.matchOrigin, MatcherFiltered)
+    callCompletionMonitor.synchronized {
+      notificationCentre.onMismatch(VersionID(pair.asRef, "id"), new DateTime(), entityScenario.uvsn, entityScenario.dvsn, entityScenario.matchOrigin, MatcherFiltered)
 
-    if (entityScenario.invocations > 0) {
-      callCompletionMonitor.synchronized {
+      if (entityScenario.invocations > 0) {
         callCompletionMonitor.wait()
       }
     }
