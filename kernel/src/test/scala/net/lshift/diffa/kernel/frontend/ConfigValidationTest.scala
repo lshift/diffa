@@ -56,7 +56,34 @@ class ConfigValidationTest extends DefValidationTestBase {
       "config/pair[key=null]: key cannot be null or empty"
     )
   }
-  
+
+  @Test
+  def shouldRejectPairWithoutUpstreamEndpoint() {
+    validateError(
+      PairDef(key = "abc123", downstreamName = "e2"),
+      Set(EndpointDef(name = "e1"), EndpointDef(name = "e2")),
+      "config/pair[key=abc123]: upstreamName cannot be null or empty"
+    )
+  }
+
+  @Test
+  def shouldRejectPairWithoutDownstreamEndpoint() {
+    validateError(
+      PairDef(key = "abc123", upstreamName = "e1"),
+      Set(EndpointDef(name = "e1"), EndpointDef(name = "e2")),
+      "config/pair[key=abc123]: downstreamName cannot be null or empty"
+    )
+  }
+
+  @Test
+  def shouldRejectPairWithSameUpstreamAndDownstreamEndpoint() {
+    validateError(
+      PairDef(key = "abc123", upstreamName = "e1", downstreamName = "e1"),
+      Set(EndpointDef(name = "e1"), EndpointDef(name = "e2")),
+      "config/pair[key=abc123]: Upstream and Downstream endpoints must be different. Both are currently 'e1'"
+    )
+  }
+
   @Test
   def shouldRejectPairWithKeyThatIsTooLong {
     validateExceedsMaxKeyLength("config/pair[key=%s]: key",
@@ -88,6 +115,22 @@ class ConfigValidationTest extends DefValidationTestBase {
       Set(EndpointDef(name = "a"), EndpointDef(name = "b")),
       "config/pair[key=p]: Downstream endpoint 'c' is not defined"
     )
+  }
+
+  @Test
+  def shouldDefaultPairVersionPolicyToSame() {
+    val d = PairDef(key = "p", upstreamName = "e1", downstreamName = "e2")
+    d.validate("config")
+
+    assertEquals("same", d.versionPolicyName)
+  }
+
+  @Test
+  def shouldDefaultAllowManualScansToFalse() {
+    val d = PairDef(key = "p", upstreamName = "e1", downstreamName = "e2")
+    d.validate("config")
+
+    assertEquals(false, d.allowManualScans)
   }
 
   @Test

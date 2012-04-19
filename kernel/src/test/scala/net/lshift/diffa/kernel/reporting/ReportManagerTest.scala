@@ -31,9 +31,10 @@ class ReportManagerTest {
     domainDiffStore.clearAllDifferences
 
     systemConfigStore.createOrUpdateDomain(domain)
-    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e"))
+    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e1"))
+    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e2"))
     domainConfigStore.createOrUpdatePair(domainName,
-      PairDef(pair.key, versionPolicyName = "same", upstreamName = "e", downstreamName = "e"))
+      PairDef(pair.key, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2"))
   }
 
   @Test

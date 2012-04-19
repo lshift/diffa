@@ -11,6 +11,7 @@
 ## General Maintenance
 
 * [109] - Log a summary of each Query triggered by a participant scan.
+* [113] - Improve validation of pair definitions.
 * [??] -
 
 ## Library Upgrades

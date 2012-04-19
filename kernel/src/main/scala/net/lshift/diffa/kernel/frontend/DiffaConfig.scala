@@ -157,6 +157,10 @@ case class PairDef(
     scanCronSpec = ValidationUtil.maybeNullify(scanCronSpec)
     views.foreach(v => v.scanCronSpec = ValidationUtil.maybeNullify(v.scanCronSpec))
 
+    // Default various fields if they are missing
+    versionPolicyName = ValidationUtil.maybeDefault(versionPolicyName, "same")
+    allowManualScans = ValidationUtil.maybeDefault(allowManualScans, false)
+
     // Ensure that cron specs are valid
     if (scanCronSpec != null) {
       try {
@@ -169,9 +173,18 @@ case class PairDef(
       }
     }
 
-    // TODO: Currently, pairs are created directly via REST calls. In those scenarios, we don't have the full context
-      // with details of all the endpoints, so we can't validate that they exist. We should load endpoint definitions
-      // when this happens so we can continue to do the early consistency check.
+    // Ensure that we've got endpoint names defined
+    ValidationUtil.requiredAndNotEmpty(pairPath, "upstreamName", upstreamName)
+    ValidationUtil.requiredAndNotEmpty(pairPath, "downstreamName", downstreamName)
+
+    // Ensure that the upstream and downstream names are different
+    if (upstreamName == downstreamName) {
+      throw new ConfigValidationException(pairPath,
+        "Upstream and Downstream endpoints must be different. Both are currently '%s'".format(upstreamName))
+    }
+
+    // In some cases, validate might be called without providing the list of endpoints - so we won't be able to perform
+    // this validation.
     if (endpoints != null) {
       // Ensure that endpoints exist for both the specified upstream and downstream names
       val upstreamEp = endpoints.find(e => e.name == upstreamName).

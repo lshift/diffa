@@ -80,4 +80,14 @@ object ValidationUtil {
    * interface look like incorrect values instead of missing ones.
    */
   def maybeNullify(s:String) = if (s == null || s.isEmpty) null else s
+
+  /**
+   * Turns an empty or null string into a default value.
+   */
+  def maybeDefault(s:String, default:String) = if (s == null || s.isEmpty) default else s
+
+  /**
+   * Turns an empty boolean into a default value.
+   */
+  def maybeDefault(b:java.lang.Boolean, default:Boolean):java.lang.Boolean = if (b == null) default else b
 }
