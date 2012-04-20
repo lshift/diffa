@@ -505,6 +505,11 @@ Diffa.Helpers.bindPairEditor = function(el) {
         } else {
           pair = new Diffa.Models.Pair();
           pair.domain = domain;
+
+          // If we've got at least two endpoints, then try to make the endpoint selections sensible
+          if (domain.endpoints.length >= 2) {
+            pair.set({upstreamName: domain.endpoints.at(0).id, downstreamName: domain.endpoints.at(1).id});
+          }
         }
 
         return new Diffa.Views.PairEditor({
