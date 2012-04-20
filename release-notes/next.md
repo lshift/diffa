@@ -13,6 +13,7 @@
 
 * [109] - Log a summary of each Query triggered by a participant scan.
 * [113] - Improve validation of pair definitions.
+* [114] - Ensure that changes without attributes are processed.
 * [??]  -
 
 ## Library Upgrades

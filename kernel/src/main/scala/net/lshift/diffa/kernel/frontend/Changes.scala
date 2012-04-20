@@ -45,23 +45,24 @@ class Changes(val domainConfig:DomainConfigStore,
     log.debug("Received change event for %s %s: %s".format(domain, endpoint, evt))
 
     val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
-    val evtAttributes = targetEndpoint.schematize(evt.getAttributes.toMap)
+    val evtAttributes:Map[String, String] = if (evt.getAttributes != null) evt.getAttributes.toMap else Map()
+    val typedAttributes = targetEndpoint.schematize(evtAttributes)
 
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
       val pairEvt = if (pair.upstream == endpoint) {
-        UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getVersion)
+        UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), typedAttributes, evt.getLastUpdated, evt.getVersion)
       } else {
         if (pair.versionPolicyName == "same" || evt.getParentVersion == null) {
-          DownstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getVersion)
+          DownstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), typedAttributes, evt.getLastUpdated, evt.getVersion)
         } else {
-          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, evt.getId), evtAttributes, evt.getLastUpdated, evt.getParentVersion, evt.getVersion)
+          DownstreamCorrelatedPairChangeEvent(VersionID(pair.asRef, evt.getId), typedAttributes, evt.getLastUpdated, evt.getParentVersion, evt.getVersion)
         }
       }
 
       // Validate that the entities provided meet the constraints of the endpoint
       val endpointCategories = targetEndpoint.categories.toMap
       val issues = AttributesUtil.detectAttributeIssues(
-        endpointCategories, targetEndpoint.initialConstraints(None), evt.getAttributes.toMap, evtAttributes)
+        endpointCategories, targetEndpoint.initialConstraints(None), evtAttributes, typedAttributes)
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)
