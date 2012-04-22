@@ -52,7 +52,7 @@ object StandardEnvironment extends DatabaseEnvironment("")
 
 class DatabaseEnvironment(path: String) {
   def dbName: String = _dbName
-  def url: String = substitutableURL(path, System.getProperty("diffa.jdbc.url", "jdbc:hsqldb:mem"))
+  def url: String = substitutableURL(path, System.getProperty("diffa.jdbc.url", "jdbc:hsqldb:mem:%s"))
   def dialect: String = System.getProperty("diffa.hibernate.dialect", "org.hibernate.dialect.HSQLDialect")
   def driver: String = System.getProperty("diffa.jdbc.driver", "org.hsqldb.jdbc.JDBCDriver")
   def username: String = System.getProperty("diffa.jdbc.username", "SA")
