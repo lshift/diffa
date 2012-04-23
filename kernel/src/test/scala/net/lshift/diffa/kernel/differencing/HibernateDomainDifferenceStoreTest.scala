@@ -265,7 +265,7 @@ class HibernateDomainDifferenceStoreTest {
     val event2 = domainDiffStore.ignoreEvent("domain", event1.seqId)
     assertMatchState("domain", event2.seqId, MatchState.IGNORED)
 
-    val event3 = domainDiffStore.addMatchedEvent(id, "vsn")
+    val event3 = domainDiffStore.addMatchedEvent(id, "version")
     assertMatchState("domain", event3.seqId, MatchState.MATCHED)
   }
 
@@ -463,7 +463,7 @@ class HibernateDomainDifferenceStoreTest {
     domainDiffStore.addReportableUnmatchedEvent(id, timestamp, "uV", "dV", timestamp)
 
     // Match a previously unmatched event and then kick off the event reaping process
-    val event = domainDiffStore.addMatchedEvent(id, "vsn")
+    val event = domainDiffStore.addMatchedEvent(id, "version")
     domainDiffStore.matchEventsOlderThan(DiffaPairRef("pair2","domain"), new DateTime())
 
     // The event reaping process should not have created a new sequence number

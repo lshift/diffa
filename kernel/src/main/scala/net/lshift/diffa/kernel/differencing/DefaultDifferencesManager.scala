@@ -220,7 +220,7 @@ class DefaultDifferencesManager(
    */
   def onMatch(id: VersionID, vsn: String, origin:MatchOrigin) {
     if (log.isTraceEnabled) {
-      log.trace("Processing match for " + id + " with vsn '" + vsn + "'")
+      log.trace("Processing match for " + id + " with version '" + vsn + "'")
     }
     addMatched(id, vsn)
   }

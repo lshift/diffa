@@ -28,8 +28,8 @@ import static org.junit.Assert.*;
 public class ChangeEventTest {
 
   @DataPoint public static ChangeEvent completelyEmptyEvent = new ChangeEvent();
-  @DataPoint public static ChangeEvent nullIdWithValidVersion = new ChangeEvent(null,"vsn", null, null, null);
-  @DataPoint public static ChangeEvent emptyIdWithValidVersion = new ChangeEvent("" ,"vsn", null, null, null);
+  @DataPoint public static ChangeEvent nullIdWithValidVersion = new ChangeEvent(null,"version", null, null, null);
+  @DataPoint public static ChangeEvent emptyIdWithValidVersion = new ChangeEvent("" ,"version", null, null, null);
   @DataPoint public static ChangeEvent validIdWithEmptyVersion = new ChangeEvent("id" , "", null, null, null);
   @DataPoint public static ChangeEvent validIdWithNullVersion = new ChangeEvent("id" , null, null, null, null);
 
@@ -43,7 +43,7 @@ public class ChangeEventTest {
   public void shouldAcceptMinimumFields() {
     ChangeEvent validEvent = new ChangeEvent();
     validEvent.setId("id");
-    validEvent.setVersion("vsn");
+    validEvent.setVersion("version");
     validEvent.ensureContainsMandatoryFields();
   }
 }

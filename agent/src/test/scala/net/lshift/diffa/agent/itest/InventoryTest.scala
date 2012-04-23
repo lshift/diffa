@@ -52,7 +52,7 @@ class InventoryTest extends AbstractEnvironmentTest {
   @Test
   def shouldGenerateDifferencesBasedUponAnInventoryBeingUploaded() {
     env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
@@ -73,7 +73,7 @@ class InventoryTest extends AbstractEnvironmentTest {
         Seq(new SetConstraint("someString", Set("ss"))),
         Seq(new DateAggregation("someDate", DateGranularityEnum.Yearly)),
         csv(
-        "vsn,someString,someDate",
+        "version,someString,someDate",
         "v1,ss,2012"
       ))
 
@@ -86,14 +86,14 @@ class InventoryTest extends AbstractEnvironmentTest {
   @Test
   def shouldResolveDifferencesWhenMatchingInventoryIsUploadedForDownstream() {
     env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
     env.differencesHelper.waitFor(yesterday, tomorrow, DiffCount(2))
 
     env.inventoryClient.uploadInventory(env.downstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
@@ -103,12 +103,12 @@ class InventoryTest extends AbstractEnvironmentTest {
   @Test
   def shouldSeeTheDifferencesBetweenTwoInventories() {
     env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
     env.inventoryClient.uploadInventory(env.downstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v3,tt,2012-03-10T10:05:12Z",
       "id3,v3,tt,2012-03-10T10:05:12Z"
@@ -128,7 +128,7 @@ class InventoryTest extends AbstractEnvironmentTest {
   @Test
   def shouldAllowInventoryRegionToBeRestrictedToAllowPartialUpload() {
     env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
@@ -136,11 +136,11 @@ class InventoryTest extends AbstractEnvironmentTest {
 
     // Upload the downstream inventory in two parts
     env.inventoryClient.uploadInventory(env.downstreamEpName, Seq(new SetConstraint("someString", Set("ss"))), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z"
     ))
     env.inventoryClient.uploadInventory(env.downstreamEpName, Seq(new SetConstraint("someString", Set("tt"))), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id2,v2,tt,2012-03-10T10:05:12Z",
       "id3,v3,tt,2012-03-10T10:05:12Z"
     ))
@@ -153,7 +153,7 @@ class InventoryTest extends AbstractEnvironmentTest {
   def shouldRejectAnInventoryUploadWithMissingColumnsWithABadRequestResponse() {
     try {
       env.inventoryClient.uploadInventory(env.upstreamEpName, None, Seq(), Seq(), csv(
-        "id,vsn,someString",
+        "id,version,someString",
         "id1,v1,ss",
         "id2,v2,tt"
       ))
@@ -172,7 +172,7 @@ class InventoryTest extends AbstractEnvironmentTest {
       // The constraint someString=qq on the upload isn't valid, since the someString category only
       // supports ss and tt.
       env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(new SetConstraint("someString", Set("qq"))), Seq(), csv(
-        "id,vsn,someString,someDate",
+        "id,version,someString,someDate",
         "id2,v2,qq,2012-03-10T10:05:12Z",
         "id3,v3,qq,2012-03-10T10:05:12Z"
       ))
@@ -188,7 +188,7 @@ class InventoryTest extends AbstractEnvironmentTest {
   @Test
   def shouldAllowInventoryToBeUploadedForView() {
     env.inventoryClient.uploadInventory(env.upstreamEpName, Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z",
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
@@ -197,11 +197,11 @@ class InventoryTest extends AbstractEnvironmentTest {
     // Upload the downstream inventory in two parts. One as a constrained upload, the other as a view that will constrain
     // the changes to the someString=tt region.
     env.inventoryClient.uploadInventory(env.downstreamEpName, Seq(new SetConstraint("someString", Set("ss"))), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id1,v1,ss,2012-03-09T09:04:00Z"
     ))
     env.inventoryClient.uploadInventory(env.downstreamEpName, Some("tt-only"), Seq(), Seq(), csv(
-      "id,vsn,someString,someDate",
+      "id,version,someString,someDate",
       "id2,v2,tt,2012-03-10T10:05:12Z",
       "id3,v3,tt,2012-03-10T10:05:12Z"
     ))

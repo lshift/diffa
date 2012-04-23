@@ -167,7 +167,7 @@ class DefaultDifferencesManagerTest {
 
     expectDifferenceForPair(pair1, pair2)
 
-    manager.onMatch(VersionID(DiffaPairRef(pair1.key,"domain"), "id"), "vsn", LiveWindow)
+    manager.onMatch(VersionID(DiffaPairRef(pair1.key,"domain"), "id"), "version", LiveWindow)
 
     verifyAll
   }

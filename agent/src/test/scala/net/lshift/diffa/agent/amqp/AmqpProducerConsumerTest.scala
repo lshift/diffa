@@ -46,7 +46,7 @@ class AmqpProducerConsumerTest {
       autoDelete = true;
     }
 
-    val expectedEvent = ChangeEvent.forChange("id", "vsn", new DateTime().withZone(DateTimeZone.UTC))
+    val expectedEvent = ChangeEvent.forChange("id", "version", new DateTime().withZone(DateTimeZone.UTC))
 
     new AccentReceiver(con, params, "domain", "endpoint", new Changes(null,null,null,null) {
 
@@ -95,7 +95,7 @@ class AmqpProducerConsumerTest {
 
     val producer = new AccentSender(con, params.queueName)
 
-    val event = ChangeEvent.forChange("id", "vsn", new DateTime)
+    val event = ChangeEvent.forChange("id", "version", new DateTime)
     producer.send(JSONHelper.writeChangeEvent(event))
 
     monitor.synchronized {
