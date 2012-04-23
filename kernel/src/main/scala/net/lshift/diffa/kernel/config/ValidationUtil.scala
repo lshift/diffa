@@ -76,6 +76,19 @@ object ValidationUtil {
   }
 
   /**
+   * Checks a settings URL to confirm it is in the correct format.
+   *
+   * If the URL is invalid, throws ConfigValidationException, otherwise returns true.
+   */
+  def ensureSettingsURLFormat(path: String,  url: String): Boolean = {
+    if (!url.matches("(amqp|https?)://.*")) {
+      throw new ConfigValidationException(path, "incorrect settings URL format: %s".format(url))
+    }
+
+    return true
+  }
+
+  /**
    * Turns an empty string into a null string. This prevents issues whereby empty strings provided by the web
    * interface look like incorrect values instead of missing ones.
    */

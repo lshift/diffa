@@ -82,6 +82,11 @@ case class EndpointDef (
     ValidationUtil.ensureLengthLimit(endPointPath, "contentRetrievalUrl", contentRetrievalUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "versionGenerationUrl", versionGenerationUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "inboundUrl", inboundUrl, DEFAULT_URL_LENGTH_LIMIT)
+    
+    Array(scanUrl,
+          contentRetrievalUrl,
+          versionGenerationUrl,
+          inboundUrl).foreach(ValidationUtil.ensureSettingsURLFormat(endPointPath, _))
 
     categories.foreach { case (k, c) => {
       val categoryPath = ValidationUtil.buildPath(endPointPath, "category", Map("name" -> k))
