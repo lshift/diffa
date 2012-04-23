@@ -14,7 +14,7 @@
 * [109] - Log a summary of each Query triggered by a participant scan.
 * [113] - Improve validation of pair definitions.
 * [114] - Ensure that changes without attributes are processed.
-* [??]  -
+* [118] - Make sure that ChangeEvents contain the mandatory fields
 
 ## Library Upgrades
 

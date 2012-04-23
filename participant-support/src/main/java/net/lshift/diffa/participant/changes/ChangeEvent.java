@@ -15,6 +15,7 @@
  */
 package net.lshift.diffa.participant.changes;
 
+import net.lshift.diffa.participant.common.MissingMandatoryFieldException;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.joda.time.DateTime;
 
@@ -108,6 +109,19 @@ public class ChangeEvent {
   }
   public void setAttributes(Map<String, String> attributes) {
     this.attributes = attributes;
+  }
+
+  /**
+   * Verifies that the mandatory fields are set.
+   * @throws MissingMandatoryFieldException If a mandatory field is missing
+   */
+  public void ensureContainsMandatoryFields() {
+    if (id == null || id.length() == 0) {
+      throw new MissingMandatoryFieldException("id");
+    }
+    if (version == null || version.length() == 0) {
+      throw new MissingMandatoryFieldException("version");
+    }
   }
 
   @Override

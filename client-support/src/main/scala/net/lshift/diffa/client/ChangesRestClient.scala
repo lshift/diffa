@@ -32,6 +32,13 @@ class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, pa
   def onChangeEvent(evt:ChangeEvent) {
     val baos = new ByteArrayOutputStream
     JSONHelper.writeChangeEvent(baos, evt)
-    submit(endpoint, new String(baos.toByteArray, "UTF-8"))
+    val response = submit(endpoint, new String(baos.toByteArray, "UTF-8"))
+    response.getStatus match {
+      case 202 => // This is fine, just continue
+      case 400 => throw new InvalidChangeEventException(evt)
+      case x   => throw new Exception("Got %s response for event %s".format(x, evt))
+    }
   }
 }
+// Denotes an invalid change event
+class InvalidChangeEventException(e:ChangeEvent) extends Exception(e.toString)

@@ -44,6 +44,8 @@ class Changes(val domainConfig:DomainConfigStore,
   def onChange(domain:String, endpoint:String, evt:ChangeEvent) {
     log.debug("Received change event for %s %s: %s".format(domain, endpoint, evt))
 
+    evt.ensureContainsMandatoryFields();
+
     val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
     val evtAttributes:Map[String, String] = if (evt.getAttributes != null) evt.getAttributes.toMap else Map()
     val typedAttributes = targetEndpoint.schematize(evtAttributes)
