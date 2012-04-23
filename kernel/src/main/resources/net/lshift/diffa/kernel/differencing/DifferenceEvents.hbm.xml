@@ -87,20 +87,6 @@
     delete from PendingDifferenceEvent where objId.pair.domain = :domain
   </query>
 
-  <query name="removeDiffsByEntityId">
-    delete from ReportedDifferenceEvent
-    where objId.pair.domain = :domain_name
-    and objId.pair.key = :pair_key
-    and objId.id = :entity_id
-  </query>
-
-  <query name="removePendingDiffsByEntityId">
-    delete from PendingDifferenceEvent
-    where objId.pair.domain = :domain_name
-    and objId.pair.key = :pair_key
-    and objId.id = :entity_id
-  </query>
-
   <query name="expireMatches"><![CDATA[
     delete from ReportedDifferenceEvent where lastSeen < :cutoff and isMatch = true
   ]]></query>

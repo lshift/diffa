@@ -141,20 +141,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     })
   }
 
-  def removeEvents(events:Iterable[VersionID]) = sessionFactory.withSession(s => {
-    events.foreach(event => {
-      val pair = event.getPair()
-      val params = Map("domain_name" -> pair.domain,
-                       "pair_key"    -> pair.key,
-                       "entity_id"   -> event.id)
-      executeUpdate(s, "removeDiffsByEntityId", params)
-      executeUpdate(s, "removePendingDiffsByEntityId", params)
-
-        // TODO: Update cache for removed event region
-      //updateZoomCache(pair, event.detectedAt)
-    })
-  })
-
   /**
    * Convert all unmatched DifferenceEvents with a lastSeen time earlier
    * than the cut-off to matched DifferenceEvents (matched: false -> true).

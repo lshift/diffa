@@ -79,7 +79,9 @@ class DefaultDifferencesManager(
       }
     }
 
-    def evictTombstones(tombstones:Iterable[Correlation]) = domainDifferenceStore.removeEvents(tombstones.map(_.asVersionID))
+    def evictTombstones(tombstones:Iterable[Correlation]) {
+      tombstones.foreach(t => onMatch(t.asVersionID, t.upstreamVsn, TriggeredByScan))
+    }
 
     def abort() {
       // Nothing to do

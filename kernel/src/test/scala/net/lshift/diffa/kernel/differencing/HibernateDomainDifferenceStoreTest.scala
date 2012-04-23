@@ -191,34 +191,6 @@ class HibernateDomainDifferenceStoreTest {
   }
 
   @Test
-  def shouldRemoveReportedEventsById() {
-    val timestamp = new DateTime()
-    val pair = DiffaPairRef("pair2", "domain")
-
-    def versionId(i:Int) = VersionID(pair, "id-" + i)
-
-    val events = 100
-
-    for (i <- 0 until events) {
-      domainDiffStore.addReportableUnmatchedEvent(versionId(i), timestamp, "uV-" + i, "dV-" + i, timestamp)
-    }
-
-    def checkUnmatched(expectation:Int) = {
-      val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
-      val unmatched = domainDiffStore.retrieveUnmatchedEvents("domain", interval)
-      assertEquals(expectation, unmatched.length)
-    }
-
-    checkUnmatched(events)
-
-    val toDelete = for (i <- 0 until (events / 2)) yield versionId(i)
-    domainDiffStore.removeEvents(toDelete)
-
-    checkUnmatched(events / 2)
-
-  }
-
-  @Test
   def shouldReportUnmatchedEventWithinInterval() {
     val start = new DateTime(2004, 11, 6, 3, 5, 15, 0)
     val size = 60
