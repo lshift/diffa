@@ -40,6 +40,24 @@ class ValidationUtilTest {
   def testURLisInvalid(input: String) {
     assert(urlValidOrInvalid(input) == false)
   }
+
+  def domainNameValidOrInvalid(input: String): Boolean = {
+    var result = try {
+      ValidationUtil.ensureDomainNameFormat("ValidationUtilTest", input)
+    } catch {
+      case cve: ConfigValidationException => false
+    }
+
+    return result
+  }
+  
+  def testDomainNameIsValid(input: String) {
+    assert(domainNameValidOrInvalid(input) == true)
+  }
+  
+  def testDomainNameIsInvalid(input: String) {
+    assert(domainNameValidOrInvalid(input) == false)
+  }
   
   @Test
   def httpURLShouldValidate() {
@@ -60,5 +78,17 @@ class ValidationUtilTest {
   def invalidURLsShouldNotValidate() {
     val urls = Array("foo://bar", "ftp://")
     urls.foreach(testURLisInvalid(_))
+  }
+  
+  @Test
+  def validDomainNamesShouldValidate() {
+    val validDomains = Array("foo", "foo2", "2foo", "foo-bar", "foo_bar", "foo2-2bar", "foo2_2_bar", "a", "ab")
+    validDomains.foreach(testDomainNameIsValid(_))
+  }
+
+  @Test
+  def invalidDomainNamesShouldNotValidate() {
+    val invalidDomains = Array("testing-", "-testing", "_testing", "testing_")
+    invalidDomains.foreach(testDomainNameIsInvalid(_))
   }
 }

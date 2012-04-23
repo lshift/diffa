@@ -91,6 +91,24 @@ object ValidationUtil {
   }
 
   /**
+   * Validates that the given domain name has the correct format.
+   *
+   * Returns true if the domain name contains alphanumeric, _ or - only,
+   * and starts and ends with an alphanumeric.
+   *
+   * Throws ConfigValidationException otherwise.
+   */
+  def ensureDomainNameFormat(path: String,  name: String): Boolean = {
+    if (name == null) { return true }
+
+    if (!name.matches("(?i)[a-z0-9]([a-z0-9_-]*[a-z0-9])?")) {
+      throw new ConfigValidationException(path, "Domain name %s is invalid, must begin and end with an alphanumeric and contain alphanumeric, _ or -".format(name))
+    }
+
+    return true
+  }
+
+  /**
    * Turns an empty string into a null string. This prevents issues whereby empty strings provided by the web
    * interface look like incorrect values instead of missing ones.
    */

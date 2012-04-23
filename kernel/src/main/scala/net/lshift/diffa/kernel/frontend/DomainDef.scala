@@ -30,6 +30,7 @@ case class DomainDef(@BeanProperty var name: String = null) {
     val domainPath = ValidationUtil.buildPath(path, "domain", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(domainPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureDomainNameFormat(domainPath, domainPath)
   }
 
 }
