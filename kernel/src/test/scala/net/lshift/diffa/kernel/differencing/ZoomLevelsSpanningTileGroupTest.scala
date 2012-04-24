@@ -18,17 +18,17 @@ package net.lshift.diffa.kernel.differencing
 
 import org.junit.runner.RunWith
 import org.junit.Assert._
-import net.lshift.diffa.kernel.differencing.SpanningTileGroupTest.Scenario
-import ZoomCache._
+import net.lshift.diffa.kernel.differencing.ZoomLevelsSpanningTileGroupTest.Scenario
+import ZoomLevels._
 import org.junit.experimental.theories.{DataPoint, Theory, Theories}
 import org.joda.time.{DateTimeZone, Interval, DateTime}
 
 @RunWith(classOf[Theories])
-class SpanningTileGroupTest {
+class ZoomLevelsSpanningTileGroupTest {
 
   @Theory
   def shouldContainTileGroup(s:Scenario) = {
-    assertEquals(s.timestamps, ZoomCache.containingTileGroupEdges(s.interval, s.zoomLevel))
+    assertEquals(s.timestamps, ZoomLevels.containingTileGroupEdges(s.interval, s.zoomLevel))
   }
 }
 
@@ -38,7 +38,7 @@ class SpanningTileGroupTest {
  * - Span day boundaries
  * - Sub-hourly zoom level queries that span boundaries within the day but not across midnight boundaries
  */
-object SpanningTileGroupTest {
+object ZoomLevelsSpanningTileGroupTest {
 
   // Interday spanning queries
 

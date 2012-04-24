@@ -20,6 +20,7 @@ import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.config.{DomainScopedKey, Domain, DiffaPairRef, DiffaPair}
 import org.hibernate.dialect.{Oracle10gDialect, Dialect}
 import net.lshift.hibernate.migrations.dialects.{MySQL5DialectExtension, OracleDialectExtension, DialectExtensionSelector}
+import org.hibernate.criterion.{Projections, Restrictions}
 
 /**
  * Hibernate backed Domain Cache provider.
@@ -28,18 +29,8 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     extends DomainDifferenceStore
     with HibernateQueryUtils {
 
-  val zoomCache = new ZoomCacheProvider(this, cacheManager)
+  val aggregationCache = new DifferenceAggregationCache(this, cacheManager)
   val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
-
-  val zoomQueries = Map(
-    ZoomCache.QUARTER_HOURLY -> "15_minute_aggregation",
-    ZoomCache.HALF_HOURLY    -> "30_minute_aggregation",
-    ZoomCache.HOURLY         -> "60_minute_aggregation",
-    ZoomCache.TWO_HOURLY     -> "120_minute_aggregation",
-    ZoomCache.FOUR_HOURLY    -> "240_minute_aggregation",
-    ZoomCache.EIGHT_HOURLY   -> "480_minute_aggregation",
-    ZoomCache.DAILY          -> "daily_aggregation"
-  )
 
   val columnMapper = new TimestampColumnDateTimeMapper()
 
@@ -67,6 +58,18 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
   
   def currentSequenceId(domain:String) = sessionFactory.withSession(s => {
     singleQueryOpt[java.lang.Integer](s, "maxSeqIdByDomain", Map("domain" -> domain)).getOrElse(0).toString
+  })
+
+  def maxSequenceId(pair: DiffaPairRef, start:DateTime, end:DateTime) = sessionFactory.withSession(s => {
+    val c = s.createCriteria(classOf[ReportedDifferenceEvent])
+    c.add(Restrictions.eq("objId.pair.domain", pair.domain))
+    c.add(Restrictions.eq("objId.pair.key", pair.key))
+    if (start != null) c.add(Restrictions.ge("detectedAt", start))
+    if (end != null) c.add(Restrictions.lt("detectedAt", end))
+    c.setProjection(Projections.max("seqId"))
+
+    val count:Option[java.lang.Integer] = Option(c.uniqueResult().asInstanceOf[java.lang.Integer])
+    count.getOrElse(new java.lang.Integer(0)).intValue
   })
 
   def addPendingUnmatchedEvent(id: VersionID, lastUpdate: DateTime, upstreamVsn: String, downstreamVsn: String, seen: DateTime) {
@@ -236,102 +239,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     processAsStream[ReportedDifferenceEvent]("unmatchedEventsByDomainAndPair",
       Map("domain" -> pairRef.domain, "pair" -> pairRef.key), (s, diff) => handler(diff))
 
-  def aggregateUnmatchedEvents(pair:DiffaPairRef, interval:Interval, zoomLevel:Int) : Seq[AggregateEvents] = sessionFactory.withSession(s => {
-
-    val query = s.getNamedQuery(zoomQueries(zoomLevel))
-
-    query.setParameter("domain", pair.domain)
-    query.setParameter("pair", pair.key)
-    query.setParameter("lower_bound", columnMapper.toNonNullValue(interval.getStart))
-    query.setParameter("upper_bound", columnMapper.toNonNullValue(interval.getEnd))
-
-    val (matched, ignored) = dialect.getTypeName(Types.BIT) match {
-      case "bool" => (false, false)
-      case _      => (0, 0)
-    }
-
-    query.setParameter("matched", matched)
-    query.setParameter("ignored", ignored)
-
-    query.setResultTransformer(new ResultTransformer() {
-      def transformTuple(tuple: Array[AnyRef], aliases: Array[String]) = {
-
-        // Note to maintainers:
-        // The reason why the type casting is selective is because the SQL return value of the extract function
-        // maps to an Int, whereas the SQL return value of floor * int maps to BigInteger
-
-        // I could have tried to cast to something consistent in the DB, but I wanted to get the statements to be
-        // portable first - it might worth streamlining this in due course.
-
-
-        // The minute column is only relevant for sub hourly aggregates
-
-        val minutes = if (zoomLevel > ZoomCache.HOURLY) {
-          readIntColumn(tuple(4), false, dialect)
-        } else {
-          0
-        }
-
-        // Super hourly queries involve the floor * int function for the hour component
-
-        val hours = if (zoomLevel <= ZoomCache.TWO_HOURLY && zoomLevel >= ZoomCache.EIGHT_HOURLY) {
-          readIntColumn(tuple(3), false, dialect)
-        } else if (zoomLevel > ZoomCache.TWO_HOURLY) {
-
-          // Hourly and sub-hourly just extract the hour component as a small int
-
-          readIntColumn(tuple(3), true, dialect)
-        } else {
-
-          // Daily queries do not group by hours if any case
-
-          0
-        }
-
-        val start = new DateTime(
-          readIntColumn(tuple(0), true, dialect),
-          readIntColumn(tuple(1), true, dialect),
-          readIntColumn(tuple(2), true, dialect),
-          hours, minutes, 0, 0, DateTimeZone.UTC)
-        val interval = ZoomCache.intervalFromStartTime(start, zoomLevel)
-        AggregateEvents(interval, readIntColumn(tuple.last, true, dialect))
-      }
-
-      def transformList(collection: List[_]) = collection
-    })
-
-    query.list.map(item => item.asInstanceOf[AggregateEvents])
-  })
-
-  private def readIntColumn(column:Object, small:Boolean, dialect:Dialect) : Int = {
-    // The following obscure code is to deal with the fact that Oracle drivers pre-10g
-    // will return a BigDecimal in calls to getObject on all INTEGER columns, whereas
-    // the 10g driver may return an Int (but not always!)
-    if (DialectExtensionSelector.select(dialect).isInstanceOf[OracleDialectExtension]) {
-      try {
-        column.asInstanceOf[Int].intValue()
-      } catch {
-        case classCastEx: java.lang.ClassCastException =>
-          column.asInstanceOf[java.math.BigDecimal].intValue()
-      }
-      // Also, MySQL may return objects as BigIntegers from Int columns
-    } else if (DialectExtensionSelector.select(dialect).isInstanceOf[MySQL5DialectExtension]) {
-      try {
-        column.asInstanceOf[Int].intValue()
-      } catch {
-        case classCastEx: java.lang.ClassCastException =>
-          column.asInstanceOf[java.math.BigInteger].intValue()
-      }
-    } else {
-      if (small) {
-        column.asInstanceOf[Int].intValue()
-      }
-      else {
-        column.asInstanceOf[BigInteger].intValue()
-      }
-    }
-  }
-
   // TODO consider removing this in favor of aggregateUnmatchedEvents/3
   @Deprecated
   def retrieveUnmatchedEvents(pair:DiffaPairRef, interval:Interval, f:ReportedDifferenceEvent => Unit) = {
@@ -359,10 +266,17 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
       map(_.asDifferenceEvent)
   })
 
-  def countUnmatchedEvents(pair: DiffaPairRef, interval: Interval):Int =  sessionFactory.withSession(s => {
-    val count:Option[java.lang.Long] = singleQueryOpt[java.lang.Long](s, "countEventsInIntervalByDomainAndPair",
-      Map("domain" -> pair.domain, "pair" -> pair.key, "start" -> interval.getStart, "end" -> interval.getEnd))
+  def countUnmatchedEvents(pair: DiffaPairRef, start:DateTime, end:DateTime):Int =  sessionFactory.withSession(s => {
+    val c = s.createCriteria(classOf[ReportedDifferenceEvent])
+    c.add(Restrictions.eq("objId.pair.domain", pair.domain))
+    c.add(Restrictions.eq("objId.pair.key", pair.key))
+    if (start != null) c.add(Restrictions.ge("detectedAt", start))
+    if (end != null) c.add(Restrictions.lt("detectedAt", end))
+    c.add(Restrictions.eq("isMatch", false))
+    c.add(Restrictions.eq("ignored", false))
+    c.setProjection(Projections.count("seqId"))
 
+    val count:Option[java.lang.Long] = Option(c.uniqueResult().asInstanceOf[java.lang.Long])
     count.getOrElse(new java.lang.Long(0L)).intValue
   })
 
@@ -371,8 +285,15 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
       Map("domain" -> domain, "seqId" -> Integer.parseInt(evtSeqId))).map(_.asDifferenceEvent)
   })
 
-  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) =
-    zoomCache.retrieveTilesForZoomLevel(pair, zoomLevel, timestamp)
+  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) = {
+    val alignedTimespan = ZoomLevels.containingTileGroupInterval(timestamp, zoomLevel)
+    val aggregateMinutes = ZoomLevels.lookupZoomLevel(zoomLevel)
+    val aggregates =
+      aggregationCache.retrieveAggregates(pair, alignedTimespan.getStart, alignedTimespan.getEnd, Some(aggregateMinutes))
+
+    val interestingAggregates = aggregates.filter(t => t.count > 0)
+    Some(TileGroup(alignedTimespan.getStart, interestingAggregates.map(t => t.start -> t.count).toMap))
+  }
 
   def getEvent(domain:String, evtSeqId: String) = sessionFactory.withSession(s => {
     singleQueryOpt[ReportedDifferenceEvent](s, "eventByDomainAndSeqId",
@@ -389,7 +310,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
   }
 
   def clearAllDifferences = sessionFactory.withSession(s => {
-    zoomCache.clear
+    aggregationCache.clear
     s.createQuery("delete from ReportedDifferenceEvent").executeUpdate()
     s.createQuery("delete from PendingDifferenceEvent").executeUpdate()
   })
@@ -421,7 +342,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
               // Update the last time it was seen
               existing.lastSeen = reportableUnmatched.lastSeen
               s.update(existing)
-              updateZoomCache(existing.objId.pair, reportableUnmatched.detectedAt)
+                // No need to update the aggregate cache, since it won't affect the aggregate counts
               existing.asDifferenceEvent
             } else {
               s.delete(existing)
@@ -444,13 +365,15 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
 
 
   private def saveAndConvertEvent(s:Session, evt:ReportedDifferenceEvent) = {
-    updateZoomCache(evt.objId.pair, evt.detectedAt)
-    persistAndConvertEventInternal(s, evt)
+    val res = persistAndConvertEventInternal(s, evt)
+    updateAggregateCache(evt.objId.pair, evt.detectedAt)
+    res
   }
 
   private def saveAndConvertEvent(s:Session, evt:ReportedDifferenceEvent, previousDetectionTime:DateTime) = {
-    updateZoomCache(evt.objId.pair, previousDetectionTime)
-    persistAndConvertEventInternal(s, evt)
+    val res = persistAndConvertEventInternal(s, evt)
+    updateAggregateCache(evt.objId.pair, previousDetectionTime)
+    res
   }
 
   private def persistAndConvertEventInternal(s:Session, evt:ReportedDifferenceEvent) = {
@@ -459,7 +382,8 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     evt.asDifferenceEvent
   }
 
-  private def updateZoomCache(pair:DiffaPairRef, detectedAt:DateTime) = zoomCache.onStoreUpdate(pair, detectedAt)
+  private def updateAggregateCache(pair:DiffaPairRef, detectedAt:DateTime) =
+    aggregationCache.onStoreUpdate(pair, detectedAt)
 }
 
 case class PendingDifferenceEvent(

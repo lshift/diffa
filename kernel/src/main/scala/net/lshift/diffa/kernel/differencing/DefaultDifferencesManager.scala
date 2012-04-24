@@ -101,14 +101,15 @@ class DefaultDifferencesManager(
   }
 
   def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timespan:Interval) : Array[Int] = {
-    val groupStartTimes = ZoomCache.containingTileGroupEdges(timespan, zoomLevel)
+        
+    val groupStartTimes = ZoomLevels.containingTileGroupEdges(timespan, zoomLevel)
     // There must be a better way to do this map filter ......
     val tileGroups = groupStartTimes.map(t => domainDifferenceStore.retrieveEventTiles(pair, zoomLevel, t)).filter(_.isDefined).map(_.get)
     val unfiltered = tileGroups.flatMap(g => g.tiles).map{case (k,v) => k -> v }
-    val alignedInterval = ZoomCache.alignInterval(timespan, zoomLevel)
+    val alignedInterval = ZoomLevels.alignInterval(timespan, zoomLevel)
     // Note the half open semantics of the contains method
     val filtered = unfiltered.filter{case (d, i) => alignedInterval.contains(d) || alignedInterval.getEnd == d}.toMap
-    val tileEdges = ZoomCache.individualTileEdges(timespan, zoomLevel)
+    val tileEdges = ZoomLevels.individualTileEdges(timespan, zoomLevel)
     tileEdges.map(s => filtered.getOrElse(s, 0)).toArray
   }
 
@@ -129,7 +130,7 @@ class DefaultDifferencesManager(
     domainDifferenceStore.retrievePagedEvents(DiffaPairRef(key = pairKey, domain = domain), interval, offset, length, options)
 
   def countEvents(domain: String, pairKey: String, interval: Interval) =
-    domainDifferenceStore.countUnmatchedEvents(DiffaPairRef(key = pairKey, domain = domain), interval)
+    domainDifferenceStore.countUnmatchedEvents(DiffaPairRef(key = pairKey, domain = domain), interval.getStart, interval.getEnd)
 
   def retrieveEventDetail(domain:String, evtSeqId:String, t: ParticipantType.ParticipantType) = {
     log.trace("Requested a detail query for domain (" + domain + ") and seq (" + evtSeqId + ") and type (" + t + ")")

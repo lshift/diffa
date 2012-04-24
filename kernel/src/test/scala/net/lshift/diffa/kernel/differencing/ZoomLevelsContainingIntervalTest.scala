@@ -18,21 +18,21 @@ package net.lshift.diffa.kernel.differencing
 
 import org.junit.runner.RunWith
 import org.junit.Assert._
-import net.lshift.diffa.kernel.differencing.ContainingIntervalTest.Scenario
-import ZoomCache._
+import net.lshift.diffa.kernel.differencing.ZoomLevelsContainingIntervalTest.Scenario
+import ZoomLevels._
 import org.junit.experimental.theories.{DataPoint, Theory, Theories}
 import org.joda.time.{Interval, DateTimeZone, DateTime}
 
 @RunWith(classOf[Theories])
-class ContainingIntervalTest {
+class ZoomLevelsContainingIntervalTest {
 
   @Theory
   def shouldContain(s:Scenario) = {
-    assertEquals(s.interval, ZoomCache.containingInterval(s.timestamp, s.zoomLevel))
+    assertEquals(s.interval, ZoomLevels.containingInterval(s.timestamp, s.zoomLevel))
   }
 }
 
-object ContainingIntervalTest {
+object ZoomLevelsContainingIntervalTest {
 
   @DataPoint def daily = Scenario(new DateTime(2004,3,6,17,16,58,888, DateTimeZone.UTC), DAILY,
                                   new Interval(new DateTime(2004,3,6,0,0,0,0, DateTimeZone.UTC),

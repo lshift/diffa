@@ -16,26 +16,12 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import ZoomCache._
 import org.junit.Test
-import net.sf.ehcache.CacheManager
-import net.lshift.diffa.kernel.config.DiffaPairRef
-import org.easymock.EasyMock._
-import org.joda.time.{DateTime, Interval}
 
-class ZoomCacheTest {
-
-  val cacheManager = new CacheManager()
-  val pair = DiffaPairRef("pair", "domain")
-  val diffStore = createStrictMock("diffStore", classOf[DomainDifferenceStore])
-  val zoomCache = new ZoomCacheProvider(diffStore, cacheManager)
-  val timestamp = new DateTime
+class ZoomLevelsTest {
+  @Test(expected = classOf[InvalidZoomLevelException])
+  def shouldRejectZoomLevelThatIsTooFine { ZoomLevels.lookupZoomLevel(ZoomLevels.QUARTER_HOURLY + 1) }
 
   @Test(expected = classOf[InvalidZoomLevelException])
-  def shouldRejectZoomLevelThatIsTooFine { zoomCache.retrieveTilesForZoomLevel(pair, QUARTER_HOURLY + 1, timestamp) }
-
-  @Test(expected = classOf[InvalidZoomLevelException])
-  def shouldRejectZoomLevelThatIsTooCoarse { zoomCache.retrieveTilesForZoomLevel(pair, DAILY - 1, timestamp) }
-
-
+  def shouldRejectZoomLevelThatIsTooCoarse { ZoomLevels.lookupZoomLevel(ZoomLevels.DAILY - 1) }
 }

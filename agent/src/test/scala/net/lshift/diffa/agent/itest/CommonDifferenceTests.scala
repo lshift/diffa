@@ -29,11 +29,11 @@ import java.net.URI
 import org.junit.{Before, Test}
 import net.lshift.diffa.kernel.participants.ParticipantType
 import net.lshift.diffa.agent.client.DifferencesRestClient
-import net.lshift.diffa.kernel.differencing.{ZoomCache, PairScanState, DifferenceEvent}
-import net.lshift.diffa.kernel.differencing.ZoomCache._
 import scala.collection.JavaConversions._
 import java.util.{UUID, Properties}
 import org.joda.time.{DateTimeZone, DateTime}
+import net.lshift.diffa.kernel.differencing.{ZoomLevels, PairScanState, DifferenceEvent}
+import net.lshift.diffa.kernel.differencing.ZoomLevels._
 
 /**
  * Tests that can be applied to an environment to validate that differencing functionality works appropriately.
@@ -103,7 +103,7 @@ trait CommonDifferenceTests {
     val diffs = getVerifiedDiffs()
     assertNotNull(diffs)
 
-    val zoomLevel = ZoomCache.QUARTER_HOURLY
+    val zoomLevel = ZoomLevels.QUARTER_HOURLY
     val tiles = env.diffClient.getZoomedTiles(yesterday, tomorrow, zoomLevel)
     assertNotNull(tiles)
     assertNotNull(tiles(env.pairKey))
@@ -136,11 +136,11 @@ trait CommonDifferenceTests {
       env.upstream.addEntity("id-" + i, yesterday, "ss", timestamp, "abcdef")
     }
 
-    val fullLowerBound = rightNow.minusMinutes(ZoomCache.zoom(DAILY) * columns)
+    val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
     runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
 
     expectedZoomedViews.foreach{ case (zoomLevel, expectedBlobs) => {
-      val lowerBound = upperBound.minusMinutes(ZoomCache.zoom(zoomLevel) * columns)
+      val lowerBound = upperBound.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) * columns)
       val tiles = env.diffClient.getZoomedTiles(lowerBound, upperBound, zoomLevel)
       val retrievedBlobs = tiles(env.pairKey)
       assertEquals("Zoom level %s ".format(zoomLevel), expectedBlobs,retrievedBlobs)

@@ -31,4 +31,19 @@ object DateUtils {
    * Returns the time just before the end of the day that start resides in.
    */
   def endOfDay(date:DateTime) = startOfDay(date).plusDays(1).minusMillis(1)
+
+  /**
+   * Checks whether the given start time is before the given end time. If either value is null, the check will not
+   * be performed.
+   * @returns true - if the start is before the end (or a bound is null); false - the start is not before the end;
+   */
+  def safeIsBefore(start:DateTime, end:DateTime):Boolean = {
+    if (start != null && end != null) {
+      if (start.isAfter(end)) {
+        return false
+      }
+    }
+
+    true
+  }
 }

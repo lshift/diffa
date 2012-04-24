@@ -254,7 +254,7 @@ class DefaultDifferencesManagerTest {
 
     val blobs = Array.fill(scenario.arraySize)(0)
 
-    def divisions(d:Duration) = d.getStandardMinutes.intValue() / ZoomCache.zoom(scenario.zoomLevel)
+    def divisions(d:Duration) = d.getStandardMinutes.intValue() / ZoomLevels.lookupZoomLevel(scenario.zoomLevel)
 
     scenario.events.foreach{ case(tileGroupStart, events) => {
 
@@ -268,7 +268,7 @@ class DefaultDifferencesManagerTest {
       else {
         events.foreach{ case(timestamp, blobSize) => {
 
-          val eventTileStart = ZoomCache.containingInterval(timestamp, scenario.zoomLevel).getStart
+          val eventTileStart = ZoomLevels.containingInterval(timestamp, scenario.zoomLevel).getStart
 
           expect(domainDifferenceStore.retrieveEventTiles(
             EasyMock.eq(pair1.asRef),
@@ -276,7 +276,7 @@ class DefaultDifferencesManagerTest {
             EasyMock.eq(tileGroupStart))
           ).andStubReturn(Some(TileGroup(tileGroupStart, Map(eventTileStart -> blobSize))))
 
-          val alignedStartInterval = ZoomCache.containingInterval(scenario.interval.getStart, scenario.zoomLevel)
+          val alignedStartInterval = ZoomLevels.containingInterval(scenario.interval.getStart, scenario.zoomLevel)
           val offset = divisions(new Duration(alignedStartInterval.getStart, timestamp))
           blobs(offset) = blobSize
         }
@@ -323,7 +323,7 @@ object DefaultDifferencesManagerTest {
    * Tiles at 15 minute zoom level should be grouped into 8 hour aligned slots, which gives 32 tiles.
    */
   @DataPoint def alignedQuarterHourly = Scenario(
-                                          zoomLevel = ZoomCache.QUARTER_HOURLY,
+                                          zoomLevel = ZoomLevels.QUARTER_HOURLY,
                                           arraySize = 32,
                                           events = Map(
                                             new DateTime(1976,10,14,8,0,0,0, DateTimeZone.UTC)
@@ -337,7 +337,7 @@ object DefaultDifferencesManagerTest {
    * Tiles at 30 minute zoom level should be grouped into 12 hour aligned slots, which gives 24 tiles.
    */
   @DataPoint def alignedHalfHourly = Scenario(
-                                          zoomLevel = ZoomCache.HALF_HOURLY,
+                                          zoomLevel = ZoomLevels.HALF_HOURLY,
                                           arraySize = 24,
                                           events = Map(
                                             new DateTime(1993,3,3,12,0,0,0, DateTimeZone.UTC)
@@ -348,7 +348,7 @@ object DefaultDifferencesManagerTest {
                                         )
 
   @DataPoint def alignedDaily = Scenario(
-                                          zoomLevel = ZoomCache.DAILY,
+                                          zoomLevel = ZoomLevels.DAILY,
                                           arraySize = 13,
                                           events = Map(
                                             new DateTime(2009,8,14,0,0,0,0, DateTimeZone.UTC)
@@ -377,7 +377,7 @@ object DefaultDifferencesManagerTest {
    */
 
   @DataPoint def spanningQuarterHourly = Scenario(
-                                          zoomLevel = ZoomCache.QUARTER_HOURLY,
+                                          zoomLevel = ZoomLevels.QUARTER_HOURLY,
                                           arraySize = 4,
                                           events = Map(
                                             new DateTime(1922,1,11,0,0,0,0, DateTimeZone.UTC)
@@ -393,7 +393,7 @@ object DefaultDifferencesManagerTest {
    * Show that 15 minute zoom level can span 8 hour hour aligned slots.
    */
   @DataPoint def spanningHalfHourly = Scenario(
-                                          zoomLevel = ZoomCache.HALF_HOURLY,
+                                          zoomLevel = ZoomLevels.HALF_HOURLY,
                                           arraySize = 9,
                                           events = Map(
                                             new DateTime(1968,5,6,0,0,0,0, DateTimeZone.UTC)
@@ -406,7 +406,7 @@ object DefaultDifferencesManagerTest {
                                         )
 
   @DataPoint def multiPeriodDaily = Scenario(
-                                          zoomLevel = ZoomCache.DAILY,
+                                          zoomLevel = ZoomLevels.DAILY,
                                           arraySize = 5,
                                           events = Map(
                                             new DateTime(1995,2,11,0,0,0,0, DateTimeZone.UTC)

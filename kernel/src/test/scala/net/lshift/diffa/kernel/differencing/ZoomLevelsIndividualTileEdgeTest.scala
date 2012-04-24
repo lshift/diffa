@@ -18,21 +18,21 @@ package net.lshift.diffa.kernel.differencing
 
 import org.junit.runner.RunWith
 import org.junit.Assert._
-import net.lshift.diffa.kernel.differencing.IndividualTileEdgeTest.Scenario
-import ZoomCache._
+import net.lshift.diffa.kernel.differencing.ZoomLevelsIndividualTileEdgeTest.Scenario
+import ZoomLevels._
 import org.junit.experimental.theories.{DataPoint, Theory, Theories}
 import org.joda.time.{DateTimeZone, Interval, DateTime}
 
 @RunWith(classOf[Theories])
-class IndividualTileEdgeTest {
+class ZoomLevelsIndividualTileEdgeTest {
 
   @Theory
   def shouldContainTileGroup(s:Scenario) = {
-    assertEquals(s.timestamps, ZoomCache.individualTileEdges(s.interval, s.zoomLevel))
+    assertEquals(s.timestamps, ZoomLevels.individualTileEdges(s.interval, s.zoomLevel))
   }
 }
 
-object IndividualTileEdgeTest {
+object ZoomLevelsIndividualTileEdgeTest {
 
   // Aligned data points
 
