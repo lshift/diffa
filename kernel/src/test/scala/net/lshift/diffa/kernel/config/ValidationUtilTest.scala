@@ -88,7 +88,8 @@ class ValidationUtilTest {
 
   @Test
   def invalidDomainNamesShouldNotValidate() {
-    val invalidDomains = Array("testing-", "-testing", "_testing", "testing_")
+    val invalidDomains = Array("testing-", "-testing", "_testing", "testing_", "foo ", " foo", "f oo",
+                               "foo&", "&foo,", "fo&o", "foo,", ",foo", "fo,o", "foo.", ".foo", "fo.o")
     invalidDomains.foreach(testDomainNameIsInvalid(_))
   }
 }
