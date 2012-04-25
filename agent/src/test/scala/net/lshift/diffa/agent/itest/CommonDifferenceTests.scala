@@ -42,7 +42,7 @@ trait CommonDifferenceTests {
 
   val log:Logger = LoggerFactory.getLogger(getClass)
 
-  val mailDir = System.getProperty("diffa.maildir")
+  val mailDir = System.getProperty("diffa.maildir", System.getProperty("basedir", ".") + "/target/messages")
   log.debug("Using maildir: " + mailDir)
   
   val messageDir = (new File(mailDir)).getAbsoluteFile
@@ -324,7 +324,8 @@ trait CommonDifferenceTests {
     env.withActionsServer {
       env.upstream.addEntity("abc", datetime = today, someString = "ss", lastUpdated = new DateTime, body = "abcdef")
       runScanAndWaitForCompletion(yearAgo, today)
-      assertEquals(1, env.entityResendTally("abc"))
+
+      waitForResendTally("abc", 1)
     }
   }
 
@@ -364,6 +365,26 @@ trait CommonDifferenceTests {
       i-=1
     }
     assertTrue("Unexpected scan state (pair = %s): %s (wanted %s)".format(pairKey, scanStatus, state), hasReached(scanStatus))
+  }
+
+  def waitForResendTally(entity:String, count:Int) {
+    val timeout = 5000L
+    val deadline = System.currentTimeMillis() + timeout
+
+    env.entityResendTally.synchronized {
+      while (true) {
+        val currentCount = env.entityResendTally.getOrElse(entity, 0)
+
+        if (currentCount == count)
+          return
+
+        if (System.currentTimeMillis > deadline) {
+          fail("Entity resend tally %s for %s never reached (got to %s)".format(count, entity, currentCount))
+        }
+
+        env.entityResendTally.wait(timeout)
+      }
+    }
   }
 
 

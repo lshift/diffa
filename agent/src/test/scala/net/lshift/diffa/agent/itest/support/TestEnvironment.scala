@@ -213,9 +213,12 @@ class ResendEntityResource extends ServerResource {
   @Post def resend = {
     val entityId = getRequest.getResourceRef.getLastSegment
     val tally = getContext.getAttributes.get("tally").asInstanceOf[HashMap[String,Int]]
-    tally.get(entityId) match {
-      case Some(x) => tally(entityId) = x + 1
-      case None    => tally(entityId) = 1
+    tally.synchronized {
+      tally.get(entityId) match {
+        case Some(x) => tally(entityId) = x + 1
+        case None    => tally(entityId) = 1
+      }
+      tally.notifyAll
     }
     "resending entity"
   }
