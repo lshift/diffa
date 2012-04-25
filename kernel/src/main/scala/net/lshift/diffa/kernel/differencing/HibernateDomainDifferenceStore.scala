@@ -295,6 +295,9 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
     Some(TileGroup(alignedTimespan.getStart, interestingAggregates.map(t => t.start -> t.count).toMap))
   }
 
+  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] =
+    aggregationCache.retrieveAggregates(pair, start, end, aggregateMinutes)
+
   def getEvent(domain:String, evtSeqId: String) = sessionFactory.withSession(s => {
     singleQueryOpt[ReportedDifferenceEvent](s, "eventByDomainAndSeqId",
         Map("domain" -> domain, "seqId" -> Integer.parseInt(evtSeqId))) match {

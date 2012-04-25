@@ -27,9 +27,12 @@ import org.joda.time.format.{ISODateTimeFormat, DateTimeFormat}
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.docgen.annotations.OptionalParams.OptionalParam
 import net.lshift.diffa.kernel.differencing.{EventOptions, DifferencesManager}
+import javax.servlet.http.HttpServletRequest
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef}
 
 class DifferencesResource(val differencesManager: DifferencesManager,
                           val domainSequenceCache:DomainSequenceCache,
+                          val domainConfigStore:DomainConfigStore,
                           val domain:String,
                           val uriInfo:UriInfo) {
 
@@ -58,12 +61,7 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                           @Context request: Request) = {
 
     try {
-      val domainVsn = new EntityTag(getSequenceNumber(domain))
-
-      request.evaluatePreconditions(domainVsn) match {
-        case null => // We'll continue with the request
-        case r => throw new WebApplicationException(r.build)
-      }
+      val domainVsn = validateETag(request)
 
       val now = new DateTime()
       val from = defaultDateTime(from_param, now.minusDays(1))
@@ -104,11 +102,7 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                      @Context request: Request): Response = {
 
     // Evaluate whether the version of the domain has changed
-    val domainVsn = new EntityTag(getSequenceNumber(domain) + "@" + zoomLevel)
-    request.evaluatePreconditions(domainVsn) match {
-      case null => // We'll continue with the request
-      case r => throw new WebApplicationException(r.build)
-    }
+    val domainVsn = validateETag(request)
 
     val rangeStartDate = isoDateTime.parseDateTime(rangeStart)
     val rangeEndDate = isoDateTime.parseDateTime(rangeEnd)
@@ -124,6 +118,34 @@ class DifferencesResource(val differencesManager: DifferencesManager,
     val tileSet = differencesManager.retrieveEventTiles(domain, zoomLevel, new Interval(rangeStartDate, rangeEndDate))
     val respObj = mapAsJavaMap(tileSet.keys.map(pair => pair -> tileSet(pair).toArray).toMap[String, Array[Int]])
     Response.ok(respObj).tag(domainVsn).build()
+  }
+
+  @GET
+  @Path("/aggregates")
+  @Produces(Array("application/json"))
+  @Description("Returns an aggregate view for all pairs in a domain")
+  def getAggregates(@Context request: Request, @Context servletRequest:HttpServletRequest): Response = {
+    val domainVsn = validateETag(request)
+
+    val requestedAggregates = parseAggregates(servletRequest)
+    val aggregates = domainConfigStore.listPairs(domain).map(p => {
+      p.key -> mapAsJavaMap(processAggregates(DiffaPairRef(domain = domain, key = p.key), requestedAggregates))
+    }).toMap
+
+    Response.ok(mapAsJavaMap(aggregates)).tag(domainVsn).build()
+  }
+
+  @GET
+  @Path("/aggregates/{pair}")
+  @Produces(Array("application/json"))
+  @Description("Returns an aggregate view for a given pair")
+  def getAggregates(@PathParam("pair") pair:String, @Context request: Request, @Context servletRequest:HttpServletRequest): Response = {
+    val domainVsn = validateETag(request)
+
+    val requestedAggregates = parseAggregates(servletRequest)
+    val aggregates = processAggregates(DiffaPairRef(domain = domain, key = pair), requestedAggregates)
+
+    Response.ok(mapAsJavaMap(aggregates)).tag(domainVsn).build()
   }
 
   @GET
@@ -164,6 +186,17 @@ class DifferencesResource(val differencesManager: DifferencesManager,
     Response.ok(restored).build
   }
 
+  def validateETag(request:Request) = {
+    val domainVsn = new EntityTag(getSequenceNumber(domain))
+
+    request.evaluatePreconditions(domainVsn) match {
+      case null => // We'll continue with the request
+      case r => throw new WebApplicationException(r.build)
+    }
+
+    domainVsn
+  }
+
   def defaultDateTime(input:String, default:DateTime) = input match {
     case "" | null => default
     case x         => isoDateTime.parseDateTime(x)
@@ -175,4 +208,23 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   }
 
   private def getSequenceNumber(domain:String) = domainSequenceCache.readThrough( domain, () => differencesManager.retrieveDomainSequenceNum(domain) )
+
+  val aggregateParamPrefix = "agg-"
+
+  def parseAggregates(request:HttpServletRequest):Map[String, AggregateRequest] = {
+    request.getParameterMap.flatMap { case (key:String, values:Array[String]) =>
+      if (key.startsWith(aggregateParamPrefix)) {
+        Some(key.substring(aggregateParamPrefix.length) -> AggregateRequest.parse(values(0)))
+      } else {
+        None
+      }
+    }.toMap
+  }
+
+  def processAggregates(pairRef:DiffaPairRef, requests:Map[String, AggregateRequest]) =
+    requests.map { case (name, details) =>
+      val tiles = differencesManager.retrieveAggregates(pairRef, details.start, details.end, details.aggregation)
+
+      name -> tiles.map(_.count).toArray
+    }.toMap
 }

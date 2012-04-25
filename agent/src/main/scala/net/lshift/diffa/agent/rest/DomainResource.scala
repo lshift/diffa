@@ -84,7 +84,7 @@ class DomainResource {
   @Path("/diffs")
   def getDifferencesResource(@Context uri:UriInfo,
                              @PathParam("domain") domain:String) =
-    withValidDomain(domain, new DifferencesResource(differencesManager, domainSequenceCache, domain, uri))
+    withValidDomain(domain, new DifferencesResource(differencesManager, domainSequenceCache, domainConfigStore, domain, uri))
 
   @Path("/escalations")
   def getEscalationsResource(@PathParam("domain") domain:String) =

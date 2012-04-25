@@ -113,6 +113,9 @@ class DefaultDifferencesManager(
     tileEdges.map(s => filtered.getOrElse(s, 0)).toArray
   }
 
+  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregation:Option[Int]) =
+    domainDifferenceStore.retrieveAggregates(pair, start, end, aggregation)
+
   def ignoreDifference(domain:String, seqId:String) = {
     domainDifferenceStore.ignoreEvent(domain, seqId)
   }

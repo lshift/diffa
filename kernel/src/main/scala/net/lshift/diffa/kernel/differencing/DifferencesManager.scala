@@ -62,6 +62,12 @@ trait DifferencesManager {
   def retrieveEventTiles(domain:String, zoomLevel:Int, timespan:Interval) : Map[String,Array[Int]]
 
   /**
+   * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
+   * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
+   */
+  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregation:Option[Int]):Seq[AggregateTile]
+
+  /**
    *
    * Retrieves all events known to this domain. Will only include unmatched events.
    * This pages the results to only contain events that are contained with the specified interval

@@ -32,8 +32,9 @@ import net.lshift.diffa.agent.client.DifferencesRestClient
 import scala.collection.JavaConversions._
 import java.util.{UUID, Properties}
 import org.joda.time.{DateTimeZone, DateTime}
-import net.lshift.diffa.kernel.differencing.{ZoomLevels, PairScanState, DifferenceEvent}
 import net.lshift.diffa.kernel.differencing.ZoomLevels._
+import net.lshift.diffa.agent.rest.AggregateRequest
+import net.lshift.diffa.kernel.differencing.{InvalidAggregateRequestException, ZoomLevels, PairScanState, DifferenceEvent}
 
 /**
  * Tests that can be applied to an environment to validate that differencing functionality works appropriately.
@@ -145,6 +146,93 @@ trait CommonDifferenceTests {
       val retrievedBlobs = tiles(env.pairKey)
       assertEquals("Zoom level %s ".format(zoomLevel), expectedBlobs,retrievedBlobs)
     }}
+  }
+
+  @Test
+  def differencesShouldTileAtEachLevelViaAggregationAPI = {
+
+    val rightNow = new DateTime(2011,7,8,15,0,0,0, DateTimeZone.UTC)
+    val upperBound = rightNow.plusMinutes(1)
+
+    val events = 720 // 12 hours * 60 minutes, i.e. will get split at 8-hourly level, but fits into a daily column
+    val columns = 32
+
+    val expectedZoomedViews = Map(
+      DAILY          -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 720), // 24 hour interval
+      EIGHT_HOURLY   -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 240, 480), // 0-8h, 8-16h intervals
+      FOUR_HOURLY    -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 240, 240, 240),  // 8-12h,12-16h
+      TWO_HOURLY     -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 120, 120, 120, 120, 120, 120),  // 8-10h,10-12h,12-14h,14-16h
+      HOURLY         -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60),  // every hour, remembering the extra minute
+      HALF_HOURLY    -> List(0, 0, 0, 0, 0, 0, 0, 0, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30),  // every half hour
+      QUARTER_HOURLY -> List(15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15)  // every quarter hour
+    )
+    // Sanity check the test data
+    expectedZoomedViews.foreach { case (k, v) => assertEquals("Zoom Level " + k, columns, v.length) }
+
+    resetPair
+    env.clearParticipants
+
+    for (i <- 0 until events) {
+      val timestamp = rightNow.minusMinutes(i)
+      env.upstream.addEntity("id-" + i, yesterday, "ss", timestamp, "abcdef")
+    }
+
+    val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
+    runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
+
+    val requests = expectedZoomedViews.map { case (zoomLevel, expectedBlobs) =>
+      val lowerBound = upperBound.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) * columns)
+      (zoomLevel.toString) -> AggregateRequest(lowerBound, upperBound, Some(ZoomLevels.lookupZoomLevel(zoomLevel)))
+    }.toMap
+    val aggregates = env.diffClient.retrieveAggregates(env.pairKey, requests)
+
+    expectedZoomedViews.foreach{ case (zoomLevel, expectedBlobs) => {
+      val retrieveAggregates = aggregates(zoomLevel.toString)
+
+      assertEquals("Zoom level %s ".format(zoomLevel), expectedBlobs, retrieveAggregates)
+    }}
+  }
+
+  @Test
+  def differencesShouldSupportAggregateRequestsWithoutBucketing = {
+
+    val rightNow = new DateTime(2011,7,8,15,0,0,0, DateTimeZone.UTC)
+    val upperBound = rightNow.plusMinutes(1)
+
+    val events = 720 // 12 hours * 60 minutes, i.e. will get split at 8-hourly level, but fits into a daily column
+    val columns = 32
+
+    resetPair
+    env.clearParticipants
+
+    for (i <- 0 until events) {
+      val timestamp = rightNow.minusMinutes(i)
+      env.upstream.addEntity("id-" + i, yesterday, "ss", timestamp, "abcdef")
+    }
+
+    val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
+    runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
+
+    val requests = Map(
+      "open-top" -> AggregateRequest(upperBound.minusMinutes(50), null, None),
+      "open-bottom" -> AggregateRequest(null, upperBound.minusMinutes(50), None),
+      "all" -> AggregateRequest(fullLowerBound, upperBound, None),
+      "open-all" -> AggregateRequest(null.asInstanceOf[String], null.asInstanceOf[String], None)
+    )
+    val aggregates = env.diffClient.retrieveAggregates(env.pairKey, requests)
+
+    assertEquals(List(50), aggregates("open-top"))
+    assertEquals(List(events - 50), aggregates("open-bottom"))
+    assertEquals(List(events), aggregates("all"))
+    assertEquals(List(events), aggregates("open-all"))
+    
+    try {
+      env.diffClient.retrieveAggregates(env.pairKey, Map("bad" -> AggregateRequest(null.asInstanceOf[String], null.asInstanceOf[String], Some(5))))
+      fail("Should have thrown InvalidAggregateRequestException")
+    } catch {
+      case x:InvalidAggregateRequestException =>
+        assertEquals("Both a start and end time must be defined when requesting bucketing", x.getMessage)
+    }
   }
 
   private def resetPair = {

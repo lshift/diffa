@@ -164,6 +164,12 @@ trait DomainDifferenceStore {
   def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) : Option[TileGroup]
 
   /**
+   * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
+   * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
+   */
+  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile]
+
+  /**
    * Indicates that matches older than the given cutoff (based on their seen timestamp) should be removed.
    */
   def expireMatches(cutoff:DateTime)
