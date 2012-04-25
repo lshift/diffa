@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel
 
+import config._
 import config.system.HibernateSystemConfigStore
-import config.{TestDatabaseEnvironments, PairCache, HibernateConfigStorePreparationStep, HibernateDomainConfigStore}
 import differencing.HibernateDomainDifferenceStore
 import hooks.HookManager
 import org.hibernate.dialect.Dialect
@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory
 import util.{MissingObjectException, SchemaCleaner, DatabaseEnvironment}
 import org.hibernate.SessionFactory
 import net.lshift.diffa.kernel.util.SessionHelper.sessionFactoryToSessionHelper
-import net.lshift.diffa.kernel.config.User
 import collection.JavaConversions._
 
 object StoreReferenceContainer {
@@ -34,6 +33,7 @@ trait StoreReferenceContainer {
   def systemConfigStore: HibernateSystemConfigStore
   def domainConfigStore: HibernateDomainConfigStore
   def domainDifferenceStore: HibernateDomainDifferenceStore
+  def serviceLimitsStore: ServiceLimitsStore
 
   def prepareEnvironmentForStores: Unit
 
@@ -41,7 +41,9 @@ trait StoreReferenceContainer {
   
   def clearConfiguration(domainName: String = defaultDomain) {
     try {
+      serviceLimitsStore.deletePairLimitsByDomain(domainName)
       domainDifferenceStore.removeDomain(domainName)
+      serviceLimitsStore.deleteDomainLimits(domainName)
       systemConfigStore.deleteDomain(domainName)
     }  catch {
       case e: MissingObjectException => {
@@ -77,27 +79,26 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     case None => throw new IllegalStateException("Failed to initialize environment before using SessionFactory")
   }
 
-  private lazy val _systemConfigStore = _sessionFactory match {
+  private def makeStore[T](consFn: SessionFactory => T, className: String): T = _sessionFactory match {
     case Some(sf) =>
-      new HibernateSystemConfigStore(sf, pairCache)
+      consFn(sf)
     case None =>
-      throw new IllegalStateException("Failed to initialize environment before using SystemConfigStore")
+      throw new IllegalStateException("Failed to initialize environment before using " + className)
   }
 
-  private lazy val _domainConfigStore = _sessionFactory match {
-    case Some(sf) =>
-      new HibernateDomainConfigStore(sf, pairCache, hookManager)
-    case None =>
-      throw new IllegalStateException("Failed to initialize environment before using DomainConfigStore")
-  }
+  private lazy val _serviceLimitsStore =
+    makeStore[ServiceLimitsStore](sf => new HibernateServiceLimitsStore(sf), "ServiceLimitsStore")
 
-  private lazy val _domainDifferenceStore = _sessionFactory match {
-    case Some(sf) =>
-      new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager)
-    case None =>
-      throw new IllegalStateException("Failed to initialize environment before using DomainDifferenceStore")
-  }
+  private lazy val _systemConfigStore =
+    makeStore(sf => new HibernateSystemConfigStore(sf, pairCache), "SystemConfigStore")
 
+  private lazy val _domainConfigStore =
+    makeStore(sf => new HibernateDomainConfigStore(sf, pairCache, hookManager), "domainConfigStore")
+
+  private lazy val _domainDifferenceStore =
+    makeStore(sf => new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager), "DomainDifferenceStore")
+
+  def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore
   def domainConfigStore: HibernateDomainConfigStore = _domainConfigStore
   def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore

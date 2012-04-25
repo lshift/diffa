@@ -17,7 +17,6 @@
 package net.lshift.diffa.kernel.config
 
 import org.junit.Test
-import net.lshift.diffa.kernel.config.ConfigValidationException
 
 /**
  * Tests for ValidationUtil.

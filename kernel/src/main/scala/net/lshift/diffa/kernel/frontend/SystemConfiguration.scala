@@ -20,12 +20,15 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
+import net.lshift.diffa.kernel.config.ServiceLimitsStore
 
 
 /**
  * Frontend component that wraps all of the events that surround system configuration changes.
  */
-class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesManager:DifferencesManager,
+class SystemConfiguration(val systemConfigStore: SystemConfigStore,
+                          serviceLimitsStore: ServiceLimitsStore,
+                          differencesManager:DifferencesManager,
                           listener:SystemConfigListener, configuration:Configuration) {
 
   val log = LoggerFactory.getLogger(getClass)
@@ -41,6 +44,7 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore, differencesM
     log.info("Processing domain delete request: %s".format(domain))
     configuration.clearDomain(domain)
     differencesManager.onDeleteDomain(domain)
+    serviceLimitsStore.deleteDomainLimits(domain)
     systemConfigStore.deleteDomain(domain)
   }
 

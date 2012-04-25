@@ -31,6 +31,7 @@ import scala.collection.JavaConversions._
 
 class Configuration(val configStore: DomainConfigStore,
                     val systemConfigStore: SystemConfigStore,
+                    val serviceLimitsStore: ServiceLimitsStore,
                     val matchingManager: MatchingManager,
                     val versionCorrelationStoreFactory: VersionCorrelationStoreFactory,
                     val supervisor:ActivePairManager,
@@ -42,7 +43,7 @@ class Configuration(val configStore: DomainConfigStore,
 
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
-  def applyConfiguration(domain:String, diffaConfig:DiffaConfig) = {
+  def applyConfiguration(domain:String, diffaConfig:DiffaConfig) {
 
     // Ensure that the configuration is valid upfront
     diffaConfig.validate()
@@ -203,6 +204,7 @@ class Configuration(val configStore: DomainConfigStore,
       log.info("%s -> Unregistering from diagnostics (%s)".format(pair, benchmark( () => diagnostics.onDeletePair(pair)) ))
     })
 
+    serviceLimitsStore.deletePairLimitsByDomain(domain)
     configStore.deletePair(domain, key)
 
     log.info("%s -> Completed pair delete request".format(pairRef))

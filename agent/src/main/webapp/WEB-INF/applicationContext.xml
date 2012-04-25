@@ -267,6 +267,7 @@
   <bean id="configurationFrontend" class="net.lshift.diffa.kernel.frontend.Configuration">
     <constructor-arg ref="domainConfigStore"/>
     <constructor-arg ref="systemConfigStore"/>
+    <constructor-arg ref="serviceLimitsStore"/>
     <constructor-arg ref="matchingManager"/>
     <constructor-arg ref="versionCorrelationStoreFactory"/>
     <constructor-arg ref="pairActorSupervisor"/>
@@ -278,6 +279,7 @@
   </bean>
   <bean id="systemConfigurationFrontend" class="net.lshift.diffa.kernel.frontend.SystemConfiguration">
     <constructor-arg ref="systemConfigStore"/>
+    <constructor-arg ref="serviceLimitsStore"/>
     <constructor-arg ref="differencesManager" />
     <constructor-arg ref="notificationCentre" />
     <constructor-arg ref="configurationFrontend" />
@@ -377,6 +379,10 @@
   <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="pairCache" />
+  </bean>
+
+  <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
+    <constructor-arg ref="diffaSessionFactory" />
   </bean>
 
   <!--

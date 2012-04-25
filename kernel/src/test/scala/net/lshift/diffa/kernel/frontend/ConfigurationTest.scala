@@ -53,9 +53,11 @@ class ConfigurationTest {
   // TODO This is a strange mixture of mock and real objects
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
+  private val serviceLimitsStore = storeReferences.serviceLimitsStore
 
   private val configuration = new Configuration(domainConfigStore,
                                                 systemConfigStore,
+                                                serviceLimitsStore,
                                                 matchingManager,
                                                 versionCorrelationStoreFactory,
                                                 pairManager,

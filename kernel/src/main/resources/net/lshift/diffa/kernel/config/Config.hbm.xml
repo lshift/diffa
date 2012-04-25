@@ -177,6 +177,41 @@
     <property name="value" type="string" column="opt_val" />
   </class>
 
+  <class name="ServiceLimitDefinitions" table="limit_definitions" abstract="false">
+    <cache usage="read-write"/>
+    <id name="limitName" type="string" column="name"/>
+    <property name="limitDescription" type="string" column="description"/>
+  </class>
+
+  <class name="SystemServiceLimits" table="system_limits" abstract="false">
+    <cache usage="read-write"/>
+    <id name="limitName" type="string" column="name"/>
+    <property name="hardLimit" type="int" column="hard_limit"/>
+    <property name="defaultLimit" type="int" column="default_limit"/>
+  </class>
+
+  <class name="DomainServiceLimits" table="domain_limits" abstract="false">
+    <cache usage="read-write"/>
+    <composite-id mapped="true" class="net.lshift.diffa.kernel.config.DomainScopedLimit">
+      <key-property name="limitName" type="string" column="name"/>
+      <key-many-to-one name="domain" class="Domain" column="domain" lazy="false"/>
+    </composite-id>
+    <property name="hardLimit" type="int" column="hard_limit"/>
+    <property name="defaultLimit" type="int" column="default_limit"/>
+  </class>
+
+  <class name="PairServiceLimits" table="pair_limits" abstract="false">
+    <cache usage="read-write"/>
+    <composite-id mapped="true" class="net.lshift.diffa.kernel.config.PairScopedLimit">
+      <key-property name="limitName" type="string" column="name"/>
+      <key-many-to-one name="pair" class="DiffaPair" lazy="false">
+        <column name="pair_key"/>
+        <column name="domain"/>
+      </key-many-to-one>
+    </composite-id>
+    <property name="limitValue" type="int" column="limit_value"/>
+  </class>
+
   <class name="RepairAction" table="repair_actions" abstract="false">
     <cache usage="read-write"/>
     <composite-id mapped="true">
@@ -374,6 +409,64 @@
     select o.value from ConfigOption o
     where o.key = :key
     and o.domain.name = :domain_name
+  </query>
+
+  <query name="systemHardLimitByName" cacheable="true">
+    select l.hardLimit
+    from SystemServiceLimits l
+    where l.limitName = :limit_name
+  </query>
+
+  <query name="systemDefaultLimitByName" cacheable="true">
+    select l.defaultLimit
+    from SystemServiceLimits l
+    where l.limitName = :limit_name
+  </query>
+
+  <query name="domainHardLimitByDomainAndName" cacheable="true">
+    select l.hardLimit
+    from DomainServiceLimits l
+    where l.limitName = :limit_name
+    and l.domain.name = :domain_name
+  </query>
+
+  <query name="domainDefaultLimitByDomainAndName" cacheable="true">
+    select l.defaultLimit
+    from DomainServiceLimits l
+    where l.limitName = :limit_name
+    and l.domain.name = :domain_name
+  </query>
+
+  <query name="pairLimitByPairAndName" cacheable="true">
+    select l.limitValue
+    from PairServiceLimits l
+    where l.limitName = :limit_name
+    and l.pair.domain.name = :domain_name
+    and l.pair.key = :pair_key
+  </query>
+
+  <query name="domainServiceLimitsByDomain" cacheable="true">
+    select l
+    from DomainServiceLimits l
+    where l.domain.name = :domain_name
+  </query>
+
+  <query name="pairServiceLimitsByDomain" cacheable="true">
+    select l
+    from PairServiceLimits l
+    where l.pair.domain.name = :domain_name
+  </query>
+
+  <query name="domainServiceLimitsByName" cacheable="true">
+    select l
+    from DomainServiceLimits l
+    where l.limitName = :limit_name
+  </query>
+
+  <query name="pairServiceLimitsByName" cacheable="true">
+    select l
+    from PairServiceLimits l
+    where l.limitName = :limit_name
   </query>
 
   <query name="pairViewsByPair" cacheable="true">

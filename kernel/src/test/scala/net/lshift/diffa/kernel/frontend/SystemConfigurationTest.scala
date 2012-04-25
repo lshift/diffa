@@ -16,12 +16,16 @@ class SystemConfigurationTest {
  private val storeReferences = SystemConfigurationTest.storeReferences
 
   private val systemConfigStore = storeReferences.systemConfigStore
+  private val serviceLimitsStore = storeReferences.serviceLimitsStore
 
   private val differencesManager = createMock("differencesManager", classOf[DifferencesManager])
 
   private val nc = new NotificationCentre
 
-  private val systemConfiguration = new SystemConfiguration(systemConfigStore, differencesManager, nc, null)
+  private val systemConfiguration = new SystemConfiguration(
+    systemConfigStore,
+    serviceLimitsStore,
+    differencesManager, nc, null)
   private val listener = createMock("systemConfigListener", classOf[SystemConfigListener])
 
 
