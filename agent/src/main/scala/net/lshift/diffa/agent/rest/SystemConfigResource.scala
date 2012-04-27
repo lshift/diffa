@@ -23,12 +23,14 @@ import net.lshift.diffa.docgen.annotations.{MandatoryParams, Description}
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
 import javax.ws.rs._
 import core._
-import net.lshift.diffa.kernel.frontend.{SystemConfiguration, DomainDef}
 import org.springframework.security.access.prepost.PreAuthorize
 import net.lshift.diffa.kernel.util.MissingObjectException
-import net.lshift.diffa.kernel.config.ConfigValidationException
 import com.sun.jersey.api.representation.Form
 import scala.collection.JavaConversions._
+import javax.servlet.http.HttpServletRequest
+import net.lshift.diffa.kernel.frontend.{SystemConfiguration, DomainDef}
+import net.lshift.diffa.participant.scanning._
+import net.lshift.diffa.kernel.config.{Domain, ConfigValidationException}
 
 @Path("/root")
 @Component
@@ -103,5 +105,27 @@ class SystemConfigResource {
       case Some(value) => value
       case None        => throw new MissingObjectException(key)
     }
+  }
+
+  @GET
+  @Path("/domains/scan")
+  @Produces(Array("application/json"))
+  @Description("")
+  def scanPairs(@Context request:HttpServletRequest) = {
+    def generateVersion(domain:Domain) = ScannableUtils.generateDigest(domain.name)
+
+    val constraintsBuilder = new ConstraintsBuilder(request)
+    constraintsBuilder.maybeAddStringPrefixConstraint("name")
+    val constraints = constraintsBuilder.toList
+
+    val aggregationsBuilder = new AggregationBuilder(request)
+    aggregationsBuilder.maybeAddStringPrefixAggregation("name")
+    val aggregations = aggregationsBuilder.toList
+
+    val domains = ScannableUtils.filterByKey[Domain](systemConfig.listDomains, constraints, _.name)
+    val scanResults = domains.map { d => new ScanResultEntry(d.name, generateVersion(d), null, Map("name" -> d.name)) }
+    val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations)
+
+    Response.ok(aggregated).build()
   }
 }

@@ -15,6 +15,7 @@
  */
 package net.lshift.diffa.participant.scanning;
 
+import net.jcip.annotations.NotThreadSafe;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +27,17 @@ import java.util.*;
 
 /**
  * Utility for building digests based on a series of entities.
+ *
+ * This caches each id that is added to it, in order to ensure that id re-ordering is detected.
+ * The downside of the current implementation is that the id cache is not thread safe.
+ *
  */
+@NotThreadSafe
 public class DigestBuilder {
   private final static Logger log = LoggerFactory.getLogger(DigestBuilder.class);
   private final Map<BucketKey, Bucket> digestBuckets;
   private final List<ScanAggregation> aggregations;
+  private String previousId = null;
 
   public DigestBuilder(List<ScanAggregation> aggregations) {
     this.aggregations = aggregations;
@@ -55,6 +62,14 @@ public class DigestBuilder {
    */
   public void add(String id, Map<String, String> attributes, String vsn) {
     log.trace("Adding to bucket: " + id + ", " + attributes + ", " + vsn);
+
+    if (previousId != null) {
+      if (id.compareTo(previousId) < 1) {
+        throw new OutOfOrderException(previousId,id);
+      }
+    }
+
+    previousId = id;
 
     Map<String, String> partitions = new HashMap<String, String>();
     partitions.putAll(attributes);    // Default partitions to the initial attribute set

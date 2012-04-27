@@ -267,7 +267,7 @@
   </query>
 
   <query name="allUsers">
-    select u from User u
+    select u from User u order by u.name asc
   </query>
 
   <query name="allPairs">
@@ -275,7 +275,7 @@
   </query>
 
   <query name="allDomains">
-    select d from Domain d
+    select d from Domain d order by d.name asc
   </query>
 
   <query name="allRepairActions">

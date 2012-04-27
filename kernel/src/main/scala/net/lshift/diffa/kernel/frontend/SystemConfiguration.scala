@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
-import net.lshift.diffa.kernel.config.ServiceLimitsStore
+import net.lshift.diffa.kernel.config.{User, ServiceLimitsStore}
 
 
 /**
@@ -32,6 +32,8 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
                           listener:SystemConfigListener, configuration:Configuration) {
 
   val log = LoggerFactory.getLogger(getClass)
+
+  def listDomains = systemConfigStore.listDomains
 
   def createOrUpdateDomain(domain: DomainDef) = {
     log.info("Processing domain declare/update request: %s".format(domain))
@@ -55,6 +57,7 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
   }
   def deleteUser(username: String) = systemConfigStore.deleteUser(username)
   def listUsers : Seq[UserDef] = systemConfigStore.listUsers.map(toUserDef(_))
+  def listFullUsers : Seq[User] = systemConfigStore.listUsers
   def getUserToken(username:String) = systemConfigStore.getUserToken(username)
   def clearUserToken(username:String) {
     systemConfigStore.clearUserToken(username)

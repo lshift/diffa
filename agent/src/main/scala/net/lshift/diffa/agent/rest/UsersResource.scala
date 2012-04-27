@@ -27,6 +27,9 @@ import net.lshift.diffa.agent.rest.ResponseUtils._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.frontend.{SystemConfiguration, UserDef, DomainDef}
 import org.springframework.security.access.prepost.PreAuthorize
+import javax.servlet.http.HttpServletRequest
+import net.lshift.diffa.participant.scanning._
+import scala.collection.JavaConversions._
 
 /**
  * This handles all of the user specific admin
@@ -100,4 +103,26 @@ class UsersResource {
   @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
   def listUserDomains(@PathParam("name") name: String) : Array[String] =
     systemConfig.listDomainMemberships(name).map(m => m.domain.name).toArray
+
+  @GET
+  @Produces(Array("application/json"))
+  @Path("/scan")
+  @Description("Provides a scanning endpoint for querying the user list")
+  def scan(@Context request:HttpServletRequest) = {
+    def generateVersion(user:User) = ScannableUtils.generateDigest(user.name, user.token)
+
+    val constraintsBuilder = new ConstraintsBuilder(request)
+    constraintsBuilder.maybeAddStringPrefixConstraint("name")
+    val constraints = constraintsBuilder.toList
+
+    val aggregationsBuilder = new AggregationBuilder(request)
+    aggregationsBuilder.maybeAddStringPrefixAggregation("name")
+    val aggregations = aggregationsBuilder.toList
+
+    val users = ScannableUtils.filterByKey[User](systemConfig.listFullUsers, constraints, _.name)
+    val scanResults = users.map { u => new ScanResultEntry(u.name, generateVersion(u), null, Map("name" -> u.name)) }
+    val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations)
+
+    Response.ok(aggregated).build()
+  }
 }

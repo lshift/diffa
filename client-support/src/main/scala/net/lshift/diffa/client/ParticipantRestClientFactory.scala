@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.participants._
 
 trait ParticipantRestClientFactory {
 
-  def supportsAddress(address: String) = address.startsWith("http://")
+  def supportsAddress(address: String) = address.startsWith("http://") || address.startsWith("https://")
 }
 
 class ScanningParticipantRestClientFactory(params: RestClientParams)

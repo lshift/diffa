@@ -119,6 +119,15 @@ public class DigestBuilderTest {
       new HashSet<ScanResultEntry>(builder.toDigests()));
   }
 
+  @Test(expected = OutOfOrderException.class)
+  public void shouldRejectOutOfOrderIds() {
+    DigestBuilder builder = new DigestBuilder(aggregations);
+
+    builder.add(ScanResultEntry.forEntity("id2", "vsn2", null, createAttrMap(JUN_7_2009_1, "b")));
+    builder.add(ScanResultEntry.forEntity("id1", "vsn1", null, createAttrMap(JUN_6_2009_1, "a")));
+
+  }
+
   private static Map<String, String> createAttrMap(DateTime bizDate, String ss) {
     return createAttrMap(bizDate.toString(), ss);
   }
