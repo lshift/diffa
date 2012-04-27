@@ -412,6 +412,8 @@ Diffa.Binders.ListBinder = Diffa.Binder.extend({
         });
     });
 
+    $(el).children().last().focus();
+
     $('<button>+</button>').
       appendTo(el).
       click(function() {

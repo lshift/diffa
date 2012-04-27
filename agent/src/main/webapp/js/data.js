@@ -21,6 +21,7 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
     'submit form': 'uploadInventory',
     'change select[name=endpoint]': 'selectEndpoint'
   },
+  setListColumnThreshold: 10,
   templates: {
     rangeConstraint: _.template('<div class="category" data-constraint="<%= name %>" data-constraint-type="<%= dataType %>">' +
                       '<h5 class="name"><%= name %> (<%= dataType %> range)</h5>' +
@@ -41,6 +42,23 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
                           '<label for="constraint_<%= name %>_<%= value %>"><%= value %></label>' +
                           '<br>' +
                         '<% }); %>' +
+                      '</div>'),
+    setConstraintWithColumns: _.template('<div class="category" data-constraint="<%= name %>">' +
+                        '<h5 class="name"><%= name %> (set)</h5>' +
+                        '<div class="column_1">' +
+                        '<% _.each(valuesFirst, function(value) { %>' +
+                          '<input type="checkbox" value="<%= value %>" id="constraint_<%= name %>_<%= value %>">' +
+                          '<label for="constraint_<%= name %>_<%= value %>"><%= value %></label>' +
+                          '<br>' +
+                        '<% }); %>' +
+                        '</div>' +
+                        '<div class="column_2">' +
+                        '<% _.each(valuesSecond, function(value) { %>' +
+                          '<input type="checkbox" value="<%= value %>" id="constraint_<%= name %>_<%= value %>">' +
+                          '<label for="constraint_<%= name %>_<%= value %>"><%= value %></label>' +
+                          '<br>' +
+                        '<% }); %>' +
+                        '</div>' +
                       '</div>')
   },
 
@@ -100,8 +118,8 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
 
       // add date picking to the range inputs
 
-      var lowerBound = rangeCat.attributes.lower;
-      var upperBound = rangeCat.attributes.upper;
+      var lowerBound = rangeCat.get("lower");
+      var upperBound = rangeCat.get("upper");
 
       if (lowerBound) {
         var allowOld = false;
@@ -136,9 +154,29 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
         }
       });
     });
+
     selectedEndpoint.setCategories.each(function(setCat) {
-      constraints.append(self.templates.setConstraint(setCat.toJSON()));
+      var values = setCat.get("values");
+      var threshold = self.setListColumnThreshold; // only split the values array when its size is > this number
+      var template = self.templates.setConstraint;
+
+      if (values.length >= threshold) {
+        var first, second;
+
+        // cut the list of items into two, ensuring X = [A, B] has |A| >= |B|
+        var splitPoint = Math.ceil(values.length/2);
+        first = values.slice(0, splitPoint);
+        second = values.slice(splitPoint);
+
+        setCat.set("valuesFirst", first);
+        setCat.set("valuesSecond", second);
+
+        template = self.templates.setConstraintWithColumns;
+      }
+
+      constraints.append(template(setCat.toJSON()));
     });
+
     selectedEndpoint.prefixCategories.each(function(prefixCat) {
       constraints.append(self.templates.prefixConstraint(prefixCat.toJSON()));
     });
