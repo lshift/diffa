@@ -716,7 +716,7 @@ class HibernateDomainDifferenceStoreTest {
     scenario.zoomLevels.foreach{ case (zoom, expected) => {
       expected.foreach{ case (pair, tileGroups) => {
         tileGroups.foreach(group => {
-          val retrieved = domainDiffStore.retrieveEventTiles(DiffaPairRef(pair, scenario.domain), zoom, group.lowerBound)
+          val retrieved = retrieveEventTiles(DiffaPairRef(pair, scenario.domain), zoom, group.lowerBound)
           assertEquals("Failure @ zoom level %s; ".format(zoom), group.tiles, retrieved.get.tiles)
         })
       }}
@@ -743,7 +743,7 @@ class HibernateDomainDifferenceStoreTest {
     domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "10d"), tileGroupInterval.getStart.minusMinutes(1), "", "", observationTime)
 
     // Deliberately allow passing a potentially unaligned timestamp
-    val tiles = domainDiffStore.retrieveEventTiles(pair, zoomLevel, queryTime)
+    val tiles = retrieveEventTiles(pair, zoomLevel, queryTime)
 
     val firstIntervalStart = ZoomLevels.containingInterval(tileGroupInterval.getEnd.minusMinutes(1), zoomLevel).getStart
     val secondIntervalStart = ZoomLevels.containingInterval(tileGroupInterval.getStart.plusMinutes(1), zoomLevel).getStart
@@ -761,40 +761,9 @@ class HibernateDomainDifferenceStoreTest {
   }
 
   @Test
-  def dirtyTilesShouldNotAffectOtherTimeRanges = ZoomLevels.levels.foreach(outOfRangeTilesShouldNotBeMarkerDirty(_))
-
-  private def outOfRangeTilesShouldNotBeMarkerDirty(zoomLevel:Int) {
-    val observationTime = new DateTime(1977,4,4,0,0,0,0)
-    val firstEventTime = observationTime.minusMinutes(1)
-    val secondEventTime = observationTime.minusMinutes(1).minusDays(1)
-
-    val alignedTileStart = ZoomLevels.containingInterval(firstEventTime, zoomLevel).getStart
-    val alignedTileGroupStart = ZoomLevels.containingTileGroupInterval(firstEventTime, zoomLevel).getStart
-
-    val pair = DiffaPairRef("pair1", "domain")
-
-    // Add an event to the store and verify that the correct tile cache is built for that event
-    domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "17a"), firstEventTime, "", "", observationTime)
-
-    def verifyTilesOfFirstGroup() = {
-      val tiles = domainDiffStore.retrieveEventTiles(pair, zoomLevel, firstEventTime)
-      assertEquals("Zoom level %s;".format(zoomLevel), TileGroup(alignedTileGroupStart, Map(alignedTileStart -> 1) ), tiles.get)
-    }
-
-    verifyTilesOfFirstGroup()
-
-    // Add a second event to the store for a different time frame and verify that the cache of the first event is not affected
-    domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "17b"), secondEventTime, "", "", observationTime)
-
-    verifyTilesOfFirstGroup()
-
-  }
-
-  @Test
-  def eventsShouldUpdateZoomCache = ZoomLevels.levels.foreach(playThroughEventsAtZoomLevel(_))
+  def eventsShouldCauseAggregatesToBeUpdated = ZoomLevels.levels.foreach(playThroughEventsAtZoomLevel(_))
 
   private def playThroughEventsAtZoomLevel(zoomLevel:Int) = {
-
     val observationTime = new DateTime()
     val timestamp1 = observationTime.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) + 1)
     val timestamp2 = observationTime.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) + 2)
@@ -816,7 +785,7 @@ class HibernateDomainDifferenceStoreTest {
     validateZoomRange(timestamp2, pair, zoomLevel, timestamp1)
 
     domainDiffStore.addMatchedEvent(id1, "")
-    val tileGroup = domainDiffStore.retrieveEventTiles(pair, zoomLevel, timestamp1)
+    val tileGroup = retrieveEventTiles(pair, zoomLevel, timestamp1)
     assertTrue(tileGroup.get.tiles.isEmpty)
   }
 
@@ -836,9 +805,19 @@ class HibernateDomainDifferenceStoreTest {
 
     // Deliberately allow passing a potentially unaligned timestamp
 
-    val tileGroup = domainDiffStore.retrieveEventTiles(pair, zoomLevel, timestamp)
+    val tileGroup = retrieveEventTiles(pair, zoomLevel, timestamp)
 
     assertEquals("Expected tile set not in range at zoom level %s;".format(zoomLevel), expectedTiles, tileGroup.get.tiles)
+  }
+
+  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) = {
+    val alignedTimespan = ZoomLevels.containingTileGroupInterval(timestamp, zoomLevel)
+    val aggregateMinutes = ZoomLevels.lookupZoomLevel(zoomLevel)
+    val aggregates =
+      domainDiffStore.retrieveAggregates(pair, alignedTimespan.getStart, alignedTimespan.getEnd, Some(aggregateMinutes))
+
+    val interestingAggregates = aggregates.filter(t => t.count > 0)
+    Some(TileGroup(alignedTimespan.getStart, interestingAggregates.map(t => t.start -> t.count).toMap))
   }
 
   //

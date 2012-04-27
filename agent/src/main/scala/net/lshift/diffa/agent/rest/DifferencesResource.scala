@@ -89,38 +89,6 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   }
   
   @GET
-  @Path("/tiles/{zoomLevel}")
-  @Produces(Array("application/json"))
-  @MandatoryParams(Array(
-      new MandatoryParam(name = "range-start", datatype = "date", description = "The starting time for any differences"),
-      new MandatoryParam(name = "range-end", datatype = "date", description = "The ending time for any differences"),
-      new MandatoryParam(name = "zoom-level", datatype = "int", description = "The level of zoom for the requested tiles")))
-  @Description("Returns a zoomed view of the data within a specific time range")
-  def getZoomedTiles(@QueryParam("range-start") rangeStart: String,
-                     @QueryParam("range-end") rangeEnd:String,
-                     @PathParam("zoomLevel") zoomLevel:Int,
-                     @Context request: Request): Response = {
-
-    // Evaluate whether the version of the domain has changed
-    val domainVsn = validateETag(request)
-
-    val rangeStartDate = isoDateTime.parseDateTime(rangeStart)
-    val rangeEndDate = isoDateTime.parseDateTime(rangeEnd)
-
-    if (rangeStartDate == null || rangeEndDate == null) {
-      return Response.status(Response.Status.BAD_REQUEST).entity("Invalid start or end date").build
-    }
-
-    // TODO Consider limiting the zoom range to prevent people requesting ranges going back to the start of time in one go
-    // This should probably be relative to the zoom level and is effectively geared towards delivering enough
-    // data to populate the heatmap
-
-    val tileSet = differencesManager.retrieveEventTiles(domain, zoomLevel, new Interval(rangeStartDate, rangeEndDate))
-    val respObj = mapAsJavaMap(tileSet.keys.map(pair => pair -> tileSet(pair).toArray).toMap[String, Array[Int]])
-    Response.ok(respObj).tag(domainVsn).build()
-  }
-
-  @GET
   @Path("/aggregates")
   @Produces(Array("application/json"))
   @Description("Returns an aggregate view for all pairs in a domain")

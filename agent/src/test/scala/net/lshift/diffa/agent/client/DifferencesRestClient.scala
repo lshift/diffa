@@ -42,23 +42,6 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
   val noMillisFormatter = ISODateTimeFormat.basicDateTimeNoMillis
   val formatter = ISODateTimeFormat.dateTime()
 
-  def getZoomedTiles(from:DateTime, until:DateTime, zoomLevel:Int) : Map[String,List[Int]]  = {
-    val path = resource.path("tiles/" + zoomLevel)
-                       .queryParam("range-start", noMillisFormatter.print(from))
-                       .queryParam("range-end", noMillisFormatter.print(until))
-                       .queryParam("bucketing", zoomLevel.toString)
-    val media = path.accept(MediaType.APPLICATION_JSON_TYPE)
-    val response = media.get(classOf[ClientResponse])
-    val status = response.getClientResponseStatus
-    status.getStatusCode match {
-      case 200    =>
-        val result = response.getEntity(classOf[java.util.Map[String,ArrayList[Int]]])
-        result.map { case (k,v) => k -> v.toList }.toMap[String,List[Int]]
-      case x:Int  => handleHTTPError(x, path, status)
-    }
-
-  }
-
   def retrieveAggregates(requests:Map[String, AggregateRequest]) : Map[String, Map[String,List[Int]]]  = {
     val path = resource.path("aggregates")
                        .queryParams(aggregateRequestsToParams(requests))

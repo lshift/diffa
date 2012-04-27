@@ -56,12 +56,6 @@ trait DifferencesManager {
   def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
 
   /**
-   *  Retrieves all events known to this domain in the as tiles according to the given zoom level. Will only include unmatched events.
-   *  @throws MissingObjectException if the requested domain does not exist
-   */
-  def retrieveEventTiles(domain:String, zoomLevel:Int, timespan:Interval) : Map[String,Array[Int]]
-
-  /**
    * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
    * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
    */

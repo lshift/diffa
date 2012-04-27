@@ -29,6 +29,11 @@ Diffa.Helpers.ViewsHelper = {
     model.set({views: model.views.toJSON()}, {silent: true});
   }
 };
+Diffa.Helpers.DatesHelper = {
+  toISOString: function(d) {
+  return d.toISOString().replace(/-/g, "").replace(/:/g, "").replace(/\.\d\d\d/g, "");
+  }
+};
 Diffa.Helpers.CategoriesHelper = {
   extractCategories: function(model, viewCollectionClass) {
     var updateCategories = function() {
@@ -350,6 +355,114 @@ Diffa.Collections.PairStates = Diffa.Collections.CollectionBase.extend({
 });
 
 /**
+ * Mixin providing the ability for a model to retrieve aggregates. Note the following requirements:
+ *  - initialize should be called within the scope of the mixee to init internal variables;
+ *  - this.domain (and optionally this.pair) should be set to configure the domain/pair to poll for aggregates;
+ */
+Diffa.Models.Aggregator = {
+  initialize: function() {
+    // Start with an empty list of aggregate requests
+    this.aggregateRequests = {};
+  },
+
+  retrieveAggregates: function(callback) {
+    var self = this;
+
+    var params = $.map(this.aggregateRequests, function(request, name) {
+      // Allow requests to be functions
+      var requestDetails = request;
+      if (_.isFunction(request)) {
+        requestDetails = request();
+      }
+
+      var aggString = "";
+      if (requestDetails.startTime) aggString += Diffa.Helpers.DatesHelper.toISOString(requestDetails.startTime);
+      aggString += "-";
+      if (requestDetails.endTime) aggString += Diffa.Helpers.DatesHelper.toISOString(requestDetails.endTime);
+      if (requestDetails.bucketing) aggString += "@" + requestDetails.bucketing;
+
+      return "agg-" + name + "=" + aggString;
+    }).join("&");
+
+    var path = "/domains/" + self.domain.id + "/diffs/aggregates";
+    if (self.pair) path += "/" + self.pair;
+
+    $.getJSON(path + "?" + params, function(data) {
+      callback(data);
+    });
+  },
+
+  subscribeAggregate: function(name, request) {
+    this.aggregateRequests[name] = request;
+  },
+  unsubscribeAggregrate: function(name) {
+    delete this.aggregateRequests[name];
+  }
+};
+
+Diffa.Models.PairAggregates = Backbone.Model.extend(Diffa.Models.Aggregator).extend({
+  idAttribute: 'pair',
+
+  initialize: function() {
+    Diffa.Models.Aggregator.initialize.call(this);
+
+    _.bindAll(this, 'sync', 'applyAggregateResult', 'retrieveAggregates');
+
+    this.domain = this.get('domain');
+    this.pair = this.get('pair');
+  },
+
+  sync: function(callback, opts) {
+    var self = this;
+
+    this.retrieveAggregates(function(result) {
+      self.applyAggregateResult(result, opts);
+
+      if (callback) callback();
+    });
+  },
+
+  applyAggregateResult: function(result, opts) {
+    this.set(result, opts);
+  }
+});
+Diffa.Collections.DomainAggregates = Backbone.Collection.extend(Diffa.Models.Aggregator).extend({
+  model: Diffa.Models.PairAggregates,
+
+  initialize: function(models, opts) {
+    Diffa.Models.Aggregator.initialize.call(this);
+
+    _.bindAll(this, 'sync', 'retrieveAggregates');
+
+    this.domain = opts.domain;
+  },
+
+  /** Sort contained pairs by id to give stable iteration */
+  comparator: function(pair) { return pair.id; },
+
+  sync: function(callback, opts) {
+    var self = this;
+
+    this.retrieveAggregates(function(data) {
+      for(var pair in data) {
+        var pairAggregates = self.get(pair);
+        if (!pairAggregates) {
+          pairAggregates = new Diffa.Models.PairAggregates({domain: self.domain, pair: pair});
+          self.add(pairAggregates, opts);
+        }
+        pairAggregates.applyAggregateResult(data[pair], opts);
+      }
+
+      if (callback) callback();
+    });
+  },
+
+  change: function() {
+    this.forEach(function(pair) { pair.change(); });
+  }
+});
+
+/**
  * Root object constructed to create a Diffa domain, and all constituent collections.
  */
 Diffa.Models.Domain = Backbone.Model.extend({
@@ -358,8 +471,8 @@ Diffa.Models.Domain = Backbone.Model.extend({
     this.endpoints = new Diffa.Collections.Endpoints([], {domain: this});
     this.pairs = new Diffa.Collections.Pairs([], {domain: this});
     this.pairStates = new Diffa.Collections.PairStates([], {domain: this});
-    this.blobs = new Diffa.Models.Blobs({domain: this});
     this.diffs = new Diffa.Collections.Diffs([], {domain: this});
+    this.aggregates = new Diffa.Collections.DomainAggregates([], {domain: this});
   },
 
   loadAll: function(colls, callback) {
@@ -374,6 +487,10 @@ Diffa.Models.Domain = Backbone.Model.extend({
         }
       });
     });
+  },
+
+  createAggregator: function(pair) {
+    return new Diffa.Models.Aggregator({domain: this, pair: pair});
   }
 });
 

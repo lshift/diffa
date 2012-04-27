@@ -156,14 +156,6 @@ trait DomainDifferenceStore {
   def getEvent(domain:String, evtSeqId:String) : DifferenceEvent
 
   /**
-   * Retrieves pre-set group of tiles that is aligned on the requested timestamp.
-   * @param pair The pair to retrieve tiles for.
-   * @param zoomLevel The level that the tiles should be zoomed into.
-   * @param timestamp The (aligned) start time of the requested group of tiles.
-   */
-  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) : Option[TileGroup]
-
-  /**
    * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
    * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
    */

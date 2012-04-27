@@ -21,6 +21,7 @@
 * [118] - Make sure that ChangeEvents contain the mandatory fields
 * [123] - Matched entities are now updated in caches immediately
 * [124] - Replacement mechanism for caching results of aggregation.
+* [127] - Support for infinite panning on the heatmap
 
 ## Library Upgrades
 

@@ -94,25 +94,6 @@ class DefaultDifferencesManager(
 
   def retrieveDomainSequenceNum(id:String) = domainDifferenceStore.currentSequenceId(id)
 
-  def retrieveEventTiles(domain:String, zoomLevel:Int, timespan:Interval) = {
-    domainConfig.listPairs(domain).map(p => {
-      p.key -> retrieveEventTiles(DiffaPairRef(p.key,domain), zoomLevel, timespan)
-    }).toMap
-  }
-
-  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timespan:Interval) : Array[Int] = {
-        
-    val groupStartTimes = ZoomLevels.containingTileGroupEdges(timespan, zoomLevel)
-    // There must be a better way to do this map filter ......
-    val tileGroups = groupStartTimes.map(t => domainDifferenceStore.retrieveEventTiles(pair, zoomLevel, t)).filter(_.isDefined).map(_.get)
-    val unfiltered = tileGroups.flatMap(g => g.tiles).map{case (k,v) => k -> v }
-    val alignedInterval = ZoomLevels.alignInterval(timespan, zoomLevel)
-    // Note the half open semantics of the contains method
-    val filtered = unfiltered.filter{case (d, i) => alignedInterval.contains(d) || alignedInterval.getEnd == d}.toMap
-    val tileEdges = ZoomLevels.individualTileEdges(timespan, zoomLevel)
-    tileEdges.map(s => filtered.getOrElse(s, 0)).toArray
-  }
-
   def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregation:Option[Int]) =
     domainDifferenceStore.retrieveAggregates(pair, start, end, aggregation)
 

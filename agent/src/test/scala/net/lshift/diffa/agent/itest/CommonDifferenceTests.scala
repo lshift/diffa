@@ -100,56 +100,7 @@ trait CommonDifferenceTests {
   }
 
   @Test
-  def differencesShouldTile = {
-    val diffs = getVerifiedDiffs()
-    assertNotNull(diffs)
-
-    val zoomLevel = ZoomLevels.QUARTER_HOURLY
-    val tiles = env.diffClient.getZoomedTiles(yesterday, tomorrow, zoomLevel)
-    assertNotNull(tiles)
-    assertNotNull(tiles(env.pairKey))
-  }
-
-  @Test
-  def differencesShouldTileAtEachLevel = {
-
-    val rightNow = new DateTime(2011,7,8,15,0,0,0, DateTimeZone.UTC)
-    val upperBound = rightNow.plusMinutes(1)
-
-    val events = 480 // 8 hours * 60 minutes, i.e. will get split at 8-hourly level, but fits into a daily column
-    val columns = 32
-
-    val expectedZoomedViews = Map(
-      DAILY          -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 480), // 24 hour interval
-      EIGHT_HOURLY   -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 420), // 0-8h, 8-16h intervals
-      FOUR_HOURLY    -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 240, 180),  // 8-12h,12-16h
-      TWO_HOURLY     -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 120, 120, 120, 60),  // 8-10h,10-12h,12-14h,14-16h
-      HOURLY         -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 60, 60, 60, 60, 60, 60, 60, 0),  // every hour, remembering the extra minute
-      HALF_HOURLY    -> List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 0),  // every half hour
-      QUARTER_HOURLY -> List(15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0)  // every quarter hour
-    )
-
-    resetPair
-    env.clearParticipants
-
-    for (i <- 1 to events) {
-      val timestamp = rightNow.minusMinutes(i)
-      env.upstream.addEntity("id-" + i, yesterday, "ss", timestamp, "abcdef")
-    }
-
-    val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
-    runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
-
-    expectedZoomedViews.foreach{ case (zoomLevel, expectedBlobs) => {
-      val lowerBound = upperBound.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) * columns)
-      val tiles = env.diffClient.getZoomedTiles(lowerBound, upperBound, zoomLevel)
-      val retrievedBlobs = tiles(env.pairKey)
-      assertEquals("Zoom level %s ".format(zoomLevel), expectedBlobs,retrievedBlobs)
-    }}
-  }
-
-  @Test
-  def differencesShouldTileAtEachLevelViaAggregationAPI = {
+  def differencesShouldAggregateAtMultipleLevels = {
 
     val rightNow = new DateTime(2011,7,8,15,0,0,0, DateTimeZone.UTC)
     val upperBound = rightNow.plusMinutes(1)

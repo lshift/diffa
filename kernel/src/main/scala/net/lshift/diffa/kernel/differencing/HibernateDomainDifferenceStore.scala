@@ -285,16 +285,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory, val cach
       Map("domain" -> domain, "seqId" -> Integer.parseInt(evtSeqId))).map(_.asDifferenceEvent)
   })
 
-  def retrieveEventTiles(pair:DiffaPairRef, zoomLevel:Int, timestamp:DateTime) = {
-    val alignedTimespan = ZoomLevels.containingTileGroupInterval(timestamp, zoomLevel)
-    val aggregateMinutes = ZoomLevels.lookupZoomLevel(zoomLevel)
-    val aggregates =
-      aggregationCache.retrieveAggregates(pair, alignedTimespan.getStart, alignedTimespan.getEnd, Some(aggregateMinutes))
-
-    val interestingAggregates = aggregates.filter(t => t.count > 0)
-    Some(TileGroup(alignedTimespan.getStart, interestingAggregates.map(t => t.start -> t.count).toMap))
-  }
-
   def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] =
     aggregationCache.retrieveAggregates(pair, start, end, aggregateMinutes)
 
