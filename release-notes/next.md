@@ -6,11 +6,12 @@
 
 ## New Features
 
+* [129] - Improvements to the inventory submission form, including a JavaScript date picker for date range categories.
+* [128] - Registered users and domains are now exposed via the Diffa scanning protocol so the agent can act as a participant
 * [126] - Introduced a new REST API for performing arbitrary queries for time aggegrated differences
 * [111] - Support arbitrary limiting of operations in participant scanning, real-time event submission and inventory submission.
 * [107] - Added the ability to initiate a scan from behind a firewall
 * [84]  - If we've got at least two endpoints defined, then try to make selecting the endpoints in the settings page sensible
-* [128] - Registered users and domains are now exposed via the Diffa scanning protocol so the agent can act as a participant
 
 ## General Maintenance
 

@@ -22,19 +22,20 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
     'change select[name=endpoint]': 'selectEndpoint'
   },
   templates: {
-    rangeConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
-                      '<span class="name"><%= name %> Range</span>' +
-                      '<input type="text" name="start">' +
-                      ' -> ' +
-                      '<input type="text" name="end">' +
+    rangeConstraint: _.template('<div class="category" data-constraint="<%= name %>" data-constraint-type="<%= dataType %>">' +
+                      '<h5 class="name"><%= name %> (<%= dataType %> range)</h5>' +
+                      '<label for="<%= name %>_range_start">Start:</label>' +
+                      '<input id="<%= name %>_range_start" type="text" name="start"></label>' +
+                      '<br>' +
+                      '<label for="<%= name %>_range_end">End:</label>' +
+                      '<input id="<%= name %>_range_end" type="text" name="end"></label>' +
                      '</div>'),
     prefixConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
-                        '<span class="name"><%= name %> Prefix</span>' +
+                        '<h5 class="name"><%= name %> (prefix)</h5>' +
                         '<input type="text" name="prefix">' +
                       '</div>'),
     setConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
-                        '<span class="name"><%= name %> Values</span>' +
-                        '<br>' +
+                        '<h5 class="name"><%= name %> (set)</h5>' +
                         '<% _.each(values, function(value) { %>' +
                           '<input type="checkbox" value="<%= value %>" id="constraint_<%= name %>_<%= value %>">' +
                           '<label for="constraint_<%= name %>_<%= value %>"><%= value %></label>' +
@@ -96,6 +97,44 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
 
     selectedEndpoint.rangeCategories.each(function(rangeCat) {
       constraints.append(self.templates.rangeConstraint(rangeCat.toJSON()));
+
+      // add date picking to the range inputs
+
+      var lowerBound = rangeCat.attributes.lower;
+      var upperBound = rangeCat.attributes.upper;
+
+      if (lowerBound) {
+        var allowOld = false;
+        var startDate = new Date(lowerBound);
+      } else {
+        var allowOld = true;
+        var startDate = new Date();
+      }
+
+      if (upperBound) {
+        var endDate = new Date(upperBound);
+      } else {
+        var endDate = -1;
+      }
+
+      $(".category[data-constraint-type=date] input").glDatePicker({
+        allowOld: allowOld, // as far back as possible or not
+        startDate: startDate,
+        endDate: endDate, // latest selectable date, days since start date (int), or no limit (-1)
+        selectedDate: -1, // default select date, or nothing set (-1)
+        onChange: function(target, newDate) {
+          var result, year, month, day;
+
+          // helper to pad our month/day values if needed
+          var pad = function(s) { s = s.toString(); if (s.length < 2) { s = "0" + s; }; return s };
+          year = newDate.getFullYear();
+          month = pad(newDate.getMonth() + 1);
+          day = pad(newDate.getDate());
+          result = year + "-" + month + "-" + day;
+
+          target.val(result);
+        }
+      });
     });
     selectedEndpoint.setCategories.each(function(setCat) {
       constraints.append(self.templates.setConstraint(setCat.toJSON()));

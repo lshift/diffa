@@ -1,12 +1,17 @@
 <div class="status" style="display:none"></div>
 <form>
-  <input type="file" name="inventory" class="fileSelector">
-
-  Endpoint: <select name="endpoint"></select>
+  <label>Endpoint: <select name="endpoint"></select></label>
+  <br>
 
   <div class="constraints">
 
   </div>
 
-  <input type="submit" value="Upload">
+  <br>
+  <h5>CSV file</h5>
+  <label>File to upload:</label>
+  <input type="file" name="inventory" class="fileSelector">
+  <br>
+
+  <input id="inventory_submit" type="submit" value="Upload">
 </form>

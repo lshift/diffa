@@ -15,6 +15,7 @@
     <js>/js/datejs/extras.js</js>
     <js>/js/diffa-common.js</js>
     <js>/js/models.js</js>
+    <js>/js/thirdparty/glDatePicker.js</js>
   </group>
 
   <group name="styling">
@@ -32,5 +33,6 @@
     <js>/js/settings.js</js>
 
     <css>/less/widgets.less</css>
+    <css>/less/glDatePicker/default.less</css>
   </group>
 </groups>

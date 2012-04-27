@@ -64,7 +64,6 @@
     <script type="text/javascript" src="assets/widgets.js"></script>
 
     <decorator:head/>
-
   </head>
 
   <body>
