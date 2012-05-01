@@ -44,6 +44,21 @@
    .column_2 {
      float: left;
    }
+
+   .clearable_input .nonempty ~ .clear {
+     width: 1em;
+     margin-left: -1em;
+     cursor: pointer;
+     display: inline-block;
+
+     &:after {
+       content: "\00D7";
+     }
+
+     &:hover {
+       color: black;
+     }
+   }
  }
 
  #inventory_submit {

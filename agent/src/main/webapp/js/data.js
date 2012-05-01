@@ -25,11 +25,20 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   templates: {
     rangeConstraint: _.template('<div class="category" data-constraint="<%= name %>" data-constraint-type="<%= dataType %>">' +
                       '<h5 class="name"><%= name %> (<%= dataType %> range)</h5>' +
-                      '<label for="<%= name %>_range_start">Start:</label>' +
-                      '<input id="<%= name %>_range_start" type="text" name="start"></label>' +
-                      '<br>' +
-                      '<label for="<%= name %>_range_end">End:</label>' +
-                      '<input id="<%= name %>_range_end" type="text" name="end"></label>' +
+                      '<div>' +
+                        '<label for="<%= name %>_range_start">Start:</label>' +
+                        '<span class="clearable_input">' +
+                          '<input id="<%= name %>_range_start" type="text" name="start" placeholder="<%= placeholder %>">' +
+                          '<span class="clear"></span>' +
+                        '</span>' +
+                      '</div>' +
+                      '<div>' +
+                        '<label for="<%= name %>_range_end">End:</label>' +
+                        '<span class="clearable_input">' +
+                          '<input id="<%= name %>_range_end" type="text" name="end" placeholder="<%= placeholder %>">' +
+                          '<span class="clear"></span>' +
+                        '</span>' +
+                      '</div>' +
                      '</div>'),
     prefixConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
                         '<h5 class="name"><%= name %> (prefix)</h5>' +
@@ -114,7 +123,19 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
     if (!selectedEndpoint) return;
 
     selectedEndpoint.rangeCategories.each(function(rangeCat) {
-      constraints.append(self.templates.rangeConstraint(rangeCat.toJSON()));
+      var templateVars = rangeCat.toJSON();
+      var type = rangeCat.get("dataType");
+      var placeholder = "";
+
+      switch(type) {
+        case "date":     placeholder = "Unbounded date";     break;
+        case "datetime": placeholder = "Unbounded datetime"; break;
+        case "int":      placeholder = "Unbounded";     break;
+      }
+
+      templateVars["placeholder"] = placeholder;
+
+      constraints.append(self.templates.rangeConstraint(templateVars));
 
       // add date picking to the range inputs
 
@@ -135,23 +156,40 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
         var endDate = -1;
       }
 
-      $(".category[data-constraint-type=date] input").glDatePicker({
-        allowOld: allowOld, // as far back as possible or not
-        startDate: startDate,
-        endDate: endDate, // latest selectable date, days since start date (int), or no limit (-1)
-        selectedDate: -1, // default select date, or nothing set (-1)
-        onChange: function(target, newDate) {
-          var result, year, month, day;
+      // if the category we're adding is a date range, apply datepickers
+      if (type == "date") {
+        $(".category:last-child input[type=text]").glDatePicker({
+          allowOld: allowOld, // as far back as possible or not
+          startDate: startDate,
+          endDate: endDate, // latest selectable date, days since start date (int), or no limit (-1)
+          selectedDate: -1, // default select date, or nothing set (-1)
+          onChange: function(target, newDate) {
+            var result, year, month, day;
 
-          // helper to pad our month/day values if needed
-          var pad = function(s) { s = s.toString(); if (s.length < 2) { s = "0" + s; }; return s };
-          year = newDate.getFullYear();
-          month = pad(newDate.getMonth() + 1);
-          day = pad(newDate.getDate());
-          result = year + "-" + month + "-" + day;
+            // helper to pad our month/day values if needed
+            var pad = function(s) { s = s.toString(); if (s.length < 2) { s = "0" + s; }; return s };
+            year = newDate.getFullYear();
+            month = pad(newDate.getMonth() + 1);
+            day = pad(newDate.getDate());
+            result = year + "-" + month + "-" + day;
 
-          target.val(result);
+            target.val(result);
+            target.change(); // fire the event as though we just typed it in
+          }
+        });
+      }
+
+      $(".category:last-child input").bind("change keydown focus blur", function() {
+        if ($(this).val().length > 0) {
+          $(this).addClass("nonempty");
+        } else {
+          $(this).removeClass("nonempty");
         }
+      });
+
+      $(".clearable_input .clear").click(function() {
+        $(this).siblings("input").val("");
+        $(this).siblings(".nonempty").removeClass("nonempty");
       });
     });
 

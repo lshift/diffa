@@ -6,6 +6,7 @@
 
 ## New Features
 
+* [135] - Inventory upload form input fields are clearable with an "x".
 * [129] - Improvements to the inventory submission form, including a JavaScript date picker for date range categories.
 * [128] - Registered users and domains are now exposed via the Diffa scanning protocol so the agent can act as a participant
 * [126] - Introduced a new REST API for performing arbitrary queries for time aggegrated differences
