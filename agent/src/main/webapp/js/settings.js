@@ -282,7 +282,15 @@ Diffa.Views.TableEditor = Backbone.View.extend({
     this.collection.bind("remove", this.removeOne);
     this.collection.bind("reset", this.render);
 
-    this.$('>.add-link').click(this.createRow);
+    var self = this;
+
+    // create the row and then auto-focus the first input of the newly-added row
+    this.$('>.add-link').click(function(e) {
+      e.preventDefault();
+
+      self.createRow();
+      self.$("> table > tbody > tr:last-child > td:first-child input").first().focus();
+    });
 
     this.templateName = this.$('table').data('template');
     if (!this.templateName) console.error("Missing template name", this);
@@ -312,9 +320,7 @@ Diffa.Views.TableEditor = Backbone.View.extend({
     this.$('[data-row-id=' + removed.cid + ']').remove();
   },
 
-  createRow: function(e) {
-    e.preventDefault();
-
+  createRow: function() {
     this.collection.add(new this.collection.model({}));
   },
 
