@@ -62,6 +62,8 @@ object AlertCodes {
   val INVALID_SYSTEM_CONFIGURATION = 500
   // Indicates a given domain is not valid or does not exist.
   val INVALID_DOMAIN = 501
+  // Indicates that a pair has been configured with an invalid version correlation policy
+  val INVALID_VERSION_POLICY = 502
 
   // 51x General scan errors
   val UPSTREAM_SCAN_FAILURE = 510

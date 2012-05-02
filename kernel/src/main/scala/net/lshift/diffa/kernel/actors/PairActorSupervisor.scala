@@ -19,7 +19,6 @@ package net.lshift.diffa.kernel.actors
 import java.util.HashMap
 
 import akka.actor._
-import akka.dispatch.Future
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.participants.ParticipantFactory
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
@@ -28,9 +27,9 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.{VersionID, PairChangeEvent}
 import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore, DiffaPair}
-import net.lshift.diffa.kernel.util.AlertCodes._
-import net.lshift.diffa.kernel.util.{EndpointSide, MissingObjectException}
+import net.lshift.diffa.kernel.util.{EndpointSide, Lazy, MissingObjectException}
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
+import net.lshift.diffa.kernel.util.AlertCodes._
 
 case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                systemConfig:SystemConfigStore,
@@ -47,7 +46,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
 
     with AgentLifecycleAware {
 
-  private type PotentialActor = Future[Option[ActorRef]]
+  private type PotentialActor = Lazy[Option[ActorRef]]
 
   private val log = LoggerFactory.getLogger(getClass)
   private val pairActors = new HashMap[String, PotentialActor]()
@@ -70,7 +69,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
           diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis)
       ))
     case None =>
-      log.error("Failed to find policy for name: " + pair.versionPolicyName)
+      log.error("Failed to find policy for name: {}", formatAlertCode(pair.versionPolicyName, INVALID_VERSION_POLICY))
       None
   }
 
@@ -88,8 +87,14 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   }
 
   def startActor(pair: DiffaPair) = {
+    def createAndStartPairActor = createPairActor(pair) map { actor =>
+      actor.start()
+      log.info("{} actor started", formatAlertCode(pair.asRef, ACTOR_STARTED))
+      actor
+    }
+
     // This block is essentially an atomic replace with delayed initialization
-    // of the pair actor.  Initialization (Future(...)) must be performed
+    // of the pair actor.  Initialization (Lazy(...)) must be performed
     // outside the critical section, since it involves expensive
     // (time-consuming) database calls.
     // The return value of the block is the actor that was replaced, or null if
@@ -97,12 +102,8 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
     // TODO: replace this with oldActor = ConcurrentHashMap.replace(key, value)
     val oldActor = pairActors.synchronized {
       val oldActor = unregisterActor(pair.asRef)
-      val future = Future(createPairActor(pair) map { actor =>
-        actor.start()
-        log.info("{} actor started", formatAlertCode(pair.asRef, ACTOR_STARTED))
-        actor
-      })
-      pairActors.put(pair.identifier, future)
+      val lazyActor = new Lazy(createAndStartPairActor)
+      pairActors.put(pair.identifier, lazyActor)
       oldActor
     }
 
@@ -110,7 +111,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
     // the synchronized block.  Stopping the actor can cause actions such as
     // scans to fail, which is expected.
     if (oldActor != null) {
-      oldActor.get.map(_.stop())
+      oldActor().map(_.stop())
       log.info("{} Stopping existing actor for key: {}",
         formatAlertCode(pair.asRef, ACTOR_STOPPED), pair.identifier)
     }
@@ -125,7 +126,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
     // pair scans which will fail as expected if the actor is stopped just
     // before the scan attempts to use it.
     if (actor != null) {
-      actor.get.map(_.stop())
+      actor().map(_.stop())
       log.info("{} actor stopped", formatAlertCode(pair, ACTOR_STOPPED))
     } else {
       log.warn("{} Could not resolve actor for key: {}",
@@ -168,16 +169,15 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   def findActor(pair: DiffaPairRef) = {
     val actor = pairActors.get(pair.identifier)
     if (actor == null) {
-      log.error("{} Could not resolve actor for key: {}; registry contains {} actors: {}",
+      log.error("{} Could not resolve actor for key: {}; {} registered actors: {}",
         Array[Object](formatAlertCode(pair, MISSING_ACTOR_FOR_KEY), pair.identifier,
-                      Integer.valueOf(Actor.registry.size), Actor.registry.actors))
+                      Integer.valueOf(pairActors.size()), pairActors.keySet()))
       throw new MissingObjectException(pair.identifier)
     }
-    actor.get.getOrElse {
+    actor().getOrElse {
       log.error("{} Unusable actor due to failure to look up policy during actor creation",
         formatAlertCode(pair, BAD_ACTOR))
       throw new MissingObjectException(pair.identifier)
     }
   }
 }
-
