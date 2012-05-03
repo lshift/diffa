@@ -119,9 +119,7 @@ class UsersResource {
     aggregationsBuilder.maybeAddStringPrefixAggregation("name")
     val aggregations = aggregationsBuilder.toList
 
-    val users = ScannableUtils.filterByKey[User](systemConfig.listFullUsers, constraints, _.name)
-    val scanResults = users.map { u => new ScanResultEntry(u.name, generateVersion(u), null, Map("name" -> u.name)) }
-    val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations)
+    val aggregated = new UserScanningParticipant(systemConfig).perform(constraints, aggregations).toArray
 
     Response.ok(aggregated).build()
   }
