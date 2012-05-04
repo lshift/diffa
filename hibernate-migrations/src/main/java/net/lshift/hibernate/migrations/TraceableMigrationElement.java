@@ -16,6 +16,9 @@
 
 package net.lshift.hibernate.migrations;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -24,6 +27,8 @@ import java.util.List;
 
 abstract public class TraceableMigrationElement implements MigrationElement {
 
+  static Logger log = LoggerFactory.getLogger(TraceableMigrationElement.class);
+
   private List<String> statements = new ArrayList<String>();
 
   protected void logStatement(String s) {
@@ -31,11 +36,13 @@ abstract public class TraceableMigrationElement implements MigrationElement {
   }
 
   protected PreparedStatement prepareAndLog(Connection conn, String sql) throws SQLException {
+    log.trace("Preparing statement: " + sql);
     logStatement(sql);
     return conn.prepareStatement(sql);
   }
 
   protected void prepareAndLogAndExecute(Connection conn, String sql) throws SQLException {
+
     PreparedStatement stmt = prepareAndLog(conn, sql);
     stmt.execute();
     stmt.close();

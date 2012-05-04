@@ -155,7 +155,10 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   }
 
   def validateETag(request:Request) = {
-    val domainVsn = new EntityTag(getSequenceNumber(domain))
+    val domainConfigVersion = domainConfigStore.getConfigVersion(domain)
+    val eventSequenceNumber = getSequenceNumber(domain)
+
+    val domainVsn = new EntityTag(eventSequenceNumber + "@" + domainConfigVersion)
 
     request.evaluatePreconditions(domainVsn) match {
       case null => // We'll continue with the request

@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
-import migrations.{HibernateMigrationStep0023, HibernateMigrationStep0022}
+import net.lshift.diffa.kernel.config.migrations._
 import org.hibernate.SessionFactory
 import org.hibernate.jdbc.Work
 import org.slf4j.{LoggerFactory, Logger}
@@ -218,7 +218,8 @@ object HibernateConfigStorePreparationStep {
    * Note that these steps should be executed in strictly ascending order.
    */
   val migrationSteps = Seq(
-    HibernateMigrationStep0022,
-    HibernateMigrationStep0023
+    Step0022,
+    Step0023,
+    Step0024
   )
 }

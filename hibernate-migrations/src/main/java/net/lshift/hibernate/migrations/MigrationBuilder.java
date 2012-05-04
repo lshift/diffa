@@ -126,7 +126,13 @@ public class MigrationBuilder {
         metaDataRs = conn.getMetaData().getTables(null, null, preconditionTable, null);
         if (metaDataRs.next()) {
           statement = conn.createStatement();
-          countRs = statement.executeQuery(buildQueryString(preconditionTable, preconditionPredicate));
+          String sql = buildQueryString(preconditionTable, preconditionPredicate);
+
+          if (log.isTraceEnabled()) {
+            log.trace("Executing migration precondition statement: " + sql);
+          }
+
+          countRs = statement.executeQuery(sql);
 
           if (countRs.next()) {
             count = countRs.getInt(1);

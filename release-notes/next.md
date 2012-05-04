@@ -25,6 +25,7 @@
 * [123] - Matched entities are now updated in caches immediately
 * [124] - Replacement mechanism for caching results of aggregation.
 * [127] - Support for infinite panning on the heatmap
+* [132] - Made sure that a change to a pair or endpoint config results in a change the Etag returned when querying for differences
 
 ## Library Upgrades
 

@@ -20,17 +20,23 @@ import net.lshift.diffa.kernel.util.SessionHelper._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.util.HibernateQueryUtils
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
+import net.sf.ehcache.CacheManager
+import net.lshift.diffa.kernel.util.{CacheWrapper, HibernateQueryUtils}
 
-class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:PairCache, hookManager:HookManager)
+class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
+                                 pairCache:PairCache,
+                                 hookManager:HookManager,
+                                 cacheManager:CacheManager)
     extends DomainConfigStore
     with HibernateQueryUtils {
 
   val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
 
-  def createOrUpdateEndpoint(domainName:String, e: EndpointDef) : Endpoint = sessionFactory.withSession(s => {
+  private val cachedConfigVersions = new CacheWrapper[String,Int]("configVersions", cacheManager)
+
+  def createOrUpdateEndpoint(domainName:String, e: EndpointDef) : Endpoint = withVersionUpgrade(domainName, s => {
 
     pairCache.invalidate(domainName)
 
@@ -47,7 +53,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
     endpoint
   })
 
-  def deleteEndpoint(domain:String, name: String): Unit = sessionFactory.withSession(s => {
+  def deleteEndpoint(domain:String, name: String): Unit = withVersionUpgrade(domain, s => {
 
     pairCache.invalidate(domain)
 
@@ -79,7 +85,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   }
 
   def createOrUpdatePair(domain:String, p: PairDef): Unit = {
-    sessionFactory.withSession(s => {
+    withVersionUpgrade(domain, s => {
       p.validate()
 
       pairCache.invalidate(domain)
@@ -100,7 +106,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   }
 
   def deletePair(domain:String, key: String) {
-    sessionFactory.withSession(s => {
+    withVersionUpgrade(domain, s => {
 
       pairCache.invalidate(domain)
 
@@ -179,20 +185,38 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory, pairCache:P
   def listRepairActions(domain:String) : Seq[RepairActionDef] = sessionFactory.withSession(s =>
     listQuery[RepairAction](s, "repairActionsByDomain", Map("domain_name" -> domain)).map(toRepairActionDef(_)))
 
-  /*
-  def getPairsForEndpoint(domain:String, epName:String):Seq[Pair] = sessionFactory.withSession(s => {
-    val q = s.createQuery("SELECT p FROM Pair p WHERE p.upstream.name = :epName OR p.downstream.name = :epName")
-    q.setParameter("epName", epName)
-
-    q.list.map(_.asInstanceOf[Pair]).toSeq
-  })
-  */
-
   def getEndpointDef(domain:String, name: String) = sessionFactory.withSession(s => toEndpointDef(getEndpoint(s, domain, name)))
   def getEndpoint(domain:String, name: String) = sessionFactory.withSession(s => getEndpoint(s, domain, name))
   def getPairDef(domain:String, key: String) = sessionFactory.withSession(s => toPairDef(getPair(s, domain, key)))
   def getRepairActionDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toRepairActionDef(getRepairAction(s, domain, name, pairKey)))
   def getPairReportDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toPairReportDef(getReport(s, domain, name, pairKey)))
+
+  def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => sessionFactory.withSession(s => {
+    s.getNamedQuery("configVersionByDomain").setString("domain", domain).uniqueResult().asInstanceOf[Int]
+  }))
+
+  /**
+   * Force the DB to uprev the config version column for this particular domain
+   */
+  private def upgradeConfigVersion(domain:String)(s:Session) = {
+    s.getNamedQuery("upgradeConfigVersionByDomain").setString("domain", domain).executeUpdate()
+  }
+
+  /**
+   * Force an upgrade of the domain config version in the db and the cache after the DB work has executed successfully.
+   */
+  private def withVersionUpgrade[T](domain:String, dbCommands:Function1[Session, T]) : T = {
+
+    def beforeCommit(session:Session) = upgradeConfigVersion(domain)(session)
+    def commandsToExecute(session:Session) = dbCommands(session)
+    def afterCommit() = cachedConfigVersions.remove(domain)
+
+    sessionFactory.withSession(
+      beforeCommit _,
+      commandsToExecute,
+      afterCommit _
+    )
+  }
 
   def allConfigOptions(domain:String) = {
     sessionFactory.withSession(s => {

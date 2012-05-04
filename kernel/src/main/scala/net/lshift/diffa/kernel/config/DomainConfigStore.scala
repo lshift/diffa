@@ -63,6 +63,8 @@ trait DomainConfigStore {
   def getRepairActionDef(domain:String, name: String, pairKey: String): RepairActionDef
   def getPairReportDef(domain:String, name:String, pairKey:String):PairReportDef
 
+  def getConfigVersion(domain:String) : Int
+
   /**
    * Retrieves all (domain-specific, non-internal) agent configuration options.
    */
@@ -272,7 +274,8 @@ object DiffaPair {
 }
 
 case class Domain (
-  @BeanProperty var name: String = null
+  @BeanProperty var name: String = null,
+  @BeanProperty var configVersion: java.lang.Integer = 0
 ) {
   def this() = this(name = null)
 
@@ -288,7 +291,6 @@ case class Domain (
 object Domain {
   val DEFAULT_DOMAIN = Domain(name = "diffa")
 }
-
 
 case class RepairAction(
   @BeanProperty var name: String = null,

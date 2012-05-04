@@ -93,7 +93,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new HibernateSystemConfigStore(sf, pairCache), "SystemConfigStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new HibernateDomainConfigStore(sf, pairCache, hookManager), "domainConfigStore")
+    makeStore(sf => new HibernateDomainConfigStore(sf, pairCache, hookManager, cacheManager), "domainConfigStore")
 
   private lazy val _domainDifferenceStore =
     makeStore(sf => new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager), "DomainDifferenceStore")

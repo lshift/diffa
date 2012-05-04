@@ -597,6 +597,44 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
+  @Test
+  def configChangeShouldUpgradeDomainConfigVersion {
+
+    // declare the domain
+    systemConfigStore.createOrUpdateDomain(domain)
+
+    val up = EndpointDef(name = "some-upstream-endpoint")
+    val down = EndpointDef(name = "some-downstream-endpoint")
+    val pair = PairDef(key = "some-pair", upstreamName = up.name, downstreamName = down.name)
+
+    val v1 = domainConfigStore.getConfigVersion(domainName)
+    domainConfigStore.createOrUpdateEndpoint(domainName, up)
+    verifyDomainConfigVersionWasUpgraded(domainName, v1)
+
+    val v2 = domainConfigStore.getConfigVersion(domainName)
+    domainConfigStore.createOrUpdateEndpoint(domainName, down)
+    verifyDomainConfigVersionWasUpgraded(domainName, v2)
+
+    val v3 = domainConfigStore.getConfigVersion(domainName)
+    domainConfigStore.createOrUpdatePair(domainName, pair)
+    verifyDomainConfigVersionWasUpgraded(domainName, v3)
+
+    val v4 = domainConfigStore.getConfigVersion(domainName)
+    domainConfigStore.deletePair(domainName, pair.key)
+    verifyDomainConfigVersionWasUpgraded(domainName, v4)
+
+    val v5 = domainConfigStore.getConfigVersion(domainName)
+    domainConfigStore.deleteEndpoint(domainName, up.name)
+    domainConfigStore.deleteEndpoint(domainName, down.name)
+    verifyDomainConfigVersionWasUpgraded(domainName, v5)
+
+  }
+
+  private def verifyDomainConfigVersionWasUpgraded(domain:String, oldVersion:Int) {
+    val currentVersion = domainConfigStore.getConfigVersion(domain)
+    assertTrue("Current version %s is not greater than old version %s".format(currentVersion,oldVersion), currentVersion > oldVersion)
+  }
+
   private def expectMissingObject(name:String)(f: => Unit) {
     try {
       f

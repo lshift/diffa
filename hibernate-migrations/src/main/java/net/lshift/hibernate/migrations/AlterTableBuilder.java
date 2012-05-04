@@ -78,6 +78,10 @@ public class AlterTableBuilder extends TraceableMigrationElement {
     return this;
   }
 
+  private static Column buildColumnDefinition(String name, int sqlType, boolean nullable, Object defaultVal) {
+    return buildColumnDefinition(name, sqlType, Column.DEFAULT_LENGTH, nullable, defaultVal);
+  }
+
   private static Column buildColumnDefinition(String name, int sqlType, int length, boolean nullable, Object defaultVal) {
     Column col = new Column(name);
     col.setSqlTypeCode(sqlType);

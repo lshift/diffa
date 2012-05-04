@@ -27,7 +27,11 @@ object TestConstants {
   val tomorrow = today.plusDays(1)
   val yearAgo = today.minusYears(1)
   val nextYear = today.plusYears(1)
-  val agentURL = "http://localhost:19093/diffa-agent"
+  val agentHost = "localhost"
+  val agentPort = 19093
+  val agentUsername = "guest"
+  val agentPassword = "guest"
+  val agentURL = "http://" + agentHost + ":"+ agentPort + "/diffa-agent"
   val domain = "domain"
   val defaultDomain = "diffa"
 }

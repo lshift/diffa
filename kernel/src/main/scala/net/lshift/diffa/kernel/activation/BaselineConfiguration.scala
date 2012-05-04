@@ -33,7 +33,8 @@ class BaselineConfiguration extends SessionFactoryObserver {
   def sessionFactoryCreated(factory:SessionFactory) = {
     // The config store will not have been constructed at this point in Spring
     // So just create a throw away instance in order to produce this baseline
-    val config = new HibernateDomainConfigStore(factory, new PairCache(new CacheManager()), new HookManager)
+    val cacheManager = new CacheManager()
+    val config = new HibernateDomainConfigStore(factory, new PairCache(cacheManager), new HookManager, cacheManager)
     log.debug("Diffa baseline configuration created")
   }
 

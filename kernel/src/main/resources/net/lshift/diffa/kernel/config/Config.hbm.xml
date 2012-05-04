@@ -143,6 +143,7 @@
   <class name="Domain" table="domains" abstract="false">
     <cache usage="read-write"/>
     <id name="name" type="string" column="name"/>
+    <property name="configVersion" type="int" column="config_version" not-null="true"/>
   </class>
 
   <class name="User" table="users" abstract="false">
@@ -360,6 +361,14 @@
 
   <query name="configOptionsByDomain" cacheable="true">
     select o from ConfigOption o where o.domain.name = :domain_name
+  </query>
+
+  <query name="configVersionByDomain" cacheable="false">
+    select d.configVersion from Domain d where d.name = :domain
+  </query>
+
+  <query name="upgradeConfigVersionByDomain" cacheable="false">
+    update Domain d set d.configVersion = d.configVersion + 1 where d.name = :domain
   </query>
 
   <!-- Query by pair with domain -->

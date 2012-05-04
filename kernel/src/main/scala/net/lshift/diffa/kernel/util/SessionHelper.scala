@@ -28,11 +28,32 @@ class SessionHelper(val sessionFactory:SessionFactory) {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  def withSession[T](f:Function1[Session, T]):T = {
+  def withSession[T](dbCommands:Function1[Session, T]) : T = withSessionInternal(dbCommands, None, None)
+
+  def withSession[T](beforeCommit:Function1[Session,_],
+                     dbCommands:Function1[Session, T],
+                     afterCommit:Function0[_]) : T = withSessionInternal(dbCommands, Some(beforeCommit), Some(afterCommit))
+
+  private def withSessionInternal[T](dbCommands:Function1[Session, T],
+                                     beforeCommit:Option[Function1[Session,_]],
+                                     afterCommit:Option[Function0[_]]) : T = {
     val session = sessionFactory.openSession
+
     try {
-      val result = f(session)
+
+      val result = dbCommands(session)
+
+      beforeCommit match {
+        case Some(callback) => callback(session)
+        case None           => // ignore
+      }
+
       session.flush
+
+      afterCommit match {
+        case Some(callback) => callback()
+        case None           => // ignore
+      }
 
       result
     } catch {
@@ -41,7 +62,7 @@ class SessionHelper(val sessionFactory:SessionFactory) {
           log.warn("Retrying failed operation: %s".format(recov.getMessage))
           try {
             val session = sessionFactory.openSession
-            val result = f(session)
+            val result = dbCommands(session)
             session.flush
 
             result

@@ -23,7 +23,7 @@ import net.lshift.diffa.kernel.config.HibernateMigrationStep
 /**
  * Add configuration tables for enforcing limits on the Diffa service.
  */
-object HibernateMigrationStep0023 extends HibernateMigrationStep {
+object Step0023 extends HibernateMigrationStep {
   def versionId = 23
 
   def name = "Configure Service Limits"

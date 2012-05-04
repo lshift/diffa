@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.config.{ConfigOption, DefinePartitionInformationT
  * This Step 'migrates' a schema/database to version 22 -
  * that is, it creates the base schema from scratch.
  */
-object HibernateMigrationStep0022 extends HibernateMigrationStep {
+object Step0022 extends HibernateMigrationStep {
   def versionId = 22
 
   def name = "Create schema"
