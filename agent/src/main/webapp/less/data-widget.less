@@ -20,9 +20,40 @@
   clear: both;
   border: @dotted-border;
   padding: 10px;
+  min-height: 30em;
+
+  h2 {
+    text-align: center;
+  }
+
+  #inventory-selection {
+    text-align: center;
+    margin-bottom: 2em;
+
+    > label {
+      padding-right: 1em;
+    }
+
+    > select + label,
+    > div + label { // select2
+      margin-left: 4em;
+    }
+  }
+
+  .endpoint-heading {
+    line-height: 2.5;
+    border-bottom: 1px solid #dddddd;
+    margin-bottom: 0.5em;
+    color: #888888;
+
+    .endpoint-name {
+      font-style: italic;
+      color: #111111;
+    }
+  }
 }
 
-#inventory-uploader {
+.diffa-inventory-uploader {
  .category {
    clear: both;
    width: 100%;
@@ -34,7 +65,7 @@
 
    label {
      display: inline-block;
-     min-width: 5em;
+     min-width: 9.5em;
    }
 
    .column_1 {
@@ -61,7 +92,19 @@
    }
  }
 
- #inventory_submit {
+ .inventory_submit {
    margin-top: 1em;
  }
+}
+
+.diffa-inventory-uploader {
+  margin-left: 4%;
+  margin-right: 4%;
+}
+
+#inventory-uploader-downstream, #inventory-uploader-upstream {
+  display: inline-block;
+  vertical-align: top;
+  max-width: 50%;
+  width: 40%;
 }

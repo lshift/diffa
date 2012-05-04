@@ -6,6 +6,7 @@
 
 ## New Features
 
+* [143] - Reworked inventory upload form to be pair-focused, along ith other UI/UX improvements.
 * [142] - Inventory upload datetime constraints use a date picker for the date portion.
 * [135] - Inventory upload form input fields are clearable with an "x".
 * [129] - Improvements to the inventory submission form, including a JavaScript date picker for date range categories.

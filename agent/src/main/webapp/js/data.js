@@ -19,31 +19,31 @@ $(function() {
 Diffa.Views.InventoryUploader = Backbone.View.extend({
   events: {
     'submit form': 'uploadInventory',
-    'change select[name=endpoint]': 'selectEndpoint'
   },
   setListColumnThreshold: 10,
   templates: {
     rangeConstraint: _.template('<div class="category" data-constraint="<%= name %>" data-constraint-type="<%= dataType %>">' +
-                      '<h5 class="name"><%= name %> (<%= dataType %> range)</h5>' +
+                      '<h5 class="name"><%= name %> (<%= descriptiveDataType %> range)</h5>' +
                       '<div>' +
-                        '<label for="<%= name %>_range_start">Start:</label>' +
+                        '<label for="<%= name %>_range_start">Start <%= descriptiveDataType %>:</label>' +
                         '<span class="clearable_input">' +
-                          '<input id="<%= name %>_range_start" type="text" name="start" placeholder="<%= placeholder %>">' +
+                          '<input id="<%= name %>_range_start" type="text" name="start" placeholder="Unbounded <%= descriptiveDataType %>">' +
                           '<span class="clear"></span>' +
                         '</span>' +
                       '</div>' +
                       '<div>' +
-                        '<label for="<%= name %>_range_end">End:</label>' +
+                        '<label for="<%= name %>_range_end">End <%= descriptiveDataType %>:</label>' +
                         '<span class="clearable_input">' +
-                          '<input id="<%= name %>_range_end" type="text" name="end" placeholder="<%= placeholder %>">' +
+                          '<input id="<%= name %>_range_end" type="text" name="end" placeholder="Unbounded <%= descriptiveDataType %>">' +
                           '<span class="clear"></span>' +
                         '</span>' +
                       '</div>' +
                      '</div>'),
     prefixConstraint: _.template('<div class="category" data-constraint="<%= name %>">' +
                         '<h5 class="name"><%= name %> (prefix)</h5>' +
+                        '<label for="<%= name %>_prefix">Prefix:</label>' +
                         '<span class="clearable_input">' +
-                          '<input type="text" name="prefix">' +
+                          '<input type="text" name="prefix" id="<%= name %>_prefix" placeholder="Unbounded prefix">' +
                           '<span class="clear"></span>' +
                         '</span>' +
                       '</div>'),
@@ -77,45 +77,47 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   initialize: function() {
     var self = this;
 
-    _.bindAll(this, "render", "addOne", "onEndpointListUpdate");
+    _.bindAll(this, "render", "onEndpointListUpdate");
 
-    this.collection.bind('reset', this.render);
-    this.collection.bind('add', this.addOne);
-    this.collection.bind('remove', this.onEndpointListUpdate);
+    this.el.view = this;
 
-    $(this.el).html(window.JST['data/inventory-upload'])
+    this.model.bind('reset', this.render);
+    this.model.bind('remove', this.onEndpointListUpdate);
+
+    var inventoryUploadTemplate = window.JST['data/inventory-upload'];
+
+    var name = this.model.get("name");
+    var endpointDescription = "Endpoint";
+    var pairHalf = $(this.el).data("pair-half");
+
+    if (pairHalf) {
+      endpointDescription = pairHalf.charAt(0).toUpperCase() + pairHalf.substr(1);
+    }
+
+    $(this.el).append(inventoryUploadTemplate({ name: name, endpointDescription: endpointDescription }));
     this.delegateEvents(this.events);
-    
-    this.selectList = this.$('select[name=endpoint]');
+
+    this.endpoint = this.model;
 
     this.render();
-    this.collection.ensureFetched();
+    this.model.fetch();
   },
 
   render: function() {
-    var self = this;
-
-    this.selectList.empty();
-    this.collection.each(this.addOne);
-
     this.onEndpointListUpdate();
 
     return this;
   },
 
-  addOne: function(e) {
-    $('<option value="' + e.id + '">' + e.get('name') + '</option>').appendTo(this.selectList);
-    this.onEndpointListUpdate();
-  },
-
   onEndpointListUpdate: function() {
-    this.selectEndpoint();    // Trigger an endpoint selection to ensure the attributes are shown
+    this.loadEndpoint();    // Trigger an endpoint selection to ensure the attributes are shown
   },
 
-  selectEndpoint: function(e) {
+  loadEndpoint: function(e) {
     var self = this;
 
-    var selectedEndpoint = this.collection.get(this.selectList.val());
+    var selectedEndpoint = this.model;
+
     if (selectedEndpoint && this.currentEndpoint && selectedEndpoint.id == this.currentEndpoint.id) return;
 
     this.currentEndpoint = selectedEndpoint;
@@ -128,15 +130,15 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
     selectedEndpoint.rangeCategories.each(function(rangeCat) {
       var templateVars = rangeCat.toJSON();
       var type = rangeCat.get("dataType");
-      var placeholder = "";
+      var descriptiveDataType;
 
       switch(type) {
-        case "date":     placeholder = "Unbounded date";     break;
-        case "datetime": placeholder = "Unbounded datetime"; break;
-        case "int":      placeholder = "Unbounded";     break;
+        case "date":     descriptiveDataType = "date";     break;
+        case "datetime": descriptiveDataType = "datetime"; break;
+        case "int":      descriptiveDataType = "integer";  break;
       }
 
-      templateVars["placeholder"] = placeholder;
+      templateVars["descriptiveDataType"] = descriptiveDataType;
 
       constraints.append(self.templates.rangeConstraint(templateVars));
 
@@ -262,7 +264,7 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   uploadInventory: function(e) {
     e.preventDefault();
 
-    var endpoint = this.collection.get(this.selectList.val());
+    var endpoint = this.endpoint;
     var inventoryFiles = this.$('input[type=file]')[0].files;
     if (inventoryFiles.length < 1) {
       alert("No inventory files selected for upload");
@@ -312,12 +314,162 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   }
 });
 
-$('.diffa-inventory-uploader').each(function() {
-  var domain = Diffa.DomainManager.get($(this).data('domain'));
 
-  new Diffa.Views.InventoryUploader({
-    el: $(this),
-    collection: domain.endpoints
+(function() {
+
+var pairSelectTemplate = _.template('<label>Pair:</label>' +
+  '<select class="pair" data-placeholder="Select pair">' +
+    '<option value="" selected="selected">Select pair</option>' +
+  '<% _.each(pairs.models, function(pair) { %>' +
+    '<option value="<%= pair.get("key") %>"><%= pair.get("key") %></option>' +
+  '<% }); %> ' +
+  '</select>');
+
+var endpointSelectTemplate = _.template('<label>Endpoint:</label>' +
+  '<select class="endpoint" data-placeholder="Select endpoint">' +
+    '<option value="" selected="selected">Select endpoint</option>' +
+  '<% _.each(endpoints.models, function(endpoint) { %>' +
+    '<option value="<%= endpoint.get("name") %>"><%= endpoint.get("name") %></option>' +
+  '<% }); %>' +
+  '</select>');
+
+var panel = $('.inventory-panel');
+var domain = Diffa.DomainManager.get(currentDiffaDomain);
+
+var emptyAndUnbindUploaders = function() {
+  $(".diffa-inventory-uploader").each(function(i, e) {
+    var v = this.view;
+
+    // if there's an associated view, make sure we remove
+    // its events so that forms which are used on the same
+    // DOM element don't fire more than one inventory
+    // upload event from the backbone view.
+    if (v) {
+      v.unbind();
+      $(e).unbind();
+    }
+
+    $(e).empty();
   });
-});
+};
+
+// returns 1 if an endpoint is being displayed, or 2 if a pair is being displayed.
+// returns 0 if nothing is displayed.
+var displayedUploaderCount = function() {
+  if ($("#inventory-uploader-upstream").html().trim().length > 0) { return 2; }
+  if ($("#inventory-uploader").html().trim().length > 0) { return 1; }
+
+  return 0;
+};
+
+var nothingDisplayed = function() {
+  return displayedUploaderCount() == 0;
+};
+
+var pairDisplayed = function() {
+  return displayedUploaderCount() == 2;
+};
+
+var endpointDisplayed = function() {
+  return displayedUploaderCount() == 1;
+}
+
+// flashes the endpoint names. useful when changing between
+// one endpoint and another endpoint, where nothing much changes.
+var flashEndpointNames = function() {
+  $(".diffa-inventory-uploader .endpoint-heading .endpoint-name").each(function() {
+    var el = $(this);
+    el.stop().css("opacity", "0.0").animate({ opacity: "1.0"}, 300);
+  });
+};
+
+var pairChanged = function(pairName) {
+  panel.find("select.endpoint").val("");
+  panel.find("select.endpoint").select2("val", "");
+
+  var flashNames = false;
+  if (pairDisplayed()) { flashNames = true; }
+
+  emptyAndUnbindUploaders();
+
+  // abort if there's nothing to do
+  if (pairName.length == 0) { return; }
+
+  var pair = domain.pairs.get(pairName);
+  var downstream = domain.endpoints.get(pair.get("downstreamName"));
+  var upstream   = domain.endpoints.get(pair.get("upstreamName"));
+
+  $('#inventory-uploader-upstream, #inventory-uploader-downstream').each(function() {
+    var pairHalf = $(this).data("pair-half");
+
+    if (pairHalf == "upstream") {
+      var m = upstream;
+    } else if (pairHalf == "downstream") {
+      var m = downstream;
+    } else {
+      throw 'Unknown half of pair "' + pairHalf + '", expected either "upstream" or "downstream"';
+    }
+
+    new Diffa.Views.InventoryUploader({
+      el: $(this),
+      model: m
+    });
+  });
+
+  if (flashNames) { flashEndpointNames(); }
+};
+
+var endpointChanged = function(endpointName) {
+  $("select.pair").val("");
+  $("select.pair").select2("val", "");
+
+  var flashNames = false;
+  if (endpointDisplayed()) { flashNames = true; }
+
+  emptyAndUnbindUploaders();
+
+  // abort if there's nothing to do
+  if (endpointName.length == 0) { return; }
+
+  var endpoint = domain.endpoints.get(endpointName);
+
+  $('#inventory-uploader').each(function() {
+    new Diffa.Views.InventoryUploader({
+      el: $(this),
+      model: endpoint
+    });
+  });
+
+  if (flashNames) { flashEndpointNames(); }
+}
+
+if ($(".inventory-panel").length > 0) {
+  panel.html('<h2>Upload an Inventory</h2>' +
+    '<div id="inventory-selection"><p>Select a pair or an individual endpoint.</p></div>' +
+    '<div id="inventory-uploader" class="diffa-inventory-uploader"></div>' +
+    '<div id="inventory-uploader-upstream" class="diffa-inventory-uploader" data-pair-half="upstream"></div>' +
+    '<div id="inventory-uploader-downstream" class="diffa-inventory-uploader" data-pair-half="downstream"></div>');
+
+  domain.loadAll(["endpoints", "pairs"], function() {
+    panel.find("#inventory-selection").append(pairSelectTemplate({pairs: domain.pairs, domain: domain}));
+    panel.find("#inventory-selection").append(endpointSelectTemplate({endpoints: domain.endpoints, domain: domain}));
+    panel.find("select.pair").change(function() { pairChanged(panel.find("select.pair option:selected").val()); });
+    panel.find("select.endpoint").change(function() { endpointChanged(panel.find("select.endpoint option:selected").val()); });
+
+    $("#inventory-selection select").each(function(i, el) {
+      // remove the empty-value <option> which is fine without Select2, but
+      // with Select2 it causes problems because it's not a real choice which
+      // should be listed in the Select2 dropdown; Select2 gives us what we need
+      // with a placeholder.
+      $(el).find("option:first-child").replaceWith("<option></option>");
+      $(el).css("width", "20em");
+      $(el).select2({
+        allowClear: true
+      });
+    });
+  });
+}
+
+})();
+
 });
