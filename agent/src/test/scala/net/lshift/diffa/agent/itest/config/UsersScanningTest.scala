@@ -21,9 +21,11 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.client.ScanningParticipantRestClient
 import net.lshift.diffa.participant.scanning.StringPrefixConstraint
 import org.junit.Test
+import net.lshift.diffa.kernel.config.UnlimitedPairServiceLimitsView
 
 class UsersScanningTest {
-  val participant = new ScanningParticipantRestClient(agentURL + "/security/scan")
+  val limits = UnlimitedPairServiceLimitsView
+  val participant = new ScanningParticipantRestClient(limits, agentURL + "/security/scan")
 
   @Test
   def aggregationShouldIncludeGuestUser {

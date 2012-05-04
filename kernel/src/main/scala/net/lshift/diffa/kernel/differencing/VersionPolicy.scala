@@ -95,5 +95,6 @@ class ScanCancelledException(pair:DiffaPairRef) extends Exception(pair.identifie
 /**
  * Thrown when a participant driver encounters an issue that it can't solve, but is well known, so it uses this
  * exception to keep the logging less noisy.
+ * The reason is exposed through the UI.
  */
 class ScanFailedException(reason:String) extends Exception(reason)

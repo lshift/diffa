@@ -29,6 +29,7 @@ import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.participant.scanning._
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
+import net.lshift.diffa.kernel.config.{UnlimitedPairServiceLimitsView, ServiceLimit, PairServiceLimitsView}
 
 /**
  * Test ensuring that internal query constraint and aggregation types are passed and parsed by Scala participants.
@@ -253,11 +254,12 @@ object ScanCompatibilityTest {
   @DataPoint def upperUnboundedInteger = new IntegerRangeConstraint("someInt", 5, null)
   @DataPoint def completelyUnboundedInteger = new IntegerRangeConstraint("someInt", null.asInstanceOf[Integer], null)
 
+  val limits = UnlimitedPairServiceLimitsView
   val scanningParticipant = createStrictMock(classOf[ScanningParticipantHandler])
   val serverPort = 41255
 
   lazy val server = new ParticipantServer(serverPort, scanningParticipant)
-  lazy val scanningRestClient = new ScanningParticipantRestClient("http://localhost:" + serverPort + "/scan")
+  lazy val scanningRestClient = new ScanningParticipantRestClient(limits, "http://localhost:" + serverPort + "/scan")
 
   def stubAggregationBuilder(a:(HttpServletRequest) => AggregationBuilder) {
     expect(scanningParticipant.determineAggregations(anyObject.asInstanceOf[HttpServletRequest])).andStubAnswer(new IAnswer[java.util.List[ScanAggregation]] {

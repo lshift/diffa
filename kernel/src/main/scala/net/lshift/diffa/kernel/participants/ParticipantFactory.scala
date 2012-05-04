@@ -76,7 +76,6 @@ class ParticipantFactory() {
     }
 
     def close() {
-      scanning.foreach(_.close())
       content.foreach(_.close())
     }
   }

@@ -1,6 +1,5 @@
 package net.lshift.diffa.kernel.participants
 
-import java.io.Closeable
 import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
 
 /**
@@ -9,7 +8,7 @@ import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
  * implementation of this will be responsible for handling argument serialization, RPC execution and result
  * deserialization.
  */
-trait ScanningParticipantRef extends Closeable {
+trait ScanningParticipantRef {
   /**
    * Scans this participant with the given constraints and aggregations.
    */

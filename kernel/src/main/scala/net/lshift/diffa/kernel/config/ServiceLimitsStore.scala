@@ -36,7 +36,7 @@ package net.lshift.diffa.kernel.config
    limit.</li>
  </ol>
  */
-trait ServiceLimitsStore {
+trait ServiceLimitsStore extends PairServiceLimitsView {
   def defineLimit(limitName: String, description: String): Unit
   def deleteDomainLimits(domainName: String): Unit
   def deletePairLimitsByDomain(domainName: String): Unit
@@ -55,5 +55,17 @@ trait ServiceLimitsStore {
 
   def getEffectiveLimitByName(limitName: String): Int
   def getEffectiveLimitByNameForDomain(limitName: String, domainName: String): Int
+}
+
+trait PairServiceLimitsView {
   def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int
+}
+
+/**
+ * This should only be used carefully, typically for tests that don't want limits to interfere
+ * with results.
+ */
+object UnlimitedPairServiceLimitsView extends PairServiceLimitsView {
+  def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int =
+    ServiceLimit.UNLIMITED
 }

@@ -55,6 +55,7 @@ abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubU
   }
 
   override def close() = {
+    // TODO race condition: two callers can both call client.destroy
     if (!isClosing) {
       isClosing = true
       client.destroy

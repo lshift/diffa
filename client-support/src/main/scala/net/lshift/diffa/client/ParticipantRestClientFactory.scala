@@ -17,16 +17,20 @@
 package net.lshift.diffa.client
 
 import net.lshift.diffa.kernel.participants._
+import net.lshift.diffa.kernel.config.PairServiceLimitsView
 
 trait ParticipantRestClientFactory {
 
   def supportsAddress(address: String) = address.startsWith("http://") || address.startsWith("https://")
 }
 
-class ScanningParticipantRestClientFactory(params: RestClientParams)
+class ScanningParticipantRestClientFactory(params: RestClientParams, limits: PairServiceLimitsView)
   extends ScanningParticipantFactory with ParticipantRestClientFactory {
 
-  def createParticipantRef(address: String) = new ScanningParticipantRestClient(address, params)
+  def createParticipantRef(address: String) =
+    new ScanningParticipantRestClient(serviceLimitsView = limits,
+                                      scanUrl = address,
+                                      params = params)
 }
 
 class ContentParticipantRestClientFactory(params: RestClientParams)

@@ -93,7 +93,7 @@ class ParticipantFactoryTest {
     expectParticipantCreation(e)
     e.scan match {
       case Fails     =>
-      case _         => scanningRef.close(); expectLastCall()
+      case _         => expectLastCall()
     }
     e.retrieveContent match {
       case Fails     =>
@@ -111,7 +111,7 @@ class ParticipantFactoryTest {
     expectParticipantCreation(e)
     e.scan match {
       case Fails     =>
-      case _         => scanningRef.close(); expectLastCall()
+      case _         => expectLastCall()
     }
     e.retrieveContent match {
       case Fails     =>

@@ -31,6 +31,6 @@ class MissingObjectExceptionMapper extends ExceptionMapper[MissingObjectExceptio
 
   def toResponse(x: MissingObjectException) = {
     log.debug("Attempt to perform an operation with a non-existent key:" + x.objName)
-    Response.status(Response.Status.NOT_FOUND).entity(x.objName).`type`("text/plain").build()
+    Response.status(Response.Status.NOT_FOUND).entity(x.objName + " not found").`type`("text/plain").build()
   }
 }

@@ -27,6 +27,7 @@
 * [124] - Replacement mechanism for caching results of aggregation.
 * [127] - Support for infinite panning on the heat map
 * [132] - Made sure that a change to a pair or endpoint config results in a change the Etag returned when querying for differences
+* [134] - Reduce startup and pair registration time by using Apache httpclient instead of Jersey.
 
 ## Library Upgrades
 

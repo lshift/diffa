@@ -481,6 +481,7 @@
       <list>
         <bean class="net.lshift.diffa.client.ScanningParticipantRestClientFactory">
           <constructor-arg ref="restClientParams" />
+          <constructor-arg ref="serviceLimitsStore" />
         </bean>
       </list>
     </property>

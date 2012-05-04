@@ -26,6 +26,7 @@ object AlertCodes {
   def formatAlertCode(pair:DiffaPairRef, code:Int) = "%s [%s/%s]".format(code, pair.domain, pair.key)
   def formatAlertCode(domain:String, pair:String, code:Int) = "%s [%s/%s]".format(code, domain, pair)
   def formatAlertCode(domain:String, code:Int) = "%s [%s]".format(code, domain)
+  def formatAlertCode(code: Int) = "%d".format(code)
 
   // 1xx Informational
 
@@ -93,6 +94,7 @@ object AlertCodes {
   // 61x External scan errors
   val SCAN_CONNECTION_REFUSED = 610
   val EXTERNAL_SCAN_ERROR = 611
+  val SCAN_CONNECTION_CLOSED = 612
 
   // 65x Problems with messaging systems
   
