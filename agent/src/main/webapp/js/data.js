@@ -466,6 +466,8 @@ if ($(".inventory-panel").length > 0) {
       $(el).select2({
         allowClear: true
       });
+
+      $(el).select2("val", ""); // bug fix for firefox
     });
   });
 }
