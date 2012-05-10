@@ -31,7 +31,7 @@
 
 ## Library Upgrades
 
-* Upgraded to ...
+* Upgraded to Lucene 3.6.0
 
 ## Upgrading
 

@@ -43,7 +43,7 @@
     <commons.io.version>2.0.1</commons.io.version>
     <jersey.version>1.10</jersey.version>
     <jackson.version>1.9.2</jackson.version>
-    <lucene.version>3.5.0</lucene.version>
+    <lucene.version>3.6.0</lucene.version>
     <jodatime.version>2.0</jodatime.version>
     <jadira.version>1.9</jadira.version>
     <javamail.file.transport.version>1.0</javamail.file.transport.version>
