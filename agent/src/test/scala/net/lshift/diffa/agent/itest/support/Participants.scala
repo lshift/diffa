@@ -16,12 +16,12 @@
 
 package net.lshift.diffa.agent.itest.support
 
-import net.lshift.diffa.participants.ParticipantRpcServer
 import concurrent.SyncVar
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.participant.content.ContentParticipantHandler
 import net.lshift.diffa.participant.scanning.ScanningParticipantRequestHandler
 import net.lshift.diffa.participant.correlation.VersioningParticipantHandler
+import net.lshift.diffa.participants.{NoAuthentication, ParticipantRpcServer}
 
 /**
  * Helper objects for creation of HTTP/AMQP RPC chain for remote-controlling participants
@@ -60,7 +60,7 @@ class HttpParticipants(usPort: Int, dsPort: Int) extends Participants {
     forkServer(dsPort, scanning, content, versioning)
 
   private def forkServer(port: Int, scanning:ScanningParticipantRequestHandler, content:ContentParticipantHandler, versioning:VersioningParticipantHandler) {
-    val server = new ParticipantRpcServer(port, scanning, content, versioning)
+    val server = new ParticipantRpcServer(port, scanning, content, versioning, NoAuthentication)
     val startupSync = new SyncVar[Boolean]
     new Thread {
       override def run = {

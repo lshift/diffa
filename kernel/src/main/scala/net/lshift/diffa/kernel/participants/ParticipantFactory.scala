@@ -17,8 +17,8 @@
 package net.lshift.diffa.kernel.participants
 
 import collection.mutable.ListBuffer
-import net.lshift.diffa.kernel.config.Endpoint
 import net.lshift.diffa.participant.scanning.ScanConstraint
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
 
 /**
  * Factory that will resolve participant addresses to participant instances for querying.
@@ -33,34 +33,34 @@ class ParticipantFactory() {
   def registerContentFactory(f:ContentParticipantFactory) = contentFactories += f
   def registerVersioningFactory(f:VersioningParticipantFactory) = versioningFactories += f
 
-  def createUpstreamParticipant(endpoint:Endpoint): UpstreamParticipant = {
-    val scanningParticipant = createScanningParticipant(endpoint)
-    val contentParticipant = createContentParticipant(endpoint)
+  def createUpstreamParticipant(endpoint:Endpoint, pair:DiffaPairRef): UpstreamParticipant = {
+    val scanningParticipant = createScanningParticipant(endpoint, pair)
+    val contentParticipant = createContentParticipant(endpoint, pair)
 
     new CompositeUpstreamParticipant(endpoint.name, scanningParticipant, contentParticipant)
   }
 
-  def createDownstreamParticipant(endpoint:Endpoint): DownstreamParticipant = {
-    val scanningParticipant = createScanningParticipant(endpoint)
-    val contentParticipant = createContentParticipant(endpoint)
-    val versioningParticipant = createVersioningParticipant(endpoint)
+  def createDownstreamParticipant(endpoint:Endpoint, pair:DiffaPairRef): DownstreamParticipant = {
+    val scanningParticipant = createScanningParticipant(endpoint, pair)
+    val contentParticipant = createContentParticipant(endpoint, pair)
+    val versioningParticipant = createVersioningParticipant(endpoint, pair)
 
     new CompositeDownstreamParticipant(endpoint.name, scanningParticipant, contentParticipant, versioningParticipant)
   }
 
-  def createScanningParticipant(endpoint:Endpoint): Option[ScanningParticipantRef] =
-    createParticipant(scanningFactories, endpoint.scanUrl)
-  def createContentParticipant(endpoint:Endpoint): Option[ContentParticipantRef] =
-    createParticipant(contentFactories, endpoint.contentRetrievalUrl)
-  def createVersioningParticipant(endpoint:Endpoint): Option[VersioningParticipantRef] =
-    createParticipant(versioningFactories, endpoint.versionGenerationUrl)
+  def createScanningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ScanningParticipantRef] =
+    createParticipant(scanningFactories, endpoint.scanUrl, pair)
+  def createContentParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ContentParticipantRef] =
+    createParticipant(contentFactories, endpoint.contentRetrievalUrl, pair)
+  def createVersioningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[VersioningParticipantRef] =
+    createParticipant(versioningFactories, endpoint.versionGenerationUrl, pair)
 
-  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]], url:String):Option[T] = url match {
+  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]], url:String, pair:DiffaPairRef):Option[T] = url match {
     case null => None
     case _ =>
       factories.find(f => f.supportsAddress(url)) match {
         case None     => throw new InvalidParticipantAddressException(url)
-        case Some(f)  => Some(f.createParticipantRef(url))
+        case Some(f)  => Some(f.createParticipantRef(url,pair))
       }
   }
 
@@ -75,9 +75,6 @@ class ParticipantFactory() {
       case Some(spart) => spart.scan(constraints, aggregations)
     }
 
-    def close() {
-      content.foreach(_.close())
-    }
   }
 
   private class CompositeUpstreamParticipant(partName:String, scanning:Option[ScanningParticipantRef], content:Option[ContentParticipantRef])
@@ -94,11 +91,6 @@ class ParticipantFactory() {
       case Some(vpart) => vpart.generateVersion(entityBody)
     }
 
-    override def close() {
-      super.close()
-      
-      versioning.foreach(_.close())
-    }
   }
 }
 

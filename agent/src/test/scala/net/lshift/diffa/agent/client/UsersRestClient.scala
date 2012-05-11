@@ -17,10 +17,10 @@ package net.lshift.diffa.agent.client
  */
 
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
-import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
+import net.lshift.diffa.client.{RestClientParams, ExternalRestClient}
 
 class UsersRestClient(u:String, params: RestClientParams = RestClientParams.default)
-  extends AbstractRestClient(u, "security/", params) {
+  extends ExternalRestClient(u, "security/", params) {
 
   def getUserToken(username: String) = rpc("users/" + username + "/token", classOf[String])
   def clearUserToken(username: String) = delete("users/" + username + "/token")

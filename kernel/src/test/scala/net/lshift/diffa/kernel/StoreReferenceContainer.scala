@@ -95,12 +95,16 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private lazy val _domainConfigStore =
     makeStore(sf => new HibernateDomainConfigStore(sf, pairCache, hookManager, cacheManager), "domainConfigStore")
 
+  private lazy val _domainCredentialsStore =
+    makeStore(sf => new HibernateDomainCredentialsStore(sf), "domainCredentialsStore")
+
   private lazy val _domainDifferenceStore =
     makeStore(sf => new HibernateDomainDifferenceStore(sf, cacheManager, dialect, hookManager), "DomainDifferenceStore")
 
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore
   def domainConfigStore: HibernateDomainConfigStore = _domainConfigStore
+  def domainCredentialsStore: HibernateDomainCredentialsStore = _domainCredentialsStore
   def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore
 
   def prepareEnvironmentForStores {

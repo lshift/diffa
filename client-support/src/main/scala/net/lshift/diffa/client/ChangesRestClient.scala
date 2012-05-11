@@ -26,7 +26,7 @@ import java.lang.Long
  * JSON-over-REST client for the changes endpoint.
  */
 class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, params: RestClientParams = RestClientParams.default)
-    extends AbstractRestClient(serverRootUrl, "domains/" + domain + "/changes/", params)
+    extends ExternalRestClient(serverRootUrl, "domains/" + domain + "/changes/", params)
         with ChangesClient {
 
   def onChangeEvent(evt:ChangeEvent) {

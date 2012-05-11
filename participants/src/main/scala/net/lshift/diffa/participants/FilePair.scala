@@ -40,7 +40,7 @@ object FilePair extends Application {
   }
 
   private def forkServer(port:Int, scanning:ScanningParticipantRequestHandler):Unit = {
-    val server = new ParticipantRpcServer(port, scanning, null, null)
+    val server = new ParticipantRpcServer(port, scanning, null, null, NoAuthentication)
     new Thread { override def run = server.start }.start
   }
 }

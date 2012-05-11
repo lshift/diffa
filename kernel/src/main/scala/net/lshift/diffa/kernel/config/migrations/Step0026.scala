@@ -15,22 +15,30 @@
  */
 package net.lshift.diffa.kernel.config.migrations
 
+import net.lshift.diffa.kernel.config.HibernateMigrationStep
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import java.sql.Types
-import net.lshift.diffa.kernel.config.HibernateMigrationStep
 
-object Step0024 extends HibernateMigrationStep {
+object Step0026 extends HibernateMigrationStep {
 
-  def versionId = 24
+  def versionId = 26
 
-  def name = "Add configuration versioning"
+  def name = "Break out external http credentials"
 
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
-    migration.alterTable("domains").
-      addColumn("config_version", Types.INTEGER, 11, false, 0)
+    migration.createTable("external_http_credentials").
+      column("domain", Types.VARCHAR, 50, false).
+      column("url", Types.VARCHAR, 1024, false).
+      column("cred_key", Types.VARCHAR, 50, false).
+      column("cred_value", Types.VARCHAR, 255, false).
+      column("cred_type", Types.VARCHAR, 20, false).
+      pk("domain", "url")
+
+    migration.alterTable("external_http_credentials").
+      addForeignKey("fk_domain_http_creds", "domain", "domains", "name")
 
     migration
   }

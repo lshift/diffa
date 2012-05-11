@@ -17,7 +17,6 @@ import net.lshift.diffa.kernel.participants.{StringPrefixCategoryFunction, Categ
 import net.lshift.diffa.participant.scanning.{StringPrefixConstraint, ScanConstraint, ScanResultEntry}
 import net.lshift.diffa.kernel.frontend.{UserDef, SystemConfiguration}
 import java.security.MessageDigest
-import net.lshift.diffa.agent.rest.ScannableUtils
 import scala.Predef._
 import org.apache.commons.codec.binary.Hex
 import java.nio.charset.Charset

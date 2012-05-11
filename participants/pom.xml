@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>diffa-participants</artifactId>
-  <name>LShift Diffa Participant Support</name>
+  <name>LShift Diffa Participants</name>
 
   <packaging>jar</packaging>
 
@@ -28,6 +28,20 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

@@ -20,18 +20,21 @@ import org.junit.Assert._
 import org.junit.Assume._
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
-import net.lshift.diffa.kernel.config.Endpoint
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import org.junit.runner.RunWith
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.correlation.ProcessingResponse
 import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
 
 /**
  * Test cases for the participant factory.
  */
 @RunWith(classOf[Theories])
 class ParticipantFactoryTest {
+
+  val pair = DiffaPairRef("foo","bar")
+
   private val scanning1 = createStrictMock("scanning1", classOf[ScanningParticipantFactory])
   private val scanning2 = createStrictMock("scanning2", classOf[ScanningParticipantFactory])
   private val content1 = createStrictMock("content1", classOf[ContentParticipantFactory])
@@ -73,7 +76,7 @@ class ParticipantFactoryTest {
     replayAll()
 
     expectsInvalidParticipantException {
-      factory.createUpstreamParticipant(e.endpoint)
+      factory.createUpstreamParticipant(e.endpoint, pair)
     }
   }
 
@@ -83,48 +86,8 @@ class ParticipantFactoryTest {
     replayAll()
 
     expectsInvalidParticipantException {
-      factory.createDownstreamParticipant(e.endpoint)
+      factory.createDownstreamParticipant(e.endpoint, pair)
     }
-  }
-
-  @Theory
-  def shouldCloseBothScanningAndContentRefsWhenUpstreamParticipantIsClosed(e:EndpointConfig) {
-    assumeTrue(e.validUpstream)
-    expectParticipantCreation(e)
-    e.scan match {
-      case Fails     =>
-      case _         => expectLastCall()
-    }
-    e.retrieveContent match {
-      case Fails     =>
-      case _         => contentRef.close(); expectLastCall()
-    }
-    replayAll()
-
-    factory.createUpstreamParticipant(e.endpoint).close()
-    verifyAll()
-  }
-
-  @Theory
-  def shouldCloseScanningAndContentAndVersionRefsWhenDownstreamParticipantIsClosed(e:EndpointConfig) {
-    assumeTrue(e.validDownstream)
-    expectParticipantCreation(e)
-    e.scan match {
-      case Fails     =>
-      case _         => expectLastCall()
-    }
-    e.retrieveContent match {
-      case Fails     =>
-      case _         => contentRef.close(); expectLastCall()
-    }
-    e.correlateVersion match {
-      case Fails     =>
-      case _         => versionRef.close(); expectLastCall()
-    }
-    replayAll()
-
-    factory.createDownstreamParticipant(e.endpoint).close()
-    verifyAll()
   }
 
   @Theory
@@ -133,7 +96,7 @@ class ParticipantFactoryTest {
     expectParticipantCreation(e)
     replayAll()
 
-    val part = factory.createUpstreamParticipant(e.endpoint)
+    val part = factory.createUpstreamParticipant(e.endpoint, pair)
     if (e.scan == Fails) {
       expectsInvalidParticipantOperationException {
         part.scan(Seq(), Seq())
@@ -152,7 +115,7 @@ class ParticipantFactoryTest {
     expectParticipantCreation(e)
     replayAll()
 
-    val part = factory.createDownstreamParticipant(e.endpoint)
+    val part = factory.createDownstreamParticipant(e.endpoint, pair)
     if (e.scan == Fails) {
       expectsInvalidParticipantOperationException {
         part.scan(Seq(), Seq())
@@ -186,7 +149,7 @@ class ParticipantFactoryTest {
     }
     replayAll()
 
-    val part = factory.createUpstreamParticipant(e.endpoint)
+    val part = factory.createUpstreamParticipant(e.endpoint, pair)
     if (e.scan != Fails) {
       assertEquals(scanEntries, part.scan(constraints, aggregations))
     }
@@ -217,7 +180,7 @@ class ParticipantFactoryTest {
     }
     replayAll()
 
-    val part = factory.createDownstreamParticipant(e.endpoint)
+    val part = factory.createDownstreamParticipant(e.endpoint, pair)
     if (e.scan != Fails) {
       assertEquals(scanEntries, part.scan(constraints, aggregations))
     }
@@ -237,18 +200,18 @@ class ParticipantFactoryTest {
   def expectParticipantCreation(e:EndpointConfig) {
     e.scan match {
       case Fails     =>
-      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint.scanUrl)).andReturn(scanningRef).anyTimes
-      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint.scanUrl)).andReturn(scanningRef).anyTimes
+      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint.scanUrl, pair)).andReturn(scanningRef).anyTimes
+      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint.scanUrl, pair)).andReturn(scanningRef).anyTimes
     }
     e.retrieveContent match {
       case Fails     =>
-      case UseFirst  => expect(content1.createParticipantRef(e.endpoint.contentRetrievalUrl)).andReturn(contentRef).anyTimes
-      case UseSecond => expect(content2.createParticipantRef(e.endpoint.contentRetrievalUrl)).andReturn(contentRef).anyTimes
+      case UseFirst  => expect(content1.createParticipantRef(e.endpoint.contentRetrievalUrl, pair)).andReturn(contentRef).anyTimes
+      case UseSecond => expect(content2.createParticipantRef(e.endpoint.contentRetrievalUrl, pair)).andReturn(contentRef).anyTimes
     }
     e.correlateVersion match {
       case Fails     =>
-      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint.versionGenerationUrl)).andReturn(versionRef).anyTimes
-      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint.versionGenerationUrl)).andReturn(versionRef).anyTimes
+      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint.versionGenerationUrl, pair)).andReturn(versionRef).anyTimes
+      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint.versionGenerationUrl, pair)).andReturn(versionRef).anyTimes
     }
   }
 

@@ -7,7 +7,7 @@ import java.io.Closeable
  * ContentParticipantFactory implementation, and will generally be an accessor to a remote resource. The
  * implementation of this will be responsible for handling argument serialization, RPC execution and result
  * deserialization.
- */trait ContentParticipantRef extends Closeable {
+ */trait ContentParticipantRef {
   /**
    * Requests that the participant return a serialized form of the item with the given identifier.
    */

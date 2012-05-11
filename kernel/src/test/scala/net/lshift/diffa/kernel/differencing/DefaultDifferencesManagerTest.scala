@@ -39,9 +39,8 @@ class StubParticipantProtocolFactory
 
   def supportsAddress(address:String) = true
 
-  def createParticipantRef(address: String) = new ScanningParticipantRef {
+  def createParticipantRef(address: String, pair:DiffaPairRef) = new ScanningParticipantRef {
     def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = null
-    def close() {}
   }
 }
 class StubContentParticipantProtocolFactory
@@ -49,9 +48,8 @@ class StubContentParticipantProtocolFactory
 
   def supportsAddress(address:String) = true
 
-  def createParticipantRef(address: String) = new ContentParticipantRef {
+  def createParticipantRef(address: String, pair:DiffaPairRef) = new ContentParticipantRef {
     def retrieveContent(identifier: String) = "Some Content for " + identifier
-    def close() {}
   }
 }
 
@@ -122,8 +120,8 @@ class DefaultDifferencesManagerTest {
     // so in this example, everything above this comment should be expect() calls
     // and everything below should be stub() calls on a factory
    
-    participantFactory.createUpstreamParticipant(u)
-    participantFactory.createDownstreamParticipant(d) 
+    participantFactory.createUpstreamParticipant(u, pair1.asRef)
+    participantFactory.createDownstreamParticipant(d, pair1.asRef)
 
     expect(systemConfigStore.getPair(domainName, "pair1")).andStubReturn(pair1)
     expect(systemConfigStore.getPair(domainName, "pair2")).andStubReturn(pair2)

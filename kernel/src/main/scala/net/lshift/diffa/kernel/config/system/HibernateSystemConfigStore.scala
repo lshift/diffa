@@ -39,6 +39,10 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
 
     pairCache.invalidate(domain)
 
+    // TODO Why is do we not just do a DELETE CASCADE?
+
+    s.getNamedQuery("deleteExternalHttpCredentialsByDomain").setString("domain",domain).executeUpdate()
+
     deleteByDomain[EndpointView](s, domain, "endpointViewsByDomain")
     deleteByDomain[Escalation](s, domain, "escalationsByDomain")
     deleteByDomain[PairReport](s, domain, "reportsByDomain")

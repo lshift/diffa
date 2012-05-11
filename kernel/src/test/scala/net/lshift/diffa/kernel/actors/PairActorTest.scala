@@ -64,8 +64,8 @@ class PairActorTest {
   diagnostics.checkpointExplanations(pairRef); expectLastCall().asStub()
 
   val participantFactory = org.easymock.classextension.EasyMock.createStrictMock("participantFactory", classOf[ParticipantFactory])
-  expect(participantFactory.createUpstreamParticipant(upstream)).andReturn(us)
-  expect(participantFactory.createDownstreamParticipant(downstream)).andReturn(ds)
+  expect(participantFactory.createUpstreamParticipant(upstream, pairRef)).andReturn(us)
+  expect(participantFactory.createDownstreamParticipant(downstream, pairRef)).andReturn(ds)
   org.easymock.classextension.EasyMock.replay(participantFactory)
 
   val versionPolicyManager = org.easymock.classextension.EasyMock.createStrictMock("versionPolicyManager", classOf[VersionPolicyManager])

@@ -20,14 +20,17 @@ import net.lshift.diffa.participant.scanning.StringPrefixConstraint
 import org.junit.Assert._
 import net.lshift.diffa.client.ScanningParticipantRestClient
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import net.lshift.diffa.kernel.config.{ServiceLimit, PairServiceLimitsView}
-
+import net.lshift.diffa.kernel.config._
 class DomainsScanningTest {
 
   val limits = new PairServiceLimitsView {
     def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int = ServiceLimit.UNLIMITED
   }
-  val participant = new ScanningParticipantRestClient(limits, agentURL + "/root/domains/scan")
+
+  val pair = DiffaPairRef("foo","bar")
+
+  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, Some(BasicAuthCredentials("guest", "guest")))
+  val participant = new ScanningParticipantRestClient(pair, agentURL + "/root/domains/scan", limits, domainCredentialsLookup)
 
   @Test
   def aggregationShouldIncludeDefaultDomain {

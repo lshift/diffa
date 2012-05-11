@@ -1,9 +1,10 @@
-package net.lshift.diffa.kernel.config
+package net.lshift.diffa.kernel.config.migrations
 
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 
 import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.config.{ServiceLimit, HibernateMigrationStep}
 
 /**
  * This Step migrates a schema/database to version 25, adding default read and
@@ -28,19 +29,20 @@ object Step0025 extends HibernateMigrationStep {
         seconds_to_ms(30),
         minutes_to_ms(2)
         )
-    ) foreach { limDef =>
-      val (name, desc, defaultTimeout, maxTimeout) = limDef
+    ) foreach {
+      limDef =>
+        val (name, desc, defaultTimeout, maxTimeout) = limDef
 
-      migration.insert("limit_definitions").values(Map(
-        "name" -> name,
-        "description" -> desc
-      ))
+        migration.insert("limit_definitions").values(Map(
+          "name" -> name,
+          "description" -> desc
+        ))
 
-      migration.insert("system_limits").values(Map(
-        "name" -> name,
-        "default_limit" -> defaultTimeout,
-        "hard_limit" -> maxTimeout
-      ))
+        migration.insert("system_limits").values(Map(
+          "name" -> name,
+          "default_limit" -> defaultTimeout,
+          "hard_limit" -> maxTimeout
+        ))
     }
 
     migration
@@ -51,5 +53,6 @@ object Step0025 extends HibernateMigrationStep {
 
   /// Return type is java.lang.Integer since InsertBuilder.values requires a map of AnyRef
   private def minutes_to_ms(minutes: Int): java.lang.Integer = minutes * SEC_PER_MIN * MS_PER_S
+
   private def seconds_to_ms(seconds: Int): java.lang.Integer = seconds * MS_PER_S
 }

@@ -19,10 +19,10 @@ package net.lshift.diffa.agent.itest
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import java.lang.String
-import support.TestEnvironment
 import javax.mail.Session
 import java.io.{File, FileInputStream}
 import javax.mail.internet.MimeMessage
+import support.{ScanningHelper, TestEnvironment}
 import util.matching.Regex
 import org.slf4j.{Logger, LoggerFactory}
 import java.net.URI
@@ -378,33 +378,21 @@ trait CommonDifferenceTests {
 
       // Get into a scanning state
       env.scanningClient.startScan(env.pairKey)
-      waitForScanStatus(env.pairKey, PairScanState.SCANNING)
+      ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.SCANNING)
 
       // Cancel the scan
       env.scanningClient.cancelScanning(env.pairKey)
-      waitForScanStatus(env.pairKey, PairScanState.CANCELLED)
+      ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.CANCELLED)
     }
   }
 
   def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 30, wait:Int = 100, view:Option[String] = None) {
     env.scanningClient.startScan(env.pairKey, view = view)
 
-    waitForScanStatus(env.pairKey, PairScanState.UP_TO_DATE, n, wait)
+    ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.UP_TO_DATE, n, wait)
   }
 
-  def waitForScanStatus(pairKey:String, state:PairScanState, n:Int = 30, wait:Int = 100) {
-    def hasReached(states:Map[String, PairScanState]) = states.getOrElse(pairKey, PairScanState.UNKNOWN) == state
 
-    var i = n
-    var scanStatus = env.scanningClient.getScanStatus
-    while(!hasReached(scanStatus) && i > 0) {
-      Thread.sleep(wait)
-
-      scanStatus = env.scanningClient.getScanStatus
-      i-=1
-    }
-    assertTrue("Unexpected scan state (pair = %s): %s (wanted %s)".format(pairKey, scanStatus, state), hasReached(scanStatus))
-  }
 
   def waitForResendTally(entity:String, count:Int) {
     val timeout = 5000L

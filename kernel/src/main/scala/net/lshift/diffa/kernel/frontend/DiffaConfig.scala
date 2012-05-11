@@ -48,6 +48,7 @@ case class DiffaConfig(
 
 object DefaultLimits {
   val KEY_LENGTH_LIMIT = 50
+  val VALUE_LENGTH_LIMIT = 255
   val URL_LENGTH_LIMIT = 1024
 }
 

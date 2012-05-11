@@ -26,10 +26,13 @@ import java.lang.RuntimeException
 import com.sun.jersey.api.client.{WebResource, UniformInterfaceException, ClientResponse, Client}
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 
-abstract class AbstractRestClient(val serverRootUrl:String, val restResourceSubUrl:String, params: RestClientParams = RestClientParams.default)
+/**
+ * Abstract super class to create RESTful clients for usage outside the agent.
+ */
+abstract class ExternalRestClient(val serverRootUrl:String, val restResourceSubUrl:String, params: RestClientParams = RestClientParams.default)
   extends Closeable {
 
-  val log:Logger = LoggerFactory.getLogger(classOf[AbstractRestClient])
+  val log:Logger = LoggerFactory.getLogger(classOf[ExternalRestClient])
 
   log.debug("Configured to initialize using the server URL (" + serverRootUrl + ") with a sub URL (" + restResourceSubUrl + ")")
 

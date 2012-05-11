@@ -24,6 +24,8 @@ import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.{CacheWrapper, HibernateQueryUtils}
+import org.hibernate.transform.ResultTransformer
+import java.util.List
 
 class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
                                  pairCache:PairCache,
@@ -263,4 +265,5 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     listQuery[EndpointView](s, "endpointViewsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpointName))
   def listPairViews(s:Session, domain:String, pairKey:String) =
     listQuery[PairView](s, "pairViewsByPair", Map("domain_name" -> domain, "pair_key" -> pairKey))
+
 }

@@ -21,26 +21,43 @@ import net.lshift.diffa.kernel.participants._
 import com.sun.jersey.api.client.ClientResponse
 import org.apache.commons.io.IOUtils
 import net.lshift.diffa.kernel.util.MissingObjectException
+import net.lshift.diffa.kernel.util.AlertCodes._
+import org.apache.http.util.EntityUtils
+import org.slf4j.LoggerFactory
+import net.lshift.diffa.kernel.config._
 
 /**
  * JSON/REST content participant client.
  */
-class ContentParticipantRestClient(contentUrl:String, params: RestClientParams = RestClientParams.default)
-    extends AbstractRestClient(contentUrl, "", params)
-    with ContentParticipantRef {
+class ContentParticipantRestClient(pair: DiffaPairRef,
+                                   scanUrl: String,
+                                   serviceLimitsView: PairServiceLimitsView,
+                                   credentialsLookup:DomainCredentialsLookup)
+  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup)
+  with ContentParticipantRef {
+
+  val log = LoggerFactory.getLogger(getClass)
 
   def retrieveContent(identifier: String) = {
+
     val params = new MultivaluedMapImpl()
     params.add("identifier", identifier)
 
-    val jsonEndpoint = resource.queryParams(params)
-    val response = jsonEndpoint.get(classOf[ClientResponse])
-    response.getStatus match {
-      case 200 => IOUtils.toString(response.getEntityInputStream)
-      case 404 => throw new MissingObjectException(identifier)
-      case _   =>
-        log.error(response.getStatus + "")
-        throw new Exception("Participant content retrieval failed: " + response.getStatus + "\n" + IOUtils.toString(response.getEntityInputStream, "UTF-8"))
+    def prepareRequest(query:Option[QueryParameterCredentials]) = buildGetRequest(params, query)
+    val (httpClient, httpGet) = maybeAuthenticate(prepareRequest)
+
+    try {
+      val response = httpClient.execute(httpGet)
+      response.getStatusLine.getStatusCode match {
+        case 200 => EntityUtils.toString(response.getEntity)
+        case 404 => throw new MissingObjectException(identifier)
+        case _   =>
+          log.error("%s - %s".format(formatAlertCode(pair, CONTENT_RETRIEVAL_FAILED), EntityUtils.toString(response.getEntity)))
+          throw new Exception("Participant content retrieval failed")
+      }
+    }
+    finally {
+      shutdownImmediate(httpClient)
     }
   }
 }

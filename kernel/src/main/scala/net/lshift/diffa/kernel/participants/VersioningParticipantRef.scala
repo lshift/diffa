@@ -10,7 +10,7 @@ import net.lshift.diffa.participant.correlation.ProcessingResponse
  * implementation of this will be responsible for handling argument serialization, RPC execution and result
  * deserialization.
  */
-trait VersioningParticipantRef extends Closeable {
+trait VersioningParticipantRef {
   /**
    * Requests that the participant generate a processing response based on the given incoming entity data. The downstream
    * participant is not expected to re-admit the data into its system - it should simply parse the data so as to be able

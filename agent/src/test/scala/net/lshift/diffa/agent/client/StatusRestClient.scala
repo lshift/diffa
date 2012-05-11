@@ -17,12 +17,12 @@ package net.lshift.diffa.agent.client
 
 
 import com.sun.jersey.api.client.ClientResponse
-import net.lshift.diffa.client.{RestClientParams, AbstractRestClient}
+import net.lshift.diffa.client.{RestClientParams, ExternalRestClient}
 import java.lang.String
 
 
 class StatusRestClient(rootUrl:String)
-    extends AbstractRestClient(rootUrl, "status", RestClientParams()) {
+    extends ExternalRestClient(rootUrl, "status", RestClientParams()) {
 
   def checkStatus = {
     val response = resource.get(classOf[ClientResponse])

@@ -33,9 +33,9 @@ import com.sun.jersey.api.NotFoundException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{User, DomainConfigStore}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.AlertCodes._
+import net.lshift.diffa.kernel.config.{DomainCredentialsManager, User, DomainConfigStore}
 
 @Path("/domains/{domain}")
 @Component
@@ -47,6 +47,7 @@ class DomainResource {
   @Context var uriInfo:UriInfo = null
 
   @Autowired var config:Configuration = null
+  @Autowired var credentialsManager:DomainCredentialsManager = null
   @Autowired var actionsClient:ActionsClient = null
   @Autowired var differencesManager:DifferencesManager = null
   @Autowired var diagnosticsManager:DiagnosticsManager = null
@@ -80,6 +81,11 @@ class DomainResource {
   def getConfigResource(@Context uri:UriInfo,
                         @PathParam("domain") domain:String) =
     withValidDomain(domain, new ConfigurationResource(config, domain, uri))
+
+  @Path("/credentials")
+  def getCredentialsResource(@Context uri:UriInfo,
+                             @PathParam("domain") domain:String) =
+    withValidDomain(domain, new CredentialsResource(credentialsManager, domain, uri))
 
   @Path("/diffs")
   def getDifferencesResource(@Context uri:UriInfo,

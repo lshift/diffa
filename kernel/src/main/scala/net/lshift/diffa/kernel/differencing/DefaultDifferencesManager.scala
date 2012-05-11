@@ -118,18 +118,19 @@ class DefaultDifferencesManager(
 
   def retrieveEventDetail(domain:String, evtSeqId:String, t: ParticipantType.ParticipantType) = {
     log.trace("Requested a detail query for domain (" + domain + ") and seq (" + evtSeqId + ") and type (" + t + ")")
+    // TODO This really needs refactoring :-(
     t match {
       case ParticipantType.UPSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.upstreamVsn != null},
                       {p:DiffaPair => p.upstream},
-                      {e:Endpoint => participantFactory.createUpstreamParticipant(e)})
+                      participantFactory.createUpstreamParticipant)
       }
       case ParticipantType.DOWNSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.downstreamVsn != null},
                       {p:DiffaPair => p.downstream},
-                      {e:Endpoint => participantFactory.createDownstreamParticipant(e)})
+                      participantFactory.createDownstreamParticipant)
       }
     }
   }
@@ -139,7 +140,7 @@ class DefaultDifferencesManager(
   private def withValidEvent(domain:String, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
                      resolve:(DiffaPair) => String,
-                     p:(Endpoint) => Participant): String = {
+                     p:(Endpoint, DiffaPairRef) => Participant): String = {
     val event = domainDifferenceStore.getEvent(domain, evtSeqId)
 
     check(event) match {
@@ -151,7 +152,7 @@ class DefaultDifferencesManager(
        val endpoint = domainConfig.getEndpoint(domain, endpointName)
        if (endpoint.contentRetrievalUrl != null) {
          if (!participants.contains(endpoint)) {
-           participants(endpoint) = p(endpoint)
+           participants(endpoint) = p(endpoint, pair.asRef)
          }
          val participant = participants(endpoint)
          participant.retrieveContent(id.id)

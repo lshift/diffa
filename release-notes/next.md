@@ -6,6 +6,7 @@
 
 ## New Features
 
+* [146] - Authentication for external scan participants can now be configured on a URL-specific basis
 * [143] - Reworked inventory upload form to be pair-focused, along ith other UI/UX improvements.
 * [142] - Inventory upload datetime constraints use a date picker for the date portion.
 * [135] - Inventory upload form input fields are clearable with an "x".

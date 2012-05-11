@@ -23,7 +23,7 @@ import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
 /**
  * Trait supported by various RPC bindings providing communications with participants.
  */
-trait Participant extends Closeable
+trait Participant
 {
   /**
    * Scans this participant with the given constraints and aggregations.

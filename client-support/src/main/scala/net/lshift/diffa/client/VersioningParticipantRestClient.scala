@@ -23,26 +23,44 @@ import org.apache.commons.io.IOUtils
 import javax.ws.rs.core.MediaType
 import net.lshift.diffa.participant.common.JSONHelper
 import net.lshift.diffa.participant.correlation.ProcessingResponse
+import org.apache.http.util.EntityUtils
+import net.lshift.diffa.kernel.util.MissingObjectException
+import net.lshift.diffa.kernel.util.AlertCodes._
+import org.slf4j.LoggerFactory
+import net.lshift.diffa.kernel.config._
 
 /**
  * JSON/REST versioning participant client.
  */
-class VersioningParticipantRestClient(scanUrl:String, params: RestClientParams = RestClientParams.default)
-    extends AbstractRestClient(scanUrl, "", params)
-    with VersioningParticipantRef {
+class VersioningParticipantRestClient(pair: DiffaPairRef,
+                                      scanUrl: String,
+                                      serviceLimitsView: PairServiceLimitsView,
+                                      credentialsLookup:DomainCredentialsLookup)
+  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup)
+  with VersioningParticipantRef {
 
+  val log = LoggerFactory.getLogger(getClass)
 
   def generateVersion(entityBody: String) = {
-    val params = new MultivaluedMapImpl()
-    params.add("body", entityBody)
 
-    val formEndpoint = resource.`type`("application/x-www-form-urlencoded")
-    val response = formEndpoint.post(classOf[ClientResponse], params)
-    response.getStatus match {
-      case 200 => JSONHelper.readProcessingResponse(response.getEntityInputStream)
-      case _   =>
-        log.error(response.getStatus + "")
-        throw new Exception("Participant version generation failed: " + response.getStatus + "\n" + IOUtils.toString(response.getEntityInputStream, "UTF-8"))
+    val queryParams = new MultivaluedMapImpl()
+    val formParams = Map("body" -> entityBody)
+
+    def prepareRequest(query:Option[QueryParameterCredentials]) = buildPostRequest(queryParams, formParams, query)
+    val (httpClient, httpPost) = maybeAuthenticate(prepareRequest)
+
+    try {
+      val response = httpClient.execute(httpPost)
+      response.getStatusLine.getStatusCode match {
+        case 200 => JSONHelper.readProcessingResponse(response.getEntity.getContent)
+        case _   =>
+          log.error("%s - %s".format(formatAlertCode(pair, VERSION_GENERATION_FAILED), EntityUtils.toString(response.getEntity)))
+          throw new Exception("Participant version generation failed")
+      }
     }
+    finally {
+      shutdownImmediate(httpClient)
+    }
+
   }
 }

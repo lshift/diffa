@@ -66,6 +66,16 @@ object ValidationUtil {
   }
 
   /**
+   * Verifies that the given value is a member of a permissible set.
+   */
+  def ensureMembership(path:String, name:String, value:String, group:Set[String]) = {
+    if (value == null || !group.contains(value)) {
+      throw new ConfigValidationException(path,
+        "%s is invalid. %s is not a member of the set %s".format(name, value, group))
+    }
+  }
+
+  /**
    * Validates that a given field does not exceed a length limit.
    */
   def ensureLengthLimit(path:String, name:String, value:String, limit:Int) {

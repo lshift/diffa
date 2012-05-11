@@ -376,6 +376,32 @@ case class User(@BeanProperty var name: String = null,
   override def toString = name
 }
 
+case class ExternalHttpCredentials(
+  @BeanProperty var domain: String = null,
+  @BeanProperty var url: String = null,
+  @BeanProperty var key: String = null,
+  @BeanProperty var value: String = null,
+  @BeanProperty var credentialType: String = null
+) {
+
+  import ExternalHttpCredentials._
+
+  def this() = this(domain = null)
+
+  override def equals(that:Any) = that match {
+    case e:ExternalHttpCredentials =>
+      e.domain == domain && e.url == url && e.credentialType == credentialType
+    case _                         => false
+  }
+
+  override def hashCode = 31 * (31 * (31 + domain.hashCode) + url.hashCode) + credentialType.hashCode
+}
+
+object ExternalHttpCredentials {
+  val BASIC_AUTH = "basic_auth"
+  val QUERY_PARAMETER = "query_parameter"
+}
+
 /**
  * Defines a user's membership to a domain
  */

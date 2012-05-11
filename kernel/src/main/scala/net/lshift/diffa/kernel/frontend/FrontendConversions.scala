@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{PairReport, PairView, EndpointView, User, Domain, Escalation, RepairAction, Endpoint, DiffaPair}
+import net.lshift.diffa.kernel.config._
 
 /**
  * A bunch of converter functions to translate frontend objects from their internal counterparts
@@ -110,6 +110,20 @@ object FrontendConversions {
     pair = pair,
     reportType = r.reportType,
     target = r.target
+  )
+
+  def toOutboundExternalHttpCredentialsDef(c: ExternalHttpCredentials) = OutboundExternalHttpCredentialsDef(
+    url = c.url,
+    key = c.key,
+    `type` = c.getCredentialType()
+  )
+
+  def fromInboundExternalHttpCredentialsDef(domainName:String, c: InboundExternalHttpCredentialsDef) = ExternalHttpCredentials(
+    domain = domainName,
+    url = c.url,
+    key = c.key,
+    value = c.value,
+    credentialType = c.`type`
   )
 
   def toDomainDef(d: Domain) = DomainDef(name = d.name)
