@@ -23,11 +23,10 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer
 import net.lshift.diffa.kernel.differencing._
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.apache.lucene.document.{NumericField, Fieldable, Field, Document}
-import collection.mutable.{HashSet, HashMap}
+import collection.mutable.HashMap
 import scala.collection.JavaConversions._
 import org.apache.lucene.index.{IndexReader, IndexWriter, IndexWriterConfig, Term}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
-import org.apache.lucene.search.{BooleanQuery, BooleanClause, TermQuery}
 
 class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends ExtendedVersionCorrelationWriter {
   import LuceneVersionCorrelationHandler._
