@@ -16,7 +16,6 @@
 
 package net.lshift.diffa.kernel.actors
 
-import org.junit.{Test, After, Before}
 import org.easymock.EasyMock._
 import org.junit.Assert._
 import net.lshift.diffa.kernel.differencing._
@@ -37,9 +36,13 @@ import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, 
 import net.lshift.diffa.kernel.frontend.FrontendConversions
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.participant.scanning.{ScanResultEntry, SetConstraint, ScanConstraint}
 import net.lshift.diffa.kernel.util._
+import net.lshift.diffa.participant.scanning._
+import org.junit.runner.RunWith
+import org.junit.experimental.theories.{DataPoint, Theories, Theory}
+import org.junit.{Ignore, Test, After, Before}
 
+@RunWith(classOf[Theories])
 class PairActorTest {
   import PairActorTest._
 
@@ -113,7 +116,7 @@ class PairActorTest {
   expect(differencesManager.lastRecordedVersion(pairRef)).andStubReturn(None)
   replay(differencesManager)
 
-  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, 50, 100)
+  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, 50, 100, closeInterval)
   supervisor.onAgentAssemblyCompleted
   supervisor.onAgentConfigurationActivated
   
@@ -314,7 +317,6 @@ class PairActorTest {
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = { flushMonitor.synchronized { flushMonitor.notifyAll } }
     })
-    replay(scanListener)
 
     expect(versionPolicy.onChange(writer, event))
     .andAnswer(new IAnswer[Unit] {
@@ -348,8 +350,9 @@ class PairActorTest {
            EasyMock.isA(classOf[FeedbackHandle])))
 
     expectDifferencesReplay()
+    expect(writer.close).anyTimes
 
-    replay(writer, store, diffWriter, versionPolicy)
+    replay(writer, store, diffWriter, versionPolicy, scanListener)
 
     supervisor.startActor(pair)
     supervisor.scanPair(pair.asRef, None)
@@ -574,6 +577,7 @@ class PairActorTest {
       }
     }).once()
 
+    expect(writer.close).anyTimes
     val numberOfScans = 2
     expectScanCommencement(numberOfScans)
 
@@ -642,7 +646,41 @@ class PairActorTest {
     verify(versionPolicy, writer, diffWriter)
   }
 
+  @Theory
+  def versionCorrelationWriterShouldCloseAfterConfiguredCloseInterval(scenario: Scenario) {
+    val event = buildUpstreamEvent()
+    val monitor = new Object
 
+    reset(writer)
+    expect(writer.flush).anyTimes
+    expect(versionPolicy.onChange(writer, event)).times(scenario.actionCount).andAnswer(new IAnswer[Unit] {
+      def answer = {
+        monitor.synchronized {
+          monitor.notifyAll
+        }
+      }
+    })
+
+    // Pre-declared Then
+    if (scenario.expectedCloses > 0) {
+      expect(writer.close).times(scenario.expectedCloses)
+    }
+
+    replay(writer, store, diffWriter, versionPolicy)
+
+    // When
+    supervisor.startActor(pair)
+    (1 to scenario.actionCount) foreach { n =>
+      supervisor.propagateChangeEvent(event)
+    }
+
+    monitor.synchronized {
+      monitor.wait(1000)
+    }
+
+    // Then
+    verify(writer)
+  }
 
   @Test
   def scheduledFlush {
@@ -691,13 +729,21 @@ class PairActorTest {
   }
 }
 
+case class Scenario(actionCount: Int, expectedCloses: Int)
+
 object PairActorTest {
   private var pairIdCounter = 0
+  private[PairActorTest] val closeInterval = 3
 
   def nextPairId = {
     pairIdCounter += 1
     "some-pairing-" + pairIdCounter
   }
+  
+  @DataPoint def doNotCloseWriterBeforeIntervalReached = Scenario(actionCount = closeInterval - 1, expectedCloses = 0)
+  @DataPoint def closeWriterOnce = Scenario(actionCount = closeInterval, expectedCloses = 1)
+  @DataPoint def closeWriterOnceOnly = Scenario(actionCount = closeInterval + 1, expectedCloses = 1)
+  @DataPoint def closeWriterTwice = Scenario(actionCount = closeInterval * 2, expectedCloses = 2)
 }
 
 /**

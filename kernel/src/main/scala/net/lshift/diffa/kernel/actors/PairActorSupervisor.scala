@@ -38,7 +38,8 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                stores:VersionCorrelationStoreFactory,
                                diagnostics:DiagnosticsManager,
                                changeEventBusyTimeoutMillis:Long,
-                               changeEventQuietTimeoutMillis:Long)
+                               changeEventQuietTimeoutMillis:Long,
+                               indexWriterCloseInterval: Int)
     extends ActivePairManager
     with PairPolicyClient
 
@@ -65,7 +66,8 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
             val pairActor = Actor.actorOf(
               new PairActor(pair, us, ds, usp, dsp, pol, stores(pair.asRef),
                             differencesManager, pairScanListener,
-                            diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis)
+                            diagnostics, domainConfig,
+                            changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis, indexWriterCloseInterval)
             )
             pairActor.start
             log.info(formatAlertCode(pair.asRef, ACTOR_STARTED) +  " actor started")
@@ -79,6 +81,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
         stopActor(pair.asRef)
         startActor(pair)
       case x    => log.error("Too many actors for key: " + pair.identifier + "; actors = " + x)
+
     }
   }
 
