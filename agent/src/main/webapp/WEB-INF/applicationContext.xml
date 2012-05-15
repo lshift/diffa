@@ -257,18 +257,18 @@
         </property>
       </bean>
     </constructor-arg>
-      <constructor-arg>
-          <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-              <property name="targetObject" ref="systemConfigStore"/>
-              <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-              <property name="arguments">
-                  <list>
-                      <value>diffa.lucene.close.interval</value>
-                      <value>100</value>
-                  </list>
-              </property>
-          </bean>
-      </constructor-arg>
+    <constructor-arg>
+      <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="systemConfigStore"/>
+        <property name="targetMethod" value="systemConfigOptionOrDefault"/>
+        <property name="arguments">
+          <list>
+            <value>diffa.lucene.close.interval</value>
+            <value>100</value>
+          </list>
+        </property>
+      </bean>
+    </constructor-arg>
   </bean>
 
   <!--
