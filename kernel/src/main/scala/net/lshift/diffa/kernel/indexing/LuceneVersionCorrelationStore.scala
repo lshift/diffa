@@ -23,7 +23,7 @@ import org.apache.lucene.search._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.participants._
-import collection.mutable.{ListBuffer}
+import collection.mutable.ListBuffer
 import net.lshift.diffa.kernel.differencing._
 import org.apache.lucene.document._
 import net.lshift.diffa.participant.scanning._
