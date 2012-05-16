@@ -21,8 +21,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.frontend.EndpointDef
-import net.lshift.diffa.kernel.config.{CategoryDescriptor, DiffaPairRef}
+import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.util.{CategoryChange, EndpointSide}
 
 /**

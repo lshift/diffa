@@ -34,13 +34,13 @@ import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
 import net.lshift.diffa.kernel.frontend.FrontendConversions
-import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
+import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
 import net.lshift.diffa.participant.scanning._
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
-import org.junit.{Ignore, Test, After, Before}
+import org.junit.{Test, After, Before}
 
 @RunWith(classOf[Theories])
 class PairActorTest {
