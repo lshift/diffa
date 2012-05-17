@@ -487,10 +487,8 @@ case class PairActor(pair:DiffaPair,
     store.openWriter.close
   }
 
-  private def timeSince(pastTime: Long) = new Ordered[Long] {
-    def compare(interval: Long) = if (System.currentTimeMillis() - pastTime > interval) 1 else -1
-  }
-  
+  private def timeSince(pastTime: Long) = System.currentTimeMillis() - pastTime
+
   private def handleScanError(actor:ActorRef, scanId:UUID, upOrDown:UpOrDown, x:Exception) = {
 
     val (prefix, marker) = upOrDown match {
@@ -584,9 +582,3 @@ case object CancelMessage
  * An internal command that indicates to the actor that the underlying writer should be flushed
  */
 private case object FlushWriterMessage extends Deferrable
-
-object PairActorConstants {
-  final val MAX_CLEANUP_INTERVAL = minutesToMs(60) // 1 hour, expressed in milliseconds
-  
-  private def minutesToMs(minutes: Int) = minutes * 60 * 1000L
-}
