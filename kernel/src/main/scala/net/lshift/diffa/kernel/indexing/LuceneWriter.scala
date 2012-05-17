@@ -18,17 +18,22 @@ package net.lshift.diffa.kernel.indexing
 import org.apache.lucene.store.Directory
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.events.VersionID
-import org.apache.lucene.util.Version
-import org.apache.lucene.analysis.standard.StandardAnalyzer
 import net.lshift.diffa.kernel.differencing._
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.apache.lucene.document.{NumericField, Fieldable, Field, Document}
 import collection.mutable.HashMap
 import scala.collection.JavaConversions._
-import org.apache.lucene.index.{IndexReader, IndexWriter, IndexWriterConfig, Term}
+import org.apache.lucene.index.{IndexReader, IndexWriter, Term}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
+import java.util.concurrent.ConcurrentHashMap
+import java.io.Closeable
 
-class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends ExtendedVersionCorrelationWriter {
+
+class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
+                   indexWriterFactory: IndexWriterFactory = IndexWriterFactory.defaultFactory,
+                   indexReaderFactory: IndexReaderFactory = IndexReaderFactory.defaultFactory)
+  extends ExtendedVersionCorrelationWriter {
+
   import LuceneVersionCorrelationHandler._
 
   private val log = LoggerFactory.getLogger(getClass)
@@ -36,21 +41,19 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   private val maxBufferSize = 10000
 
   private val updatedDocs = HashMap[VersionID, Document]()
-  private var isClosed = false // IndexWriter doesn't have an isClosed method but we need
+  private var isClosed = true // IndexWriter doesn't have an isClosed method but we need
                                // to conditionally recreate the IndexWriter.
-  private var writer = createIndexWriter
+  private var (closeableWriter: Closeable, writer: IndexWriter) = indexWriterFactory.createIndexWriter(index)
   private final val writerLock = new Object
 
-  private def createIndexWriter() = {
-    val version = Version.LUCENE_34
-    val config = new IndexWriterConfig(version, new StandardAnalyzer(version))
-    new IndexWriter(index, config)
-  }
+  var getCloseableWriter: Function0[Closeable] = { () => closeableWriter }
 
   private def getWriter = {
     writerLock.synchronized {
       if (isClosed) {
-        writer = createIndexWriter
+        val writerPair = indexWriterFactory.createIndexWriter(index)
+        closeableWriter = writerPair._1
+        writer = writerPair._2
         isClosed = false
       }
     }
@@ -70,12 +73,30 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
 
   def close() {
     writerLock.synchronized {
-      writer.close
+      closeableWriter.close
       isClosed = true
+    }
+    readersForWriter(writer) foreach { reader =>
+      reader.close
     }
   }
 
-  def getReader : IndexReader = IndexReader.open(getWriter, true)
+  val readers = new ConcurrentHashMap[IndexWriter, List[Closeable]]()
+  def readersForWriter(writer: IndexWriter) = readers.getOrElse(writer, List[Closeable]())
+
+  // TODO: examine for race conditions.
+  def getReader: IndexReader = {
+    val (closeableReader, reader) = indexReaderFactory.createIndexReader(getWriter)
+    val readerList = readers.get(getWriter)
+    val list = closeableReader :: (if (readerList != null) {
+      readerList
+    } else {
+      List[Closeable]()
+    })
+    if (readers.putIfAbsent(getWriter, list) != null)
+      readers.replace(getWriter, list)
+    reader
+  }
 
   private val VERSION_LABEL = "latest.store.version"
   private var latestVersion : Long = getReader.getCommitUserData match {
@@ -329,7 +350,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
 
   private def flushInternal() {
     getWriter.commit(Map(VERSION_LABEL -> latestVersion.toString))
-      updatedDocs.clear()
-      log.trace("Writer flushed")
+    updatedDocs.clear()
+    log.trace("Writer flushed")
   }
 }
