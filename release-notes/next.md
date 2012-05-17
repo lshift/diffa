@@ -20,6 +20,7 @@
 
 ## General Maintenance
 
+* [154] - Introduced a (generic) layer to cache calls to the service limits store and provided a Hazelcast backed implementation.
 * [109] - Log a summary of each Query triggered by a participant scan.
 * [113] - Improve validation of pair definitions.
 * [114] - Ensure that changes without attributes are processed.

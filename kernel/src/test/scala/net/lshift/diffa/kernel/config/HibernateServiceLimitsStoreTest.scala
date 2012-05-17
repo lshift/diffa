@@ -162,8 +162,8 @@ class HibernateServiceLimitsStoreTest {
     val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit.limitName, 0)
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue)
 
-    val limiter = getTestLimiter(limitName, pairKey, domainName,
-      (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+    val limiter = getTestLimiter(domainName, pairKey, limitName,
+      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
     limiter.actionPerformed
@@ -177,8 +177,8 @@ class HibernateServiceLimitsStoreTest {
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
     serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
 
-    val limiter = getTestLimiter(limitName, pairKey, domainName,
-      (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+    val limiter = getTestLimiter(domainName, pairKey, limitName,
+      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
     limiter.actionPerformed
@@ -192,8 +192,8 @@ class HibernateServiceLimitsStoreTest {
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
     serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, limitValue)
 
-    val limiter = getTestLimiter(limitName, pairKey, domainName,
-      (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+    val limiter = getTestLimiter(domainName, pairKey, limitName,
+      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
     limiter.actionPerformed
@@ -208,8 +208,8 @@ class HibernateServiceLimitsStoreTest {
     serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, limitValue - 1)
     serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
 
-    val limiter = getTestLimiter(limitName, pairKey, domainName,
-      (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+    val limiter = getTestLimiter(domainName, pairKey, limitName,
+      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
     limiter.actionPerformed
@@ -229,8 +229,8 @@ class HibernateServiceLimitsStoreTest {
         domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, lim))
         pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, lim))
 
-        val limiter = getTestLimiter(limitName, pairKey, domainName,
-          (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+        val limiter = getTestLimiter(domainName, pairKey, limitName,
+          (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to usage).foreach(_ => limiter.actionPerformed)
       case _ =>
@@ -250,8 +250,8 @@ class HibernateServiceLimitsStoreTest {
         domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, lim))
         pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, lim))
 
-        val limiter = getTestLimiter(limitName, pairKey, domainName,
-          (limName, domName, pKey) => serviceLimitsStore.getEffectiveLimitByNameForPair(limName, domName, pKey))
+        val limiter = getTestLimiter(domainName, pairKey, limitName,
+          (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to expectedLimit).foreach(_ => limiter.actionPerformed)
         (expectedLimit to usage).foreach(_ =>
@@ -293,11 +293,11 @@ class HibernateServiceLimitsStoreTest {
     }
   }
 
-  private def getTestLimiter(limitName: String, pairKey: String, domainName: String,
+  private def getTestLimiter(domainName: String, pairKey: String, limitName: String,
                              effectiveLimitFn: (String, String, String) => Int) = {
     new TestLimiter {
       private var actionCount = 0
-      private val effectiveLimit = effectiveLimitFn(limitName, domainName, pairKey)
+      private val effectiveLimit = effectiveLimitFn(domainName, pairKey, limitName)
 
       def actionPerformed {
         actionCount += 1

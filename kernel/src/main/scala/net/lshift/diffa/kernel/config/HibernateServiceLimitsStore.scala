@@ -1,8 +1,8 @@
 package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.kernel.util.SessionHelper._
-import net.lshift.diffa.kernel.util.HibernateQueryUtils
 import org.hibernate.SessionFactory
+import net.lshift.diffa.kernel.util.HibernateQueryUtils
 
 
 class HibernateServiceLimitsStore(val sessionFactory: SessionFactory)
@@ -79,37 +79,21 @@ class HibernateServiceLimitsStore(val sessionFactory: SessionFactory)
     )
   }
 
-  def getSystemHardLimitForName(limitName: String) = getLimit(
-    "systemHardLimitByName", Map("limit_name" -> limitName)
-  )
+  def getSystemHardLimitForName(limitName: String) =
+    getLimit("systemHardLimitByName", Map("limit_name" -> limitName))
 
-  def getSystemDefaultLimitForName(limitName: String) = getLimit(
-    "systemDefaultLimitByName", Map("limit_name" -> limitName)
-  )
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limitName: String) = getLimit(
-    "domainHardLimitByDomainAndName", Map("limit_name" -> limitName, "domain_name" -> domainName)
-  )
+  def getSystemDefaultLimitForName(limitName: String) =
+    getLimit("systemDefaultLimitByName", Map("limit_name" -> limitName))
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limitName: String) = getLimit(
-    "domainDefaultLimitByDomainAndName",Map("limit_name" -> limitName, "domain_name" -> domainName)
-  )
+  def getDomainHardLimitForDomainAndName(domainName: String, limitName: String) =
+    getLimit("domainHardLimitByDomainAndName", Map("limit_name" -> limitName, "domain_name" -> domainName))
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limitName: String) = getLimit(
-    "pairLimitByPairAndName", Map("limit_name" -> limitName, "domain_name" -> domainName, "pair_key" -> pairKey)
-  )
+  def getDomainDefaultLimitForDomainAndName(domainName: String, limitName: String) =
+    getLimit("domainDefaultLimitByDomainAndName",Map("limit_name" -> limitName, "domain_name" -> domainName))
 
-  def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String) =
-    getPairLimitForPairAndName(domainName, pairKey, limitName).getOrElse(
-      getEffectiveLimitByNameForDomain(limitName, domainName))
-
-  def getEffectiveLimitByNameForDomain(limitName: String, domainName: String) =
-    getDomainDefaultLimitForDomainAndName(domainName, limitName).getOrElse(
-      getEffectiveLimitByName(limitName))
-
-  def getEffectiveLimitByName(limitName: String) =
-    getSystemDefaultLimitForName(limitName).getOrElse(
-      ServiceLimit.UNLIMITED)
+  def getPairLimitForPairAndName(domainName: String, pairKey: String, limitName: String) =
+    getLimit("pairLimitByPairAndName", Map("limit_name" -> limitName, "domain_name" -> domainName, "pair_key" -> pairKey))
 
   private def getLimit(queryName: String, params: Map[String, String]) = sessionFactory.withSession(session =>
     singleQueryOpt[Int](

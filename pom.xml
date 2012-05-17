@@ -53,6 +53,7 @@
     <quartz.version>2.1.3</quartz.version>
     <ehcache.version>2.4.7</ehcache.version>
     <wroj.version>1.4.4</wroj.version>
+    <hazelcast.version>2.1</hazelcast.version>
   </properties>
 
   <scm>
@@ -346,6 +347,11 @@
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
       <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast</artifactId>
+      <version>${hazelcast.version}</version>
     </dependency>
     <dependency>
       <groupId>se.scalablesolutions.akka</groupId>

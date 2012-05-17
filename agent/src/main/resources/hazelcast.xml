@@ -1,0 +1,16 @@
+<hazelcast>
+  <map name="default">
+    <backup-count>0</backup-count>
+    <max-size>10000</max-size>
+    <eviction-policy>LRU</eviction-policy>
+    <eviction-percentage>25</eviction-percentage>
+    <time-to-live-seconds>0</time-to-live-seconds>
+    <max-idle-seconds>300</max-idle-seconds>
+  </map>
+  <network>
+    <join>
+      <multicast enabled="false"></multicast>
+      <tcp-ip enabled="false"></tcp-ip>
+    </join>
+  </network>
+</hazelcast>

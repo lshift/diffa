@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory
 /**
  * Simple wrapper around an underlying EhCache to make its usage less verbose.
  */
+@Deprecated
 class CacheWrapper[A, B](cacheName:String, manager:CacheManager) extends Closeable {
 
   val log = LoggerFactory.getLogger(getClass)

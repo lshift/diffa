@@ -354,6 +354,7 @@
     <constructor-arg value="lastDomainSequence"/>
   </bean>
 
+  <bean id="hazelcastCacheProvider" class="net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider"></bean>
 
   <!--
     ===========
@@ -386,8 +387,13 @@
     <constructor-arg ref="pairCache" />
   </bean>
 
-  <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
+  <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
     <constructor-arg ref="diffaSessionFactory" />
+  </bean>
+
+  <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.CachedServiceLimitsStore">
+    <constructor-arg ref="underlyingServiceLimitsStore" />
+    <constructor-arg ref="hazelcastCacheProvider" />
   </bean>
 
   <!--
