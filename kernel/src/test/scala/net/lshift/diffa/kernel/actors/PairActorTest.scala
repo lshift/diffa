@@ -266,6 +266,8 @@ class PairActorTest {
         })
 
     writer.flush(); expectLastCall.asStub()
+    writer.close
+    expectLastCall.asStub
 
     expect(diagnostics.logPairEvent(DiagnosticLevel.INFO,
                                     pairRef,
@@ -373,6 +375,7 @@ class PairActorTest {
     writer.flush(); expectLastCall.asStub()
     replay(store, writer, diffWriter, versionPolicy)
 
+
     supervisor.startActor(pair)
     assertTrue(supervisor.cancelScans(pair.asRef))
   }
@@ -420,6 +423,7 @@ class PairActorTest {
 
     writer.flush(); expectLastCall.asStub()
     expect(writer.rollback); expectLastCall
+    expect(writer.close).times(1)
 
     val numberOfScans = 1
     expectScanCommencement(numberOfScans)
@@ -452,6 +456,7 @@ class PairActorTest {
 
     val numberOfScans = 1
     expectScanCommencement(numberOfScans)
+    expect(writer.close).anyTimes
 
     replay(store, writer, diffWriter, versionPolicy, scanListener, diagnostics)
 
@@ -477,6 +482,7 @@ class PairActorTest {
 
     val numberOfScans = 1
     expectScanCommencement(numberOfScans)
+    writer.close
 
     replay(writer, store, diffWriter, versionPolicy, scanListener, diagnostics)
 
@@ -507,6 +513,7 @@ class PairActorTest {
 
     val numberOfScans = 1
     expectScanCommencement(numberOfScans)
+    writer.close
 
     replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
 
@@ -598,7 +605,7 @@ class PairActorTest {
     val monitor = new Object
 
     expect(writer.flush()).atLeastOnce
-    replay(writer)
+    writer.close
     expect(versionPolicy.onChange(writer, event)).andAnswer(new IAnswer[Unit] {
       def answer = {
         monitor.synchronized {
@@ -606,7 +613,7 @@ class PairActorTest {
         }
       }
     })
-    replay(store, diffWriter, versionPolicy)
+    replay(store, diffWriter, versionPolicy, writer)
 
     supervisor.startActor(pair)
     supervisor.propagateChangeEvent(event)
