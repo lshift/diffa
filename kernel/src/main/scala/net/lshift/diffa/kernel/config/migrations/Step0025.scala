@@ -3,8 +3,8 @@ package net.lshift.diffa.kernel.config.migrations
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 
-import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{ServiceLimit, HibernateMigrationStep}
+import net.lshift.diffa.kernel.config.limits.{ScanReadTimeout, ScanConnectTimeout}
+import net.lshift.diffa.kernel.config.{MigrationUtil, HibernateMigrationStep}
 
 /**
  * This Step migrates a schema/database to version 25, adding default read and
@@ -18,41 +18,9 @@ object Step0025 extends HibernateMigrationStep {
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
-    List(
-      (ServiceLimit.SCAN_CONNECT_TIMEOUT_KEY,
-        "When attempting to open a connection to scan a participant, timeout after this many milliseconds",
-        seconds_to_ms(30),
-        minutes_to_ms(2)
-        ),
-      (ServiceLimit.SCAN_READ_TIMEOUT_KEY,
-        "When reading query response data from a scan participant, timeout after not receiving data for this many milliseconds",
-        seconds_to_ms(30),
-        minutes_to_ms(2)
-        )
-    ) foreach {
-      limDef =>
-        val (name, desc, defaultTimeout, maxTimeout) = limDef
-
-        migration.insert("limit_definitions").values(Map(
-          "name" -> name,
-          "description" -> desc
-        ))
-
-        migration.insert("system_limits").values(Map(
-          "name" -> name,
-          "default_limit" -> defaultTimeout,
-          "hard_limit" -> maxTimeout
-        ))
-    }
+    MigrationUtil.insertLimit(migration, ScanConnectTimeout)
+    MigrationUtil.insertLimit(migration, ScanReadTimeout)
 
     migration
   }
-
-  private final val SEC_PER_MIN = 60
-  private final val MS_PER_S = 1000
-
-  /// Return type is java.lang.Integer since InsertBuilder.values requires a map of AnyRef
-  private def minutes_to_ms(minutes: Int): java.lang.Integer = minutes * SEC_PER_MIN * MS_PER_S
-
-  private def seconds_to_ms(seconds: Int): java.lang.Integer = seconds * MS_PER_S
 }

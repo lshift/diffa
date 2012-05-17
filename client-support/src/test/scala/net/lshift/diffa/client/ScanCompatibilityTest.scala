@@ -30,6 +30,7 @@ import net.lshift.diffa.participant.scanning._
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import net.lshift.diffa.kernel.config._
+import limits.Unlimited
 
 /**
  * Test ensuring that internal query constraint and aggregation types are passed and parsed by Scala participants.
@@ -255,7 +256,7 @@ object ScanCompatibilityTest {
   @DataPoint def completelyUnboundedInteger = new IntegerRangeConstraint("someInt", null.asInstanceOf[Integer], null)
 
   val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int = ServiceLimit.UNLIMITED
+    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
   }
 
   val serverPort = 41255

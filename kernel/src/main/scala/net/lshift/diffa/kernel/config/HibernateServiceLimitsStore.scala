@@ -1,5 +1,6 @@
 package net.lshift.diffa.kernel.config
 
+import limits.Unlimited
 import net.lshift.diffa.kernel.util.SessionHelper._
 import org.hibernate.SessionFactory
 import net.lshift.diffa.kernel.util.HibernateQueryUtils
@@ -10,17 +11,17 @@ class HibernateServiceLimitsStore(val sessionFactory: SessionFactory)
   with HibernateQueryUtils {
 
   private def validate(limitValue: Int) {
-    if (limitValue < 0 && limitValue != ServiceLimit.UNLIMITED)
+    if (limitValue < 0 && limitValue != Unlimited.hardLimit)
       throw new Exception("Invalid limit value")
   }
 
-  def defineLimit(limitName: String, description: String) {
+  def defineLimit(limit: ServiceLimit) {
     createOrUpdate[ServiceLimitDefinitions](
-      () => ServiceLimitDefinitions(limitName, description),
-      () => limitName,
+      () => ServiceLimitDefinitions(limit.key, limit.description),
+      () => limit.key,
       old => {
-        old.limitName = limitName
-        old.limitDescription = description
+        old.limitName = limit.key
+        old.limitDescription = limit.description
       }
     )
   }
@@ -44,108 +45,108 @@ class HibernateServiceLimitsStore(val sessionFactory: SessionFactory)
     })
   }
 
-  def setSystemHardLimit(limitName: String, limitValue: Int) {
+  def setSystemHardLimit(limit: ServiceLimit, limitValue: Int) {
     validate(limitValue)
-    setSystemLimit(limitName, limitValue, old => old.hardLimit = limitValue)
+    setSystemLimit(limit, limitValue, old => old.hardLimit = limitValue)
 
-    cascadeLimitToSystemDefault(limitName, limitValue)
-    cascadeLimitToDomainHardLimit(limitName, limitValue)
+    cascadeLimitToSystemDefault(limit, limitValue)
+    cascadeLimitToDomainHardLimit(limit, limitValue)
   }
 
-  def setDomainHardLimit(domainName: String, limitName: String, limitValue: Int) {
+  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) {
     validate(limitValue)
-    setDomainLimit(domainName, limitName, limitValue, old => old.hardLimit = limitValue)
+    setDomainLimit(domainName, limit, limitValue, old => old.hardLimit = limitValue)
 
-    cascadeLimitToDomainDefaultLimit(limitName, limitValue)
-    cascadeLimitToPair(limitName, limitValue)
+    cascadeLimitToDomainDefaultLimit(limit, limitValue)
+    cascadeLimitToPair(limit, limitValue)
   }
 
-  def setSystemDefaultLimit(limitName: String, limitValue: Int) {
-    setSystemLimit(limitName, limitValue, old => old.defaultLimit = limitValue)
+  def setSystemDefaultLimit(limit: ServiceLimit, limitValue: Int) {
+    setSystemLimit(limit, limitValue, old => old.defaultLimit = limitValue)
   }
 
-  def setDomainDefaultLimit(domainName: String, limitName: String, limitValue: Int) {
-    setDomainLimit(domainName, limitName, limitValue, old => old.defaultLimit = limitValue)
+  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) {
+    setDomainLimit(domainName, limit, limitValue, old => old.defaultLimit = limitValue)
   }
 
-  def setPairLimit(domainName: String, pairKey: String, limitName: String, limitValue: Int) {
+  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) {
     val domain = getDomain(domainName)
     val pair = DiffaPair(key = pairKey, domain = domain)
 
     createOrUpdate[PairServiceLimits](
-      () => PairServiceLimits(domain, pair, limitName, limitValue),
-      () => PairScopedLimit(limitName, pair),
+      () => PairServiceLimits(domain, pair, limit.key, limitValue),
+      () => PairScopedLimit(limit.key, pair),
       old => old.limitValue = limitValue
     )
   }
 
-  def getSystemHardLimitForName(limitName: String) =
-    getLimit("systemHardLimitByName", Map("limit_name" -> limitName))
+  def getSystemHardLimitForName(limit: ServiceLimit) =
+    getLimit("systemHardLimitByName", Map("limit_name" -> limit.key))
 
 
-  def getSystemDefaultLimitForName(limitName: String) =
-    getLimit("systemDefaultLimitByName", Map("limit_name" -> limitName))
+  def getSystemDefaultLimitForName(limit: ServiceLimit) =
+    getLimit("systemDefaultLimitByName", Map("limit_name" -> limit.key))
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limitName: String) =
-    getLimit("domainHardLimitByDomainAndName", Map("limit_name" -> limitName, "domain_name" -> domainName))
+  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
+    getLimit("domainHardLimitByDomainAndName", Map("limit_name" -> limit.key, "domain_name" -> domainName))
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limitName: String) =
-    getLimit("domainDefaultLimitByDomainAndName",Map("limit_name" -> limitName, "domain_name" -> domainName))
+  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
+    getLimit("domainDefaultLimitByDomainAndName",Map("limit_name" -> limit.key, "domain_name" -> domainName))
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limitName: String) =
-    getLimit("pairLimitByPairAndName", Map("limit_name" -> limitName, "domain_name" -> domainName, "pair_key" -> pairKey))
+  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) =
+    getLimit("pairLimitByPairAndName", Map("limit_name" -> limit.key, "domain_name" -> domainName, "pair_key" -> pairKey))
 
   private def getLimit(queryName: String, params: Map[String, String]) = sessionFactory.withSession(session =>
     singleQueryOpt[Int](
       session, queryName, params
     ))
 
-  private def cascadeLimit(currentLimit: Int, setLimitValue: (String, Int) => Unit,
-                           limitName: String, newLimit: Int) {
+  private def cascadeLimit(currentLimit: Int, setLimitValue: (ServiceLimit, Int) => Unit,
+                           limit: ServiceLimit, newLimit: Int) {
     if (currentLimit > newLimit) {
-      setLimitValue(limitName, newLimit)
+      setLimitValue(limit, newLimit)
     }
   }
 
-  private def cascadeLimitToSystemDefault(limitName: String, limitValue: Int) {
+  private def cascadeLimitToSystemDefault(limit: ServiceLimit, limitValue: Int) {
     cascadeLimit(
-      getEffectiveLimitByName(limitName),
+      getEffectiveLimitByName(limit),
       setSystemDefaultLimit,
-      limitName, limitValue)
+      limit, limitValue)
   }
   
-  private def cascadeLimitToDomainHardLimit(limitName: String, limitValue: Int) {
+  private def cascadeLimitToDomainHardLimit(limit: ServiceLimit, limitValue: Int) {
     sessionFactory.withSession(
-      session => listQuery[DomainServiceLimits](session, "domainServiceLimitsByName", Map("limit_name" -> limitName))
+      session => listQuery[DomainServiceLimits](session, "domainServiceLimitsByName", Map("limit_name" -> limit.key))
     ).foreach { domainLimit =>
       cascadeLimit(
         domainLimit.hardLimit,
-        (limitName, limitValue) => setDomainHardLimit(domainLimit.domain.name, limitName, limitValue),
-        limitName, limitValue
+        (limitName, limitValue) => setDomainHardLimit(domainLimit.domain.name, limit, limitValue),
+        limit, limitValue
       )
     }
   }
 
-  private def cascadeLimitToDomainDefaultLimit(limitName: String, limitValue: Int) {
+  private def cascadeLimitToDomainDefaultLimit(limit: ServiceLimit, limitValue: Int) {
     sessionFactory.withSession(
-      session => listQuery[DomainServiceLimits](session, "domainServiceLimitsByName", Map("limit_name" -> limitName))
+      session => listQuery[DomainServiceLimits](session, "domainServiceLimitsByName", Map("limit_name" -> limit.key))
     ).foreach { domainLimit =>
       cascadeLimit(
         domainLimit.defaultLimit,
-        (limitName, limitValue) => setDomainDefaultLimit(domainLimit.domain.name, limitName, limitValue),
-        limitName, limitValue
+        (limitName, limitValue) => setDomainDefaultLimit(domainLimit.domain.name, limit, limitValue),
+        limit, limitValue
       )
     }
   }
   
-  private def cascadeLimitToPair(limitName: String, limitValue: Int) {
+  private def cascadeLimitToPair(limit: ServiceLimit, limitValue: Int) {
     sessionFactory.withSession(
-      session => listQuery[PairServiceLimits](session, "pairServiceLimitsByName", Map("limit_name" -> limitName))
+      session => listQuery[PairServiceLimits](session, "pairServiceLimitsByName", Map("limit_name" -> limit.key))
     ).foreach { pairLimit =>
       cascadeLimit(
         pairLimit.limitValue,
-        (limitName, limitValue) => setPairLimit(pairLimit.pair.domain.name, pairLimit.pair.key, limitName, limitValue),
-        limitName, limitValue
+        (limitName, limitValue) => setPairLimit(pairLimit.pair.domain.name, pairLimit.pair.key, limit, limitValue),
+        limit, limitValue
       )
     }
   }
@@ -164,19 +165,19 @@ class HibernateServiceLimitsStore(val sessionFactory: SessionFactory)
     })
   }
 
-  private def setSystemLimit(limitName: String, limitValue: Int, updateLimit: SystemServiceLimits => Unit) {
+  private def setSystemLimit(limit: ServiceLimit, limitValue: Int, updateLimit: SystemServiceLimits => Unit) {
     createOrUpdate[SystemServiceLimits](
-      () => SystemServiceLimits(limitName, limitValue, limitValue),
-      () => limitName,
+      () => SystemServiceLimits(limit.key, limitValue, limitValue),
+      () => limit.key,
       updateLimit
     )
   }
 
-  private def setDomainLimit(domainName: String, limitName: String, limitValue: Int, updateLimit: DomainServiceLimits => Unit) {
+  private def setDomainLimit(domainName: String, limit: ServiceLimit, limitValue: Int, updateLimit: DomainServiceLimits => Unit) {
     val domain = getDomain(domainName)
     createOrUpdate[DomainServiceLimits](
-      () => DomainServiceLimits(domain, limitName, limitValue, limitValue),
-      () => DomainScopedLimit(limitName, domain),
+      () => DomainServiceLimits(domain, limit.key, limitValue, limitValue),
+      () => DomainScopedLimit(limit.key, domain),
       updateLimit
     )
   }

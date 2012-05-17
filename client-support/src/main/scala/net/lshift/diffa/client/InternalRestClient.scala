@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import net.lshift.diffa.kernel.config._
 import com.sun.jersey.core.util.MultivaluedMapImpl
+import limits.{Unlimited, ScanReadTimeout, ScanConnectTimeout}
 import org.apache.http.client.methods.{HttpPost, HttpUriRequest, HttpGet}
 import org.apache.http.client.entity.UrlEncodedFormEntity
 
@@ -111,19 +112,18 @@ abstract class InternalRestClient(pair: DiffaPairRef,
     httpPost
   }
 
-  protected def zeroIfUnlimited(limitName: String) = {
-    serviceLimitsView.getEffectiveLimitByNameForPair(
-      limitName, pair.domain, pair.key) match {
-      case ServiceLimit.UNLIMITED => 0
-      case timeout => timeout
+  protected def zeroIfUnlimited(limit: ServiceLimit) = {
+    serviceLimitsView.getEffectiveLimitByNameForPair(pair.domain, pair.key, limit) match {
+      case Unlimited.value => 0
+      case timeout         => timeout
     }
   }
 
   protected def createHttpClient(httpParams: BasicHttpParams): DefaultHttpClient = {
     HttpConnectionParams.setConnectionTimeout(httpParams,
-      zeroIfUnlimited(ServiceLimit.SCAN_CONNECT_TIMEOUT_KEY))
+      zeroIfUnlimited(ScanConnectTimeout))
     HttpConnectionParams.setSoTimeout(httpParams,
-      zeroIfUnlimited(ServiceLimit.SCAN_READ_TIMEOUT_KEY))
+      zeroIfUnlimited(ScanReadTimeout))
 
     new DefaultHttpClient(httpParams)
   }

@@ -31,6 +31,7 @@
 * [132] - Made sure that a change to a pair or endpoint config results in a change the Etag returned when querying for differences
 * [134] - Reduce startup and pair registration time by using Apache httpclient instead of Jersey.
 * [152] - Ensure that we do not generate malformed URLs when performing aggregate scans on an endpoint URL specified with a query string.
+* [155] - Re-instated the diagnostic log buffering
 
 ## Library Upgrades
 

@@ -1,5 +1,6 @@
 package net.lshift.diffa.kernel.config
 
+import limits.Unlimited
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, Before, Test}
 
@@ -15,7 +16,13 @@ import org.junit.experimental.theories.{DataPoint, Theories, Theory, DataPoints}
 class HibernateServiceLimitsStoreTest {
   private val testDomain = Domain("diffa-test-domain")
   private val testPair = DiffaPair(key = "diffa-test-pair", domain = testDomain)
-  private val testLimit = ServiceLimitDefinitions("dummyLimit", "A limit that is just for testing")
+
+  val testLimit = new ServiceLimit {
+    def key = "dummyLimit"
+    def description = "A limit that is just for testing"
+    def defaultLimit = 132
+    def hardLimit = 153
+  }
 
   private val storeReferences = HibernateServiceLimitsStoreTest.storeReferences
   private val serviceLimitsStore = storeReferences.serviceLimitsStore
@@ -33,21 +40,21 @@ class HibernateServiceLimitsStoreTest {
     storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain.name, upstream)
     storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain.name, downstream)
     storeReferences.domainConfigStore.createOrUpdatePair(testDomain.name, pair)
-    serviceLimitsStore.defineLimit(testLimit.limitName, testLimit.limitDescription)
+    serviceLimitsStore.defineLimit(testLimit)
   }
 
   @Test
   def givenExistingDependentsWhenSystemHardLimitConfiguredToValidValueNotLessThanDependentLimitsThenLimitShouldBeAppliedAndNoDependentLimitsChanged {
-    val (limitName, initialLimit, newLimitValue, depLimit) = (testLimit.limitName, 11, 10, 10)
+    val (limit, initialLimit, newLimitValue, depLimit) = (testLimit, 11, 10, 10)
     // Given
-    setAllLimits(limitName, initialLimit, depLimit)
+    setAllLimits(limit, initialLimit, depLimit)
 
     // When
-    serviceLimitsStore.setSystemHardLimit(limitName, newLimitValue)
+    serviceLimitsStore.setSystemHardLimit(limit, newLimitValue)
 
     // Then
     val (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limitName)
+      limitValuesForPairByName(testPair, limit)
 
     assertEquals(newLimitValue, systemHardLimit)
     assertEquals(depLimit, systemDefaultLimit)
@@ -58,16 +65,16 @@ class HibernateServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenSystemHardLimitConfiguredToValidValueLessThanDependentLimitsThenLimitShouldBeAppliedAndDependentLimitsLowered {
-    val (limitName, initialLimit, newLimitValue, depLimit) = (testLimit.limitName, 11, 9, 10)
+    val (limit, initialLimit, newLimitValue, depLimit) = (testLimit, 11, 9, 10)
     // Given
-    setAllLimits(limitName, initialLimit, depLimit)
+    setAllLimits(limit, initialLimit, depLimit)
 
     // When
-    serviceLimitsStore.setSystemHardLimit(limitName, newLimitValue)
+    serviceLimitsStore.setSystemHardLimit(limit, newLimitValue)
 
     // Then
     val (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limitName)
+      limitValuesForPairByName(testPair, limit)
 
     assertEquals(newLimitValue, systemHardLimit)
     assertEquals(newLimitValue, systemDefaultLimit)
@@ -79,16 +86,16 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[Exception])
   def whenSystemHardLimitConfiguredToInvalidValueThenExceptionThrownVerifyNoLimitChange {
     // Given
-    val (limitName, oldLimit) = (testLimit.limitName, 10)
-    serviceLimitsStore.setSystemHardLimit(limitName, oldLimit)
+    val (limit, oldLimit) = (testLimit, 10)
+    serviceLimitsStore.setSystemHardLimit(limit, oldLimit)
 
     // When
     try {
-      serviceLimitsStore.setSystemHardLimit(limitName, ServiceLimit.UNLIMITED - 1)
+      serviceLimitsStore.setSystemHardLimit(limit, Unlimited.value - 1)
     } catch {
       case ex =>
         // Verify
-        assertEquals(oldLimit, serviceLimitsStore.getSystemHardLimitForName(limitName).get)
+        assertEquals(oldLimit, serviceLimitsStore.getSystemHardLimitForName(limit).get)
         // Then
         throw ex
     }
@@ -96,20 +103,20 @@ class HibernateServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueNotLessThanDependentLimitsThenLimitShouldBeAppliedAndNoDependentLimitsChanged {
-    val (domainName, limitName, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit.limitName, 11, 10, 10)
+    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit, 11, 10, 10)
     // Given
-    serviceLimitsStore.setSystemHardLimit(limitName, initialLimit)
-    serviceLimitsStore.setSystemDefaultLimit(limitName, initialLimit)
-    serviceLimitsStore.setDomainHardLimit(domainName, limitName, initialLimit)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, depLimit)
-    serviceLimitsStore.setPairLimit(domainName, testPair.key, limitName, depLimit)
+    serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
+    serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
+    serviceLimitsStore.setDomainHardLimit(domainName, limit, initialLimit)
+    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, depLimit)
+    serviceLimitsStore.setPairLimit(domainName, testPair.key, limit, depLimit)
 
     // When
-    serviceLimitsStore.setDomainHardLimit(domainName, limitName, newLimitValue)
+    serviceLimitsStore.setDomainHardLimit(domainName, limit, newLimitValue)
 
     // Then
     val (_, _, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limitName)
+      limitValuesForPairByName(testPair, limit)
 
     assertEquals(newLimitValue, domainHardLimit)
     assertEquals(depLimit, domainDefaultLimit)
@@ -118,20 +125,20 @@ class HibernateServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueLessThanDependentLimitsThenLimitShouldBeAppliedAndDependentLimitsLowered {
-    val (domainName, limitName, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit.limitName, 11, 9, 10)
+    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit, 11, 9, 10)
     // Given
-    serviceLimitsStore.setSystemHardLimit(limitName, initialLimit)
-    serviceLimitsStore.setSystemDefaultLimit(limitName, initialLimit)
-    serviceLimitsStore.setDomainHardLimit(domainName, limitName, initialLimit)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, depLimit)
-    serviceLimitsStore.setPairLimit(domainName, testPair.key, limitName, depLimit)
+    serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
+    serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
+    serviceLimitsStore.setDomainHardLimit(domainName, limit, initialLimit)
+    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, depLimit)
+    serviceLimitsStore.setPairLimit(domainName, testPair.key, limit, depLimit)
 
     // When
-    serviceLimitsStore.setDomainHardLimit(domainName, limitName, newLimitValue)
+    serviceLimitsStore.setDomainHardLimit(domainName, limit, newLimitValue)
 
     // Then
     val (_, _, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limitName)
+      limitValuesForPairByName(testPair, limit)
 
     assertEquals(newLimitValue, domainHardLimit)
     assertEquals(newLimitValue, domainDefaultLimit)
@@ -141,16 +148,16 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[Exception])
   def whenDomainHardLimitConfiguredToInvalidValueThenExceptionThrownVerifyNoLimitChange {
     // Given
-    val (domainName, limitName, oldLimit) = (testDomain.name, testLimit.limitName, 10)
-    serviceLimitsStore.setDomainHardLimit(domainName, limitName, oldLimit)
+    val (domainName, limit, oldLimit) = (testDomain.name, testLimit, 10)
+    serviceLimitsStore.setDomainHardLimit(domainName, limit, oldLimit)
 
     // When
     try {
-      serviceLimitsStore.setDomainHardLimit(domainName, limitName, ServiceLimit.UNLIMITED - 1)
+      serviceLimitsStore.setDomainHardLimit(domainName, limit, Unlimited.value - 1)
     } catch {
       case ex =>
         // Verify
-        assertEquals(oldLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limitName).get)
+        assertEquals(oldLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limit).get)
         // Then
         throw ex
     }
@@ -159,11 +166,11 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndNoDomainScopedLimitAndNoPairScopedLimitWhenPairScopedActionExceedsSystemDefaultThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit.limitName, 0)
-    serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue)
+    val (pairKey, domainName, limit, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    serviceLimitsStore.setSystemDefaultLimit(limit, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limitName,
-      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
+    val limiter = getTestLimiter(domainName, pairKey, limit,
+      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limit))
 
     // When
     limiter.actionPerformed
@@ -173,7 +180,7 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndNoDomainDefaultLimitAndPairScopedLimitWhenPairScopedActionExceedsPairScopedLimitThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit.limitName, 0)
+    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
     serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
 
@@ -188,11 +195,11 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndDomainDefaultLimitAndNoPairScopedLimitWhenPairScopedActionExceedsDomainDefaultThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit.limitName, 0)
-    serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, limitValue)
+    val (pairKey, domainName, limit, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    serviceLimitsStore.setSystemDefaultLimit(limit, limitValue + 1)
+    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limitName,
+    val limiter = getTestLimiter(domainName, pairKey, limit,
       (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
@@ -203,7 +210,7 @@ class HibernateServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndDomainDefaultLimitAndPairScopedLimitWhenPairScopedActionExceedsPairLimitThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit.limitName, 0)
+    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
     serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, limitValue - 1)
     serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
@@ -218,18 +225,18 @@ class HibernateServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionSuccess(scenario: Scenario) {
-    val (limitName, domainName, pairKey) = (testLimit.limitName, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
         if usage <= expectedLimit =>
 
         serviceLimitsStore.deleteDomainLimits(domainName)
-        systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limitName, lim))
-        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, lim))
-        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, lim))
+        systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limit, lim))
+        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
+        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
 
-        val limiter = getTestLimiter(domainName, pairKey, limitName,
+        val limiter = getTestLimiter(domainName, pairKey, limit,
           (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to usage).foreach(_ => limiter.actionPerformed)
@@ -239,18 +246,18 @@ class HibernateServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionFailures(scenario: Scenario) {
-    val (limitName, domainName, pairKey) = (testLimit.limitName, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
         if usage > expectedLimit =>
 
         serviceLimitsStore.deleteDomainLimits(domainName)
-        systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limitName, lim))
-        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, lim))
-        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, lim))
+        systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limit, lim))
+        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
+        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
 
-        val limiter = getTestLimiter(domainName, pairKey, limitName,
+        val limiter = getTestLimiter(domainName, pairKey, limit,
           (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to expectedLimit).foreach(_ => limiter.actionPerformed)
@@ -268,62 +275,62 @@ class HibernateServiceLimitsStoreTest {
   
   @Theory
   def verifyLimitCascadingRules(scenario: Scenario) {
-    val (limitName, domainName, pairKey) = (testLimit.limitName, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
     
     scenario match {
       case CascadingLimitScenario(shl, sdl, dhl, ddl, pl) =>
         // Given
-        serviceLimitsStore.setSystemHardLimit(limitName, shl._1)
-        serviceLimitsStore.setSystemDefaultLimit(limitName, sdl._1)
-        dhl._1.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limitName, lim))
-        ddl._1.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, lim))
-        pl._1.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, lim))
+        serviceLimitsStore.setSystemHardLimit(limit, shl._1)
+        serviceLimitsStore.setSystemDefaultLimit(limit, sdl._1)
+        dhl._1.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limit, lim))
+        ddl._1.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
+        pl._1.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
         
         // When
-        shl._2.foreach(lim => serviceLimitsStore.setSystemHardLimit(limitName, lim))
-        dhl._2.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limitName, lim))
+        shl._2.foreach(lim => serviceLimitsStore.setSystemHardLimit(limit, lim))
+        dhl._2.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limit, lim))
         
         // Then
-        assertEquals(shl._3, serviceLimitsStore.getSystemHardLimitForName(limitName).get)
-        assertEquals(sdl._3, serviceLimitsStore.getSystemDefaultLimitForName(limitName).get)
-        dhl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limitName).get))
-        ddl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainDefaultLimitForDomainAndName(domainName, limitName).get))
-        pl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getPairLimitForPairAndName(domainName, pairKey, limitName).get))
+        assertEquals(shl._3, serviceLimitsStore.getSystemHardLimitForName(limit).get)
+        assertEquals(sdl._3, serviceLimitsStore.getSystemDefaultLimitForName(limit).get)
+        dhl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limit).get))
+        ddl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainDefaultLimitForDomainAndName(domainName, limit).get))
+        pl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getPairLimitForPairAndName(domainName, pairKey, limit).get))
       case _ =>
     }
   }
 
-  private def getTestLimiter(domainName: String, pairKey: String, limitName: String,
-                             effectiveLimitFn: (String, String, String) => Int) = {
+  private def getTestLimiter(domainName: String, pairKey: String, limit: ServiceLimit,
+                             effectiveLimitFn: (String, String, ServiceLimit) => Int) = {
     new TestLimiter {
       private var actionCount = 0
-      private val effectiveLimit = effectiveLimitFn(domainName, pairKey, limitName)
+      private val effectiveLimit = effectiveLimitFn(domainName, pairKey, limit)
 
       def actionPerformed {
         actionCount += 1
 
         if (actionCount > effectiveLimit) {
           throw new ServiceLimitExceededException("limit name: %s, effective limit: %d, pair: %s, domain: %s".format(
-            limitName, effectiveLimit, pairKey, domainName))
+            limit.key, effectiveLimit, pairKey, domainName))
         }
       }
     }
   }
 
-  private def setAllLimits(limitName: String, sysHardLimitValue: Int, otherLimitsValue: Int) {
-    serviceLimitsStore.setSystemHardLimit(limitName, sysHardLimitValue)
-    serviceLimitsStore.setSystemDefaultLimit(limitName, otherLimitsValue)
-    serviceLimitsStore.setDomainHardLimit(testDomain.name, limitName, otherLimitsValue)
-    serviceLimitsStore.setDomainDefaultLimit(testDomain.name, limitName, otherLimitsValue)
-    serviceLimitsStore.setPairLimit(testDomain.name, testPair.key, limitName, otherLimitsValue)
+  private def setAllLimits(limit: ServiceLimit, sysHardLimitValue: Int, otherLimitsValue: Int) {
+    serviceLimitsStore.setSystemHardLimit(limit, sysHardLimitValue)
+    serviceLimitsStore.setSystemDefaultLimit(limit, otherLimitsValue)
+    serviceLimitsStore.setDomainHardLimit(testDomain.name, limit, otherLimitsValue)
+    serviceLimitsStore.setDomainDefaultLimit(testDomain.name, limit, otherLimitsValue)
+    serviceLimitsStore.setPairLimit(testDomain.name, testPair.key, limit, otherLimitsValue)
   }
 
-  private def limitValuesForPairByName(pair: DiffaPair, limitName: String) = {
-    val systemHardLimit = serviceLimitsStore.getSystemHardLimitForName(limitName).get
-    val systemDefaultLimit = serviceLimitsStore.getSystemDefaultLimitForName(limitName).get
-    val domainHardLimit = serviceLimitsStore.getDomainHardLimitForDomainAndName(pair.domain.name, limitName).get
-    val domainDefaultLimit = serviceLimitsStore.getDomainDefaultLimitForDomainAndName(pair.domain.name, limitName).get
-    val pairLimit = serviceLimitsStore.getPairLimitForPairAndName(pair.domain.name, pair.key, limitName).get
+  private def limitValuesForPairByName(pair: DiffaPair, limit: ServiceLimit) = {
+    val systemHardLimit = serviceLimitsStore.getSystemHardLimitForName(limit).get
+    val systemDefaultLimit = serviceLimitsStore.getSystemDefaultLimitForName(limit).get
+    val domainHardLimit = serviceLimitsStore.getDomainHardLimitForDomainAndName(pair.domain.name, limit).get
+    val domainDefaultLimit = serviceLimitsStore.getDomainDefaultLimitForDomainAndName(pair.domain.name, limit).get
+    val pairLimit = serviceLimitsStore.getPairLimitForPairAndName(pair.domain.name, pair.key, limit).get
 
     (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit)
   }

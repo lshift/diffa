@@ -75,7 +75,7 @@ object InternalRestClientTest {
   val pair = new DiffaPairRef("some-domain", "some-pair")
   val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, None)
   val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int = ServiceLimit.UNLIMITED
+    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
   }
   val protocols = List("http", "https")
   val authorities = List("localhost", "localhost:534")

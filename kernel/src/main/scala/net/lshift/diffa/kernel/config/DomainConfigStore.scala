@@ -460,6 +460,6 @@ case class PairScopedName(@BeanProperty var name:String = null,
 }
 
 object ConfigOption {
-  val eventExplanationLimitKey = "maxEventsToExplainPerPair"
-  val explainFilesLimitKey = "maxExplainFilesPerPair"
+  @Deprecated val eventExplanationLimitKey = "maxEventsToExplainPerPair"
+  @Deprecated val explainFilesLimitKey = "maxExplainFilesPerPair"
 }

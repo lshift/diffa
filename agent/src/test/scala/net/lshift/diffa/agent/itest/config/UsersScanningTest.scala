@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.config._
 
 class UsersScanningTest {
   val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(limitName: String, domainName: String, pairKey: String): Int = ServiceLimit.UNLIMITED
+    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
   }
 
   val pair = DiffaPairRef("foo","bar")

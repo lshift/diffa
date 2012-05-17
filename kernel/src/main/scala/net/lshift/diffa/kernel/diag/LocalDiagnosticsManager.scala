@@ -7,23 +7,26 @@ import org.slf4j.LoggerFactory
 import java.io._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
-import net.lshift.diffa.kernel.config.{ConfigOption, DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.joda.time.{DateTimeZone, DateTime}
+import net.lshift.diffa.kernel.config.{PairServiceLimitsView, ConfigOption, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.limits._
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
  *
  *   TODO: Release resources when pair is removed
  */
-class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfigStore:DomainConfigStore, explainRootDir:String)
+class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
+                              domainConfigStore:DomainConfigStore,
+                              limits:PairServiceLimitsView,
+                              explainRootDir:String)
     extends DiagnosticsManager
     with PairScanListener
     with AgentLifecycleAware {
+
   private val pairs = HashMap[DiffaPairRef, PairDiagnostics]()
-  private val defaultMaxEventsPerPair = 100
-  private val defaultMaxExplainFilesPerPair = 20
 
   private val timeFormatter = ISODateTimeFormat.time()
   private val fileNameFormatter = DateTimeFormat.forPattern(DiagnosticsManager.fileSystemFriendlyDateFormat)
@@ -107,30 +110,19 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     private val log = ListBuffer[PairEvent]()
     var scanState:PairScanState = PairScanState.UNKNOWN
     private val pairDef = getPairFromRef(pair)
-    private val domainEventsPerPair = getConfigOrElse(pair.domain,
-      ConfigOption.eventExplanationLimitKey, defaultMaxEventsPerPair)
-    private val domainExplainFilesPerPair = getConfigOrElse(pair.domain,
-      ConfigOption.explainFilesLimitKey, defaultMaxExplainFilesPerPair)
-
-    private def getConfigOrElse(domain: String, configKey: String, defaultVal: Int) = try {
-      systemConfigStore.maybeSystemConfigOption(configKey).get.toInt
-    } catch {
-      case _ => defaultVal
-    }
-
-    private val maxEvents = math.min(domainEventsPerPair, pairDef.eventsToLog)
-    private val maxExplainFiles = math.min(domainExplainFilesPerPair, pairDef.maxExplainFiles)
-    private val isLoggingEnabled = maxExplainFiles > 0 && maxEvents > 0
 
     private val explainLock = new Object
     private var explainDir:File = null
     private var explanationWriter:PrintWriter = null
 
+    private def getEventBufferSize = limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, DiagnosticEventBufferSize)
+    private def getMaxExplainFiles = limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, ExplainFiles)
+
     def logPairEvent(evt:PairEvent) {
       log.synchronized {
         log += evt
 
-        val drop = log.length - maxEvents
+        val drop = log.length - getEventBufferSize
         if (drop > 0)
           log.remove(0, drop)
       }
@@ -166,7 +158,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     }
 
     def logPairExplanation(source:String, msg:String) {
-      if (isLoggingEnabled) {
+      if (getMaxExplainFiles > 0) {
         explainLock.synchronized {
           if (explanationWriter == null) {
             explanationWriter = new PrintWriter(new FileWriter(new File(currentExplainDirectory, "explain.log")))
@@ -178,7 +170,7 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
     }
 
     def writePairExplanationObject(source:String, objName: String, f:OutputStream => Unit) {
-      if (isLoggingEnabled) {
+      if (getMaxExplainFiles > 0) {
         explainLock.synchronized {
           val outputFile = new File(currentExplainDirectory, objName)
           val outputStream = new FileOutputStream(outputFile)
@@ -233,9 +225,9 @@ class LocalDiagnosticsManager(systemConfigStore: SystemConfigStore, domainConfig
       val explainFiles = pairExplainRoot.listFiles(new FilenameFilter() {
         def accept(dir: File, name: String) = name.endsWith(".zip")
       })
-      if (explainFiles != null && explainFiles.length > maxExplainFiles) {
+      if (explainFiles != null && explainFiles.length > getMaxExplainFiles) {
         val orderedFiles = explainFiles.toSeq.sortBy(f => (f.lastModified, f.getName))
-        orderedFiles.take(explainFiles.length - maxExplainFiles).foreach(f => f.delete())
+        orderedFiles.take(explainFiles.length - getMaxExplainFiles).foreach(f => f.delete())
       }
     }
   }

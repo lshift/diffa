@@ -73,9 +73,10 @@ class StoreSynchronizationTest {
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
   private val domainDiffsStore = storeReferences.domainDifferenceStore
+  private val serviceLimitsStore = storeReferences.serviceLimitsStore
 
   val diagnosticsManager: DiagnosticsManager =
-    new LocalDiagnosticsManager(systemConfigStore, domainConfigStore, StoreSynchronizationTest.explainDir)
+    new LocalDiagnosticsManager(systemConfigStore, domainConfigStore, serviceLimitsStore, StoreSynchronizationTest.explainDir)
 
   var store:VersionCorrelationStore = null
   var stores:LuceneVersionCorrelationStoreFactory = null

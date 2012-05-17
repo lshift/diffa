@@ -16,6 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
+import limits.Unlimited
 import org.easymock.EasyMock._
 import org.junit.{Before, Test}
 import org.junit.Assert._
@@ -29,6 +30,20 @@ class CachedServiceLimitStoreTest {
 
   val cachedServiceLimitStore = new CachedServiceLimitsStore(underlying, cacheProvider)
 
+  val bogusLimit = new ServiceLimit {
+    def key = "bogus"
+    def description = "bogus"
+    def defaultLimit = 123
+    def hardLimit = 8823
+  }
+
+  val someLimit = new ServiceLimit {
+    def key = "some-limit"
+    def description = "Just a test limit"
+    def defaultLimit = 12
+    def hardLimit = 13
+  }
+
   @Before
   def resetCache {
     cachedServiceLimitStore.reset
@@ -38,10 +53,10 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldCacheNonExistentPairScopedLimit = {
 
-    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", "some-bogus-limit")).andReturn(None).once()
+    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", bogusLimit)).andReturn(None).once()
     replay(underlying)
 
-    val limit = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", "some-bogus-limit")
+    val limit = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", bogusLimit)
     assertEquals(None, limit)
 
     verify(underlying)
@@ -50,16 +65,16 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldCascadeNonExistentPairScopedLimit = {
 
-    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", "some-bogus-limit")).andReturn(None).once()
-    expect(underlying.getDomainDefaultLimitForDomainAndName("domain", "some-bogus-limit")).andReturn(None).once()
-    expect(underlying.getSystemDefaultLimitForName("some-bogus-limit")).andReturn(None).once()
+    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", bogusLimit)).andReturn(None).once()
+    expect(underlying.getDomainDefaultLimitForDomainAndName("domain", bogusLimit)).andReturn(None).once()
+    expect(underlying.getSystemDefaultLimitForName(bogusLimit)).andReturn(None).once()
     replay(underlying)
 
-    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-bogus-limit")
-    assertEquals(ServiceLimit.UNLIMITED, firstCall)
+    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", bogusLimit)
+    assertEquals(Unlimited.value, firstCall)
 
-    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-bogus-limit")
-    assertEquals(ServiceLimit.UNLIMITED, secondCall)
+    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", bogusLimit)
+    assertEquals(Unlimited.value, secondCall)
 
     verify(underlying)
   }
@@ -67,18 +82,18 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldCachePairScopedLimitWhenDefinedExplicitly = {
 
-    expect(underlying.setPairLimit("domain", "pair-1", "some-limit", 657567)).once()
+    expect(underlying.setPairLimit("domain", "pair-1", someLimit, 657567)).once()
     replay(underlying)
 
-    cachedServiceLimitStore.setPairLimit("domain", "pair-1", "some-limit", 657567)
+    cachedServiceLimitStore.setPairLimit("domain", "pair-1", someLimit, 657567)
 
-    val firstCall = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", "some-limit")
+    val firstCall = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", someLimit)
     assertEquals(657567, firstCall.get)
 
-    val secondCall = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", "some-limit")
+    val secondCall = cachedServiceLimitStore.getPairLimitForPairAndName("domain", "pair-1", someLimit)
     assertEquals(657567, secondCall.get)
 
-    val effectiveLimit = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-limit")
+    val effectiveLimit = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", someLimit)
     assertEquals(657567, effectiveLimit)
 
     verify(underlying)
@@ -88,17 +103,17 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldCachePairScopedLimitWhenDefaultDefinedAtDomainLevel = {
 
-    expect(underlying.setDomainDefaultLimit("domain", "some-limit", 543)).once()
-    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", "some-limit")).andReturn(None).once()
+    expect(underlying.setDomainDefaultLimit("domain", someLimit, 543)).once()
+    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", someLimit)).andReturn(None).once()
 
     replay(underlying)
 
-    cachedServiceLimitStore.setDomainDefaultLimit("domain", "some-limit", 543)
+    cachedServiceLimitStore.setDomainDefaultLimit("domain", someLimit, 543)
 
-    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-limit")
+    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", someLimit)
     assertEquals(543, firstCall)
 
-    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-limit")
+    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", someLimit)
     assertEquals(543, secondCall)
 
     verify(underlying)
@@ -107,18 +122,18 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldCachePairScopedLimitWhenDefaultDefinedAtSystemLevel = {
 
-    expect(underlying.setSystemDefaultLimit("some-limit", 1169)).once()
-    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", "some-limit")).andReturn(None).once()
-    expect(underlying.getDomainDefaultLimitForDomainAndName("domain", "some-limit")).andReturn(None).once()
+    expect(underlying.setSystemDefaultLimit(someLimit, 1169)).once()
+    expect(underlying.getPairLimitForPairAndName("domain", "pair-1", someLimit)).andReturn(None).once()
+    expect(underlying.getDomainDefaultLimitForDomainAndName("domain", someLimit)).andReturn(None).once()
 
     replay(underlying)
 
-    cachedServiceLimitStore.setSystemDefaultLimit("some-limit", 1169)
+    cachedServiceLimitStore.setSystemDefaultLimit(someLimit, 1169)
 
-    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-limit")
+    val firstCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", someLimit)
     assertEquals(1169, firstCall)
 
-    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", "some-limit")
+    val secondCall = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain", "pair-1", someLimit)
     assertEquals(1169, secondCall)
 
     verify(underlying)
@@ -127,29 +142,29 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldRetainCachePairScopedLimitWhenOtherPairIsDeleted = {
 
-    expect(underlying.setPairLimit("domain-1", "pair-1", "some-limit", 23)).once()
-    expect(underlying.setPairLimit("domain-2", "pair-2", "some-limit", 24)).once()
+    expect(underlying.setPairLimit("domain-1", "pair-1", someLimit, 23)).once()
+    expect(underlying.setPairLimit("domain-2", "pair-2", someLimit, 24)).once()
     expect(underlying.deletePairLimitsByDomain("domain-2")).once()
-    expect(underlying.getPairLimitForPairAndName("domain-2", "pair-2", "some-limit")).andReturn(None).once()
-    expect(underlying.getDomainDefaultLimitForDomainAndName("domain-2", "some-limit")).andReturn(None).once()
-    expect(underlying.getSystemDefaultLimitForName("some-limit")).andReturn(None).once()
+    expect(underlying.getPairLimitForPairAndName("domain-2", "pair-2", someLimit)).andReturn(None).once()
+    expect(underlying.getDomainDefaultLimitForDomainAndName("domain-2", someLimit)).andReturn(None).once()
+    expect(underlying.getSystemDefaultLimitForName(someLimit)).andReturn(None).once()
     replay(underlying)
 
-    cachedServiceLimitStore.setPairLimit("domain-1", "pair-1", "some-limit", 23)
-    cachedServiceLimitStore.setPairLimit("domain-2", "pair-2", "some-limit", 24)
+    cachedServiceLimitStore.setPairLimit("domain-1", "pair-1", someLimit, 23)
+    cachedServiceLimitStore.setPairLimit("domain-2", "pair-2", someLimit, 24)
 
-    val firstDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", "some-limit")
+    val firstDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", someLimit)
     assertEquals(23, firstDomain)
 
-    val secondDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", "some-limit")
+    val secondDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", someLimit)
     assertEquals(24, secondDomain)
 
     cachedServiceLimitStore.deletePairLimitsByDomain("domain-2")
 
-    val l1 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", "some-limit")
+    val l1 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", someLimit)
     assertEquals(23, l1)
-    val l2 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", "some-limit")
-    assertEquals(ServiceLimit.UNLIMITED, l2)
+    val l2 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", someLimit)
+    assertEquals(Unlimited.value, l2)
 
 
     verify(underlying)
@@ -158,29 +173,29 @@ class CachedServiceLimitStoreTest {
   @Test
   def shouldRetainCachePairScopedLimitWhenOtherDomainIsDeleted = {
 
-    expect(underlying.setPairLimit("domain-1", "pair-1", "some-limit", 3128)).once()
-    expect(underlying.setPairLimit("domain-2", "pair-2", "some-limit", 3129)).once()
+    expect(underlying.setPairLimit("domain-1", "pair-1", someLimit, 3128)).once()
+    expect(underlying.setPairLimit("domain-2", "pair-2", someLimit, 3129)).once()
     expect(underlying.deleteDomainLimits("domain-2")).once()
-    expect(underlying.getPairLimitForPairAndName("domain-2", "pair-2", "some-limit")).andReturn(None).once()
-    expect(underlying.getDomainDefaultLimitForDomainAndName("domain-2", "some-limit")).andReturn(None).once()
-    expect(underlying.getSystemDefaultLimitForName("some-limit")).andReturn(None).once()
+    expect(underlying.getPairLimitForPairAndName("domain-2", "pair-2", someLimit)).andReturn(None).once()
+    expect(underlying.getDomainDefaultLimitForDomainAndName("domain-2", someLimit)).andReturn(None).once()
+    expect(underlying.getSystemDefaultLimitForName(someLimit)).andReturn(None).once()
     replay(underlying)
 
-    cachedServiceLimitStore.setPairLimit("domain-1", "pair-1", "some-limit", 3128)
-    cachedServiceLimitStore.setPairLimit("domain-2", "pair-2", "some-limit", 3129)
+    cachedServiceLimitStore.setPairLimit("domain-1", "pair-1", someLimit, 3128)
+    cachedServiceLimitStore.setPairLimit("domain-2", "pair-2", someLimit, 3129)
 
-    val firstDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", "some-limit")
+    val firstDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", someLimit)
     assertEquals(3128, firstDomain)
 
-    val secondDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", "some-limit")
+    val secondDomain = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", someLimit)
     assertEquals(3129, secondDomain)
 
     cachedServiceLimitStore.deleteDomainLimits("domain-2")
 
-    val l1 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", "some-limit")
+    val l1 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-1", "pair-1", someLimit)
     assertEquals(3128, l1)
-    val l2 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", "some-limit")
-    assertEquals(ServiceLimit.UNLIMITED, l2)
+    val l2 = cachedServiceLimitStore.getEffectiveLimitByNameForPair("domain-2", "pair-2", someLimit)
+    assertEquals(Unlimited.value, l2)
 
 
     verify(underlying)

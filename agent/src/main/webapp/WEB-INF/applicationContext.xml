@@ -432,6 +432,7 @@
   <bean id="diagnosticsManager" class="net.lshift.diffa.kernel.diag.LocalDiagnosticsManager">
     <constructor-arg ref="systemConfigStore" />
     <constructor-arg ref="domainConfigStore" />
+    <constructor-arg ref="serviceLimitsStore" />
     <constructor-arg>
       <bean class="org.springframework.jndi.JndiObjectFactoryBean">
         <property name="jndiName" value="java:comp/env/diffaExplainDir"/>

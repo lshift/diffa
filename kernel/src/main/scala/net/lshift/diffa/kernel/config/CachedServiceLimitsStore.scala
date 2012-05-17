@@ -37,7 +37,7 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
     systemHardLimits.evictAll
   }
 
-  def defineLimit(limitName: String, description: String) = underlying.defineLimit(limitName, description)
+  def defineLimit(limit: ServiceLimit) = underlying.defineLimit(limit)
 
   def deleteDomainLimits(domainName: String) = {
     underlying.deleteDomainLimits(domainName)
@@ -50,50 +50,50 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
     evictPairLimitCacheByDomain(domainName)
   }
 
-  def setSystemHardLimit(limitName: String, limitValue: Int) = {
-    underlying.setSystemHardLimit(limitName, limitValue)
-    systemHardLimits.put(limitName, Some(limitValue))
+  def setSystemHardLimit(limit: ServiceLimit, limitValue: Int) = {
+    underlying.setSystemHardLimit(limit, limitValue)
+    systemHardLimits.put(limit.key, Some(limitValue))
   }
 
-  def setSystemDefaultLimit(limitName: String, limitValue: Int) = {
-    underlying.setSystemDefaultLimit(limitName, limitValue)
-    systemDefaults.put(limitName, Some(limitValue))
+  def setSystemDefaultLimit(limit: ServiceLimit, limitValue: Int) = {
+    underlying.setSystemDefaultLimit(limit, limitValue)
+    systemDefaults.put(limit.key, Some(limitValue))
   }
 
-  def setDomainHardLimit(domainName: String, limitName: String, limitValue: Int) = {
-    underlying.setDomainHardLimit(domainName, limitName, limitValue)
-    domainHardLimits.put(DomainLimitKey(domainName, limitName), Some(limitValue))
+  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setDomainHardLimit(domainName, limit, limitValue)
+    domainHardLimits.put(DomainLimitKey(domainName, limit.key), Some(limitValue))
   }
 
-  def setDomainDefaultLimit(domainName: String, limitName: String, limitValue: Int) = {
-    underlying.setDomainDefaultLimit(domainName, limitName, limitValue)
-    domainDefaults.put(DomainLimitKey(domainName, limitName), Some(limitValue))
+  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setDomainDefaultLimit(domainName, limit, limitValue)
+    domainDefaults.put(DomainLimitKey(domainName, limit.key), Some(limitValue))
   }
 
-  def setPairLimit(domainName: String, pairKey: String, limitName: String, limitValue: Int) = {
-    underlying.setPairLimit(domainName, pairKey, limitName, limitValue)
-    pairLimits.put(PairLimitKey(domainName, pairKey, limitName), Some(limitValue))
+  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setPairLimit(domainName, pairKey, limit, limitValue)
+    pairLimits.put(PairLimitKey(domainName, pairKey, limit.key), Some(limitValue))
   }
 
-  def getSystemHardLimitForName(limitName: String) =
-    systemHardLimits.readThrough(limitName,
-      () => underlying.getSystemHardLimitForName(limitName))
+  def getSystemHardLimitForName(limit: ServiceLimit) =
+    systemHardLimits.readThrough(limit.key,
+      () => underlying.getSystemHardLimitForName(limit))
 
-  def getSystemDefaultLimitForName(limitName: String) =
-    systemDefaults.readThrough(limitName,
-      () => underlying.getSystemDefaultLimitForName(limitName))
+  def getSystemDefaultLimitForName(limit: ServiceLimit) =
+    systemDefaults.readThrough(limit.key,
+      () => underlying.getSystemDefaultLimitForName(limit))
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limitName: String) =
-    domainHardLimits.readThrough(DomainLimitKey(domainName, limitName),
-      () => underlying.getDomainHardLimitForDomainAndName(domainName, limitName))
+  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
+    domainHardLimits.readThrough(DomainLimitKey(domainName, limit.key),
+      () => underlying.getDomainHardLimitForDomainAndName(domainName, limit))
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limitName: String) =
-    domainDefaults.readThrough(DomainLimitKey(domainName, limitName),
-      () => underlying.getDomainDefaultLimitForDomainAndName(domainName, limitName))
+  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
+    domainDefaults.readThrough(DomainLimitKey(domainName, limit.key),
+      () => underlying.getDomainDefaultLimitForDomainAndName(domainName, limit))
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limitName: String) =
-    pairLimits.readThrough(PairLimitKey(domainName, pairKey, limitName),
-      () => underlying.getPairLimitForPairAndName(domainName, pairKey, limitName))
+  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) =
+    pairLimits.readThrough(PairLimitKey(domainName, pairKey, limit.key),
+      () => underlying.getPairLimitForPairAndName(domainName, pairKey, limit))
 
   private def evictPairLimitCacheByDomain(domainName:String) = {
     pairLimits.subset(PairLimitByDomainPredicate(domainName)).evictAll
