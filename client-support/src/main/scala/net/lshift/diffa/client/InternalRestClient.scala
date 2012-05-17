@@ -92,9 +92,8 @@ abstract class InternalRestClient(pair: DiffaPairRef,
 
   protected def buildGetRequest(queryParams:MultivaluedMapImpl,
                                 credentials:Option[QueryParameterCredentials]) = {
-
-    val queryString = constructQueryString(queryParams, credentials)
-    new HttpGet("%s?%s".format(url, queryString))
+    val queryUrl = UriCredentialsUtil.buildQueryUri(url, queryParams, credentials)
+    new HttpGet(queryUrl)
 
   }
 
@@ -102,12 +101,11 @@ abstract class InternalRestClient(pair: DiffaPairRef,
                                  formParams:Map[String,String],
                                  credentials:Option[QueryParameterCredentials]) = {
 
-    val queryString = constructQueryString(queryParams, credentials)
 
     val form = formParams.map{ case (k,v) => new BasicNameValuePair(k,v) }.toList
     val entity = new UrlEncodedFormEntity(form, "UTF-8")
-
-    val httpPost = new HttpPost("%s?%s".format(url, queryString))
+    val postUrl = UriCredentialsUtil.buildQueryUri(url, queryParams, credentials)
+    val httpPost = new HttpPost(postUrl)
     httpPost.setEntity(entity)
 
     httpPost
