@@ -41,9 +41,15 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
   private val maxBufferSize = 10000
 
   private val updatedDocs = HashMap[VersionID, Document]()
-  private var isClosed = true // IndexWriter doesn't have an isClosed method but we need
-                               // to conditionally recreate the IndexWriter.
-  private var (closeableWriter: Closeable, writer: IndexWriter) = indexWriterFactory.createIndexWriter(index)
+  private var isClosed: Boolean = _ // This is effectively true whenever the writer/closeableWriter are closed or undefined.
+  private var (closeableWriter: Closeable, writer: IndexWriter) = createIndexWriter(index)
+
+  private def createIndexWriter(index: Directory) = {
+    val writerAsPair = indexWriterFactory.createIndexWriter(index)
+    isClosed = false
+    writerAsPair
+  }
+
   private final val writerLock = new Object
 
   var getCloseableWriter: Function0[Closeable] = { () => closeableWriter }
@@ -51,10 +57,9 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
   private def getWriter = {
     writerLock.synchronized {
       if (isClosed) {
-        val writerPair = indexWriterFactory.createIndexWriter(index)
-        closeableWriter = writerPair._1
-        writer = writerPair._2
-        isClosed = false
+        val writerAsPair = createIndexWriter(index)
+        closeableWriter = writerAsPair._1
+        writer = writerAsPair._2
       }
     }
     // Understood and accepted: if close is invoked here, then use of the writer will fail.
