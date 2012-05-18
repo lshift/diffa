@@ -18,18 +18,22 @@ package net.lshift.diffa.kernel.indexing
 import org.apache.lucene.store.Directory
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.events.VersionID
-import org.apache.lucene.util.Version
-import org.apache.lucene.analysis.standard.StandardAnalyzer
 import net.lshift.diffa.kernel.differencing._
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.apache.lucene.document.{NumericField, Fieldable, Field, Document}
-import collection.mutable.{HashSet, HashMap}
+import collection.mutable.HashMap
 import scala.collection.JavaConversions._
-import org.apache.lucene.index.{IndexReader, IndexWriter, IndexWriterConfig, Term}
+import org.apache.lucene.index.{IndexReader, IndexWriter, Term}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
-import org.apache.lucene.search.{BooleanQuery, BooleanClause, TermQuery}
+import java.util.concurrent.ConcurrentHashMap
+import java.io.Closeable
 
-class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends ExtendedVersionCorrelationWriter {
+
+class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
+                   indexWriterFactory: IndexWriterFactory = IndexWriterFactory.defaultFactory,
+                   indexReaderFactory: IndexReaderFactory = IndexReaderFactory.defaultFactory)
+  extends ExtendedVersionCorrelationWriter {
+
   import LuceneVersionCorrelationHandler._
 
   private val log = LoggerFactory.getLogger(getClass)
@@ -37,9 +41,67 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   private val maxBufferSize = 10000
 
   private val updatedDocs = HashMap[VersionID, Document]()
-  private var writer = createIndexWriter
+  private var isClosed: Boolean = _ // This is effectively true whenever the writer/closeableWriter are closed or undefined.
+  private var (closeableWriter: Closeable, writer: IndexWriter) = createIndexWriter(index)
 
-  def getReader : IndexReader = IndexReader.open(writer, true)
+  private def createIndexWriter(index: Directory) = {
+    val writerAsPair = indexWriterFactory.createIndexWriter(index)
+    isClosed = false
+    writerAsPair
+  }
+
+  private final val writerLock = new Object
+
+  var getCloseableWriter: Function0[Closeable] = { () => closeableWriter }
+
+  private def getWriter = {
+    writerLock.synchronized {
+      if (isClosed) {
+        val writerAsPair = createIndexWriter(index)
+        closeableWriter = writerAsPair._1
+        writer = writerAsPair._2
+      }
+    }
+    // Understood and accepted: if close is invoked here, then use of the writer will fail.
+    writer
+  }
+
+  def rollback() = {
+    writerLock.synchronized {
+      getWriter.rollback()
+      isClosed = true
+    }
+    // TODO: we don't really need to eagerly create a new writer, since it will be created as needed on next use.
+    getWriter    // We need to create a new writer, since rollback will have closed the previous one
+    log.info("Writer rolled back")
+  }
+
+  def close() {
+    writerLock.synchronized {
+      closeableWriter.close
+      isClosed = true
+    }
+    readersForWriter(writer) foreach { reader =>
+      reader.close
+    }
+  }
+
+  val readers = new ConcurrentHashMap[IndexWriter, List[Closeable]]()
+  def readersForWriter(writer: IndexWriter) = readers.getOrElse(writer, List[Closeable]())
+
+  // TODO: examine for race conditions.
+  def getReader: IndexReader = {
+    val (closeableReader, reader) = indexReaderFactory.createIndexReader(getWriter)
+    val readerList = readers.get(getWriter)
+    val list = closeableReader :: (if (readerList != null) {
+      readerList
+    } else {
+      List[Closeable]()
+    })
+    if (readers.putIfAbsent(getWriter, list) != null)
+      readers.replace(getWriter, list)
+    reader
+  }
 
   private val VERSION_LABEL = "latest.store.version"
   private var latestVersion : Long = getReader.getCommitUserData match {
@@ -108,15 +170,9 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
 
   def isDirty = updatedDocs.size > 0
 
-  def rollback() = {
-    writer.rollback()
-    writer = createIndexWriter    // We need to create a new writer, since rollback will have closed the previous one
-    log.info("Writer rolled back")
-  }
-
   def clearTombstones() {
     prepareFlush()
-    writer.deleteDocuments(createTombstoneQuery)
+    getWriter.deleteDocuments(createTombstoneQuery)
     flushInternal()
   }
 
@@ -127,20 +183,9 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   }
 
   def reset() {
-    writer.deleteAll()
-    writer.commit()
+    getWriter.deleteAll()
+    getWriter.commit()
     updatedDocs.clear()
-  }
-
-  def close() {
-    writer.close()
-  }
-
-  private def createIndexWriter() = {
-    val version = Version.LUCENE_34
-    val config = new IndexWriterConfig(version, new StandardAnalyzer(version))
-    val writer = new IndexWriter(index, config)
-    writer
   }
 
   private def prepareUpdate(id: VersionID, doc: Document) = {
@@ -300,7 +345,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   private def prepareFlush() = {
     if (isDirty) {
       updatedDocs.foreach { case (id, doc) =>
-        writer.updateDocument(new Term("id", id.id), doc)
+        getWriter.updateDocument(new Term("id", id.id), doc)
       }
       true
     } else {
@@ -309,8 +354,8 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager) extends Ext
   }
 
   private def flushInternal() {
-    writer.commit(Map(VERSION_LABEL -> latestVersion.toString))
-      updatedDocs.clear()
-      log.trace("Writer flushed")
+    getWriter.commit(Map(VERSION_LABEL -> latestVersion.toString))
+    updatedDocs.clear()
+    log.trace("Writer flushed")
   }
 }

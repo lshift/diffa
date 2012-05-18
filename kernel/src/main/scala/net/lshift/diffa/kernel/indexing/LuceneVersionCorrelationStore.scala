@@ -17,23 +17,18 @@
 package net.lshift.diffa.kernel.indexing
 
 import org.apache.lucene.store.Directory
-import org.apache.lucene.util.Version
 import java.io.Closeable
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import scala.collection.Map
 import scala.collection.JavaConversions._
 import org.apache.lucene.search._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.events.VersionID
-import org.joda.time.format.ISODateTimeFormat
 import net.lshift.diffa.kernel.participants._
-import collection.mutable.{ListBuffer, HashMap, HashSet}
+import collection.mutable.ListBuffer
 import net.lshift.diffa.kernel.differencing._
 import org.apache.lucene.document._
 import net.lshift.diffa.participant.scanning._
-import org.joda.time.{DateTime, LocalDate, DateTimeZone}
 import net.lshift.diffa.kernel.config.system.{InvalidSystemConfigurationException, SystemConfigStore}
-import org.apache.lucene.index.{IndexWriterConfig, IndexReader, Term, IndexWriter}
+import org.apache.lucene.index.{IndexReader, Term}
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.util._
@@ -70,7 +65,7 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
 
   val writer = new LuceneWriter(index, diagnostics)
 
-  def openWriter() = writer
+  def openWriter() = writer // TODO: rename this - openWriter is a misnomer; probably should be getWriter
 
   def unmatchedVersions(usConstraints:Seq[ScanConstraint], dsConstraints:Seq[ScanConstraint], fromVersion:Option[Long]) = {
     searchForCorrelations(fromVersion, query => {
@@ -245,11 +240,11 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
   }
 
   def close = {
-    writer.close
+    openWriter.close
     index.close
   }
 
   def reset() = {
-    writer.reset
+    openWriter.reset
   }
 }

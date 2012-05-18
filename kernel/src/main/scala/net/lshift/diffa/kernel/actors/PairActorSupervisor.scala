@@ -38,7 +38,8 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                stores:VersionCorrelationStoreFactory,
                                diagnostics:DiagnosticsManager,
                                changeEventBusyTimeoutMillis:Long,
-                               changeEventQuietTimeoutMillis:Long)
+                               changeEventQuietTimeoutMillis:Long,
+                               indexWriterCloseInterval: Int)
     extends AbstractActorSupervisor
     with PairPolicyClient
     with AgentLifecycleAware {
@@ -63,7 +64,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
        Some(Actor.actorOf(
          new PairActor(pair, us, ds, usp, dsp, pol, stores(pairRef),
            differencesManager, pairScanListener,
-           diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis)
+           diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis, indexWriterCloseInterval)
        ))
      case None =>
        log.error("Failed to find policy for name: {}", formatAlertCode(pair.versionPolicyName, INVALID_VERSION_POLICY))
