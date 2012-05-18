@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.kernel.util
+package net.lshift.diffa.kernel.util.db
 
 import org.hibernate.{Session, SessionFactory}
 import org.slf4j.LoggerFactory
@@ -24,22 +24,22 @@ import org.hibernate.jdbc.Work
 /**
  * Hibernate session convenience class/object
  */
-class SessionHelper(val sessionFactory:SessionFactory) {
+class SessionHelper(val sessionFactory: SessionFactory) {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  def withSession[T](dbCommands:Function1[Session, T]) : T = withSessionInternal(dbCommands, None, None)
+  def withSession[T](dbCommands: Function1[Session, T]): T = withSessionInternal(dbCommands, None, None)
 
-  def withSession[T](dbCommands:Function1[Session, T],
-                     afterCommit:Function0[_]) : T = withSessionInternal(dbCommands, None, Some(afterCommit))
+  def withSession[T](dbCommands: Function1[Session, T],
+                     afterCommit: Function0[_]): T = withSessionInternal(dbCommands, None, Some(afterCommit))
 
-  def withSession[T](beforeCommit:Function1[Session,_],
-                     dbCommands:Function1[Session, T],
-                     afterCommit:Function0[_]) : T = withSessionInternal(dbCommands, Some(beforeCommit), Some(afterCommit))
+  def withSession[T](beforeCommit: Function1[Session, _],
+                     dbCommands: Function1[Session, T],
+                     afterCommit: Function0[_]): T = withSessionInternal(dbCommands, Some(beforeCommit), Some(afterCommit))
 
-  private def withSessionInternal[T](dbCommands:Function1[Session, T],
-                                     beforeCommit:Option[Function1[Session,_]],
-                                     afterCommit:Option[Function0[_]]) : T = {
+  private def withSessionInternal[T](dbCommands: Function1[Session, T],
+                                     beforeCommit: Option[Function1[Session, _]],
+                                     afterCommit: Option[Function0[_]]): T = {
     val session = sessionFactory.openSession
 
     try {
@@ -48,14 +48,14 @@ class SessionHelper(val sessionFactory:SessionFactory) {
 
       beforeCommit match {
         case Some(callback) => callback(session)
-        case None           => // ignore
+        case None => // ignore
       }
 
       session.flush
 
       afterCommit match {
         case Some(callback) => callback()
-        case None           => // ignore
+        case None => // ignore
       }
 
       result
@@ -89,19 +89,21 @@ class SessionHelper(val sessionFactory:SessionFactory) {
       })
     })
   }
-  
+
   def executeStatements(statements: Seq[String], treatErrorsAsFatal: Boolean) {
     executeOnSession(connection => {
       val stmt = connection.createStatement
-      statements foreach  { stmtText => {
-        try {
-          stmt.execute(stmtText)
-        } catch {
-          case ex =>
-            println("Failed to execute prep stmt: %s".format(stmtText))
-            if (treatErrorsAsFatal) throw ex
+      statements foreach {
+        stmtText => {
+          try {
+            stmt.execute(stmtText)
+          } catch {
+            case ex =>
+              println("Failed to execute prep stmt: %s".format(stmtText))
+              if (treatErrorsAsFatal) throw ex
+          }
         }
-      }}
+      }
       stmt.close
     })
   }
@@ -109,6 +111,6 @@ class SessionHelper(val sessionFactory:SessionFactory) {
 
 object SessionHelper {
 
-  implicit def sessionFactoryToSessionHelper(sessionFactory:SessionFactory) =
+  implicit def sessionFactoryToSessionHelper(sessionFactory: SessionFactory) =
     new SessionHelper(sessionFactory)
 }

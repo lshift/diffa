@@ -1,6 +1,7 @@
 package net.lshift.diffa.kernel.util
 
-import net.lshift.diffa.kernel.util.SessionHelper.sessionFactoryToSessionHelper
+import db.SessionHelper
+import net.lshift.diffa.kernel.util.db.SessionHelper.sessionFactoryToSessionHelper
 
 /**
  * Implements SchemaCleaner for MySQL databases.

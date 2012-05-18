@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel.hooks
 
 import net.lshift.diffa.kernel.differencing.OracleIndexRebuilder
-import net.lshift.diffa.kernel.util.SessionHelper._
+import net.lshift.diffa.kernel.util.db.SessionHelper._
 import org.apache.commons.lang.StringEscapeUtils
 import org.apache.commons.codec.digest.DigestUtils
 import org.hibernate.{Session, SessionFactory}

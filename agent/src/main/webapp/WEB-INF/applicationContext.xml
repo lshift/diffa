@@ -107,6 +107,7 @@
   </bean>
   <bean id="domainDifferenceStoreFactory" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreFactory">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="databaseFacade" />
     <constructor-arg ref="zoomCacheManager"/>
     <constructor-arg ref="dialect"/>
     <constructor-arg ref="hookManager" />
@@ -312,6 +313,10 @@
   </bean>
   <bean id="hookManager" class="net.lshift.diffa.kernel.hooks.HookManager" />
 
+  <bean id="databaseFacade" class="net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade">
+    <constructor-arg ref="diffaSessionFactory" />
+  </bean>
+
   <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
     <constructor-arg>
       <bean class="net.lshift.diffa.kernel.activation.BaselineConfiguration"/>
@@ -331,6 +336,7 @@
       <list>
           <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
+          <value>net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml</value>
       </list>
     </property>
     <property name="preparationSteps">
@@ -378,6 +384,7 @@
 
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.HibernateDomainConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="databaseFacade" />
     <constructor-arg ref="pairCache" />
     <constructor-arg ref="hookManager" />
     <constructor-arg>
@@ -389,11 +396,13 @@
 
   <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="databaseFacade" />
     <constructor-arg ref="pairCache" />
   </bean>
 
   <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="databaseFacade" />
   </bean>
 
   <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.CachedServiceLimitsStore">
@@ -409,6 +418,7 @@
 
   <bean id="domainCredentialsStore" class="net.lshift.diffa.kernel.config.HibernateDomainCredentialsStore">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg ref="databaseFacade" />
   </bean>
 
   <!--

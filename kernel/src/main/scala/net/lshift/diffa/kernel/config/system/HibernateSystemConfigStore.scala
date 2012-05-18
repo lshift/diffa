@@ -16,16 +16,19 @@
 
 package net.lshift.diffa.kernel.config.system
 
-import net.lshift.diffa.kernel.util.SessionHelper._
+import net.lshift.diffa.kernel.util.db.{DatabaseFacade,HibernateQueryUtils}
+import net.lshift.diffa.kernel.util.db.SessionHelper._
 import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
-import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException, HibernateQueryUtils}
+import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException}
 import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 import org.hibernate.{Query, Session, SessionFactory}
 import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.config._
 
-class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCache:PairCache)
+class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
+                                 db:DatabaseFacade,
+                                 val pairCache:PairCache)
     extends SystemConfigStore with HibernateQueryUtils {
 
   val logger = LoggerFactory.getLogger(getClass)
@@ -65,13 +68,13 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
 
   def doesDomainExist(name: String) = null != sessionFactory.withSession(s => s.get(classOf[Domain], name))
 
-  def listDomains = sessionFactory.withSession(s => listQuery[Domain](s, "allDomains", Map()))
+  def listDomains = db.listQuery[Domain]("allDomains", Map())
 
   def getPair(pair:DiffaPairRef) : DiffaPair = getPair(pair.domain, pair.key)
   def getPair(domain:String, key: String) = sessionFactory.withSession(s => getPair(s, domain, key))
 
-  def listPairs = sessionFactory.withSession(s => listQuery[DiffaPair](s, "allPairs", Map()))
-  def listEndpoints = sessionFactory.withSession(s => listQuery[Endpoint](s, "allEndpoints", Map()))
+  def listPairs = db.listQuery[DiffaPair]("allPairs", Map())
+  def listEndpoints = db.listQuery[Endpoint]("allEndpoints", Map())
 
 
   def createOrUpdateUser(u: User) = sessionFactory.withSession(s => {
@@ -111,9 +114,10 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
   def getUserByToken(token: String) : User = sessionFactory.withSession(s =>
     singleQuery[User](s, "userByToken", Map("token" -> token), "user token %s".format(token)))
 
-  def listUsers : Seq[User] = sessionFactory.withSession(s => listQuery[User](s, "allUsers", Map()))
+  def listUsers : Seq[User] = db.listQuery[User]("allUsers", Map())
   def listDomainMemberships(username: String) : Seq[Member] =
-    sessionFactory.withSession(s => listQuery[Member](s, "membersByUser", Map("user_name" -> username)))
+    db.listQuery[Member]("membersByUser", Map("user_name" -> username))
+
   def containsRootUser(usernames: Seq[String]) : Boolean =
     sessionFactory.withSession(s => {
       val query: Query = s.getNamedQuery("rootUserCount")
@@ -158,8 +162,8 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory, val pairCach
     }
   }
 
-  private def deleteByDomain[T](s:Session, domain:String, queryName:String)
-    = listQuery[T](s, queryName, Map("domain_name" -> domain)).foreach(s.delete(_))
+  private def deleteByDomain[T](s:Session, domain:String, queryName:String) =
+    db.listQuery[T](queryName, Map("domain_name" -> domain)).foreach(s.delete(_))
 }
 
 /**

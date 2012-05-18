@@ -16,18 +16,20 @@
 
 package net.lshift.diffa.kernel.config
 
-import net.lshift.diffa.kernel.util.SessionHelper._
+import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils, DatabaseFacade}
+import net.lshift.diffa.kernel.util.db.SessionHelper._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.sf.ehcache.CacheManager
-import net.lshift.diffa.kernel.util.{CacheWrapper, HibernateQueryUtils}
+import net.lshift.diffa.kernel.util.CacheWrapper
 import org.hibernate.transform.ResultTransformer
 import java.util.List
 
 class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
+                                 db:DatabaseFacade,
                                  pairCache:PairCache,
                                  hookManager:HookManager,
                                  cacheManager:CacheManager)
@@ -70,9 +72,8 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     s.delete(endpoint)
   })
 
-  def listEndpoints(domain:String): Seq[EndpointDef] = sessionFactory.withSession(s => {
-    listQuery[Endpoint](s, "endpointsByDomain", Map("domain_name" -> domain)).map(toEndpointDef(_))
-  })
+  def listEndpoints(domain:String): Seq[EndpointDef] =
+    db.listQuery[Endpoint]("endpointsByDomain", Map("domain_name" -> domain)).map(toEndpointDef(_))
 
   def createOrUpdateRepairAction(domain:String, a: RepairActionDef) = sessionFactory.withSession(s => {
     val pair = getPair(s, domain, a.pair)
@@ -122,19 +123,16 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   // TODO This read through cache should not be necessary when the 2L cache miss issue is resolved
   def listPairs(domain:String) = pairCache.readThrough(domain, () => listPairsFromPersistence(domain))
 
-  def listPairsFromPersistence(domain:String) = sessionFactory.withSession(s => listQuery[DiffaPair](s, "pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_)))
+  def listPairsFromPersistence(domain:String) = db.listQuery[DiffaPair]("pairsByDomain", Map("domain_name" -> domain)).map(toPairDef(_))
 
-  def listPairsForEndpoint(domain:String, endpoint:String) = sessionFactory.withSession(s =>
-    listQuery[DiffaPair](s, "pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint)))
+  def listPairsForEndpoint(domain:String, endpoint:String) =
+    db.listQuery[DiffaPair]("pairsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpoint))
 
   def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] =
-    sessionFactory.withSession(s => {
-      getRepairActionsInPair(s, domain, pairKey).map(toRepairActionDef(_))
-    })
+    getRepairActionsInPair(domain, pairKey).map(toRepairActionDef(_))
 
-  def listEscalations(domain:String) = sessionFactory.withSession(s => {
-    listQuery[Escalation](s, "escalationsByDomain", Map("domain_name" -> domain)).map(toEscalationDef(_))
-  })
+  def listEscalations(domain:String) =
+    db.listQuery[Escalation]("escalationsByDomain", Map("domain_name" -> domain)).map(toEscalationDef(_))
 
   def deleteEscalation(domain:String, name: String, pairKey: String) = {
     sessionFactory.withSession(s => {
@@ -150,11 +148,10 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   })
 
   def listEscalationsForPair(domain:String, pairKey: String) : Seq[EscalationDef] =
-    sessionFactory.withSession(s => getEscalationsForPair(s, domain, pairKey).map(toEscalationDef(_)))
+    getEscalationsForPair(domain, pairKey).map(toEscalationDef(_))
 
-  def listReports(domain:String) = sessionFactory.withSession(s => {
-    listQuery[PairReport](s, "reportsByDomain", Map("domain_name" -> domain)).map(toPairReportDef(_))
-  })
+  def listReports(domain:String) = db.listQuery[PairReport]("reportsByDomain", Map("domain_name" -> domain)).map(toPairReportDef(_))
+
 
   def deleteReport(domain:String, name: String, pairKey: String) = {
     sessionFactory.withSession(s => {
@@ -169,23 +166,23 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     s.saveOrUpdate(report)
   })
 
-  def listReportsForPair(domain:String, pairKey: String) : Seq[PairReportDef] =
-    sessionFactory.withSession(s => getReportsForPair(s, domain, pairKey).map(toPairReportDef(_)))
+  def listReportsForPair(domain:String, pairKey: String) : Seq[PairReportDef]
+    = getReportsForPair(domain, pairKey).map(toPairReportDef(_))
 
-  private def getRepairActionsInPair(s: Session, domain:String, pairKey: String): Seq[RepairAction] =
-    listQuery[RepairAction](s, "repairActionsByPair", Map("pair_key" -> pairKey,
+  private def getRepairActionsInPair(domain:String, pairKey: String): Seq[RepairAction] =
+    db.listQuery[RepairAction]("repairActionsByPair", Map("pair_key" -> pairKey,
                                                           "domain_name" -> domain))
 
-  private def getEscalationsForPair(s: Session, domain:String, pairKey:String): Seq[Escalation] =
-    listQuery[Escalation](s, "escalationsByPair", Map("pair_key" -> pairKey,
+  private def getEscalationsForPair(domain:String, pairKey:String): Seq[Escalation] =
+    db.listQuery[Escalation]("escalationsByPair", Map("pair_key" -> pairKey,
                                                       "domain_name" -> domain))
 
-  private def getReportsForPair(s: Session, domain:String, pairKey:String): Seq[PairReport] =
-    listQuery[PairReport](s, "reportsByPair", Map("pair_key" -> pairKey,
+  private def getReportsForPair(domain:String, pairKey:String): Seq[PairReport] =
+    db.listQuery[PairReport]("reportsByPair", Map("pair_key" -> pairKey,
                                                   "domain_name" -> domain))
 
-  def listRepairActions(domain:String) : Seq[RepairActionDef] = sessionFactory.withSession(s =>
-    listQuery[RepairAction](s, "repairActionsByDomain", Map("domain_name" -> domain)).map(toRepairActionDef(_)))
+  def listRepairActions(domain:String) : Seq[RepairActionDef] =
+    db.listQuery[RepairAction]("repairActionsByDomain", Map("domain_name" -> domain)).map(toRepairActionDef(_))
 
   def getEndpointDef(domain:String, name: String) = sessionFactory.withSession(s => toEndpointDef(getEndpoint(s, domain, name)))
   def getEndpoint(domain:String, name: String) = sessionFactory.withSession(s => getEndpoint(s, domain, name))
@@ -221,9 +218,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   }
 
   def allConfigOptions(domain:String) = {
-    sessionFactory.withSession(s => {
-      listQuery[ConfigOption](s, "configOptionsByDomain", Map("domain_name" -> domain)).map(opt => opt.key -> opt.value).toMap
-    })
+    db.listQuery[ConfigOption]("configOptionsByDomain", Map("domain_name" -> domain)).map(opt => opt.key -> opt.value).toMap
   }
 
   def maybeConfigOption(domain:String, key:String) =
@@ -239,9 +234,9 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   def clearConfigOption(domain:String, key:String) = deleteConfigOption(domain, key)
 
   private def deletePairInSession(s:Session, domain:String, pair:DiffaPair) = {
-    getRepairActionsInPair(s, domain, pair.key).foreach(s.delete)
-    getEscalationsForPair(s, domain, pair.key).foreach(s.delete)
-    getReportsForPair(s, domain, pair.key).foreach(s.delete)
+    getRepairActionsInPair(domain, pair.key).foreach(s.delete)
+    getEscalationsForPair(domain, pair.key).foreach(s.delete)
+    getReportsForPair(domain, pair.key).foreach(s.delete)
     pair.views.foreach(s.delete(_))
     deleteStoreCheckpoint(pair.asRef)
     s.delete(pair)
@@ -258,12 +253,12 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   })
 
   def listDomainMembers(domain:String) = sessionFactory.withSession(s => {
-    listQuery[Member](s, "membersByDomain", Map("domain_name" -> domain))
+    db.listQuery[Member]("membersByDomain", Map("domain_name" -> domain))
   })
 
   def listEndpointViews(s:Session, domain:String, endpointName:String) =
-    listQuery[EndpointView](s, "endpointViewsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpointName))
+    db.listQuery[EndpointView]("endpointViewsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpointName))
   def listPairViews(s:Session, domain:String, pairKey:String) =
-    listQuery[PairView](s, "pairViewsByPair", Map("domain_name" -> domain, "pair_key" -> pairKey))
+    db.listQuery[PairView]("pairViewsByPair", Map("domain_name" -> domain, "pair_key" -> pairKey))
 
 }

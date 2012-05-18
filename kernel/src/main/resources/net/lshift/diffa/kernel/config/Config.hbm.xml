@@ -447,33 +447,35 @@
     and o.domain.name = :domain_name
   </query>
 
-  <query name="systemHardLimitByName" cacheable="true">
+  <!-- Limits -->
+
+  <query name="systemHardLimitByName" cacheable="false">
     select l.hardLimit
     from SystemServiceLimits l
     where l.limitName = :limit_name
   </query>
 
-  <query name="systemDefaultLimitByName" cacheable="true">
+  <query name="systemDefaultLimitByName" cacheable="false">
     select l.defaultLimit
     from SystemServiceLimits l
     where l.limitName = :limit_name
   </query>
 
-  <query name="domainHardLimitByDomainAndName" cacheable="true">
+  <query name="domainHardLimitByDomainAndName" cacheable="false">
     select l.hardLimit
     from DomainServiceLimits l
     where l.limitName = :limit_name
     and l.domain.name = :domain_name
   </query>
 
-  <query name="domainDefaultLimitByDomainAndName" cacheable="true">
+  <query name="domainDefaultLimitByDomainAndName" cacheable="false">
     select l.defaultLimit
     from DomainServiceLimits l
     where l.limitName = :limit_name
     and l.domain.name = :domain_name
   </query>
 
-  <query name="pairLimitByPairAndName" cacheable="true">
+  <query name="pairLimitByPairAndName" cacheable="false">
     select l.limitValue
     from PairServiceLimits l
     where l.limitName = :limit_name
@@ -481,31 +483,31 @@
     and l.pair.key = :pair_key
   </query>
 
-  <query name="domainServiceLimitsByDomain" cacheable="true">
+  <query name="domainServiceLimitsByDomain" cacheable="false">
     select l
     from DomainServiceLimits l
     where l.domain.name = :domain_name
   </query>
 
-  <query name="pairServiceLimitsByDomain" cacheable="true">
+  <query name="pairServiceLimitsByDomain" cacheable="false">
     select l
     from PairServiceLimits l
     where l.pair.domain.name = :domain_name
   </query>
 
-  <query name="domainServiceLimitsByName" cacheable="true">
+  <query name="domainServiceLimitsByName" cacheable="false">
     select l
     from DomainServiceLimits l
     where l.limitName = :limit_name
   </query>
 
-  <query name="pairServiceLimitsByName" cacheable="true">
+  <query name="pairServiceLimitsByName" cacheable="false">
     select l
     from PairServiceLimits l
     where l.limitName = :limit_name
   </query>
 
-  <query name="pairViewsByPair" cacheable="true">
+  <query name="pairViewsByPair" cacheable="false">
     select v from PairView v
     where v.pair.domain.name = :domain_name and v.pair.key = :pair_key
   </query>

@@ -17,15 +17,16 @@ package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.frontend.{OutboundExternalHttpCredentialsDef, InboundExternalHttpCredentialsDef}
-import net.lshift.diffa.kernel.util.SessionHelper._
+import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils, DatabaseFacade}
+import net.lshift.diffa.kernel.util.db.SessionHelper._
 import scala.collection.JavaConversions._
 import org.hibernate.SessionFactory
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.AlertCodes._
 import java.net.URI
-import net.lshift.diffa.kernel.util.{MissingObjectException, HibernateQueryUtils}
+import net.lshift.diffa.kernel.util.MissingObjectException
 
-class HibernateDomainCredentialsStore(val sessionFactory: SessionFactory)
+class HibernateDomainCredentialsStore(val sessionFactory: SessionFactory, db:DatabaseFacade)
   extends DomainCredentialsManager
   with DomainCredentialsLookup
   with HibernateQueryUtils {
@@ -63,7 +64,7 @@ class HibernateDomainCredentialsStore(val sessionFactory: SessionFactory)
   def credentialsForUri(domain:String, searchURI:URI) = sessionFactory.withSession( s => {
 
     val baseUrl = searchURI.getScheme + "://" + searchURI.getAuthority + "%"
-    val results = listQuery[ExternalHttpCredentials](s, "externalHttpCredentialsByDomainAndUrl",
+    val results = db.listQuery[ExternalHttpCredentials]("externalHttpCredentialsByDomainAndUrl",
                                                      Map("domain" -> domain, "base_url" -> baseUrl))
 
     if (results.isEmpty) {

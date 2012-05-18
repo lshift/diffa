@@ -74,10 +74,11 @@ class DatabaseEnvironment(path: String) {
   def showSql = false
 
   def getHibernateConfiguration: Configuration = {
-    val diffCheckCfg = "net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml"
-    val hibernateCfg = "net/lshift/diffa/kernel/config/Config.hbm.xml"
 
-    val config = new Configuration().addResource(hibernateCfg).addResource(diffCheckCfg).
+    val config = new Configuration().
+      addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+      addResource("net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml").
+      addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
       setProperty("hibernate.dialect", dialect).
       setProperty("hibernate.connection.url", url).
       setProperty("hibernate.connection.driver_class", driver).

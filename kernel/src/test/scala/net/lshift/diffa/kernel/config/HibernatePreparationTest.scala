@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.config
 import java.sql._
 import org.junit.runner.RunWith
 import org.junit.Assert._
-import net.lshift.diffa.kernel.util.SessionHelper._
+import net.lshift.diffa.kernel.util.db.SessionHelper._
 import org.slf4j.LoggerFactory
 import org.hibernate.dialect.Dialect
 import org.hibernate.cfg.{Configuration, Environment}
@@ -130,6 +130,7 @@ class HibernatePreparationTest {
     if(System.getProperty("verifyExternalDB") != null) {
       val config = new Configuration().
       addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+      addResource("net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml").
       addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
       setProperty("hibernate.dialect", DatabaseEnvironment.DIALECT).
       setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("configStore-export")).

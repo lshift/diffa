@@ -1,6 +1,6 @@
 package net.lshift.diffa.kernel.util
 
-import net.lshift.diffa.kernel.util.SessionHelper.sessionFactoryToSessionHelper
+import net.lshift.diffa.kernel.util.db.SessionHelper.sessionFactoryToSessionHelper
 import org.hibernate.jdbc.Work
 import java.sql.Connection
 import org.hibernate.SessionFactory

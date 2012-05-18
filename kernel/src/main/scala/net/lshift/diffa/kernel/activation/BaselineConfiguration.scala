@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.config.{PairCache, HibernateDomainConfigStore}
 import net.lshift.diffa.kernel.hooks.HookManager
+import net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade
 
 /**
  * This creates a baseline data set in the DB once the Hibernate session factory
@@ -34,7 +35,11 @@ class BaselineConfiguration extends SessionFactoryObserver {
     // The config store will not have been constructed at this point in Spring
     // So just create a throw away instance in order to produce this baseline
     val cacheManager = new CacheManager()
-    val config = new HibernateDomainConfigStore(factory, new PairCache(cacheManager), new HookManager, cacheManager)
+    val config = new HibernateDomainConfigStore(factory,
+                                                new HibernateDatabaseFacade(factory),
+                                                new PairCache(cacheManager),
+                                                new HookManager,
+                                                cacheManager)
     log.debug("Diffa baseline configuration created")
   }
 
