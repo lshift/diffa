@@ -107,9 +107,10 @@ Diffa.Views.Rings = Backbone.View.extend(Diffa.Helpers.Viz).extend({
     this.before = singleValue(this.model.get('before'));
 
     var bucketOpts = {
-      minSize: 10,
-      maxSize: (this.width / 2) - 5,
-      maxValue: 100
+      inputMin: 1,
+      inputMax: 100,
+      outputMin: 10,
+      outputMax: (this.width / 2) - 5
     };
 
     this.currentSize = this.transformBucketSize(this.currentHour + this.previousHour + this.before, bucketOpts);

@@ -11,8 +11,7 @@ Diffa.Helpers.Viz = {
    *
    * M is the maximum size. m is the minimum display size.
    * Between (1) and (2), growth should be logarithmic based
-   * on the endpoints. Inputs over 100 follow the log function,
-   * to be limited in the caller.
+   * on the endpoints. Inputs over 100 are capped to M.
    *
    * We'd like a function f on [0, 100] where
    *
@@ -32,19 +31,18 @@ Diffa.Helpers.Viz = {
    */
   transformBucketSize: function(size, opts) {
     // Validate the options
-    if (!opts.minSize) throw "Missing minSize option";
-    if (!opts.maxSize) throw "Missing minSize option";
-    if (!opts.maxValue) throw "Missing minSize option";
-
-    var minimumIn = 1; // anything non-zero below this gets raised to valueFloor
+    if (!opts.outputMax) throw "Missing outputMax option"; // the maximum output value. f(x) = this if x >= inputMax
+    if (!opts.outputMin) throw "Missing outputMin option"; // the minimum value of f(x). f(x) = this, if x <= inputMin
+    if (!opts.inputMin) throw "Missing inputMin option";   // the minimum input value. any value <= this results in outputMin
+    if (!opts.inputMax) throw "Missing inputMax option";   // the maximum input value. f(x) = outputMax if x >= inputMax
 
     if (size == 0)             { return 0; }
-    if (size <= minimumIn)     { return opts.minSize; }
+    if (size <= opts.inputMin) { return opts.outputMin; }
 
-    var a = opts.minSize;
-    var b = (opts.maxSize - opts.minSize)/Math.log(opts.maxValue);
+    var a = opts.outputMin;
+    var b = (opts.outputMax - opts.outputMin)/Math.log(opts.inputMax);
 
-    return Diffa.Helpers.Viz.limit(a + b*Math.log(size), opts.maxSize);
+    return Diffa.Helpers.Viz.limit(a + b*Math.log(size), opts.outputMax);
   },
 
   /**
