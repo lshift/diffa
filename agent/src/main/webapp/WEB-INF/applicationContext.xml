@@ -270,7 +270,12 @@
     <constructor-arg ref="serviceLimitsStore"/>
     <constructor-arg ref="matchingManager"/>
     <constructor-arg ref="versionCorrelationStoreFactory"/>
-    <constructor-arg ref="pairActorSupervisor"/>
+    <constructor-arg>
+      <list>
+        <ref bean="pairActorSupervisor"/>
+        <ref bean="escalationManager"/>
+      </list>
+    </constructor-arg>
     <constructor-arg ref="differencesManager"/>
     <constructor-arg ref="inboundEndpointManager" />
     <constructor-arg ref="scanScheduler" />

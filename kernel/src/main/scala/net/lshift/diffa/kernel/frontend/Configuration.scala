@@ -34,7 +34,7 @@ class Configuration(val configStore: DomainConfigStore,
                     val serviceLimitsStore: ServiceLimitsStore,
                     val matchingManager: MatchingManager,
                     val versionCorrelationStoreFactory: VersionCorrelationStoreFactory,
-                    val supervisor:ActivePairManager,
+                    val supervisors:java.util.List[ActivePairManager],
                     val differencesManager: DifferencesManager,
                     val endpointListener: EndpointLifecycleListener,
                     val scanScheduler: ScanScheduler,
@@ -184,7 +184,7 @@ class Configuration(val configStore: DomainConfigStore,
 
     withCurrentPair(domain, key, (p:DiffaPair) => {
       val pair = p.asRef
-      supervisor.stopActor(pair)
+      supervisors.foreach(_.stopActor(pair))
       matchingManager.onDeletePair(p)
       versionCorrelationStoreFactory.remove(pair)
       scanScheduler.onDeletePair(p)
@@ -272,7 +272,7 @@ class Configuration(val configStore: DomainConfigStore,
 
   def notifyPairUpdate(p:DiffaPair) {
     val pairRef = p.asRef
-    supervisor.startActor(p)
+    supervisors.foreach(_.startActor(pairRef))
     matchingManager.onUpdatePair(p)
     differencesManager.onUpdatePair(pairRef)
     scanScheduler.onUpdatePair(p)

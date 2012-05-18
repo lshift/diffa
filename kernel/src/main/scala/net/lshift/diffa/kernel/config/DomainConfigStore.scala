@@ -263,6 +263,14 @@ case class DiffaPairRef(@BeanProperty var key: String = null,
   def identifier = "%s/%s".format(domain,key)
 
   def toInternalFormat = DiffaPair(key = key, domain = Domain(name = domain))
+
+  override def equals(that:Any) = that match {
+    case p:DiffaPairRef => p.key == key && p.domain == domain
+    case _              => false
+  }
+
+  // TODO This looks a bit strange
+  override def hashCode = 31 * (31 + key.hashCode) + domain.hashCode
 }
 
 object DiffaPair {

@@ -33,7 +33,7 @@ import org.junit.Assume._
 import org.hamcrest.CoreMatchers._
 import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import org.easymock.{IAnswer, EasyMock}
-import org.junit.After
+import org.junit.{Before, After}
 
 @RunWith(classOf[Theories])
 class EscalationManagerTest {
@@ -49,6 +49,9 @@ class EscalationManagerTest {
   val escalationManager = new EscalationManager(configStore, actionsClient, reportManager)
 
   escalationManager.onAgentInstantiationCompleted(notificationCentre)
+
+  @Before
+  def startActor = escalationManager.startActor(pair.asRef)
 
   @After
   def shutdown = escalationManager.close()
