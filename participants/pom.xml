@@ -5,7 +5,7 @@
   <parent>
     <groupId>net.lshift.diffa</groupId>
     <artifactId>diffa-parent</artifactId>
-    <version>1.4.4</version>
+    <version>1.4.4.1</version>
   </parent>
 
   <artifactId>diffa-participants</artifactId>
