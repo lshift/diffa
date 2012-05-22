@@ -219,10 +219,12 @@ Diffa.Collections.Watchable = {
   // Indicates that the given element is watching this collection, and it should periodically update itself.
   watch: function(listenerEl) {
     if (!this.watched) {
+      var self = this;
+
       this.watched = true;
       this.sync();
 
-      this.registeredWatchIntervalId = setInterval(this.sync, this.watchInterval);
+      this.registeredWatchIntervalId = setInterval(function() { self.sync(); }, this.watchInterval);
 
       // TODO: If we want to support listening elements coming and going, we should keep track of the listener element
       //       and only keep polling if we have at least one that is still in the DOM.
@@ -374,12 +376,14 @@ Diffa.Models.Aggregator = {
   retrieveAggregates: function(callback) {
     var self = this;
 
+    var lastRequestDetails = {};
     var params = $.map(this.aggregateRequests, function(request, name) {
       // Allow requests to be functions
       var requestDetails = request;
       if (_.isFunction(request)) {
         requestDetails = request();
       }
+      lastRequestDetails[name] = requestDetails;
 
       var aggString = "";
       if (requestDetails.startTime) aggString += Diffa.Helpers.DatesHelper.toISOString(requestDetails.startTime);
@@ -394,7 +398,7 @@ Diffa.Models.Aggregator = {
     if (self.pair) path += "/" + self.pair;
 
     $.getJSON(path + "?" + params, function(data) {
-      callback(data);
+      callback(lastRequestDetails, data);
     });
   },
 
@@ -406,8 +410,9 @@ Diffa.Models.Aggregator = {
   }
 };
 
-Diffa.Models.PairAggregates = Backbone.Model.extend(Diffa.Models.Aggregator).extend({
+Diffa.Models.PairAggregates = Backbone.Model.extend(Diffa.Collections.Watchable).extend(Diffa.Models.Aggregator).extend({
   idAttribute: 'pair',
+  watchInterval: 5000,
 
   initialize: function() {
     Diffa.Models.Aggregator.initialize.call(this);
@@ -421,15 +426,17 @@ Diffa.Models.PairAggregates = Backbone.Model.extend(Diffa.Models.Aggregator).ext
   sync: function(callback, opts) {
     var self = this;
 
-    this.retrieveAggregates(function(result) {
-      self.applyAggregateResult(result, opts);
+    this.retrieveAggregates(function(requestDetails, result) {
+      self.applyAggregateResult(requestDetails, result, opts);
 
       if (callback) callback();
     });
   },
 
-  applyAggregateResult: function(result, opts) {
+  applyAggregateResult: function(requestDetails, result, opts) {
     this.set(result, opts);
+    
+    this.lastRequests = requestDetails;
   }
 });
 Diffa.Collections.DomainAggregates = Backbone.Collection.extend(Diffa.Models.Aggregator).extend({
@@ -449,18 +456,23 @@ Diffa.Collections.DomainAggregates = Backbone.Collection.extend(Diffa.Models.Agg
   sync: function(callback, opts) {
     var self = this;
 
-    this.retrieveAggregates(function(data) {
+    this.retrieveAggregates(function(requestDetails, data) {
       for(var pair in data) {
-        var pairAggregates = self.get(pair);
-        if (!pairAggregates) {
-          pairAggregates = new Diffa.Models.PairAggregates({domain: self.domain, pair: pair});
-          self.add(pairAggregates, opts);
-        }
-        pairAggregates.applyAggregateResult(data[pair], opts);
+        self.forPair(pair).applyAggregateResult(requestDetails, data[pair], opts);
       }
 
       if (callback) callback();
     });
+  },
+
+  forPair: function(pair, opts) {
+    var pairAggregates = this.get(pair);
+    if (!pairAggregates) {
+      pairAggregates = new Diffa.Models.PairAggregates({domain: this.domain, pair: pair});
+      this.add(pairAggregates, opts);
+    }
+
+    return pairAggregates;
   },
 
   change: function() {

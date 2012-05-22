@@ -27,6 +27,7 @@
 @import "heatmap.less";
 @import "status.less";
 @import "settings.less";
+@import "overview.less";
 
 // Mixin certain Blueprint definitions into various object classes
 div.main-logo {
@@ -36,13 +37,15 @@ div.main-logo {
 }
 
 div.top-navigation-link {
-  .span-4;
+  .span-6;
   .last;
 }
 
 div.footer {
   .span-8;
   .prepend-6;
+  clear: both;
+  margin-top: 20px;
   font-size: @small-font-size;
   color: @text-light-grey;
 }

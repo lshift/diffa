@@ -28,10 +28,13 @@
     <js>/js/templates/data/*.jst</js>
     <js>/js/templates/status/*.jst</js>
     <js>/js/templates/settings/*.jst</js>
+    <js>/js/templates/rings/*.jst</js>
+    <js>/js/viz.js</js>
     <js>/js/heatmap.js</js>
     <js>/js/data.js</js>
     <js>/js/status.js</js>
     <js>/js/settings.js</js>
+    <js>/js/rings.js</js>
 
     <css>/less/widgets.less</css>
     <css>/less/glDatePicker/default.less</css>
