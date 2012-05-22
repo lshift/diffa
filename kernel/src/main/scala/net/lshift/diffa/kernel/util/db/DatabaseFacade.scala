@@ -16,6 +16,9 @@
 
 package net.lshift.diffa.kernel.util.db
 
+import org.hibernate.Session
+import net.lshift.diffa.kernel.util.MissingObjectException
+
 /**
  * Abstraction that hopefully lends itself to multiple implementations and allows DiffStore implementations
  * to be slightly less coupled to the underlying database, in terms of access and caching.
@@ -25,10 +28,21 @@ trait DatabaseFacade {
   /**
    * Executes the named SELECT query with the specified parameters and binds the results to the expected type.
    */
-  def listQuery[ReturnType](queryName: String,
-                            params: Map[String, Any],
-                            firstResult:Option[Int] = None,
-                            maxResults:Option[Int] = None): Seq[ReturnType]
+  def listQuery[T](queryName: String,
+                   params: Map[String, Any],
+                   firstResult:Option[Int] = None,
+                   maxResults:Option[Int] = None): Seq[T]
+
+  /**
+   * Executes the named SELECT query for a single row with the specified parameters and binds the results to the expected type.
+   * @throws MissingObjectException
+   */
+  def singleQuery[T](queryName: String,
+                     params: Map[String, Any],
+                     entityName: String) : T
+
+  def singleQueryMaybe[T](queryName: String,
+                          params: Map[String, Any]) : Option[T]
 
   /**
    * Executes the named UPDATE, DELETE or INSERT query with the specified parameters and the row count

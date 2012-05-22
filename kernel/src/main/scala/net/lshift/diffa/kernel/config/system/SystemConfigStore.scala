@@ -63,7 +63,16 @@ trait SystemConfigStore {
   // CRUD operations for users
   // TODO should this be in a separate interface?
 
-  def createOrUpdateUser(user: User) : Unit
+
+  /**
+   * The intention is to deprecate the createOrUpdate semantics from all APIs
+   * We should let the user indicate to us whether they think the operation is an insert or an update,
+   * and all we need to do is handle the exceptions. This way, we can save ourselves unnecessaryDB round trips.
+   */
+  @Deprecated def createOrUpdateUser(user: User)
+  def createUser(user: User)
+  def updateUser(user: User) : Int
+
   def getUserToken(username: String): String
   def clearUserToken(username: String)
   def deleteUser(name: String): Unit

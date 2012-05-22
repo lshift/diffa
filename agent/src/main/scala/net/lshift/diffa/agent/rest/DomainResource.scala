@@ -32,10 +32,10 @@ import net.lshift.diffa.kernel.reporting.ReportManager
 import com.sun.jersey.api.NotFoundException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.config.{DomainCredentialsManager, User, DomainConfigStore}
+import net.lshift.diffa.kernel.config.system.CachedSystemConfigStore
 
 @Path("/domains/{domain}")
 @Component
@@ -53,7 +53,7 @@ class DomainResource {
   @Autowired var diagnosticsManager:DiagnosticsManager = null
   @Autowired var pairPolicyClient:PairPolicyClient = null
   @Autowired var domainConfigStore:DomainConfigStore = null
-  @Autowired var systemConfigStore:SystemConfigStore = null
+  @Autowired var systemConfigStore:CachedSystemConfigStore = null
   @Autowired var changes:Changes = null
   @Autowired var domainSequenceCache:DomainSequenceCache = null
   @Autowired var reports:ReportManager = null

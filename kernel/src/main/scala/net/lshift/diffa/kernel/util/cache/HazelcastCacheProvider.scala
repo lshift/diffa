@@ -17,8 +17,8 @@ package net.lshift.diffa.kernel.util.cache
 
 import scala.collection.JavaConversions._
 import java.util.concurrent.TimeUnit
-import com.hazelcast.query.Predicate
 import com.hazelcast.core.{MapEntry, IMap, Hazelcast}
+import com.hazelcast.query.{PredicateBuilder, Predicate}
 
 class HazelcastCacheProvider extends CacheProvider {
 
@@ -34,12 +34,19 @@ class HazelcastBackedMap[K,V](underlying:IMap[K,V]) extends CachedMap[K,V] {
 
   def evictAll = underlying.clear()
 
-  def subset(keyPredicate:KeyPredicate[K]) = {
+  def keySubset(keyPredicate:KeyPredicate[K]) = {
     val predicate = new HazelcastKeyPredicate(keyPredicate)
     val projectedKeys = underlying.keySet(predicate)
     new CachedSubset[K,V] {
       def evictAll = projectedKeys.foreach(underlying.remove(_))
     }
+  }
+
+  def valueSubset(attribute:String, value:String) = {
+    val entryObject = new PredicateBuilder().getEntryObject
+    val predicate = entryObject.get(attribute).equal(value)
+    val v = underlying.values(predicate)
+    v.toList
   }
 
   def put(key:K, value:V) = underlying.putIfAbsent(key, value)

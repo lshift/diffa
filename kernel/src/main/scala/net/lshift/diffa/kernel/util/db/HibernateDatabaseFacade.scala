@@ -25,8 +25,16 @@ import org.hibernate.SessionFactory
  */
 class HibernateDatabaseFacade(factory:SessionFactory) extends DatabaseFacade {
 
-  def listQuery[ReturnType](queryName: String, params: Map[String, Any], firstResult: Option[Int], maxResults: Option[Int]) = {
+  def listQuery[T](queryName: String, params: Map[String, Any], firstResult: Option[Int], maxResults: Option[Int]) = {
     factory.withSession(s => HQU.listQuery(s, queryName, params, firstResult, maxResults))
+  }
+
+  def singleQuery[T](queryName: String, params: Map[String, Any], entityName: String)  = {
+    factory.withSession(s => HQU.singleQuery[T](s, queryName, params, entityName))
+  }
+
+  def singleQueryMaybe[T](queryName: String, params: Map[String, Any])  = {
+    factory.withSession(s => HQU.singleQueryOpt(s, queryName, params))
   }
 
   def execute(queryName: String, params: Map[String, Any]) : Int = {

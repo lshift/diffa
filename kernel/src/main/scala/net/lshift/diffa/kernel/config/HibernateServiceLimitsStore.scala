@@ -87,10 +87,10 @@ class HibernateServiceLimitsStore(val sessionFactory: SessionFactory,
   def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) =
     getLimit("pairLimitByPairAndName", Map("limit_name" -> limit.key, "domain_name" -> domainName, "pair_key" -> pairKey))
 
-  private def getLimit(queryName: String, params: Map[String, String]) = sessionFactory.withSession(session =>
-    singleQueryOpt[Int](
-      session, queryName, params
-    ))
+  private def getLimit(queryName: String, params: Map[String, String]) =
+    db.singleQueryMaybe[Int](
+      queryName, params
+    )
 
   private def cascadeLimit(currentLimit: Int, setLimitValue: (ServiceLimit, Int) => Unit,
                            limit: ServiceLimit, newLimit: Int) {

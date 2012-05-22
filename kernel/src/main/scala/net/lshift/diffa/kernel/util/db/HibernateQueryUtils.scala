@@ -23,6 +23,7 @@ import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import java.io.Closeable
 import scala.collection.JavaConversions._
+import HibernateQueryUtils._
 
 /**
  * Mixin providing a bunch of useful query utilities for stores.
@@ -94,58 +95,7 @@ trait HibernateQueryUtils {
     }
   }
 
-  /**
-   * Executes a query that is expected to return a single result in the given session. Throws an exception if the
-   * requested object is not available.
-   */
-  def singleQuery[ReturnType](s: Session, queryName: String, params: Map[String, Any], entityName: String): ReturnType = {
-    singleQueryOpt(s, queryName, params) match {
-      case None => throw new MissingObjectException(entityName)
-      case Some(x) => x
-    }
-  }
 
-  /**
-   * Executes a query that may return a single result in the current session. Returns either None or Some(x) for the
-   * object.
-   */
-  def singleQueryOpt[ReturnType](s: Session, queryName: String, params: Map[String, Any]): Option[ReturnType] =
-    singleQueryOptBuilder(s, queryName, params, (_) => ())
-
-  /**
-   * Executes a query that may return a single result in the current session. Returns either None or Some(x) for the
-   * object.
-   *
-   * The difference to singleQueryOpt/3 is that the underlying SQL query may, from the DB's perspective return
-   * more than one result, so to counter this, the max result set size is limited to one to guarantee only one result.
-   */
-  def limitedSingleQueryOpt[ReturnType](s: Session, queryName: String, params: Map[String, Any]): Option[ReturnType] =
-    singleQueryOptBuilder(s, queryName, params, (q: Query) => q.setMaxResults(1))
-
-  private def singleQueryOptBuilder[ReturnType](s: Session, queryName: String, params: Map[String, Any], f: Query => Unit): Option[ReturnType] = {
-
-    val query: Query = s.getNamedQuery(queryName)
-    params foreach {
-      case (param, value) => query.setParameter(param, value)
-    }
-
-    f(query)
-
-    try {
-      query.uniqueResult match {
-        case null => None
-        case r: ReturnType => Some(r)
-      }
-    }
-    catch {
-      case e: NonUniqueResultException => {
-        log.warn("Non unique result for: " + queryName)
-        params.foreach(p => log.debug("Key: [" + p._1 + "], Value: [" + p._2 + "]"))
-        log.debug("Logging stack trace for non unique result", e)
-        None
-      }
-    }
-  }
 
   def executeUpdate(s: Session, queryName: String, params: Map[String, Any]) = {
     val query: Query = s.getNamedQuery(queryName)
@@ -256,15 +206,18 @@ trait Cursor[T] extends Closeable {
  * This is the beginning of trying to extract Hibernate out of every store
  */
 object HibernateQueryUtils {
+
+  val log = LoggerFactory.getLogger(getClass)
+
   /**
    * Executes a list query in the given session, forcing the result type into a typed list of the given
    * return type.
    */
-  def listQuery[ReturnType](s: Session, queryName: String, params: Map[String, Any], firstResult:Option[Int] = None, maxResults:Option[Int] = None): Seq[ReturnType] = {
+  def listQuery[T](s: Session, queryName: String, params: Map[String, Any], firstResult:Option[Int] = None, maxResults:Option[Int] = None): Seq[T] = {
     val query = buildQuery(s, queryName, params)
     firstResult.map(f => query.setFirstResult(f))
     maxResults.map(m => query.setMaxResults(m))
-    query.list map (item => item.asInstanceOf[ReturnType])
+    query.list map (item => item.asInstanceOf[T])
   }
 
   /**
@@ -273,6 +226,59 @@ object HibernateQueryUtils {
   def executeUpdate(s: Session, queryName: String, params: Map[String, Any]) : Int = {
     val query = buildQuery(s, queryName, params)
     query.executeUpdate()
+  }
+
+  /**
+   * Executes a query that is expected to return a single result in the given session. Throws an exception if the
+   * requested object is not available.
+   */
+  def singleQuery[T](s: Session, queryName: String, params: Map[String, Any], entityName: String): T = {
+    singleQueryOpt(s, queryName, params) match {
+      case None => throw new MissingObjectException(entityName)
+      case Some(x) => x
+    }
+  }
+
+  /**
+   * Executes a query that may return a single result in the current session. Returns either None or Some(x) for the
+   * object.
+   */
+  def singleQueryOpt[T](s: Session, queryName: String, params: Map[String, Any]): Option[T] =
+    singleQueryOptBuilder(s, queryName, params, (_) => ())
+
+  /**
+   * Executes a query that may return a single result in the current session. Returns either None or Some(x) for the
+   * object.
+   *
+   * The difference to singleQueryOpt/3 is that the underlying SQL query may, from the DB's perspective return
+   * more than one result, so to counter this, the max result set size is limited to one to guarantee only one result.
+   */
+  def limitedSingleQueryOpt[T](s: Session, queryName: String, params: Map[String, Any]): Option[T] =
+    singleQueryOptBuilder(s, queryName, params, (q: Query) => q.setMaxResults(1))
+
+  private def singleQueryOptBuilder[ReturnType](s: Session, queryName: String, params: Map[String, Any], f: Query => Unit): Option[ReturnType] = {
+
+    val query: Query = s.getNamedQuery(queryName)
+    params foreach {
+      case (param, value) => query.setParameter(param, value)
+    }
+
+    f(query)
+
+    try {
+      query.uniqueResult match {
+        case null => None
+        case r: ReturnType => Some(r)
+      }
+    }
+    catch {
+      case e: NonUniqueResultException => {
+        log.warn("Non unique result for: " + queryName)
+        params.foreach(p => log.debug("Key: [" + p._1 + "], Value: [" + p._2 + "]"))
+        log.debug("Logging stack trace for non unique result", e)
+        None
+      }
+    }
   }
 
   private def buildQuery(s: Session, queryName: String, params: Map[String, Any]) = {

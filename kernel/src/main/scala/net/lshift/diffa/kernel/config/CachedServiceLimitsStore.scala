@@ -96,12 +96,12 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
       () => underlying.getPairLimitForPairAndName(domainName, pairKey, limit))
 
   private def evictPairLimitCacheByDomain(domainName:String) = {
-    pairLimits.subset(PairLimitByDomainPredicate(domainName)).evictAll
+    pairLimits.keySubset(PairLimitByDomainPredicate(domainName)).evictAll
   }
 
   private def evictDomainLimitCachesByDomain(domainName:String) = {
-    domainHardLimits.subset(DomainLimitByDomainPredicate(domainName)).evictAll
-    domainDefaults.subset(DomainLimitByDomainPredicate(domainName)).evictAll
+    domainHardLimits.keySubset(DomainLimitByDomainPredicate(domainName)).evictAll
+    domainDefaults.keySubset(DomainLimitByDomainPredicate(domainName)).evictAll
   }
 
 }

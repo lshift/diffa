@@ -37,6 +37,30 @@ class CacheProviderTest {
   }
 
   @Theory
+  def shouldSupportRetreivalBasedOnValuePredicate(provider:CacheProvider) {
+    val cache = provider.getCachedMap[String,NonProductionCacheValue]("my-cache")
+
+    reset(cache)
+
+    val fooValue = NonProductionCacheValue("foo", 1)
+    val barValue = NonProductionCacheValue("bar", 2)
+
+    cache.put("foo", fooValue)
+    cache.put("bar", barValue)
+
+    assertEquals(2, cache.size())
+    assertEquals(fooValue, cache.get("foo"))
+    assertEquals(barValue, cache.get("bar"))
+
+    cache.valueSubset("firstAttribute", "foo").foreach(x => cache.evict(x.firstAttribute))
+
+    assertEquals(1, cache.size())
+    assertNull(cache.get("foo"))
+    assertEquals(barValue, cache.get("bar"))
+
+  }
+
+  @Theory
   def shouldSupportRemovalBasedOnKeyQuery(provider:CacheProvider) {
     val cache = provider.getCachedMap[NonProductionCacheKey,String]("another-cache")
 
@@ -52,7 +76,7 @@ class CacheProviderTest {
     assertEquals("first-value", cache.get(fooKey))
     assertEquals("second-value", cache.get(barKey))
 
-    cache.subset(NonProductionKeyPredicate("foo")).evictAll
+    cache.keySubset(NonProductionKeyPredicate("foo")).evictAll
 
     assertEquals(1, cache.size())
     assertNull(cache.get(fooKey))

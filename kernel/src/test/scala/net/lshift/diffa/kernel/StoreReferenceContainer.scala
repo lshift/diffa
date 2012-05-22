@@ -74,6 +74,10 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private val cacheManager = new CacheManager
   private val pairCache = new PairCache(cacheManager)
   private val hookManager = new HookManager(applicationConfig)
+  private val membershipListener = new DomainMembershipAware {
+    def onMembershipCreated(member: Member) {}
+    def onMembershipRemoved(member: Member) {}
+  }
 
   def sessionFactory = _sessionFactory match {
     case Some(sf) => sf
@@ -94,7 +98,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new HibernateSystemConfigStore(sf, new HibernateDatabaseFacade(sf), pairCache), "SystemConfigStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new HibernateDomainConfigStore(sf, new HibernateDatabaseFacade(sf), pairCache, hookManager, cacheManager), "domainConfigStore")
+    makeStore(sf => new HibernateDomainConfigStore(sf, new HibernateDatabaseFacade(sf), pairCache, hookManager, cacheManager, membershipListener), "domainConfigStore")
 
   private lazy val _domainCredentialsStore =
     makeStore(sf => new HibernateDomainCredentialsStore(sf, new HibernateDatabaseFacade(sf)), "domainCredentialsStore")

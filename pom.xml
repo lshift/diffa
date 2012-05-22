@@ -34,7 +34,7 @@
     <!-- Patched from: https://github.com/0x6e6562/hibernate-core/commit/615aa049e7a557d4a8506a09eb1d2be38714b78f -->
     <hibernate.version>3.6.7-2L</hibernate.version>
 
-    <hsqldb.version>2.2.4</hsqldb.version>
+    <hsqldb.version>2.2.8</hsqldb.version>
     <postgresql.version>9.1-901.jdbc4</postgresql.version>
     <dbcp.version>1.2.2</dbcp.version>
     <jetty.version>7.3.0.v20110203</jetty.version>

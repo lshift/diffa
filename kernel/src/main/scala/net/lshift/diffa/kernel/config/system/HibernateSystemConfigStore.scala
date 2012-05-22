@@ -77,15 +77,27 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
   def listEndpoints = db.listQuery[Endpoint]("allEndpoints", Map())
 
 
-  def createOrUpdateUser(u: User) = sessionFactory.withSession(s => {
-    singleQueryOpt[User](s, "userByName", Map("name" -> u.name)) match {
-      case Some(oldUser) => {
-        u.token = oldUser.token
-        s.merge(u)
-      }
-      case None => s.save(u)
+  @Deprecated
+  def createOrUpdateUser(user: User) = {
+    if (updateUser(user) == 0) {
+      createUser(user)
     }
-  })
+  }
+
+  def createUser(user: User) = db.execute("insertUser", Map(
+    "name" -> user.name,
+    "password_enc" -> user.passwordEnc,
+    "email" -> user.email,
+    "superuser" -> user.superuser
+  ))
+
+  def updateUser(user: User) = db.execute("updateUser", Map(
+    "name" -> user.name,
+    "password_enc" -> user.passwordEnc,
+    "email" -> user.email,
+    "superuser" -> user.superuser
+  ))
+
   def getUserToken(username: String) = {
     sessionFactory.withSession(s => {
       val user = getUser(s, username)
@@ -111,8 +123,10 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
   })
 
   def getUser(name: String) : User = sessionFactory.withSession(getUser(_,name))
-  def getUserByToken(token: String) : User = sessionFactory.withSession(s =>
-    singleQuery[User](s, "userByToken", Map("token" -> token), "user token %s".format(token)))
+
+  // TODO This needs to be cached
+  def getUserByToken(token: String) : User
+    = db.singleQuery[User]("userByToken", Map("token" -> token), "user token %s".format(token))
 
   def listUsers : Seq[User] = db.listQuery[User]("allUsers", Map())
   def listDomainMemberships(username: String) : Seq[Member] =

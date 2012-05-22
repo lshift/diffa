@@ -27,12 +27,14 @@ import net.sf.ehcache.CacheManager
 import net.lshift.diffa.kernel.util.CacheWrapper
 import org.hibernate.transform.ResultTransformer
 import java.util.List
+import java.sql.SQLIntegrityConstraintViolationException
 
 class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
                                  db:DatabaseFacade,
                                  pairCache:PairCache,
                                  hookManager:HookManager,
-                                 cacheManager:CacheManager)
+                                 cacheManager:CacheManager,
+                                 membershipListener:DomainMembershipAware)
     extends DomainConfigStore
     with HibernateQueryUtils {
 
@@ -222,7 +224,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   }
 
   def maybeConfigOption(domain:String, key:String) =
-    sessionFactory.withSession(s => singleQueryOpt[String](s, "configOptionByNameAndKey", Map("key" -> key, "domain_name" -> domain)))
+    db.singleQueryMaybe[String]("configOptionByNameAndKey", Map("key" -> key, "domain_name" -> domain))
 
   def configOptionOrDefault(domain:String, key: String, defaultVal: String) =
     maybeConfigOption(domain, key) match {
@@ -242,15 +244,34 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     s.delete(pair)
   }
 
-  def makeDomainMember(domain:String, userName:String) = sessionFactory.withSession(s => {
-    val member = Member(User(name = userName), Domain(name = domain))
-    s.saveOrUpdate(member)
-    member
-  })
+  def makeDomainMember(domain:String, userName:String) = {
+    try {
+      db.execute("createDomainMembership", Map("domain_name" -> domain, "user_name" -> userName))
+    }
+    catch {
+      case x:SQLIntegrityConstraintViolationException =>
+        handleMemberConstraintViolation(domain, userName)
+      case e:Exception if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
+        handleMemberConstraintViolation(domain, userName)
+      // Otherwise just let the exception get thrown further
+    }
 
-  def removeDomainMembership(domain:String, userName:String) = sessionFactory.withSession(s => {
-    s.delete(Member(User(name = userName), Domain(name = domain)))
-  })
+    val member = Member(User(name = userName), Domain(name = domain))
+    membershipListener.onMembershipCreated(member)
+    member
+  }
+
+  def removeDomainMembership(domain:String, userName:String) = {
+    val member = Member(User(name = userName), Domain(name = domain))
+
+    db.execute("deleteDomainMembership", Map("domain_name" -> domain, "user_name" -> userName))
+
+    membershipListener.onMembershipRemoved(member)
+  }
+
+  private def handleMemberConstraintViolation(domain:String, userName:String) = {
+    log.info("Ignoring integrity constraint violation for domain = %s and user = %s".format(domain,userName))
+  }
 
   def listDomainMembers(domain:String) = sessionFactory.withSession(s => {
     db.listQuery[Member]("membersByDomain", Map("domain_name" -> domain))

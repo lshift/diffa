@@ -77,8 +77,11 @@ class DatabaseEnvironment(path: String) {
 
     val config = new Configuration().
       addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
+      addResource("net/lshift/diffa/kernel/config/SystemConfig.hbm.xml").
       addResource("net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml").
+      addResource("net/lshift/diffa/kernel/config/DomainConfig.hbm.xml").
       addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
+      addResource("net/lshift/diffa/kernel/differencing/Differences.hbm.xml").
       setProperty("hibernate.dialect", dialect).
       setProperty("hibernate.connection.url", url).
       setProperty("hibernate.connection.driver_class", driver).

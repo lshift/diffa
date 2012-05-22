@@ -347,7 +347,10 @@
     <property name="mappingResources">
       <list>
           <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
+          <value>net/lshift/diffa/kernel/differencing/Differences.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
+          <value>net/lshift/diffa/kernel/config/DomainConfig.hbm.xml</value>
+          <value>net/lshift/diffa/kernel/config/SystemConfig.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml</value>
       </list>
     </property>
@@ -404,12 +407,18 @@
         <constructor-arg type="java.net.URL" value="classpath:ehcache-config-versions.xml"/>
       </bean>
     </constructor-arg>
+    <constructor-arg ref="systemConfigStore" />
   </bean>
 
-  <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
+  <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="databaseFacade" />
     <constructor-arg ref="pairCache" />
+  </bean>
+
+  <bean id="systemConfigStore" class="net.lshift.diffa.kernel.config.system.CachedSystemConfigStore">
+    <constructor-arg ref="underlyingConfigStore" />
+    <constructor-arg ref="hazelcastCacheProvider" />
   </bean>
 
   <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
