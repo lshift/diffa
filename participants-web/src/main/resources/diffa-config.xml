@@ -4,6 +4,11 @@
             scan-url="http://localhost:19293/participant-demo/p/upstream/scan"
             content-url="http://localhost:19293/participant-demo/p/upstream/content">
 
+    <set-category name="someString">
+      <value>ss</value>
+    </set-category>
+    <range-category name="someDate" data-type="datetime" />
+
     <view name="view1" />
     <view name="view2" />
 
@@ -13,6 +18,11 @@
             scan-url="http://localhost:19293/participant-demo/p/downstream/scan"
             content-url="http://localhost:19293/participant-demo/p/downstream/content"
             version-url="http://localhost:19293/participant-demo/p/downstream/corr-version">
+
+    <set-category name="someString">
+      <value>ss</value>
+    </set-category>
+    <range-category name="someDate" data-type="datetime" />
 
     <view name="view1" />
     <view name="view2" />

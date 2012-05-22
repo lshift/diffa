@@ -33,6 +33,7 @@
 * [151] - Curtail accumulation of open file descriptors by closing the IndexWriter of each pair on a regular basis.
 * [152] - Ensure that we do not generate malformed URLs when performing aggregate scans on an endpoint URL specified with a query string.
 * [155] - Re-instated the diagnostic log buffering
+* [156] - The demo participants config file had bit rotten slightly 
 
 ## Library Upgrades
 
