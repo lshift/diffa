@@ -22,9 +22,13 @@
     <Arg></Arg>
     <Arg>jdbc/diffaDS</Arg>
     <Arg>
-      <New class="org.apache.commons.dbcp.BasicDataSource">
-        <Set name="driverClassName">org.hsqldb.jdbc.JDBCDriver</Set>
-        <Set name="url">jdbc:hsqldb:target/webapp-data/diffa-data</Set>
+      <New class="com.jolbox.bonecp.BoneCPDataSource">
+        <Arg>
+          <New class="com.jolbox.bonecp.BoneCPConfig">
+            <Set name="jdbcUrl">jdbc:hsqldb:target/webapp-data/diffa-data</Set>
+          </New>
+        </Arg>
+        <Set name="driverClass">org.hsqldb.jdbc.JDBCDriver</Set>
       </New>
     </Arg>
   </New>

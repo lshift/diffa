@@ -88,7 +88,7 @@
       <useTransitiveFiltering>true</useTransitiveFiltering>
       <useStrictFiltering>true</useStrictFiltering>
       <includes>
-        <include>commons-dbcp:commons-dbcp</include>
+        <include>com.jolbox:bonecp</include>
         <include>org.hsqldb:hsqldb</include>
         <include>javax.mail:mail</include>
       </includes>
