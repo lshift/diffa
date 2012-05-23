@@ -22,19 +22,42 @@
     "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping package="net.lshift.diffa.kernel.differencing">
 
-  <sql-query name="deletePendingDiffsForUpstreamOrDownstream">
-    delete from pending_diffs
-    where entity_id = :entity_id
-    and pair = :pair
-    and domain = :domain
-    and ( upstream_vsn = :version or downstream_vsn = :version )
-  </sql-query>
-
   <sql-query name="deleteDiffById">
     delete from diffs
     where seq_id = :seq_id
     and domain = :domain
     and pair = :pair
+  </sql-query>
+
+  <!--
+    This query should be limited, but we currently don't have a dialect specific way of setting
+    the result set limit, so we are going to have to leave this up to Hibernate to handle for now.
+  -->
+  <sql-query name="prefetchPendingDiffs">
+    select * from pending_diffs
+  </sql-query>
+
+  <sql-query name="updatePendingDiffs">
+    update pending_diffs
+      set
+        upstream_vsn = :upstream_vsn,
+        downstream_vsn = :downstream_vsn,
+        last_seen = :last_seen
+    where oid = :oid
+  </sql-query>
+
+  <sql-query name="updateReportedDiffLastSeen">
+    update diffs
+      set
+        last_seen = :last_seen
+    where seq_id = :seq_id
+    and domain = :domain
+    and pair = :pair
+  </sql-query>
+
+  <sql-query name="deletePendingDiffByOid">
+    delete from pending_diffs
+    where oid = :oid
   </sql-query>
 
 </hibernate-mapping>

@@ -43,8 +43,11 @@ trait HibernateQueryUtils {
   /**
    * Returns a handle to a scrollable cursor. Note that this requires the caller to manage the session for themselves.
    */
-  def scrollableQuery[T](s: Session, queryName: String, params: Map[String, Any]): Cursor[T] = {
+  def scrollableQuery[T](s: Session, queryName: String, params: Map[String, Any], maxResults:Option[Int] = None): Cursor[T] = {
     val query: Query = s.getNamedQuery(queryName)
+
+    maxResults.map(m => query.setMaxResults(m))
+
     params foreach {
       case (param, value) => query.setParameter(param, value)
     }
@@ -63,13 +66,13 @@ trait HibernateQueryUtils {
   /**
    * Apply the closure to the query result set in a streaming fashion.
    */
-  def processAsStream[T](queryName: String, params: Map[String, Any], f: (Session, T) => Unit) = {
+  def processAsStream[T](queryName: String, params: Map[String, Any], f: (Session, T) => Unit, maxResults:Option[Int] = None) = {
 
     val session = sessionFactory.openSession
     var cursor: Cursor[T] = null
 
     try {
-      cursor = scrollableQuery[T](session, queryName, params)
+      cursor = scrollableQuery[T](session, queryName, params, maxResults)
 
       var count = 0
       while (cursor.next) {

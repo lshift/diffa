@@ -7,6 +7,7 @@ import hooks.HookManager
 import org.hibernate.dialect.Dialect
 import net.sf.ehcache.CacheManager
 import org.slf4j.LoggerFactory
+import util.cache.HazelcastCacheProvider
 import util.db.HibernateDatabaseFacade
 import util.{MissingObjectException, SchemaCleaner, DatabaseEnvironment}
 import org.hibernate.SessionFactory
@@ -78,6 +79,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     def onMembershipCreated(member: Member) {}
     def onMembershipRemoved(member: Member) {}
   }
+  private def cacheProvider = new HazelcastCacheProvider
 
   def sessionFactory = _sessionFactory match {
     case Some(sf) => sf
@@ -104,7 +106,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new HibernateDomainCredentialsStore(sf, new HibernateDatabaseFacade(sf)), "domainCredentialsStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new HibernateDomainDifferenceStore(sf, new HibernateDatabaseFacade(sf), cacheManager, dialect, hookManager), "DomainDifferenceStore")
+    makeStore(sf => new HibernateDomainDifferenceStore(sf, new HibernateDatabaseFacade(sf), cacheProvider, cacheManager, dialect, hookManager), "DomainDifferenceStore")
 
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore

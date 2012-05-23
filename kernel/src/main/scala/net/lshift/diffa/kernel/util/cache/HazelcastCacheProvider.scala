@@ -49,7 +49,7 @@ class HazelcastBackedMap[K,V](underlying:IMap[K,V]) extends CachedMap[K,V] {
     v.toList
   }
 
-  def put(key:K, value:V) = underlying.putIfAbsent(key, value)
+  def put(key:K, value:V) = underlying.put(key, value)
 
   def get(key:K) = underlying.get(key)
 

@@ -17,8 +17,9 @@ package net.lshift.diffa.kernel.util.db
 
 import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils => HQU}
 import net.lshift.diffa.kernel.util.db.SessionHelper._
+import org.hibernate.{Session, SessionFactory}
+import collection.mutable.ListBuffer
 
-import org.hibernate.SessionFactory
 
 /**
  * Hibernate backed implementation of the low level DB facade.
@@ -41,4 +42,91 @@ class HibernateDatabaseFacade(factory:SessionFactory) extends DatabaseFacade {
     factory.withSession(s => HQU.executeUpdate(s, queryName, params))
   }
 
+  def insert[T](o:T) : T  = {
+    factory.withSession(s => {
+      s.save(o)
+      o
+    })
+  }
+
+  def beginTransaction = new SessionBasedTransaction(factory)
+
+}
+
+class SessionBasedTransaction(factory:SessionFactory) extends Transaction {
+
+  val rollbackHandlers = new ListBuffer[RollbackHandler]
+
+  val session = factory.openSession()
+  val tx = session.beginTransaction()
+
+  def singleQueryMaybe[T](command:DatabaseCommand) = executeInternal(s => {
+    HQU.singleQueryOpt(s, command.queryName, command.params)
+  })
+
+  def execute(command:DatabaseCommand) = executeInternal(s => {
+    Some(HQU.executeUpdate(s, command.queryName, command.params))
+  }).get
+
+  def registerRollbackHandler(h:RollbackHandler) = {
+    rollbackHandlers += h
+  }
+
+  @Deprecated
+  def insert[T](o:T) = executeInternal(s => {
+    s.save(o)
+    Some(o)
+  }).get
+
+  def commit() {
+    try {
+      if (tx != null && tx.isActive) {
+        try {
+          tx.commit()
+        }
+        catch {
+          case x:Exception =>
+            onRollback()
+            tx.rollback()
+            throw x
+        }
+      }
+      else {
+        throw new RuntimeException("Invalid transation state")
+      }
+    }
+    finally {
+      session.close()
+    }
+  }
+
+  private def onRollback() {
+    rollbackHandlers.foreach(_.onRollback())
+  }
+
+  private def executeInternal[T](s:Session => Option[T]) = {
+    try {
+      s(session)
+    }
+    catch {
+      case x:Exception => {
+
+        onRollback()
+
+        if (tx != null) {
+          try {
+            tx.rollback()
+          }
+          finally {
+            session.close()
+          }
+
+        }
+        else {
+          session.close()
+        }
+        throw x
+      }
+    }
+  }
 }

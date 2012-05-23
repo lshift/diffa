@@ -64,6 +64,8 @@ class HibernateDomainDifferenceStoreTest {
     domainConfigStore.listPairs(domain.name).foreach(p => domainConfigStore.deletePair(domain.name, p.key))
     domainConfigStore.createOrUpdatePair(domain.name, pair1)
     domainConfigStore.createOrUpdatePair(domain.name, pair2)
+
+    domainDiffStore.reset
   }
 
   @Test

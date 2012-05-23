@@ -123,12 +123,6 @@ trait DomainDifferenceStore {
   def streamUnmatchedEvents(pairRef:DiffaPairRef, handler:(ReportedDifferenceEvent) => Unit)
 
   /**
-   * Applies a closure to all unmatched events for the given pair whose detection timestamp falls into the supplied time bound
-   */
-  @Deprecated
-  def retrieveUnmatchedEvents(domain:DiffaPairRef, interval:Interval, f:ReportedDifferenceEvent => Unit)
-
-  /**
    * Retrieves all unmatched events that have been added to the cache that have a detection time within the specified
    * interval. The result return a range of the underlying data set that corresponds to the offset and length
    * supplied.
