@@ -42,6 +42,10 @@ class HibernateDatabaseFacade(factory:SessionFactory) extends DatabaseFacade {
     factory.withSession(s => HQU.executeUpdate(s, queryName, params))
   }
 
+  def getOrFail[T](c: Class[T], id: java.io.Serializable, entityName: String) : T = {
+    factory.withSession(s => HQU.getOrFail(s, c, id, entityName))
+  }
+
   def insert[T](o:T) : T  = {
     factory.withSession(s => {
       s.save(o)

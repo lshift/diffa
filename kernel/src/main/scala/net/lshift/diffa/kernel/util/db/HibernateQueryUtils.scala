@@ -33,13 +33,6 @@ trait HibernateQueryUtils {
 
   protected val log: Logger = LoggerFactory.getLogger(getClass)
 
-  def getOrFail[ReturnType](s: Session, c: Class[ReturnType], id: java.io.Serializable, entityName: String): ReturnType = {
-    s.get(c, id) match {
-      case null => throw new MissingObjectException(entityName)
-      case e => e.asInstanceOf[ReturnType]
-    }
-  }
-
   /**
    * Returns a handle to a scrollable cursor. Note that this requires the caller to manage the session for themselves.
    */
@@ -258,6 +251,13 @@ object HibernateQueryUtils {
    */
   def limitedSingleQueryOpt[T](s: Session, queryName: String, params: Map[String, Any]): Option[T] =
     singleQueryOptBuilder(s, queryName, params, (q: Query) => q.setMaxResults(1))
+
+  def getOrFail[T](s: Session, c: Class[T], id: java.io.Serializable, entityName: String): T = {
+    s.get(c, id) match {
+      case null => throw new MissingObjectException(entityName)
+      case e => e.asInstanceOf[T]
+    }
+  }
 
   private def singleQueryOptBuilder[ReturnType](s: Session, queryName: String, params: Map[String, Any], f: Query => Unit): Option[ReturnType] = {
 

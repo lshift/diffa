@@ -16,9 +16,6 @@
 
 package net.lshift.diffa.kernel.util.db
 
-import org.hibernate.Session
-import net.lshift.diffa.kernel.util.MissingObjectException
-
 /**
  * Abstraction that hopefully lends itself to multiple implementations and allows DiffStore implementations
  * to be slightly less coupled to the underlying database, in terms of access and caching.
@@ -48,6 +45,12 @@ trait DatabaseFacade {
    * Executes the named UPDATE, DELETE or INSERT query with the specified parameters and the row count
    */
   def execute(queryName: String, params: Map[String, Any]) : Int
+
+  /**
+   * Returns a object by id and fails if it does not exist
+   * @throws MissingObjectException
+   */
+  def getOrFail[T](c: Class[T], id: java.io.Serializable, entityName: String) : T
 
   /**
    * This is a thin wrapper around the Hibernate Session save/1 call.
