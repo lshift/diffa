@@ -80,7 +80,10 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     // If difference partitioning is enabled, ask the hook to clean up each pair. Note that we'll end up running a
     // delete over all pair differences later anyway, so we won't record the result of the removal operation.
     if (hook.isDifferencePartitioningEnabled) {
-      listPairsInDomain(domain).foreach(p => hook.removeAllPairDifferences(domain, p.key))
+      listPairsInDomain(domain).foreach(p => {
+        hook.removeAllPairDifferences(domain, p.key)
+        removeLatestRecordedVersion(p.asRef)
+      })
     }
 
     removeDomainDifferences(domain)
@@ -100,7 +103,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
 
     preenPendingEventsCache("objId.pair.key", pair.key)
   }
-  
+
   def currentSequenceId(domain:String) =
     db.singleQueryMaybe[java.lang.Integer]("maxSeqIdByDomain", Map("domain" -> domain)).getOrElse(0).toString
 
@@ -193,7 +196,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
             deletePreviouslyReportedEvent(Some(tx), event)
 
             val previousDetectionTime = event.detectedAt
-            val newEvent = ReportedDifferenceEvent(null, id, new DateTime, true, vsn, vsn, new DateTime)
+            val newEvent = ReportedDifferenceEvent(null, id, new DateTime, true, vsn, vsn, event.lastSeen)
             saveAndConvertEvent(Some(tx), newEvent, previousDetectionTime)
           })
 
@@ -204,35 +207,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
       null
     }
 
-  }
-
-  /**
-   * Convert all unmatched DifferenceEvents with a lastSeen time earlier
-   * than the cut-off to matched DifferenceEvents (matched: false -> true).
-   */
-  def matchEventsOlderThan(pair:DiffaPairRef, cutoff: DateTime) = {
-
-    /**
-     * Convert an unmatched difference event to a matched difference event
-     * and set its lastSeen and detectedAt values to the current time.
-     * Converting from unmatched to matched means setting its matched value to 'true'.
-     */
-    def convertOldEvent(s:Session, old:ReportedDifferenceEvent) {
-
-      // NOTE That this still uses the deprecated Hibernate API
-
-      s.delete(old)
-      val lastSeen = new DateTime
-      val detectedAt = lastSeen
-      val matched = true // 'convert' to matched
-      saveAndConvertEvent(s, ReportedDifferenceEvent(null, old.objId, detectedAt, matched, old.upstreamVsn, old.upstreamVsn, lastSeen) )
-    }
-
-     val params = Map("domain" -> pair.domain,
-                      "pair"   -> pair.key,
-                      "cutoff" -> cutoff)
-
-     processAsStream[ReportedDifferenceEvent]("unmatchedEventsOlderThanCutoffByDomainAndPair", params, convertOldEvent)
   }
 
   def ignoreEvent(domain:String, seqId:String) = {
@@ -296,13 +270,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     case Some(checkpoint) => Some(checkpoint.latestVersion)
   }
 
-  def removeLatestRecordedVersion(pair:DiffaPairRef) = sessionFactory.withSession(s => {
-    getStoreCheckpoint(pair) match {
-      case Some(checkpoint) => s.delete(checkpoint)
-      case None             => //
-    }
-  })
-
   def recordLatestVersion(pairRef:DiffaPairRef, version:Long) = sessionFactory.withSession(s => {
     val pair = getPair(s, pairRef.domain, pairRef.key)
     s.saveOrUpdate(new StoreCheckpoint(pair, version))
@@ -343,10 +310,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     val count:Option[java.lang.Long] = Option(c.uniqueResult().asInstanceOf[java.lang.Long])
     count.getOrElse(new java.lang.Long(0L)).intValue
   })
-
-  def retrieveEventsSince(domain: String, evtSeqId: String) =
-    db.listQuery[ReportedDifferenceEvent]("eventsSinceByDomain",
-      Map("domain" -> domain, "seqId" -> Integer.parseInt(evtSeqId))).map(_.asDifferenceEvent)
 
   def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] =
     aggregationCache.retrieveAggregates(pair, start, end, aggregateMinutes)
@@ -593,6 +556,13 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
   private def inCurrrentTransaction[T](tx:Transaction, f:Transaction => T) : T = {
     f(tx)
   }
+
+  private def removeLatestRecordedVersion(pair:DiffaPairRef) = sessionFactory.withSession(s => {
+    getStoreCheckpoint(pair) match {
+      case Some(checkpoint) => s.delete(checkpoint)
+      case None             => //
+    }
+  })
 
 }
 

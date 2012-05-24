@@ -101,7 +101,8 @@ class StoreSynchronizationTest {
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(u))
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(d))
     domainConfigStore.createOrUpdatePair(domainName, toPairDef(pair))
-    domainDiffsStore.removeLatestRecordedVersion(pairRef)
+
+    domainDiffsStore.removeDomain(domainName)
 
     assertEquals(None, diffsManager.lastRecordedVersion(pairRef))
   }

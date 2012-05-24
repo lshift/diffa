@@ -139,7 +139,7 @@ class DomainDifferenceStorePerfTest {
               
       // Time the expiry
       constantCost(() => {
-        diffStore.matchEventsOlderThan(pair, now)
+        diffStore.expireMatches(now)
       })
     }
   }

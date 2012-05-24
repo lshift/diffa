@@ -78,12 +78,6 @@ trait DomainDifferenceStore {
   def addMatchedEvent(id:VersionID, vsn:String):DifferenceEvent
 
   /**
-   * Indicates that all differences in the cache older than the given date should be marked as matched. This is generally
-   * invoked upon a scan being completed, and allows for events that have disappeared to be removed.
-   */
-  def matchEventsOlderThan(pair:DiffaPairRef, cutoff: DateTime)
-
-  /**
    * Indicates that the given event should be ignored, and not returned in any query. Returns the regenerated object
    * that is marked as ignored.
    */
@@ -100,11 +94,6 @@ trait DomainDifferenceStore {
    * Returns the last correlation version that was transferred to the diffs store
    */
   def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
-
-  /**
-   * Removes the entry for the latest correlation store that was recorded with the diffs store.
-   */
-  def removeLatestRecordedVersion(pair:DiffaPairRef)
 
   /**
    * Registers the latest correlation store version with the diff store.
@@ -133,14 +122,6 @@ trait DomainDifferenceStore {
    * Count the number of unmatched events for the given pair within the given interval.
    */
   def countUnmatchedEvents(pair: DiffaPairRef, start:DateTime, end:DateTime) : Int
-
-  /**
-   * Retrieves all events that have occurred within a domain since the provided sequence id.
-   * @param evtSeqId the last known sequence id. All events occurring after (not including) this event will be returned.
-   * @throws SequenceOutOfDateException if the provided sequence id is too old, and necessary scan information cannot be
-   *    provided. A client will need to recover by calling retrieveAllEvents and re-process all events.
-   */
-  def retrieveEventsSince(domain:String, evtSeqId:String):Seq[DifferenceEvent]
 
   /**
    * Retrieves a single event by its id.
