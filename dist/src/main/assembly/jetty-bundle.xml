@@ -91,6 +91,9 @@
         <include>com.jolbox:bonecp</include>
         <include>org.hsqldb:hsqldb</include>
         <include>javax.mail:mail</include>
+        <include>ch.qos.logback:logback-classic</include>
+        <include>ch.qos.logback:logback-core</include>
+        <include>org.slf4j:slf4j-api</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
