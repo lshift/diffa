@@ -39,10 +39,10 @@
       <artifactId>logback-classic</artifactId>
     </dependency>
     <dependency>
-      <groupId>se.scalablesolutions.akka</groupId>
+      <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor</artifactId>
     </dependency>
-    <dependency>
+      <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>

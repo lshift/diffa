@@ -26,10 +26,10 @@ import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAwar
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.reporting.ReportManager
-import akka.actor.Actor
 import net.lshift.diffa.kernel.util.AlertCodes._
 import java.io.Closeable
 import net.lshift.diffa.kernel.actors.AbstractActorSupervisor
+import akka.actor.{ActorSystem, Props, Actor}
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -49,7 +49,8 @@ import net.lshift.diffa.kernel.actors.AbstractActorSupervisor
  */
 class EscalationManager(val config:DomainConfigStore,
                         val actionsClient:ActionsClient,
-                        val reportManager:ReportManager)
+                        val reportManager:ReportManager,
+                        val actorSystem: ActorSystem)
     extends AbstractActorSupervisor
     with DifferencingListener
     with AgentLifecycleAware
@@ -59,7 +60,6 @@ class EscalationManager(val config:DomainConfigStore,
   val log = LoggerFactory.getLogger(getClass)
 
   private class EscalationActor(pair: DiffaPairRef) extends Actor {
-    self.id = EscalationActor.key(pair)
     
     def receive = {
       case (UpstreamMissing, id: VersionID)     => escalateEntityEvent(id, UPSTREAM_MISSING)
@@ -75,7 +75,8 @@ class EscalationManager(val config:DomainConfigStore,
     def key(pair: DiffaPairRef) = "escalations:" + pair.identifier
   }
 
-  def createPairActor(pair: DiffaPairRef) = Some(Actor.actorOf(new EscalationActor(pair)))
+  def createPairActor(pair: DiffaPairRef) = Some(actorSystem.actorOf(
+   Props(new EscalationActor(pair))))
 
   /**
    * Since escalations are currently only driven off mismatches, matches can be safely ignored.
@@ -124,5 +125,6 @@ class EscalationManager(val config:DomainConfigStore,
   def findEscalations(pair: DiffaPairRef, eventType:String, actionTypes:String*) =
     config.listEscalationsForPair(pair.domain, pair.key).
       filter(e => e.event == eventType && actionTypes.contains(e.actionType))
+
 
 }

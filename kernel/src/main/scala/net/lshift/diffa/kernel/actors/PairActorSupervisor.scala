@@ -16,7 +16,8 @@
 
 package net.lshift.diffa.kernel.actors
 
-import akka.actor.Actor
+import akka.actor._
+import akka.pattern.ask
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.participants.ParticipantFactory
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
@@ -28,6 +29,9 @@ import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.util.EndpointSide
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 import net.lshift.diffa.kernel.util.AlertCodes._
+import akka.dispatch.Await
+import akka.util.duration._
+import akka.util.Timeout
 
 case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                systemConfig:SystemConfigStore,
@@ -39,7 +43,8 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
                                diagnostics:DiagnosticsManager,
                                changeEventBusyTimeoutMillis:Long,
                                changeEventQuietTimeoutMillis:Long,
-                               indexWriterCloseInterval: Int)
+                               indexWriterCloseInterval: Int,
+                               actorSystem: ActorSystem)
     extends AbstractActorSupervisor
     with PairPolicyClient
     with AgentLifecycleAware {
@@ -61,11 +66,12 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
        val usp = participantFactory.createUpstreamParticipant(us, pairRef)
        val dsp = participantFactory.createDownstreamParticipant(ds, pairRef)
 
-       Some(Actor.actorOf(
+       Some(actorSystem.actorOf(Props(
          new PairActor(pair, us, ds, usp, dsp, pol, stores(pairRef),
            differencesManager, pairScanListener,
-           diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis, indexWriterCloseInterval)
-       ))
+           diagnostics, domainConfig, changeEventBusyTimeoutMillis, changeEventQuietTimeoutMillis,
+           indexWriterCloseInterval, actorSystem)
+       )))
      case None =>
        log.error("Failed to find policy for name: {}", formatAlertCode(pair.versionPolicyName, INVALID_VERSION_POLICY))
        None
@@ -74,12 +80,18 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
 
   def propagateChangeEvent(event:PairChangeEvent) = findActor(event.id) ! ChangeMessage(event)
 
+  // TODO: Pick more appropriate value.
+  implicit val waitTimeout = Timeout(10 seconds)
   def startInventory(pair: DiffaPairRef, side: EndpointSide, view:Option[String]): Seq[ScanRequest] = {
-    (findActor(pair) ? StartInventoryMessage(side, view)).as[Seq[ScanRequest]].get
+    val future = (findActor(pair) ? StartInventoryMessage(side, view))
+
+    Await.result(future, waitTimeout.duration).asInstanceOf[Seq[ScanRequest]]
   }
 
   def submitInventory(pair:DiffaPairRef, side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]) = {
-    (findActor(pair) ? InventoryMessage(side, constraints, aggregations, entries)).as[Seq[ScanRequest]].get
+    val res = (findActor(pair) ? InventoryMessage(side, constraints, aggregations, entries))
+
+    Await.result(res, waitTimeout.duration).asInstanceOf[Seq[ScanRequest]]
   }
 
   def difference(pairRef:DiffaPairRef) =
@@ -96,9 +108,9 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   }
 
   def cancelScans(pairRef:DiffaPairRef) = {
-    (findActor(pairRef) !! CancelMessage) match {
-      case Some(flag) => true
-      case None       => false
+    val future = findActor(pairRef) ? CancelMessage
+    Await.result(future, waitTimeout.duration) match {
+      case flag => true
     }
   }
 

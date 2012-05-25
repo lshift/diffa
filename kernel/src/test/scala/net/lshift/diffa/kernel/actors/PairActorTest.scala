@@ -38,6 +38,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
 import net.lshift.diffa.participant.scanning._
+import akka.dispatch.{ExecutionContext, Future}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.junit.{Test, After, Before}
@@ -76,7 +77,9 @@ class PairActorTest {
   val versionPolicy = createMock("versionPolicy", classOf[VersionPolicy])
   checkOrder(versionPolicy, false)
 
-  expect(versionPolicyManager.lookupPolicy(policyName)).andReturn(Some(versionPolicy))
+  // TODO: We use at least once here, because seemingly, we get called on the actor create code path.
+  // And because in Akka2; creating an actor starts it, we end up running this code (again?) in the @After block,
+  expect(versionPolicyManager.lookupPolicy(policyName)).andReturn(Some(versionPolicy)).atLeastOnce()
   org.easymock.classextension.EasyMock.replay(versionPolicyManager)
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
@@ -116,12 +119,17 @@ class PairActorTest {
   expect(differencesManager.lastRecordedVersion(pairRef)).andStubReturn(None)
   replay(differencesManager)
 
-  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, 50, 100, closeInterval)
+  val actorSystem = ActorSystem("PairActorSTest%#x".format(hashCode()))
+
+  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, 50, 100, closeInterval, actorSystem)
   supervisor.onAgentAssemblyCompleted
   supervisor.onAgentConfigurationActivated
-  
+
   @After
-  def stop = supervisor.stopActor(pair.asRef)
+  def stop = {
+    supervisor.stopActor(pair.asRef)
+    actorSystem.shutdown()
+  }
 
   // Check for spurious actor events
   val spuriousEventAppender = new SpuriousEventAppender
@@ -389,11 +397,13 @@ class PairActorTest {
     val event = buildUpstreamEvent()
 
     val timeToWait = 2000L
+    implicit val system =  actorSystem
+    implicit val ec = ExecutionContext.defaultExecutionContext
 
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall     // Expect once when the pair actor starts the call
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = {
-        Actor.spawn {
+        Future {
           // Request a cancellation in a background thread so that the pair actor can be scheduled
           // in to process the cancellation. Notifying the main test thread that the request
           // returned true is the same thing as assertTrue(supervisor.cancelScans(pairKey))
@@ -447,7 +457,7 @@ class PairActorTest {
   def shouldReportScanFailure = {
     val monitor = new Object
 
-    expectFailingScan(
+    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(
       downstreamHandler = EasyMockScalaUtils.emptyAnswer,
       failStateHandler = new IAnswer[Unit] {
           def answer { monitor.synchronized { monitor.notifyAll } }
@@ -471,10 +481,12 @@ class PairActorTest {
   def shouldCancelFeedbackHandleWhenAParticipantFails = {
     val wasMarkedAsCancelled = new SyncVar[Boolean]
 
-    expectFailingScan(downstreamHandler = new IAnswer[Unit] {
+    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
       def answer() {
         val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
+        println("Marking as cancelled for %s".format(feedbackHandle))
         awaitFeedbackHandleCancellation(feedbackHandle)
+        println("Feedbackhandle %s cancelled? %s".format(feedbackHandle, feedbackHandle.isCancelled))
         wasMarkedAsCancelled.set(feedbackHandle.isCancelled)
       }
     })
@@ -495,12 +507,24 @@ class PairActorTest {
   def shouldGenerateExceptionInVersionCorrelationWriterProxyWhenAParticipantFails = {
     val proxyDidGenerateException = new SyncVar[Boolean]
 
-    expectFailingScan(downstreamHandler = new IAnswer[Unit] {
+    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
       def answer() {
         val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
+        println("Awaiting %s;  args:%s".format(feedbackHandle,
+          EasyMock.getCurrentArguments().toList))
         awaitFeedbackHandleCancellation(feedbackHandle)
 
+        println("Feedbackhandle %s cancelled? %s;".format(feedbackHandle,
+          feedbackHandle.isCancelled
+        ))
+
+        // Seemingly, what we're being passed in here as a writer instance is
+        // a mock object; which we haven't (at this point) configured to
+        // understand the message "clearDownstreamVersion"
+        // But only sometimes.Most of the time we get an instance of PairActor$$anon$2 (or something)
+
         val writer = EasyMock.getCurrentArguments()(3).asInstanceOf[LimitedVersionCorrelationWriter]
+        println("writer (args(3))#getClass() -> %s".format(writer.getClass()))
         try {
           writer.clearDownstreamVersion(VersionID(DiffaPairRef("p1","domain"), "abc"))
           proxyDidGenerateException.set(false)
@@ -518,7 +542,7 @@ class PairActorTest {
 
     supervisor.startActor(pair.asRef)
     supervisor.scanPair(pair.asRef, None)
-    
+
     assertTrue(proxyDidGenerateException.get(4000).getOrElse(throw new Exception("Exception validation never reached in participant stub")))
     verify(versionPolicy, scanListener, diagnostics)
   }
@@ -539,7 +563,7 @@ class PairActorTest {
     val overallProcessWait = waitForSecondScanToStartDelay + waitForStragglerToFinishDelay + 1000
       // The overall process could take up to both delays, plus a bit of breathing room
 
-    expectFailingScan(
+    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(
       downstreamHandler = new IAnswer[Unit] {
           def answer() {
             if (secondScanIsRunning.get(waitForSecondScanToStartDelay).isDefined) {
@@ -563,7 +587,7 @@ class PairActorTest {
             supervisor.scanPair(pair.asRef, None)      // Run a second scan when the first one fails
           }
         })
-    
+
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall().atLeastOnce()
     expectUpstreamScan().once()  // Succeed on second
     expectDownstreamScan().andAnswer(new IAnswer[Unit] {
@@ -708,7 +732,7 @@ class PairActorTest {
     //mailbox.poll(5, TimeUnit.SECONDS) match { case null => fail("Flush not called"); case _ => () }
   }
 
-  def expectFailingScan(downstreamHandler:IAnswer[Unit], failStateHandler:IAnswer[Unit] = EasyMockScalaUtils.emptyAnswer) {
+  def expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler:IAnswer[Unit], failStateHandler:IAnswer[Unit] = EasyMockScalaUtils.emptyAnswer) {
     expectWriterRollback()
 
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall.atLeastOnce()

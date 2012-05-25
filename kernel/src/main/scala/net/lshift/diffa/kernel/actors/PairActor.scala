@@ -26,6 +26,10 @@ import org.joda.time.DateTime
 import net.lshift.diffa.kernel.util.AlertCodes._
 import com.eaio.uuid.UUID
 import akka.actor._
+import akka.dispatch.{Await, ExecutionContext, Future}
+import akka.pattern.{ask, AskTimeoutException}
+
+import collection.mutable.{SynchronizedQueue, Queue}
 import collection.mutable.Queue
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
@@ -34,6 +38,9 @@ import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, Endpoint, DiffaPair}
 import net.lshift.diffa.kernel.util.{EndpointSide, DownstreamEndpoint, UpstreamEndpoint}
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
+import akka.util.Timeout
+import akka.util.duration._
+
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
@@ -51,17 +58,16 @@ case class PairActor(pair:DiffaPair,
                      domainConfigStore:DomainConfigStore,
                      changeEventBusyTimeoutMillis: Long,
                      changeEventQuietTimeoutMillis: Long,
-                     indexWriterCloseInterval: Int) extends Actor {
+                     indexWriterCloseInterval: Int,
+                     actorSystem: ActorSystem) extends Actor {
 
   val logger:Logger = LoggerFactory.getLogger(getClass)
-
-  self.id_=(pair.identifier)
 
   private val pairRef = pair.asRef
 
   private var actionsRemainingUntilClose = indexWriterCloseInterval
   private var lastEventTime: Long = 0
-  private var scheduledFlushes: ScheduledFuture[_] = _
+  private var scheduledFlushes: Cancellable = _
 
   /**
    * Flag that can be used to signal that scanning should be cancelled.
@@ -86,11 +92,6 @@ case class PairActor(pair:DiffaPair,
    * are entirely spurious, or just jobs cleaning themselves up.
    */
   private val outstandingScans = collection.mutable.Map[UUID, OutstandingScan]()
-
-  /**
-   * This is the address of the client that requested the last cancellation
-   */
-  private var cancellationRequester:Channel[Any] = null
 
   /**
    * This allows tracing of spurious messages, but is only enabled in when the log level is set to TRACE
@@ -144,7 +145,9 @@ case class PairActor(pair:DiffaPair,
   private def createWriterProxy(scanUuid:UUID) = new LimitedVersionCorrelationWriter() {
 
     // The receive timeout in seconds
-    val timeout = domainConfigStore.configOptionOrDefault(pairRef.domain, CorrelationWriterProxy.TIMEOUT_KEY, CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)
+    val timeout = domainConfigStore.configOptionOrDefault(
+      pairRef.domain, CorrelationWriterProxy.TIMEOUT_KEY,
+      CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE).toInt
 
     def clearUpstreamVersion(id: VersionID) = call( _.clearUpstreamVersion(id) )
     def clearDownstreamVersion(id: VersionID) = call( _.clearDownstreamVersion(id) )
@@ -153,13 +156,17 @@ case class PairActor(pair:DiffaPair,
     def storeUpstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, vsn: String)
       = call( _.storeUpstreamVersion(id, attributes, lastUpdated, vsn) )
     def call(command:(LimitedVersionCorrelationWriter => Correlation)) = {
+      implicit val askTimeout : Timeout = timeout
       val message = VersionCorrelationWriterCommand(scanUuid, command)
-      (self !!(message, 1000L * timeout.toInt)) match {
-        case Some(CancelMessage)  => throw new ScanCancelledException(pairRef)
-        case Some(result)         => result.asInstanceOf[Correlation]
-        case None                 =>
+      val future = self.ask(message)
+      try {
+        Await.result(future, timeout seconds) match {
+          case CancelMessage  => throw new ScanCancelledException(pairRef)
+          case result:Any     => result.asInstanceOf[Correlation]
+        }
+      } catch { case e: AskTimeoutException =>
           logger.error("%s Writer proxy timed out after %s seconds processing command: %s "
-                       .format(formatAlertCode(pairRef, MESSAGE_RECEIVE_TIMEOUT), timeout, message), new Exception().fillInStackTrace())
+                       .format(formatAlertCode(pairRef, MESSAGE_RECEIVE_TIMEOUT), timeout, message), e)
           throw new RuntimeException("Writer proxy timeout")
       }
     }
@@ -194,10 +201,11 @@ case class PairActor(pair:DiffaPair,
 
   override def preStart = {
     // schedule a recurring message to flush the writer
-    scheduledFlushes = Scheduler.schedule(self, FlushWriterMessage, 0, changeEventQuietTimeoutMillis, MILLISECONDS)
-  }
+    scheduledFlushes = context.system.scheduler.schedule(
+      1 second, changeEventQuietTimeoutMillis milliseconds, self, FlushWriterMessage)
+    }
 
-  override def postStop = scheduledFlushes.cancel(true)
+  override def postStop = scheduledFlushes.cancel
 
   /**
    * Main receive loop of this actor. This is effectively a FSM.
@@ -208,17 +216,17 @@ case class PairActor(pair:DiffaPair,
     case ScanMessage(scanView) => {
       if (handleScanMessage(scanView)) {
         // Go into the scanning state
-        become(receiveWhilstScanning)
+        context.become(receiveWhilstScanning)
       }
     }
     case c:ChangeMessage                   => handleChangeMessage(c)
-    case i:InventoryMessage                => self.reply(handleInventoryMessage(i))
-    case i:StartInventoryMessage           => self.reply(handleStartInventoryMessage(i))
+    case i:InventoryMessage                => sender ! handleInventoryMessage(i)
+    case i:StartInventoryMessage           => sender ! handleStartInventoryMessage(i)
     case DifferenceMessage                 => handleDifferenceMessage()
     case FlushWriterMessage                => writer.flush()
     case c:VersionCorrelationWriterCommand => {
       logger.trace("Received writer command (%s) in non-scanning state - sending cancellation".format(c), c.exception)
-      self.reply(CancelMessage)
+      sender ! CancelMessage
     }
     case camsg:ChildActorScanMessage if isOwnedByOutstandingScan(camsg) =>
       updateOutstandingScans(camsg)     // Allow outstanding cancelled scans to clean themselves up nicely
@@ -226,7 +234,7 @@ case class PairActor(pair:DiffaPair,
       if (logger.isDebugEnabled) {
           logger.debug(formatAlertCode(pairRef, CANCELLATION_REQUEST_RECEIVED)  + " Received cancellation request in non-scanning state, ignoring")
       }
-      self.reply(true)
+      sender ! true
     }
     case a:ChildActorCompletionMessage     =>
       a.logMessage(logger, Ready, OUT_OF_ORDER_MESSAGE)
@@ -243,13 +251,13 @@ case class PairActor(pair:DiffaPair,
     case FlushWriterMessage                 => // ignore flushes in this state - we may want to roll the index back
     case CancelMessage                      =>
       handleCancellation()
-      self.reply(true)
+      sender ! true
     case c: VersionCorrelationWriterCommand =>
       if (isOwnedByActiveScan(c)) {
-        self.reply(c.invokeWriter(writer))
+        sender ! c.invokeWriter(writer)
       } else {
         logger.trace("Received writer command (%s) for different scan worker - sending cancellation".format(c), c.exception)
-        self.reply(CancelMessage)
+        sender ! CancelMessage
       }
     case ScanMessage(scanView)              =>
       // ignore any scan requests whilst scanning
@@ -331,9 +339,6 @@ case class PairActor(pair:DiffaPair,
     // Make sure that this flag is zeroed out
     feedbackHandle = null
 
-    // Make sure there is no dangling back address
-    cancellationRequester = null
-
     // Inform the diagnostics manager that we've completed a major operation, so it should checkpoint the explanation
     // data.
     diagnostics.checkpointExplanations(pair.asRef)
@@ -342,7 +347,7 @@ case class PairActor(pair:DiffaPair,
     cleanupIndexFilesIfCorrelationStoreBackedByLucene
 
     // Leave the scan state
-    unbecome()
+    context.unbecome()
   }
 
   /**
@@ -428,6 +433,9 @@ case class PairActor(pair:DiffaPair,
    */
   def handleScanMessage(scanView:Option[String]) : Boolean = {
     val createdScan = OutstandingScan(new UUID)
+    implicit val system = actorSystem
+    implicit val executionContext = ExecutionContext.defaultExecutionContext
+
 
     logger.info(formatAlertCode(pairRef, SCAN_STARTED_BENCHMARK))
 
@@ -451,7 +459,7 @@ case class PairActor(pair:DiffaPair,
 
       diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, infoMsg)
 
-      Actor.spawn {
+      Future {
         try {
           policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
@@ -466,7 +474,7 @@ case class PairActor(pair:DiffaPair,
         }
       }
 
-      Actor.spawn {
+      Future {
         try {
           policy.scanDownstream(pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
           self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)

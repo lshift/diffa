@@ -49,7 +49,7 @@
     <javamail.file.transport.version>1.0</javamail.file.transport.version>
     <slf4j.version>1.6.4</slf4j.version>
     <logback.version>1.0.0</logback.version>
-    <akka.version>1.3.1</akka.version>
+    <akka.version>2.0.1</akka.version>
     <quartz.version>2.1.3</quartz.version>
     <ehcache.version>2.4.7</ehcache.version>
     <wroj.version>1.4.4</wroj.version>
@@ -354,7 +354,7 @@
       <version>${hazelcast.version}</version>
     </dependency>
     <dependency>
-      <groupId>se.scalablesolutions.akka</groupId>
+      <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor</artifactId>
       <version>${akka.version}</version>
       <exclusions>
@@ -494,6 +494,13 @@
     </dependency>
   </dependencies>
   </dependencyManagement>
+  <distributionManagement>
+    <repository>
+      <id>typesafe</id>
+      <name>Typesafe Repository</name>
+      <url>http://repo.typesafe.com/typesafe/releases/</url>
+    </repository>
+  </distributionManagement>
   <build>
     <pluginManagement>
       <plugins>

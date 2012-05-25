@@ -16,7 +16,6 @@
 
 package net.lshift.diffa.kernel.actors
 
-import akka.actor.ActorRef
 import java.util.HashMap
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.config.DiffaPairRef
@@ -25,6 +24,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.util.{MissingObjectException, Lazy}
 import java.io.Closeable
 import scala.collection.JavaConversions._
+import akka.actor.{ActorSystem, ActorRef}
 
 /**
  * Common superclass for components that need to manage actors.
@@ -39,6 +39,9 @@ abstract class AbstractActorSupervisor
   private val pairActors = new HashMap[DiffaPairRef, PotentialActor]()
 
 
+  val actorSystem: ActorSystem
+
+
   /**
    * Creates a topical actor for the given pair - supervising actor subclasses need to
    * define the concrete actor behavior they require.
@@ -50,7 +53,6 @@ abstract class AbstractActorSupervisor
   def startActor(pair: DiffaPairRef) {
 
     def createAndStartPairActor = createPairActor(pair) map { actor =>
-      actor.start()
       logger.info("{} actor started", formatAlertCode(pair, ACTOR_STARTED))
       actor
     }
@@ -73,7 +75,7 @@ abstract class AbstractActorSupervisor
     // the synchronized block.  Stopping the actor can cause actions such as
     // scans to fail, which is expected.
     if (oldActor != null) {
-      oldActor().map(_.stop())
+      oldActor().map(actorSystem.stop(_))
       logger.info("{} Stopping existing actor for key: {}",
         formatAlertCode(pair, ACTOR_STOPPED), pair.identifier)
     }
@@ -88,7 +90,7 @@ abstract class AbstractActorSupervisor
     // pair scans which will fail as expected if the actor is stopped just
     // before the scan attempts to use it.
     if (actor != null) {
-      actor().map(_.stop())
+      actor().map(actorSystem.stop(_))
       logger.info("{} actor stopped", formatAlertCode(pair, ACTOR_STOPPED))
     } else {
       logger.warn("{} Could not resolve actor for key: {}",
