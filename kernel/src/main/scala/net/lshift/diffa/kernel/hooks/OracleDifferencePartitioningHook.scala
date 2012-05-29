@@ -20,7 +20,7 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
       if (!hasPartition(s, partitionName)) {
         val query = s.createSQLQuery("alter table diffs add partition " + partitionName + " values('" + escapedVal + "')")
         query.executeUpdate()
-        new OracleIndexRebuilder().rebuild(sessionFactory, "diffs")
+        new OracleIndexRebuilder().rebuild(s, "diffs")
       }
     })
   }
@@ -33,7 +33,7 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
       if (hasPartition(s, partitionName)) {
         val query = s.createSQLQuery("alter table diffs drop partition " + partitionName)
         query.executeUpdate()
-        new OracleIndexRebuilder().rebuild(sessionFactory, "diffs")
+        new OracleIndexRebuilder().rebuild(s, "diffs")
       }
     })
   }
@@ -45,6 +45,7 @@ class OracleDifferencePartitioningHook(sessionFactory:SessionFactory) extends Di
       if (hasPartition(s, partitionName)) {
         val query = s.createSQLQuery("alter table diffs truncate partition " + partitionName)
         query.executeUpdate()
+        new OracleIndexRebuilder().rebuild(s, "diffs")
         true
       } else {
         false

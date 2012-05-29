@@ -49,7 +49,6 @@ class HibernateDomainDifferenceStoreTest {
   @Before
   def clear() {
     domainDiffStore.clearAllDifferences
-    indexRebuilder.rebuild(storeReferences.sessionFactory, "diffs")
 
     systemConfigStore.createOrUpdateDomain(domain)
     val us = EndpointDef(name = "upstream")
