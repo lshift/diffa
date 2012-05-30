@@ -156,11 +156,11 @@ case class PairActor(pair:DiffaPair,
     def storeUpstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, vsn: String)
       = call( _.storeUpstreamVersion(id, attributes, lastUpdated, vsn) )
     def call(command:(LimitedVersionCorrelationWriter => Correlation)) = {
-      implicit val askTimeout : Timeout = timeout
+      implicit val askTimeout : Timeout = timeout seconds
       val message = VersionCorrelationWriterCommand(scanUuid, command)
       val future = self.ask(message)
       try {
-        Await.result(future, timeout seconds) match {
+        Await.result(future, askTimeout duration) match {
           case CancelMessage  => throw new ScanCancelledException(pairRef)
           case result:Any     => result.asInstanceOf[Correlation]
         }
