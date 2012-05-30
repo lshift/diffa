@@ -109,6 +109,7 @@
     <constructor-arg ref="diffaSessionFactory" />
     <constructor-arg ref="databaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
+    <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="zoomCacheManager"/>
     <constructor-arg ref="dialect"/>
     <constructor-arg ref="hookManager" />
@@ -333,6 +334,11 @@
 
   <bean id="databaseFacade" class="net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade">
     <constructor-arg ref="diffaSessionFactory" />
+    <constructor-arg>
+      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName" value="java:comp/env/jdbc/diffaDS"/>
+      </bean>
+    </constructor-arg>
   </bean>
 
   <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
@@ -387,6 +393,8 @@
   </bean>
 
   <bean id="hazelcastCacheProvider" class="net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider"></bean>
+
+  <bean id="hazelcastSequenceProvider" class="net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider"></bean>
 
   <!--
     ===========

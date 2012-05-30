@@ -140,7 +140,7 @@ case class SequenceCacheKey(pair:DiffaPairRef, start:DateTime, end:DateTime)
  * Value stored in the sequence cache, representing the max sequence id found in the region along with the total
  * count of differences.
  */
-case class SequenceCacheValue(maxSeqId:Int, totalCount:Int) {
+case class SequenceCacheValue(maxSeqId:Long, totalCount:Int) {
   def toValidationKey = maxSeqId + "." + totalCount
 }
 object SequenceCacheValue {

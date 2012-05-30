@@ -616,8 +616,37 @@ class HibernateDomainDifferenceStoreTest {
     assertEquals(0, unmatched.length)
   }
 
+  @Test
+  def pendingEventShouldUpgradePreviouslyReportedEvent() {
+
+    // Coarsen the time precision to seconds to workaround MySQL timestamp granularity limitation :-(
+    val timestamp = new DateTime().withMillisOfSecond(0)
+    val detectedAt = timestamp.plusSeconds(1)
+    val seenFirst = timestamp.plusSeconds(2)
+    val unmatchedAt = timestamp.plusSeconds(3)
+    val seenNext = timestamp.plusSeconds(4)
+
+    val event = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2","domain"), "id2"), detectedAt, "uV", null, seenFirst)
+    domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id2"), unmatchedAt, "uV", "dV", seenNext)
+
+    try {
+      domainDiffStore.getEvent("domain", event.seqId.toString)
+      fail("Should have generated an InvalidSequenceNumberException for sequence id " + event.seqId)
+    }
+    catch {
+      case i:InvalidSequenceNumberException => // expected
+    }
+
+    val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
+    val unmatched = domainDiffStore.retrieveUnmatchedEvents("domain", interval)
+
+    assertEquals(1, unmatched.length)
+    assertEquals(event.sequenceId + 1, unmatched(0).sequenceId)
+    assertEquals(detectedAt, unmatched(0).detectedAt)
+  }
+
   /**
-   * Oracle DB throws a BatchUpdateException with ORA-14400 when attempting to
+   * Oracle DB throws an SQLException with ORA-14400 when attempting to
    * insert a partition key that does not map to any partition.  This exception
    * pre-empts what would otherwise happen if the table were not partitioned
    * (ConstraintViolationException).
@@ -633,7 +662,7 @@ class HibernateDomainDifferenceStoreTest {
       case cve: org.hibernate.exception.ConstraintViolationException =>
         throw cve
       case ex => ex.getCause match {
-        case batchUpdateEx: java.sql.BatchUpdateException =>
+        case batchUpdateEx: java.sql.SQLException =>
           if (batchUpdateEx.getMessage.contains("ORA-14400"))
             throw new ConstraintViolationException(batchUpdateEx.getMessage, batchUpdateEx, "")
         case unexpected =>

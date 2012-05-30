@@ -66,6 +66,16 @@ trait CachedMap[K,V] extends CachedSubset[K,V] {
   def valueSubset(attribute:String, value:String) : List[V]
 
   /**
+   * NOTE: NOT PORTABLE
+   *
+   * This provides zero abstraction over the capabilities of the underlying implementation :-(
+   *
+   * But OTOH it allows you to express a query in SQL syntax, so in the interests of expediency
+   * and the fact we don't have a 2nd cache provider yet, lets go with this for now.
+   */
+  def valueSubset(predicate:String) : List[V]
+
+  /**
    * Retrieves a value based on the supplied key from the cache, if the value is already cached.
    * If the value is not already cached, the supplied function is executed to retrieve the data
    * from the underlying storage and returns this to the caller, inserting it into the cache against

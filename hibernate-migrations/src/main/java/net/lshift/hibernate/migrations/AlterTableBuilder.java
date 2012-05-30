@@ -188,6 +188,9 @@ public class AlterTableBuilder extends TraceableMigrationElement {
   }
 
   public AlterTableBuilder renameTo(String newName) {
+    if (newName.equals(table)) {
+      throw new IllegalArgumentException("Cannot rename a table to its original name: " + newName);
+    }
     alterFragments.add("rename to " + newName);
     return this;
   }

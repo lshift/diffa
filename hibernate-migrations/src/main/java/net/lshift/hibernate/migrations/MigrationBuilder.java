@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Helper for describing database migrations.
@@ -48,6 +49,18 @@ public class MigrationBuilder {
     this.dialectExtension = DialectExtensionSelector.select(this.dialect);
     this.elements = new ArrayList<MigrationElement>();
     this.statements = new ArrayList<String>();
+  }
+
+  public Dialect getDialect() {
+    return dialect;
+  }
+
+  public DialectExtension getDialectExtension() {
+    return dialectExtension;
+  }
+
+  public Configuration getConfig() {
+    return config;
   }
 
   //
@@ -78,8 +91,8 @@ public class MigrationBuilder {
     return register(new CreateIndexBuilder(name, table, columns));
   }
 
-  public CopyTableBuilder copyTableContents(String source, String destination, Iterable<String> columns) {
-    return register(new CopyTableBuilder(source, destination, columns));
+  public CopyTableBuilder copyTableContents(String source, String destination, Iterable<String> sourceCols, Iterable<String> destCols) {
+    return register(new CopyTableBuilder(source, destination, sourceCols, destCols));
   }
 
   public AnalyzeTableBuilder analyzeTable(String table) {
@@ -96,6 +109,21 @@ public class MigrationBuilder {
 
   public RawSqlBuilder sql(String sql) {
     return register(new RawSqlBuilder(sql));
+  }
+
+  public IntColumnWidener widenColumnInTable(String table) {
+    return register(new IntColumnWidener(config, dialect, dialectExtension, table));
+  }
+
+  public TransplantTableBuilder alterTableViaTemporaryTable(String sourceTable,
+                                                                        CreateTableBuilder tempTable,
+                                                                        Map<String,String> renames) {
+    return register(new TransplantTableBuilder(config, dialect, dialectExtension, sourceTable, tempTable, renames));
+  }
+
+  public TransplantTableBuilder alterTableViaTemporaryTable(String sourceTable,
+                                                                        CreateTableBuilder tempTable) {
+    return register(new TransplantTableBuilder(config, dialect, dialectExtension, sourceTable, tempTable));
   }
 
   private <T extends MigrationElement> T register(T el) {

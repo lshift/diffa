@@ -44,6 +44,13 @@ public class OracleDialectSupportTest {
     mb.alterTable("foo").addColumn("bar", Types.BIT, 1, true, 0);
     verifyMigrationBuilder(mb, "alter table foo add bar number(1,0) default 0");
   }
+
+  @Test
+  public void shouldWidenIntToBigInt() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration(HibernateHelper.ORACLE_DIALECT));
+    mb.widenColumnInTable("foo").column("bar");
+    verifyMigrationBuilder(mb, "alter table foo modify (bar number(38))");
+  }
   
   @Test
   public void shouldSetColumnNullable() throws Exception {

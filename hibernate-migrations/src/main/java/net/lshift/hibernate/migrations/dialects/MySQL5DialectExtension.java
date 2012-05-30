@@ -1,6 +1,16 @@
 package net.lshift.hibernate.migrations.dialects;
 
+import net.lshift.hibernate.migrations.CopyTableBuilder;
+import net.lshift.hibernate.migrations.CreateTableBuilder;
+import net.lshift.hibernate.migrations.DropTableBuilder;
+import net.lshift.hibernate.migrations.MigrationBuilder;
+import org.hibernate.cfg.Configuration;
 import org.hibernate.dialect.Dialect;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Additional dialect-specific syntax for MySQL (5.x) not covered by MySQL5Dialect.
@@ -42,4 +52,17 @@ public class MySQL5DialectExtension extends DialectExtension {
   public boolean supportsFractionalSeconds() {
     return false;
   }
+
+  @Override
+  public boolean supportsColumnTypeChanges() {
+    return false;
+  }
+
+  /**
+   * MySQL does not support data type changes when altering a column :-(
+   */
+  public void widenIntColumn(MigrationBuilder builder, String table, String column) throws SQLException {
+    throw new RuntimeException("Column widening not supported in MySQL");
+  }
+
 }

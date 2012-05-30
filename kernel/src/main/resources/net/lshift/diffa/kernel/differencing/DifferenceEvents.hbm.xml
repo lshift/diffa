@@ -22,11 +22,7 @@
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping package="net.lshift.diffa.kernel.differencing">
   <class name="PendingDifferenceEvent" table="pending_diffs">
-    <id name="oid">
-      <generator class="native">
-        <param name="sequence">pending_diffs_sequence</param>
-      </generator>
-    </id>
+    <id name="oid" type="long"/>
     <component name="objId">
       <property name="id" type="string" column="entity_id" index="pdiff_domain_idx" />
       <component name="pair">
@@ -41,12 +37,11 @@
   </class>
 
   <class name="ReportedDifferenceEvent" table="diffs">
-    <id name="seqId">
+
+    <id name="seqId" type="long">
       <column name="seq_id" index="seq_id_domain_idx"/>
-      <generator class="native">
-        <param name="sequence">diffs_sequence</param>
-      </generator>
     </id>
+
     <component name="objId">
       <property name="id" type="string" column="entity_id" index="rdiff_domain_idx" />
       <component name="pair">
@@ -115,10 +110,7 @@
     select e from ReportedDifferenceEvent e where
       e.objId.pair.domain = :domain and e.seqId > :seqId
   </query>
-  <query name="maxSeqIdByDomain">
-    select max(e.seqId) from ReportedDifferenceEvent e where
-      e.objId.pair.domain = :domain
-  </query>
+
   <query name="unmatchedEventsInIntervalByDomain"><![CDATA[
     select e from ReportedDifferenceEvent e where
       e.objId.pair.domain = :domain and

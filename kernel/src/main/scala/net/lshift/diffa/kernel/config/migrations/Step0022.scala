@@ -48,19 +48,8 @@ object Step0022 extends HibernateMigrationStep {
       column("opt_val", Types.VARCHAR, 255, true).
       pk("opt_key", "domain")
 
-    val diffsTable = migration.createTable("diffs").
-      column("seq_id", Types.INTEGER, false).
-      column("domain", Types.VARCHAR, 50, false).
-      column("pair", Types.VARCHAR, 50, false).
-      column("entity_id", Types.VARCHAR, 255, false).
-      column("is_match", Types.BIT, false).
-      column("detected_at", Types.TIMESTAMP, false).
-      column("last_seen", Types.TIMESTAMP, false).
-      column("upstream_vsn", Types.VARCHAR, 255, true).
-      column("downstream_vsn", Types.VARCHAR, 255, true).
-      column("ignored", Types.BIT, false).
-      pk("seq_id", "domain", "pair").
-      withNativeIdentityGenerator()
+    // In this DB version, the PK of this table is an integer -> defaults to bigint otherwise
+    val diffsTable = CommonSteps.buildDiffsTable(migration.createTable("diffs"), Types.INTEGER)
 
     // N.B. include the partition info table on all DBs (support may be added in future)
     DefinePartitionInformationTable.defineTable(migration)
@@ -152,17 +141,8 @@ object Step0022 extends HibernateMigrationStep {
       column("scan_cron_spec", Types.VARCHAR, 50, true).
       pk("domain", "pair", "name")
 
-    migration.createTable("pending_diffs").
-      column("oid", Types.INTEGER, false).
-      column("domain", Types.VARCHAR, 50, false).
-      column("pair", Types.VARCHAR, 50, false).
-      column("entity_id", Types.VARCHAR, 50, false).
-      column("detected_at", Types.TIMESTAMP, false).
-      column("last_seen", Types.TIMESTAMP, false).
-      column("upstream_vsn", Types.VARCHAR, 255, true).
-      column("downstream_vsn", Types.VARCHAR, 255, true).
-      pk("oid").
-      withNativeIdentityGenerator()
+    // In this DB version, the PK of this table is an integer -> defaults to bigint otherwise
+    CommonSteps.buildPendingDiffsTable(migration.createTable("pending_diffs"), Types.INTEGER)
 
     migration.createTable("prefix_category_descriptor").
       column("id", Types.INTEGER, false).
@@ -220,8 +200,7 @@ object Step0022 extends HibernateMigrationStep {
     migration.alterTable("config_options").
       addForeignKey("fk_cfop_dmns", "domain", "domains", "name")
 
-    migration.alterTable("diffs")
-      .addForeignKey("fk_diff_pair", Array("domain", "pair"), "pair", Array("domain", "pair_key"))
+    CommonSteps.applyConstraintsToDiffsTable(migration)
 
     migration.alterTable("endpoint").
       addForeignKey("fk_edpt_dmns", "domain", "domains", "name")
@@ -254,8 +233,7 @@ object Step0022 extends HibernateMigrationStep {
       addForeignKey("fk_mmbs_dmns", "domain_name", "domains", "name").
       addForeignKey("fk_mmbs_user", "user_name", "users", "name")
 
-    migration.alterTable("pending_diffs")
-      .addForeignKey("fk_pddf_pair", Array("domain", "pair"), "pair", Array("domain", "pair_key"))
+    CommonSteps.applyConstraintsToPendingDiffsTable(migration)
 
     migration.alterTable("prefix_category_descriptor").
       addForeignKey("fk_pfcd_ctds", "id", "category_descriptor", "category_id")
@@ -279,12 +257,8 @@ object Step0022 extends HibernateMigrationStep {
       addUniqueConstraint("token")
 
 
-    migration.createIndex("diff_last_seen", "diffs", "last_seen")
-    migration.createIndex("diff_detection", "diffs", "detected_at")
-    migration.createIndex("rdiff_is_matched", "diffs", "is_match")
-    migration.createIndex("rdiff_domain_idx", "diffs", "entity_id", "domain", "pair")
-
-    migration.createIndex("pdiff_domain_idx", "pending_diffs", "entity_id", "domain", "pair")
+    CommonSteps.applyIndexesToDiffsTable(migration)
+    CommonSteps.applyIndexesToPendingDiffsTable(migration)
 
 
     migration.insert("domains").values(Map("name" -> Domain.DEFAULT_DOMAIN.name))
@@ -310,9 +284,7 @@ object Step0022 extends HibernateMigrationStep {
       values(Map("version" -> new java.lang.Integer(versionId)))
 
 
-    if (migration.canAnalyze) {
-      migration.analyzeTable("diffs");
-    }
+    CommonSteps.analyzeDiffsTable(migration)
 
 
     migration

@@ -21,19 +21,22 @@ public class CopyTableBuilder extends SingleStatementMigrationElement{
 
   private String sourceTable;
   private String destinationTable;
-  private Iterable<String> columnsToCopy;
+  private Iterable<String> sourceCols;
+  private Iterable<String> destCols;
 
-  public CopyTableBuilder(String source, String destination, Iterable<String> columns) {
-    sourceTable = source;
-    destinationTable = destination;
-    columnsToCopy = columns;
+  public CopyTableBuilder(String source, String destination, Iterable<String> sourceCols, Iterable<String> destCols) {
+    this.sourceTable = source;
+    this.destinationTable = destination;
+    this.sourceCols = sourceCols;
+    this.destCols = destCols;
   }
   
   @Override
   protected String getSQL() {
     Joiner joiner = Joiner.on(",").skipNulls();
-    String columns = joiner.join(columnsToCopy);
+    String sourceColumnNames = joiner.join(sourceCols);
+    String destColumnNames = joiner.join(destCols);
     return String.format("insert into %s(%s) select %s from %s",
-                         destinationTable, columns, columns, sourceTable);
+                         destinationTable, destColumnNames, sourceColumnNames, sourceTable);
   }
 }

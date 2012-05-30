@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.util.cache
 import scala.collection.JavaConversions._
 import java.util.concurrent.TimeUnit
 import com.hazelcast.core.{MapEntry, IMap, Hazelcast}
-import com.hazelcast.query.{PredicateBuilder, Predicate}
+import com.hazelcast.query.{SqlPredicate, PredicateBuilder, Predicate}
 
 class HazelcastCacheProvider extends CacheProvider {
 
@@ -42,10 +42,17 @@ class HazelcastBackedMap[K,V](underlying:IMap[K,V]) extends CachedMap[K,V] {
     }
   }
 
+  // TODO apply indexes to speed up this search
   def valueSubset(attribute:String, value:String) = {
     val entryObject = new PredicateBuilder().getEntryObject
     val predicate = entryObject.get(attribute).equal(value)
     val v = underlying.values(predicate)
+    v.toList
+  }
+
+  // TODO apply indexes to speed up this search
+  def valueSubset(predicate:String) = {
+    val v = underlying.values(new SqlPredicate(predicate))
     v.toList
   }
 

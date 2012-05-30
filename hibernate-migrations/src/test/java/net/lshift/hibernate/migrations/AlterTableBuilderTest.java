@@ -214,4 +214,10 @@ public class AlterTableBuilderTest {
     mb.apply(conn);
     verify(conn);
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowExceptionWhenSourceAndDestinationNamesAreEqual() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+    mb.alterTable("foo").renameTo("foo");
+  }
 }

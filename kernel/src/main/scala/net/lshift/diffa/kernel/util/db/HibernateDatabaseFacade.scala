@@ -19,12 +19,15 @@ import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils => HQU}
 import net.lshift.diffa.kernel.util.db.SessionHelper._
 import org.hibernate.{Session, SessionFactory}
 import collection.mutable.ListBuffer
+import javax.sql.DataSource
 
 
 /**
  * Hibernate backed implementation of the low level DB facade.
  */
-class HibernateDatabaseFacade(factory:SessionFactory) extends DatabaseFacade {
+class HibernateDatabaseFacade(factory:SessionFactory, ds:DataSource)
+  extends JdbcDatabaseFacade(ds)
+  with DatabaseFacade {
 
   def listQuery[T](queryName: String, params: Map[String, Any], firstResult: Option[Int], maxResults: Option[Int]) = {
     factory.withSession(s => HQU.listQuery(s, queryName, params, firstResult, maxResults))

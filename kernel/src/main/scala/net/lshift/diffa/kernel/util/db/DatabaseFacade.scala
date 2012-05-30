@@ -16,11 +16,13 @@
 
 package net.lshift.diffa.kernel.util.db
 
+import java.sql.ResultSet
+
 /**
  * Abstraction that hopefully lends itself to multiple implementations and allows DiffStore implementations
  * to be slightly less coupled to the underlying database, in terms of access and caching.
  */
-trait DatabaseFacade {
+trait DatabaseFacade extends NextGenerationDatabaseFacade {
 
   /**
    * Executes the named SELECT query with the specified parameters and binds the results to the expected type.
@@ -67,6 +69,14 @@ trait DatabaseFacade {
    * the DB to avoid having to group calls.
    */
   @Deprecated def beginTransaction : Transaction
+}
+
+trait NextGenerationDatabaseFacade {
+  def forEachRow(queryName: String, cb:ResultSetCallback)
+}
+
+trait ResultSetCallback {
+  def onRow(rs:ResultSet)
 }
 
 /**

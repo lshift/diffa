@@ -159,6 +159,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.jolbox</groupId>
+      <artifactId>bonecp</artifactId>
+      <version>${bonecp.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.restlet.jse</groupId>
       <artifactId>org.restlet</artifactId>
       <scope>test</scope>

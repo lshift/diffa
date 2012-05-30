@@ -16,8 +16,15 @@
 package net.lshift.hibernate.migrations.dialects;
 
 import com.google.common.base.Joiner;
+import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
+import org.hibernate.dialect.Dialect;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -100,5 +107,16 @@ public class OracleDialectExtension extends DialectExtension {
   @Override
   public String schemaPropertyName() {
     return Environment.USER;
+  }
+
+  @Override
+  public void widenIntColumn(Connection conn, String table, String column) throws SQLException {
+
+    String template = "alter table %s modify (%s number(38))";
+    String sql = String.format(template, table, column);
+
+    PreparedStatement stmt = conn.prepareStatement(sql);
+    stmt.execute();
+    stmt.close();
   }
 }

@@ -49,6 +49,10 @@ public class CreateTableBuilder extends TraceableMigrationElement {
     this.columns = new ArrayList<Column>();
   }
 
+  public String getTableName() {
+    return name;
+  }
+
   //
   // Builder Methods
   //
@@ -111,6 +115,10 @@ public class CreateTableBuilder extends TraceableMigrationElement {
   public CreateTableBuilder listPartition(String name, String...values) {
     partitionHelper.addListPartition(name, values);
     return this;
+  }
+
+  public List<Column> getColumns() {
+    return columns;
   }
 
 

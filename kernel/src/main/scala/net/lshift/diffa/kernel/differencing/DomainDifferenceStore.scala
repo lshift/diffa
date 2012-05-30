@@ -45,7 +45,7 @@ trait DomainDifferenceStore {
    * Retrieves the maximum sequence id of all events within the current time range. If no events are available within
    * the given range, 0 is returned.
    */
-  def maxSequenceId(pair: DiffaPairRef, start:DateTime, end:DateTime):Int
+  def maxSequenceId(pair: DiffaPairRef, start:DateTime, end:DateTime) : Long
 
   /**
    * Adds a pending event for the given version id into the cache.
@@ -158,7 +158,7 @@ case class AggregateEvents(
 )
 
 case class ReportedDifferenceEvent(
-  @BeanProperty var seqId:java.lang.Integer = null,
+  @BeanProperty var seqId:java.lang.Long = null,
   @BeanProperty var objId:VersionID = null,
   @BeanProperty var detectedAt:DateTime = null,
   @BeanProperty var isMatch:Boolean = false,

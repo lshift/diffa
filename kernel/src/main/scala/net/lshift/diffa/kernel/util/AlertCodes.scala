@@ -89,6 +89,10 @@ object AlertCodes {
   val DIFFERENCING_FAILURE = 550
   val DIFFERENCE_REPLAY_FAILURE = 551
 
+  // 56x DB errors
+  val DB_EXECUTION_ERROR = 560
+  val DB_RELEASE_ERROR = 561
+
 
   // 6xx Errors interacting with external systems, generally speaking these are outbound requests
 
@@ -130,5 +134,8 @@ object AlertCodes {
 
   // 72x Potential auth bugs
   val SPURIOUS_AUTH_TOKEN = 720
+
+  // There is a bug in the diffs store
+  val INCONSISTENT_DIFF_STORE = 730
 }
 

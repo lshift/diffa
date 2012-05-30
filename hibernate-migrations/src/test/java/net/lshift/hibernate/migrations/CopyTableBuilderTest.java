@@ -27,15 +27,16 @@ import static org.easymock.EasyMock.*;
 public class CopyTableBuilderTest {
   
   @Test
-  public void shouldDropColumnUsingCapitalizedName() throws Exception {
+  public void shouldCopyColumns() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
 
-    Iterable<String> columns = Arrays.asList("foo", "bar", "baz");
-    mb.copyTableContents("src", "dest", columns);
+    Iterable<String> sourceCols = Arrays.asList("foo", "bar", "baz");
+    Iterable<String> destCols = Arrays.asList("foo", "bar2", "baz");
+    mb.copyTableContents("src", "dest", sourceCols, destCols);
 
     Connection conn = createStrictMock(Connection.class);
 
-    expect(conn.prepareStatement("insert into dest(foo,bar,baz) select foo,bar,baz from src")).andReturn(mockExecutablePreparedStatement());
+    expect(conn.prepareStatement("insert into dest(foo,bar2,baz) select foo,bar,baz from src")).andReturn(mockExecutablePreparedStatement());
     replay(conn);
 
     mb.apply(conn);

@@ -321,7 +321,7 @@ trait CommonDifferenceTests {
     assertEquals(NO_CONTENT, down1)
 
     env.addAndNotifyDownstream("abc", down, someDate = yesterday, someString = "ss")
-    Thread.sleep(2000)
+    Thread.sleep(5000)
     val diffs2 = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
     assertEquals(1, diffs2.length)
     val seqId2 = diffs2(0).seqId

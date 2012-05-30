@@ -103,6 +103,7 @@ class StoreSynchronizationTest {
     domainConfigStore.createOrUpdatePair(domainName, toPairDef(pair))
 
     domainDiffsStore.removeDomain(domainName)
+    domainDiffsStore.reset
 
     assertEquals(None, diffsManager.lastRecordedVersion(pairRef))
   }
