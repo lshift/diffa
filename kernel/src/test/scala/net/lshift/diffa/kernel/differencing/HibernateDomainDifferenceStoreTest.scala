@@ -812,7 +812,7 @@ class HibernateDomainDifferenceStoreTest {
       // that will keep fractional seconds.  Therefore, we should use this
       // dialect-specific truncation in order to satisfy time ordering
       // expectations.
-      new DateTime(DateTime.now.getMillis / 1000 * 1000)
+      new DateTime().withMillisOfSecond(0)
     }
   }
 

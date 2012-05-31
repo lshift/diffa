@@ -36,9 +36,13 @@ class ChangesRestClient(serverRootUrl:String, domain:String, endpoint:String, pa
     response.getStatus match {
       case 202 => // This is fine, just continue
       case 400 => throw new InvalidChangeEventException(evt)
+      case 420 => throw new RateLimitExceededException(evt)
       case x   => throw new Exception("Got %s response for event %s".format(x, evt))
     }
   }
 }
 // Denotes an invalid change event
 class InvalidChangeEventException(e:ChangeEvent) extends Exception(e.toString)
+
+// The agent refused to process a change event because the submission rate exceeded the allowed limit.
+class RateLimitExceededException(e: ChangeEvent) extends Exception(e.toString)

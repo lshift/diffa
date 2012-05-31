@@ -386,7 +386,7 @@ trait CommonDifferenceTests {
     }
   }
 
-  def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 100, wait:Int = 200, view:Option[String] = None) {
+  def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 200, wait:Int = 200, view:Option[String] = None) {
     env.scanningClient.startScan(env.pairKey, view = view)
 
     ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.UP_TO_DATE, n, wait)

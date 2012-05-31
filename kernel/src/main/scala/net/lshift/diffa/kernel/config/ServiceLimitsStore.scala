@@ -55,7 +55,7 @@ package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.kernel.config.limits.Unlimited
 
-trait ServiceLimitsStore extends PairServiceLimitsView {
+trait ServiceLimitsStore extends ServiceLimitsView {
   def defineLimit(limit: ServiceLimit): Unit
   def deleteDomainLimits(domainName: String): Unit
   def deletePairLimitsByDomain(domainName: String): Unit
@@ -65,25 +65,34 @@ trait ServiceLimitsStore extends PairServiceLimitsView {
   def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int): Unit
   def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int): Unit
   def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int): Unit
-  
+
   def getSystemHardLimitForName(limit: ServiceLimit): Option[Int]
   def getSystemDefaultLimitForName(limit: ServiceLimit): Option[Int]
   def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit): Option[Int]
   def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit): Option[Int]
   def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit): Option[Int]
 
+  def getEffectiveLimitByName(limit: ServiceLimit) : Int = getSystemDefaultLimitForName(limit).getOrElse(Unlimited.value)
+
   def getEffectiveLimitByNameForDomain(domainName: String, limit: ServiceLimit) : Int =
     getDomainDefaultLimitForDomainAndName(domainName, limit).getOrElse(
       getEffectiveLimitByName(limit))
-
-  def getEffectiveLimitByName(limit: ServiceLimit) : Int = getSystemDefaultLimitForName(limit).getOrElse(Unlimited.value)
 
   def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit: ServiceLimit) : Int =
     getPairLimitForPairAndName(domainName, pairKey, limit).getOrElse(
       getEffectiveLimitByNameForDomain(domainName, limit))
 }
 
+trait ServiceLimitsView extends SystemServiceLimitsView with DomainServiceLimitsView with PairServiceLimitsView
+
+trait SystemServiceLimitsView {
+  def getEffectiveLimitByName(limit: ServiceLimit) : Int
+}
+
+trait DomainServiceLimitsView {
+  def getEffectiveLimitByNameForDomain(domainName: String, limit: ServiceLimit) : Int
+}
+
 trait PairServiceLimitsView {
   def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit) : Int
 }
-

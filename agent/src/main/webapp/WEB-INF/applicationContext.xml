@@ -398,10 +398,18 @@
 
   <!--
     ===========
+      Service Limiting
+    ===========
+  -->
+  <bean id="changeEventRateLimiterFactory" class="net.lshift.diffa.kernel.limiting.ServiceLimitsDomainRateLimiterFactory">
+      <constructor-arg ref="serviceLimitsStore" />
+  </bean>
+
+  <!--
+    ===========
       Configuration
     ===========
   -->
-
   <!-- TODO Once #366 lands, this cache should be unnecessary -->
   <bean id="pairCache" class="net.lshift.diffa.kernel.config.PairCache">
     <constructor-arg>

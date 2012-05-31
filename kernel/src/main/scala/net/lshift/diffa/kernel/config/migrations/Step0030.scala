@@ -16,34 +16,18 @@
 package net.lshift.diffa.kernel.config.migrations
 
 import org.hibernate.cfg.Configuration
+import net.lshift.diffa.kernel.config.{MigrationUtil, HibernateMigrationStep}
+import net.lshift.diffa.kernel.config.limits.ChangeEventRate
 import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.kernel.config.HibernateMigrationStep
 
-object Step0028 extends HibernateMigrationStep {
-
-  def versionId = 28
-
-  def name = "Widen sequence column type"
+object Step0030 extends HibernateMigrationStep {
+  def versionId = 30
+  def name = "Configure system-wide change event rate limit"
 
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
-    val diffsWidener = migration.widenColumnInTable("diffs").column("seq_id")
-    val pendingDiffswidener = migration.widenColumnInTable("pending_diffs").column("oid")
-
-    CommonSteps.buildDiffsTable(diffsWidener.getTempTable)
-    CommonSteps.buildPendingDiffsTable(pendingDiffswidener.getTempTable)
-
-    if (diffsWidener.requiresNewTable()) {
-      CommonSteps.applyConstraintsToDiffsTable(migration)
-      CommonSteps.applyIndexesToDiffsTable(migration)
-      CommonSteps.analyzeDiffsTable(migration)
-    }
-
-    if (pendingDiffswidener.requiresNewTable()) {
-      CommonSteps.applyConstraintsToPendingDiffsTable(migration)
-      CommonSteps.applyIndexesToPendingDiffsTable(migration)
-    }
+    MigrationUtil.insertLimit(migration, ChangeEventRate)
 
     migration
   }

@@ -26,8 +26,6 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.frontend.{Changes, Configuration}
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.context.annotation.Scope
-import org.springframework.beans.factory.config.BeanDefinition
 import net.lshift.diffa.kernel.reporting.ReportManager
 import com.sun.jersey.api.NotFoundException
 import org.springframework.security.core.context.SecurityContextHolder
@@ -36,6 +34,7 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.config.{DomainCredentialsManager, User, DomainConfigStore}
 import net.lshift.diffa.kernel.config.system.CachedSystemConfigStore
+import net.lshift.diffa.kernel.limiting.DomainRateLimiterFactory
 
 @Path("/domains/{domain}")
 @Component
@@ -55,6 +54,7 @@ class DomainResource {
   @Autowired var domainConfigStore:DomainConfigStore = null
   @Autowired var systemConfigStore:CachedSystemConfigStore = null
   @Autowired var changes:Changes = null
+  @Autowired var changeEventRateLimiterFactory: DomainRateLimiterFactory = null
   @Autowired var domainSequenceCache:DomainSequenceCache = null
   @Autowired var reports:ReportManager = null
 
@@ -115,8 +115,9 @@ class DomainResource {
     withValidDomain(domain, new ScanningResource(pairPolicyClient, config, domainConfigStore, diagnosticsManager, domain, getCurrentUser(domain)))
 
   @Path("/changes")
-  def getChangesResource(@PathParam("domain") domain:String) =
-    withValidDomain(domain, new ChangesResource(changes, domain))
+  def getChangesResource(@PathParam("domain") domain:String) = {
+    withValidDomain(domain, new ChangesResource(changes, domain, changeEventRateLimiterFactory))
+  }
 
   @Path("/inventory")
   def getInventoryResource(@PathParam("domain") domain:String) =

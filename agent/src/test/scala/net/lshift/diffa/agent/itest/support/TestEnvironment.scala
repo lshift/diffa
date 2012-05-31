@@ -27,6 +27,7 @@ import org.restlet.data.Protocol
 import org.restlet.routing.Router
 import org.restlet.resource.{ServerResource, Post}
 import net.lshift.diffa.kernel.config._
+import limits.ChangeEventRate
 import org.restlet.{Application, Component}
 import collection.mutable.HashMap
 import net.lshift.diffa.agent.client._
@@ -34,6 +35,7 @@ import java.util.List
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanConstraint}
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.participant.changes.ChangeEvent
+import net.lshift.diffa.kernel.limiting.SystemClock
 
 /**
  * An assembled environment consisting of a downstream and upstream participant. Provides a factory for the
@@ -179,13 +181,32 @@ class TestEnvironment(val pairKey: String,
     downstream.clearEntities
   }
 
+  // TODO: remove this when limiting can be configured via REST
+  private def pauseToAvoidRateLimitingFailure() {
+    def timeSince(t: Long) = SystemClock.currentTimeMillis - t
+
+    val t0 = SystemClock.currentTimeMillis
+    val minimumPauseInterval = 1000L / ChangeEventRate.defaultLimit
+
+    while (timeSince(t0) < minimumPauseInterval) {
+      try {
+        Thread.sleep(minimumPauseInterval)
+      } catch {
+        case _ =>
+      }
+    }
+  }
+
   def addAndNotifyUpstream(id:String, content:String, someDate:DateTime, someString:String) {
+    pauseToAvoidRateLimitingFailure()
     val attributes = pack(someDate = someDate, someString = someString)
 
     upstream.addEntity(id, someDate, someString, Placeholders.dummyLastUpdated, content)
     upstreamChangesClient.onChangeEvent(ChangeEvent.forChange(id, versionForUpstream(content), Placeholders.dummyLastUpdated, attributes))
   }
+
   def addAndNotifyDownstream(id:String, content:String, someDate:DateTime, someString:String) {
+    pauseToAvoidRateLimitingFailure()
     val attributes = pack(someDate = someDate, someString = someString)
 
     downstream.addEntity(id, someDate, someString, Placeholders.dummyLastUpdated, content)
