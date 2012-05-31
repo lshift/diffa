@@ -80,7 +80,7 @@ class DomainResource {
   @Path("/config")
   def getConfigResource(@Context uri:UriInfo,
                         @PathParam("domain") domain:String) =
-    withValidDomain(domain, new ConfigurationResource(config, domain, uri))
+    withValidDomain(domain, new ConfigurationResource(config, domain, getCurrentUser(domain), uri))
 
   @Path("/credentials")
   def getCredentialsResource(@Context uri:UriInfo,

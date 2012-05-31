@@ -33,6 +33,7 @@ import com.sun.jersey.api.NotFoundException
  */
 class ConfigurationResource(val config:Configuration,
                             val domain:String,
+                            val currentUser:String,
                             val uri:UriInfo) {
 
   @GET
@@ -44,7 +45,7 @@ class ConfigurationResource(val config:Configuration,
   @POST
   @Path("/xml")
   @Consumes(Array("application/xml"))
-  def applyConfiguration(newConfig:DiffaConfig) = config.applyConfiguration(domain,newConfig)
+  def applyConfiguration(newConfig:DiffaConfig) = config.applyConfiguration(domain,newConfig, Some(currentUser))
 
   @GET
   @Path("/endpoints")

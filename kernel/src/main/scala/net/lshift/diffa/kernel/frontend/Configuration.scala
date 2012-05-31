@@ -43,7 +43,7 @@ class Configuration(val configStore: DomainConfigStore,
 
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
-  def applyConfiguration(domain:String, diffaConfig:DiffaConfig) {
+  def applyConfiguration(domain:String, diffaConfig:DiffaConfig, callingUser:Option[String] = None) {
 
     // Ensure that the configuration is valid upfront
     diffaConfig.validate()
@@ -55,8 +55,20 @@ class Configuration(val configStore: DomainConfigStore,
 
     // Remove missing members, and create/update the rest
     val removedMembers = configStore.listDomainMembers(domain).filter(m => diffaConfig.members.find(newM => newM == m.user.name).isEmpty)
-    removedMembers.foreach(m => configStore.removeDomainMembership(domain,m.user.name))
-    diffaConfig.members.foreach(configStore.makeDomainMember(domain,_))
+    removedMembers.foreach(m => {
+      val userToRemove = m.user.name
+      callingUser match {
+        case Some(currentUser) if userToRemove == currentUser => // don't this guy kill himself
+        case _                                                => configStore.removeDomainMembership(domain, userToRemove)
+      }
+    })
+
+    diffaConfig.members.foreach(member => {
+      callingUser match {
+        case Some(currentUser) if member == currentUser => // this guy must already be there
+        case _                                          => configStore.makeDomainMember(domain, member)
+      }
+    })
 
     // Apply endpoint and pair updates
     diffaConfig.endpoints.foreach(createOrUpdateEndpoint(domain, _, false))   // Don't restart pairs - that'll happen in the next step

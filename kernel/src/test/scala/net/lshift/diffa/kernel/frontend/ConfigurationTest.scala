@@ -90,6 +90,25 @@ class ConfigurationTest {
   }
 
   @Test
+  def shouldNotLetCallingUserRemoveThemselvesFromDomain {
+
+    val callingUser = User(name = "callingUser", email = "call@me.com", superuser = false, passwordEnc = "e23e", token = "32sza")
+    val anotherUser = User(name = "anotherUser", email = "another@me.com", superuser = false, passwordEnc = "e23e", token = "32sza")
+
+    systemConfigStore.createUser(callingUser)
+    systemConfigStore.createUser(anotherUser)
+    domainConfigStore.makeDomainMember("domain", "callingUser")
+    domainConfigStore.makeDomainMember("domain", "anotherUser")
+
+    val configWithCallingUser = DiffaConfig(
+      members = Set("callingUser")
+    )
+
+    configuration.applyConfiguration("domain", DiffaConfig(), Some("callingUser"))
+    assertEquals(Some(configWithCallingUser), configuration.retrieveConfiguration("domain"))
+  }
+
+  @Test
   def shouldGenerateExceptionWhenInvalidConfigurationIsApplied() {
     val e1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234/scan",
           inboundUrl = "http://inbound")
