@@ -26,7 +26,7 @@ trait TokenBucket {
 }
 
 class FixedIntervalTokenBucket(params: TokenBucketParameters, clock: Clock) {
-  private var lastRefillTime = clock.currentTimeMillis
+  private var lastDrip = clock.currentTimeMillis
   private var volume: Long = params.initialVolume
 
   def tryConsume: Boolean = {
@@ -45,9 +45,12 @@ class FixedIntervalTokenBucket(params: TokenBucketParameters, clock: Clock) {
   def refill() {
     val now = clock.currentTimeMillis
     volume = math.min(
-      volume + params.refillAmount * floor((now - lastRefillTime)/params.refillInterval),
+      volume + params.refillAmount * floor((now - lastDrip)/params.refillInterval),
       params.capacity)
-    lastRefillTime = now
+
+    if (now - lastDrip >= params.refillInterval) {
+      lastDrip = lastDrip + (now - lastDrip) / 1000 * 1000
+    }
   }
 
   private def floor(d: Double): Long = math.round(math.floor(d))

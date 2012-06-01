@@ -30,11 +30,13 @@ import com.hazelcast.util.Clock
 class ChangeEventRateLimitingTest {
   import ChangeEventRateLimitingTest._
 
+  var clientCreateTime: Long = 0L
   var changesClient: ChangesClient = _
   var event: ChangeEvent = _
 
   @Before
   def initializeChangesClient {
+    clientCreateTime = Clock.currentTimeMillis()
     changesClient = new ChangesRestClient(agentURL, defaultDomain, endpoint)
     event = ChangeEvent.forChange("id", "aaff00001111", lastUpdated)
 
@@ -54,11 +56,11 @@ class ChangeEventRateLimitingTest {
   }
 
   @Test
-  def `GIVEN default configuration AND rate limit already reached WHEN subsequent change event received THEN reject event submission` {
+  def givenDefaultConfigurationAndRateLimitAlreadyReachedWhenSubsequentChangeEventReceivedThenRejectEventSubmission {
     try {
       var firstEvent = Clock.currentTimeMillis
       changesClient.onChangeEvent(event)
-      assertFailUntil(firstEvent + ratePerSecondLimit * 1000)
+      assertFailUntil(clientCreateTime + 1000L)
     } catch {
       case x: Exception =>
         fail("Unexpected failure of first change event submission: " + x.toString)

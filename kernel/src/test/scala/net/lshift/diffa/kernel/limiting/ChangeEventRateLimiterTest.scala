@@ -51,53 +51,91 @@ class ChangeEventRateLimiterTest {
 
   @Theory
   def givenDefaultConfigurationRateLimiterShouldRejectSubsequentEventsWhileLimited(scenario: Scenario) {
-    limiter.accept()
+    doForScenario[WithinLimitInterval](scenario, { d =>
+      limiter.accept()
 
-    scenario.data match {
-      case d: WithinLimitInterval =>
-        setClock(d.relativeTime)
-        Assert.assertFalse("Events received within limit window should be refused", limiter.accept())
-      case _ =>
-    }
+      setClock(d.relativeTime)
+      Assert.assertFalse("Events received within limit window should be refused", limiter.accept())
+    })
   }
 
   @Theory
   def givenDefaultConfigurationRateLimiterShouldAcceptSubsequentEventAfterLimitExpires(scenario: Scenario) {
-    limiter.accept()
+    doForScenario[AfterLimitInterval](scenario, { after =>
+      limiter.accept()
 
-    scenario.data match {
-      case after: AfterLimitInterval =>
-        setClock(after.relativeTime)
-        Assert.assertTrue("An event received after the limit expires should be accepted", limiter.accept())
-      case _ =>
-    }
+      setClock(after.relativeTime)
+      Assert.assertTrue("An event received after the limit expires should be accepted", limiter.accept())
+    })
   }
 
   @Theory
   def shouldRejectMoreThanConfiguredRateWithinASecond(scenario: Scenario) {
-    scenario.data match {
-      case RateLimit(n) =>
-        setRateLimit(n)
-        setClock(oneSecondAfterInitialization)
-        (1 to n).foreach(i =>
-          limiter.accept()
-        )
-        Assert.assertFalse("Event received within configured limit window should be refused", limiter.accept())
-      case _ =>
-    }
+    doForScenario[RateLimit](scenario, { limit =>
+      val n = limit.ratePerSecond
+      setRateLimit(n)
+      setClock(oneSecondAfterInitialization)
+      (1 to n).foreach(i =>
+        limiter.accept()
+      )
+      Assert.assertFalse(
+        "Expected submission %d to be refused at time %d for rate %d".format(n + 1, oneSecondAfterInitialization, n),
+        limiter.accept())
+    })
   }
 
   @Theory
   def shouldAllowConfiguredRateEachSecond(scenario: Scenario) {
-    scenario.data match {
-      case RateLimit(n) =>
-        setRateLimit(n)
-        setClock(oneSecondAfterInitialization)
-        (1 to n).foreach( i =>
-          Assert.assertTrue("%d events should be accepted each second for this configuration".format(n), limiter.accept())
-        )
-      case _ =>
-    }
+    doForScenario[RateLimit](scenario, { limit =>
+      val n = limit.ratePerSecond
+      setRateLimit(n)
+      setClock(oneSecondAfterInitialization)
+      (1 to n).foreach( i =>
+        Assert.assertTrue("%d events should be accepted each second for this configuration".format(n), limiter.accept())
+      )
+    })
+  }
+
+  @Theory
+  def shouldEnforceTheConfiguredRateLimitForASustainedPeriod(scenario: Scenario) {
+    doForScenario[SustainedUsage](scenario, { data: SustainedUsage =>
+      setRateLimit(data.ratePerSecond)
+      var t = data.startingAt
+      var i = 1
+      while (t < secondsToMs(data.runForSeconds)) {
+        data.atMsPastSecond foreach { ms =>
+          setClock(t + ms)
+
+          limiter.accept()
+        }
+        t += data.atInterval
+        i += 1
+        Assert.assertFalse(
+          "Expected submission %d to be rejected in interval [%d,%d) for rate limit of %d".format(
+            i, t - 1000, t, data.ratePerSecond),
+          limiter.accept())
+      }
+    })
+  }
+
+  @Theory
+  def shouldPermitTheConfiguredRateLimitForASustainedPeriod(scenario: Scenario) {
+    doForScenario[SustainedUsage](scenario, { data: SustainedUsage =>
+      setRateLimit(data.ratePerSecond)
+      var t = data.startingAt
+      var i = 1
+      while (t < secondsToMs(data.runForSeconds)) {
+        data.atMsPastSecond foreach { ms =>
+          setClock(t + ms)
+
+          Assert.assertTrue(
+            "Expected submission %d to be accepted at time %d for rate limit of %d".format(i, t + ms, data.ratePerSecond),
+            limiter.accept())
+        }
+        t += data.atInterval
+        i += 1
+      }
+    })
   }
 
   private def setRateLimit(eventsPerSecond: Int) {
@@ -112,12 +150,21 @@ class ChangeEventRateLimiterTest {
     expect(rateClock.currentTimeMillis).andReturn(relativeTime).anyTimes()
     replay(rateClock)
   }
+
+  private def doForScenario[T: ClassManifest](scenario: Scenario, block: T => Unit) {
+    if (scenario.data.getClass == classManifest[T].erasure)
+      block(scenario.data.asInstanceOf[T])
+  }
+
+  private def secondsToMs(seconds: Int): Long = seconds * 1000L
 }
 
 object ChangeEventRateLimiterTest {
   private[ChangeEventRateLimiterTest] val yesterday = (new DateTime) minusDays 1
   // See the Important Note in RateLimiter regarding delayed effect of rate limit changes.
   private[ChangeEventRateLimiterTest] val oneSecondAfterInitialization = 1000L
+
+  case class Scenario(data: Data)
 
   implicit def long2Data(l: Long): Data = if (l < 1000L) {
     WithinLimitInterval(l)
@@ -146,10 +193,20 @@ object ChangeEventRateLimiterTest {
     Scenario(RateLimit(3)),
     Scenario(RateLimit(4))
   )
+
+  @DataPoints
+  def sustainedUsage = Array(
+    Scenario(SustainedUsage(atInterval = 1000L, runForSeconds = 30, ratePerSecond = 1, atMsPastSecond = List(1), startingAt = 1000L)),
+    Scenario(SustainedUsage(atInterval = 1000L, runForSeconds = 30, ratePerSecond = 5, atMsPastSecond = List(1, 2, 3, 4, 5), startingAt = 1000L)),
+    Scenario(SustainedUsage(atInterval = 1000L, runForSeconds = 3600, ratePerSecond = 50, atMsPastSecond = List.fill(50)(1), startingAt = 1000L)),
+    Scenario(SustainedUsage(atInterval = 3000L, runForSeconds = 3600, ratePerSecond = 500,
+      atMsPastSecond = List.fill(100)(1) ::: List.fill(100)(100) ::: List.fill(100)(200) ::: List.fill(100)(600) ::: List.fill(100)(999),
+      startingAt = 1000L))
+  )
 }
 
-case class Scenario(data: Data)
 trait Data
 case class WithinLimitInterval(relativeTime: Long) extends Data
 case class AfterLimitInterval(relativeTime: Long) extends Data
 case class RateLimit(ratePerSecond: Int) extends Data
+case class SustainedUsage(atInterval: Long, runForSeconds: Int, ratePerSecond: Int, atMsPastSecond: Seq[Int], startingAt: Long) extends Data

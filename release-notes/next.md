@@ -43,6 +43,7 @@
 * [172] - Add a constraint to the diffs and pending diffs tables to make sure that entity id, domain and pair are unique
 * [174] - Make sure that a user cannot king pin themselves when applying a domain config.
 * [175] - Remove event buffer and max files fields from pair definitions
+* [178] - Fixed a bug in the rate limiter which unfairly rejected some actions which should have been accepted.
 
 ## Library Upgrades
 
