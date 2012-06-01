@@ -149,9 +149,7 @@ case class PairDef(
   @BeanProperty var downstreamName: String = null,
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef],
-  @BeanProperty var eventsToLog: Int = 0,
-  @BeanProperty var maxExplainFiles: Int = 0) {
+  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef]) {
 
   def this() = this(key = null)
 

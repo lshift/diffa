@@ -157,7 +157,7 @@ class ConfigurationTest {
       endpoints = Set(ep1, ep2),
       pairs = Set(
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
-          allowManualScans = true, views = List(PairViewDef("v1")), eventsToLog = 12, maxExplainFiles = 6),
+          allowManualScans = true, views = List(PairViewDef("v1"))),
         PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?")),
       repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair", "ab")),
       reports = Set(PairReportDef("Bulk Send Differences", "ab", "differences", "http://location:5432/diffhandler")),

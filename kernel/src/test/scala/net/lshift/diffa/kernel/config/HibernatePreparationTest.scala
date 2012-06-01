@@ -48,7 +48,9 @@ class HibernatePreparationTest {
   )
   val invalidColumns = Map(
     "pair" -> Seq(
-      "name"    // Removed as part of the v1 migration
+      "name",               // Removed as part of the v1 migration
+      "events_to_log",      // Removed as part of the v31 migration
+      "max_explain_files"   // Removed as part of the v31 migration
     ),
     "config_options" -> Seq(
       "is_internal"    // Removed as part of the v3 migration

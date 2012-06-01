@@ -117,8 +117,6 @@
     <property name="matchingTimeout" type="int" column="matching_timeout" not-null="false"/>
     <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
     <property name="allowManualScans" type="boolean" column="allow_manual_scans" not-null="false"/>
-    <property name="eventsToLog" type="int" column="events_to_log" not-null="true"/>
-    <property name="maxExplainFiles" type="int" column="max_explain_files" not-null="true"/>
     <set name="views" inverse="true" lazy="false">
       <key>
         <column name="pair"/>

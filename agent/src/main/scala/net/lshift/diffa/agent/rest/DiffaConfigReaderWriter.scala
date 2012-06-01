@@ -228,12 +228,12 @@ class CastorSerializablePair(
 ) {
   def this() = this(key = null)
 
-  def toPairDef = PairDef(key, versionPolicy, matchingTimeout, upstream, downstream, scanCronSpec, allowManualScans, views, eventsToLog, maxExplainFiles)
+  def toPairDef = PairDef(key, versionPolicy, matchingTimeout, upstream, downstream, scanCronSpec, allowManualScans, views)
 }
 
 object CastorSerializablePair {
   def fromPairDef(p: PairDef, repairActions: java.util.List[RepairActionDef],
                               escalations: java.util.List[EscalationDef], reports: java.util.List[PairReportDef]): CastorSerializablePair =
     new CastorSerializablePair(p.key, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout,
-                               repairActions, escalations, reports, p.scanCronSpec, p.allowManualScans, p.views, p.eventsToLog, p.maxExplainFiles)
+                               repairActions, escalations, reports, p.scanCronSpec, p.allowManualScans, p.views)
 }

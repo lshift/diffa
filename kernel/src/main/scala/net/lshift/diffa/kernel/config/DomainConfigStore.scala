@@ -190,9 +190,7 @@ case class DiffaPair(
   @BeanProperty var matchingTimeout: Int = DiffaPair.NO_MATCHING,
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView],
-  @BeanProperty var eventsToLog: Int = 0,
-  @BeanProperty var maxExplainFiles: Int = 0) {
+  @BeanProperty var views:java.util.Set[PairView] = new java.util.HashSet[PairView]) {
 
   def this() = this(key = null)
 
