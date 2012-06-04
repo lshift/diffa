@@ -30,7 +30,6 @@ div.section-label {
 
 @content-viewer-width: 8 * (@column-width + @right-margin) + @column-width - 2 * @border-thickness;
 @content-viewer-height: 200px;
-@code-box-height: @content-viewer-height - 50px;
 
 @text-padding: 0 5px;
 
@@ -63,18 +62,12 @@ div.diff-set {
   .viewer-outer-span;
   .bp-last;
   width: @content-viewer-width;
-  height: @content-viewer-height;
-}
 
-div.code-box {
-  height: @code-box-height;
-  .viewer-outer-span;
-  .bp-last;
-}
-
-div.code-box pre {
-  overflow: auto;
-  height: 100%;
+  margin-bottom: 10px;
+  
+  .item-details {
+    margin-bottom: 2px;
+  }
 }
 
 div.diff-repair {

@@ -1,0 +1,61 @@
+/*
+
+    Copyright (C) 2012 LShift Ltd.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+*/
+
+@content-inspector-height: 500px;
+@code-box-height: @content-inspector-height - 50px;
+
+.bp-last {margin-right:0;padding-right:0;}
+.bp-span {float:left;margin-right:10px;}
+.bp-span-8 {.bp-span; width:350px;}
+
+
+.diffa-diffinspector {
+  height: @content-inspector-height;
+  width: 750px;
+
+  .endpoint-label {
+    .viewer-inner-span;
+    background-color: @background-grey;
+    color: white;
+    padding: @text-padding;
+  }
+
+  div.upstreamLabel {
+    .endpoint-label;
+  }
+
+  div.downstreamLabel {
+    .endpoint-label;
+  }
+
+  div.inspector-panel {
+    .bp-span-8;
+  }
+
+  div.code-box {
+    height: @code-box-height;
+    .viewer-outer-span;
+    .bp-last;
+
+    pre {
+      overflow: auto;
+      height: 100%;
+    }
+  }
+}
+

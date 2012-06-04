@@ -992,7 +992,8 @@ Diffa.Views.DiffListItem = Backbone.View.extend({
   className: 'difflist-row',
 
   events: {
-    "click": "select"
+    "click": "select",
+    "dblclick": "expand"
   },
 
   initialize: function() {
@@ -1027,6 +1028,19 @@ Diffa.Views.DiffListItem = Backbone.View.extend({
 
   select: function() {
     this.collection.selectEvent(this.model.id);
+  },
+
+  expand: function(e) {
+    $(this.el).trigger('expand-event', [this.model]);
+
+    // Double clicking results in the text being selected. We don't actually want that, so we'll
+    // clear the selection.
+    if(document.selection && document.selection.empty) {
+        document.selection.empty();
+    } else if(window.getSelection) {
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+    }
   },
 
   updateSelected: function(selectedEvent) {
@@ -1074,8 +1088,6 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
       this.$('.item1 .diff-hash').text('');
       this.$('.item2 .downstreamLabel').text('downstream');
       this.$('.item2 .diff-hash').text('');
-      this.$('.item1 pre').text('');
-      this.$('.item2 pre').text('');
 
       this.$(".controllist").hide();
       this.$(".actionlist").empty();
@@ -1104,21 +1116,6 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
       event.ignore();
     });
 
-
-    function waitForOrDisplayContent(selector, content) {
-      var busy = this.$(selector).prev();
-
-      if (content == null) {
-        this.$(selector).hide();
-        busy.show();
-      } else {
-        this.$(selector).text(content).show();
-        busy.hide();
-      }
-    }
-    waitForOrDisplayContent(".item1 pre", upstreamContent);
-    waitForOrDisplayContent(".item2 pre", downstreamContent);
-
     this.renderEntityScopedActions();
   },
 
@@ -1145,6 +1142,72 @@ Diffa.Views.DiffDetail = Backbone.View.extend({
   }
 });
 
+Diffa.Views.DiffInspectorPopup = Backbone.View.extend({
+  initialize: function() {
+    var self = this;
+
+    $(document).bind('expand-event', function(e, model) {
+      // Attach the inspector view, and open a lightbox
+      var inspector = new Diffa.Views.DiffInspector({model: model});
+      $.colorbox({
+        inline: true,
+        href: $(inspector.el)
+      });
+    });
+
+      // Keep our element invisible
+    $(this.el).hide();
+  }
+});
+
+Diffa.Views.DiffInspector = Backbone.View.extend({
+  tagName: 'div',
+  className: 'diffa-diffinspector',
+
+  initialize: function() {
+    _.bindAll(this, "render");
+
+    $(this.el).html(JST['heatmap/contentinspector']({API_BASE: API_BASE}));
+    this.render();
+  },
+
+  render: function() {
+    var event = this.model;
+    var self = this;
+
+    var itemID = event.get('objId').id,
+        upstreamLabel = event.get('upstreamName') || "upstream",
+        upstreamVersion = event.get('upstreamVsn') || "no version",
+        downstreamLabel = event.get("downstreamName") || "downstream",
+        downstreamVersion = event.get('downstreamVsn') || "no version",
+        upstreamContent = event.get("upstreamContent"),
+        downstreamContent = event.get("downstreamContent");
+
+    this.$('.content-label').text('Content for item ID: ' + itemID);
+
+    this.$('.item1 .upstreamLabel').text(upstreamLabel);
+    this.$('.item1 .diff-hash').text(upstreamVersion);
+
+    this.$('.item2 .downstreamLabel').text(downstreamLabel);
+    this.$('.item2 .diff-hash').text(downstreamVersion);
+
+    function waitForOrDisplayContent(selector, content) {
+      var busy = this.$(selector).prev();
+
+      if (content == null) {
+        self.$(selector).hide();
+        busy.show();
+      } else {
+        self.$(selector).text(content).show();
+        busy.hide();
+      }
+    }
+    waitForOrDisplayContent(".item1 pre", upstreamContent);
+    waitForOrDisplayContent(".item2 pre", downstreamContent);
+  }
+});
+
+
 function nearestHour() {
   var hours = (new Date()).getHours() + 1;
   return Date.today().add({hours: hours});
@@ -1161,6 +1224,10 @@ $('.diffa-difflist').each(function() {
 $('.diffa-contentviewer').each(function() {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
   new Diffa.Views.DiffDetail({el: $(this), model: domain.diffs});
+});
+$('.diffa-contentinspector').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+  new Diffa.Views.DiffInspectorPopup({el: $(this)});
 });
 
 $('.diffa-heatmap-page').each(function() {
