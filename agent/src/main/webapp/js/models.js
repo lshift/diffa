@@ -293,6 +293,7 @@ Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
     this.each(function(cat) {
       target[cat.get('name')] = $.extend({}, cat.attributes, {'@type': self.categoryType});
       delete target[cat.get('name')].name;
+      delete target[cat.get('name')].dataType_text;
     });
   },
   unpack: function(source) {
