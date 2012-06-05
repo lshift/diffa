@@ -963,15 +963,15 @@ Diffa.Views.DiffList = Backbone.View.extend({
   rebuildDiffList: function() {
     var self = this;
 
-    this.$('.difflist-row').empty();   // Empty the current difflist out since we'll re-render everything
+    this.$('.difflist-body').empty();   // Empty the current difflist out since we'll re-render everything
 
     this.model.forEach(function(diff) {
       var view = new Diffa.Views.DiffListItem({model: diff, collection: self.model});
-      this.$('.difflist-row').append(view.render().el);
+      this.$('.difflist-body').append(view.render().el);
     });
 
-    if ($('.difflist-row').children().length == 0) {
-      $('.difflist-row').html("No differences.");
+    if ($('.difflist-body').children().length == 0) {
+      $('.difflist-body').html("No differences.");
     }
   },
 
