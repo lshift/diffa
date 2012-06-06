@@ -17,7 +17,6 @@
 package net.lshift.diffa.kernel.differencing
 
 import org.hibernate.cfg.Configuration
-import org.junit.{Before, Test}
 import org.junit.Assert._
 import net.lshift.diffa.kernel.util.DateUtils._
 import net.lshift.diffa.kernel.util.FullDateTimes._
@@ -38,6 +37,7 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.util.{CategoryChange, UpstreamEndpoint}
 import net.lshift.diffa.kernel.config._
+import org.junit.{Ignore, Before, Test}
 
 /**
  * Test cases for the Hibernate backed VersionCorrelationStore.

@@ -45,6 +45,7 @@
 * [174] - Make sure that a user cannot king pin themselves when applying a domain config.
 * [175] - Remove event buffer and max files fields from pair definitions
 * [178] - Fixed a bug in the rate limiter which unfairly rejected some actions which should have been accepted.
+* [182] - Allow limiting the maximum physical response size that we accept from a participant
 
 ## Library Upgrades
 

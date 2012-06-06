@@ -98,3 +98,5 @@ class ScanCancelledException(pair:DiffaPairRef) extends Exception(pair.identifie
  * The reason is exposed through the UI.
  */
 class ScanFailedException(reason:String) extends Exception(reason)
+
+class ScanLimitBreachedException(reason:String) extends Exception(reason)

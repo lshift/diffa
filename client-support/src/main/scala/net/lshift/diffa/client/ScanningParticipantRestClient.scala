@@ -33,8 +33,11 @@ import org.apache.http.client.utils.URLEncodedUtils
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
 import java.net.{ConnectException, SocketException, URI}
-import net.lshift.diffa.kernel.differencing.ScanFailedException
 import net.lshift.diffa.kernel.config._
+import limits.ScanResponseSizeLimit
+import org.apache.http.HttpResponse
+import java.io.{IOException, InputStream}
+import net.lshift.diffa.kernel.differencing.{ScanLimitBreachedException, ScanFailedException}
 
 
 /**
@@ -58,6 +61,8 @@ class ScanningParticipantRestClient(pair: DiffaPairRef,
    * objects, that sequence of objects is returned.
    * @throws ScanFailedException if normal exceptional conditions occur which
    * should be exposed via the UI.
+   * @throws ScanLimitBreached if we go over a scan limit, such as response
+   * size.
    * @throws Exception if abnormal exceptional conditions occur which should
    * not be exposed via the UI.
    */
@@ -76,7 +81,7 @@ class ScanningParticipantRestClient(pair: DiffaPairRef,
 
       val statusCode = response.getStatusLine.getStatusCode
       statusCode match {
-        case 200 => JSONHelper.readQueryResult(response.getEntity.getContent)
+        case 200 => handleJsonResponse(response)
         case _   =>
           log.error("{} External scan error, response code: {}",
             Array(formatAlertCode(EXTERNAL_SCAN_ERROR), statusCode))
@@ -96,6 +101,37 @@ class ScanningParticipantRestClient(pair: DiffaPairRef,
     } finally {
       shutdownImmediate(httpClient)
     }
+  }
 
+  def handleJsonResponse(response: HttpResponse) : Seq[ScanResultEntry] = {
+    val responseSizeLimit = serviceLimitsView.getEffectiveLimitByNameForPair(
+      pair.domain, pair.key, ScanResponseSizeLimit)
+
+    val responseStream = response.getEntity.getContent
+    val countedInputStream = new InputStream {
+      var numBytes = 0;
+      def read() = {
+        val byte = responseStream.read()
+        numBytes += 1
+
+        if (numBytes > responseSizeLimit) {
+          val msg = "Scan response size for pair %s exceeded configured limit of %d bytes".format(
+            pair.key, responseSizeLimit)
+
+          throw new IOException(msg, new ScanLimitBreachedException(msg))
+        }
+
+        byte
+      }
+    }
+
+    try {
+      JSONHelper.readQueryResult(countedInputStream)
+    } catch { case e:IOException =>
+      e.getCause match {
+        case scanError : ScanLimitBreachedException => throw scanError
+        case _ => throw e
+      }
+    }
   }
 }
