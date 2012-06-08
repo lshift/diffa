@@ -128,4 +128,27 @@ class SystemConfigResource {
 
     Response.ok(aggregated).build()
   }
+
+  @GET
+  @Path("/system/limits/{name}")
+  @Produces(Array("text/plain"))
+  def effectiveServiceLimit(@PathParam("name") name:String) : String = {
+    systemConfig.getEffectiveSystemLimit(name).toString
+  }
+
+  @PUT
+  @Path("/system/limits/{name}/hard")
+  @Produces(Array("application/json"))
+  def setHardLimit(@PathParam("name") name:String,
+                   value:String) = {
+    systemConfig.setHardSystemLimit(name, value.toInt)
+  }
+
+  @PUT
+  @Path("/system/limits/{name}/default")
+  @Produces(Array("application/json"))
+  def setDefaultLimit(@PathParam("name") name:String,
+                      value:String) = {
+    systemConfig.setDefaultSystemLimit(name, value.toInt)
+  }
 }

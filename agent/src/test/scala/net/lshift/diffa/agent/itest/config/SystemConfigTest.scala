@@ -18,11 +18,12 @@ package net.lshift.diffa.agent.itest.config
 
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.SystemConfigRestClient
-import org.junit.Test
 import org.junit.Assert._
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.frontend.DomainDef
 import net.lshift.diffa.client.NotFoundException
+import net.lshift.diffa.kernel.config.limits.ChangeEventRate
+import org.junit.Test
 
 class SystemConfigTest {
 
@@ -55,5 +56,35 @@ class SystemConfigTest {
     client.setConfigOptions(Map("foo" -> "bar", "foz" -> "boz"))
     assertEquals("bar", client.getConfigOption("foo"))
     assertEquals("boz", client.getConfigOption("foz"))
+  }
+
+  @Test(expected = classOf[NotFoundException])
+  def unknownLimitNameShouldRaiseErrorWhenSettingHardLimit {
+    client.setHardSystemLimit(new UUID().toString, 111)
+  }
+
+  @Test(expected = classOf[NotFoundException])
+  def unknownLimitNameShouldRaiseErrorWhenSettingDefaultLimit {
+    client.setDefaultSystemLimit(new UUID().toString, 111)
+  }
+
+  @Test(expected = classOf[NotFoundException])
+  def unknownLimitNameShouldRaiseErrorWhenGettingEffectiveLimit {
+    client.getEffectiveSystemLimit(new UUID().toString)
+  }
+
+  @Test
+  def shouldSetSystemHardLimitFollowedBySoftLimit {
+
+    client.setHardSystemLimit(ChangeEventRate.key, 19)
+    client.setDefaultSystemLimit(ChangeEventRate.key, 19) // Assert the default value, since this might have been set by a previous test run
+
+    val oldlimit = client.getEffectiveSystemLimit(ChangeEventRate.key)
+    assertEquals(19, oldlimit)
+
+    client.setDefaultSystemLimit(ChangeEventRate.key, 18)
+
+    val newlimit = client.getEffectiveSystemLimit(ChangeEventRate.key)
+    assertEquals(18, newlimit)
   }
 }

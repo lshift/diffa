@@ -122,4 +122,8 @@ class DomainResource {
   @Path("/inventory")
   def getInventoryResource(@PathParam("domain") domain:String) =
     withValidDomain(domain, new InventoryResource(changes, domainConfigStore, domain))
+
+  @Path("/limits")
+  def getLimitsResource(@PathParam("domain") domain:String) =
+    withValidDomain(domain, new DomainServiceLimitsResource(config, domain))
 }

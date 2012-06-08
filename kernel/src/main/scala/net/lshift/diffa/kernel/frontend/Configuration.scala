@@ -18,6 +18,7 @@ package net.lshift.diffa.kernel.frontend
 
 import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.config._
+import limits.ValidServiceLimits
 import net.lshift.diffa.kernel.matching.MatchingManager
 import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelationStoreFactory}
 import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
@@ -297,4 +298,30 @@ class Configuration(val configStore: DomainConfigStore,
     scanScheduler.onUpdatePair(p)
     pairPolicyClient.difference(pairRef)
   }
+
+  def getEffectiveDomainLimit(domain:String, limitName:String) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.getEffectiveLimitByNameForDomain(domain, limit)
+  }
+
+  def getEffectivePairLimit(pair:DiffaPairRef, limitName:String) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.getEffectiveLimitByNameForPair(pair.domain, pair.key, limit)
+  }
+
+  def setHardDomainLimit(domain:String, limitName:String, value:Int) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.setDomainHardLimit(domain, limit, value)
+  }
+
+  def setDefaultDomainLimit(domain:String, limitName:String, value:Int) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.setDomainDefaultLimit(domain, limit, value)
+  }
+
+  def setPairLimit(pair:DiffaPairRef, limitName:String, value:Int) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.setPairLimit(pair.domain, pair.key, limit, value)
+  }
+
 }

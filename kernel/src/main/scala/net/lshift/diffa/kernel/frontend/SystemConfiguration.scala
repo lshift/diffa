@@ -21,6 +21,7 @@ import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
 import net.lshift.diffa.kernel.config.{User, ServiceLimitsStore}
+import net.lshift.diffa.kernel.config.limits.ValidServiceLimits
 
 
 /**
@@ -80,5 +81,20 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
   def getSystemConfigOption(key:String) = systemConfigStore.maybeSystemConfigOption(key)
 
   def listDomainMemberships(username: String) = systemConfigStore.listDomainMemberships(username)
+
+  def getEffectiveSystemLimit(limitName:String) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.getEffectiveLimitByName(limit)
+  }
+
+  def setHardSystemLimit(limitName:String, value:Int) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.setSystemHardLimit(limit, value)
+  }
+
+  def setDefaultSystemLimit(limitName:String, value:Int) = {
+    val limit = ValidServiceLimits.lookupLimit(limitName)
+    serviceLimitsStore.setSystemDefaultLimit(limit, value)
+  }
 
 }
