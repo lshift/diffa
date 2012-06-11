@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import net.lshift.diffa.kernel.config._
 import com.sun.jersey.core.util.MultivaluedMapImpl
-import limits.{Unlimited, ScanReadTimeout, ScanConnectTimeout}
+import net.lshift.diffa.schema.servicelimits._
 import org.apache.http.client.methods.{HttpPost, HttpUriRequest, HttpGet}
 import org.apache.http.client.entity.UrlEncodedFormEntity
 

@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.util.db
 
 import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils => HQU}
-import net.lshift.diffa.kernel.util.db.SessionHelper._
+import net.lshift.diffa.schema.hibernate.SessionHelper._
 import org.hibernate.{Session, SessionFactory}
 import collection.mutable.ListBuffer
 import javax.sql.DataSource

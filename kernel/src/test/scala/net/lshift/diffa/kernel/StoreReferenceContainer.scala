@@ -10,11 +10,16 @@ import org.slf4j.LoggerFactory
 import util.cache.HazelcastCacheProvider
 import util.db.HibernateDatabaseFacade
 import util.sequence.HazelcastSequenceProvider
-import util.{MissingObjectException, SchemaCleaner, DatabaseEnvironment}
+import util.MissingObjectException
 import org.hibernate.SessionFactory
-import net.lshift.diffa.kernel.util.db.SessionHelper.sessionFactoryToSessionHelper
+import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHelper
+import net.lshift.diffa.schema.cleaner.SchemaCleaner
+import net.lshift.diffa.schema.environment.{DatabaseEnvironment, TestDatabaseEnvironments}
+import net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep
 import collection.JavaConversions._
 import com.jolbox.bonecp.BoneCPDataSource
+import net.lshift.diffa.schema.jooq.DatabaseFacade
+import javax.sql.DataSource
 
 object StoreReferenceContainer {
   def withCleanDatabaseEnvironment(env: DatabaseEnvironment) = {
@@ -33,6 +38,7 @@ trait StoreReferenceContainer {
   private val logger = LoggerFactory.getLogger(getClass)
 
   def sessionFactory: SessionFactory
+  def facade: DatabaseFacade
   def dialect: Dialect
   def systemConfigStore: HibernateSystemConfigStore
   def domainConfigStore: HibernateDomainConfigStore
@@ -73,6 +79,9 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
                                                             // otherwise the preparation step will not get committed
   val dialect = Dialect.getDialect(applicationConfig.getProperties)
   private var _sessionFactory: Option[SessionFactory] = None
+  private var _ds: Option[BoneCPDataSource] = None
+
+  def facade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
 
   private val cacheManager = new CacheManager
   private val pairCache = new PairCache(cacheManager)
@@ -84,9 +93,12 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private def cacheProvider = new HazelcastCacheProvider
   private def sequenceProvider = new HazelcastSequenceProvider
 
-  def sessionFactory = _sessionFactory match {
-    case Some(sf) => sf
-    case None => throw new IllegalStateException("Failed to initialize environment before using SessionFactory")
+  def sessionFactory = _sessionFactory.getOrElse {
+    throw new IllegalStateException("Failed to initialize environment before using SessionFactory")
+  }
+
+  def ds = _ds.getOrElse {
+    throw new IllegalStateException("Failed to initialize environment before using DataSource")
   }
 
   private def makeStore[T](consFn: SessionFactory => T, className: String): T = _sessionFactory match {
@@ -95,12 +107,6 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     case None =>
       throw new IllegalStateException("Failed to initialize environment before using " + className)
   }
-
-  private val ds = new BoneCPDataSource()
-  ds.setJdbcUrl(applicationEnvironment.url)
-  ds.setUsername(applicationEnvironment.username)
-  ds.setPassword(applicationEnvironment.password)
-  ds.setDriverClass(applicationEnvironment.driver)
 
   private lazy val _serviceLimitsStore =
     makeStore[ServiceLimitsStore](sf => new HibernateServiceLimitsStore(sf, new HibernateDatabaseFacade(sf,ds)), "ServiceLimitsStore")
@@ -112,15 +118,15 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new HibernateDomainConfigStore(sf, new HibernateDatabaseFacade(sf,ds), pairCache, hookManager, cacheManager, membershipListener), "domainConfigStore")
 
   private lazy val _domainCredentialsStore =
-    makeStore(sf => new HibernateDomainCredentialsStore(sf, new HibernateDatabaseFacade(sf,ds)), "domainCredentialsStore")
+    makeStore(sf => new JooqDomainCredentialsStore(facade), "domainCredentialsStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new HibernateDomainDifferenceStore(sf, new HibernateDatabaseFacade(sf,ds), cacheProvider, sequenceProvider, cacheManager, dialect, hookManager), "DomainDifferenceStore")
+    makeStore(sf => new HibernateDomainDifferenceStore(sf, facade, cacheProvider, sequenceProvider, cacheManager, hookManager), "DomainDifferenceStore")
 
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore
   def domainConfigStore: HibernateDomainConfigStore = _domainConfigStore
-  def domainCredentialsStore: HibernateDomainCredentialsStore = _domainCredentialsStore
+  def domainCredentialsStore: JooqDomainCredentialsStore = _domainCredentialsStore
   def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore
 
   def prepareEnvironmentForStores {
@@ -131,6 +137,14 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
       (new HibernateConfigStorePreparationStep).prepare(sf, applicationConfig)
       log.info("Schema created")
     }
+    _ds = Some({
+      val ds = new BoneCPDataSource()
+      ds.setJdbcUrl(applicationEnvironment.url)
+      ds.setUsername(applicationEnvironment.username)
+      ds.setPassword(applicationEnvironment.password)
+      ds.setDriverClass(applicationEnvironment.driver)
+      ds
+    })
   }
 
   def tearDown {
@@ -142,6 +156,8 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     }
     _sessionFactory.get.close()
     _sessionFactory = None
+    _ds.get.close()
+    _ds = None
   }
 
   private def performCleanerAction(action: SchemaCleaner => (DatabaseEnvironment, DatabaseEnvironment) => Unit) {

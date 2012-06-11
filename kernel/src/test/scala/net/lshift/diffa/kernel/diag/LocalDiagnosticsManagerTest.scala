@@ -14,7 +14,7 @@ import java.util.zip.ZipInputStream
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theory}
 import net.lshift.diffa.kernel.frontend.{PairDef, FrontendConversions}
 import net.lshift.diffa.kernel.config._
-import limits.{ExplainFiles, DiagnosticEventBufferSize, Unlimited}
+import net.lshift.diffa.schema.servicelimits._
 import system.SystemConfigStore
 
 class LocalDiagnosticsManagerTest {

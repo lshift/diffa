@@ -17,7 +17,7 @@ package net.lshift.diffa.kernel.util.db
 
 import org.slf4j.{LoggerFactory, Logger}
 import org.hibernate.{NonUniqueResultException, Query, Session, SessionFactory}
-import net.lshift.diffa.kernel.util.db.SessionHelper._
+import net.lshift.diffa.schema.hibernate.SessionHelper._
 import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.util.MissingObjectException

@@ -27,9 +27,11 @@ import runner.RunWith
 import net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreTest.TileScenario
 import org.joda.time.{DateTime, Interval, DateTimeZone}
 import org.hibernate.dialect.Dialect
-import net.lshift.diffa.kernel.util.DatabaseEnvironment
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
+import org.jooq.exception.DataAccessException
+import java.sql.SQLIntegrityConstraintViolationException
 
 /**
  * Test cases for the HibernateDomainDifferenceStore.
@@ -651,32 +653,38 @@ class HibernateDomainDifferenceStoreTest {
    * pre-empts what would otherwise happen if the table were not partitioned
    * (ConstraintViolationException).
    */
-  @Test(expected = classOf[ConstraintViolationException])
+  @Test
   def shouldFailToAddReportableEventForNonExistentPair() {
     val lastUpdate = new DateTime()
     val seen = lastUpdate.plusSeconds(5)
 
     try {
       domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("nonexistent-pair1", "domain"), "id1"), lastUpdate, "uV", "dV", seen)
+      fail("No DataAccessException was thrown")
     } catch {
-      case cve: org.hibernate.exception.ConstraintViolationException =>
-        throw cve
-      case ex => ex.getCause match {
-        case batchUpdateEx: java.sql.SQLException =>
-          if (batchUpdateEx.getMessage.contains("ORA-14400"))
-            throw new ConstraintViolationException(batchUpdateEx.getMessage, batchUpdateEx, "")
-        case unexpected =>
-          throw unexpected
-      }
+      case e: DataAccessException =>
+        assertTrue("Cause must be an SQLIntegrityConstraintViolationException or ORA-14400",
+          e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException]
+          || e.getMessage.contains("ORA-14400"))
+      case unexpected =>
+        throw unexpected
     }
   }
 
-  @Test(expected = classOf[ConstraintViolationException])
+
+  @Test
   def shouldFailToAddPendingEventForNonExistentPair() {
     val lastUpdate = new DateTime()
     val seen = lastUpdate.plusSeconds(5)
 
-    domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("nonexistent-pair2", "domain"), "id1"), lastUpdate, "uV", "dV", seen)
+    try {
+      domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("nonexistent-pair2", "domain"), "id1"), lastUpdate, "uV", "dV", seen)
+      fail("No DataAccessException was thrown")
+    } catch {
+      case e: DataAccessException =>
+        assertTrue("Cause must be an SQLIntegrityConstraintViolationException",
+          e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException])
+    }
   }
 
   @Test
@@ -804,7 +812,7 @@ class HibernateDomainDifferenceStoreTest {
   //
 
   private def currentDateTime = {
-    if (DialectExtensionSelector.select(domainDiffStore.dialect).supportsFractionalSeconds) {
+    if (DialectExtensionSelector.select(storeReferences.dialect).supportsFractionalSeconds) {
       DateTime.now
     } else {
       // Truncate the DateTime to the nearest second in order to work around

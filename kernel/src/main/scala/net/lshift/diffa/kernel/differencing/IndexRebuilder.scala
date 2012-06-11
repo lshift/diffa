@@ -1,6 +1,5 @@
 package net.lshift.diffa.kernel.differencing
 
-import net.lshift.diffa.kernel.util.db.SessionHelper.sessionFactoryToSessionHelper
 import org.hibernate.dialect.Dialect
 import net.lshift.hibernate.migrations.dialects.{OracleDialectExtension, DialectExtensionSelector}
 import org.slf4j.LoggerFactory

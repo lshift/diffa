@@ -21,17 +21,16 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import net.lshift.diffa.participant.common.ServletHelper
 import org.easymock.EasyMock._
 import org.easymock.{EasyMock, IAnswer}
+import org.junit.{Before, Test}
 import java.util.ArrayList
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTimeZone, DateTime, LocalDate}
 import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.participant.scanning._
+import net.lshift.diffa.schema.servicelimits._
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import net.lshift.diffa.kernel.config._
-import limits.{ScanReadTimeout, ScanConnectTimeout, ScanResponseSizeLimit, Unlimited}
-import net.lshift.diffa.kernel.differencing.ScanFailedException
-import org.junit.{After, Before, Test}
 
 /**
  * Test ensuring that internal query constraint and aggregation types are passed and parsed by Scala participants.

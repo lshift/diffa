@@ -22,6 +22,7 @@ import net.lshift.diffa.client.ScanningParticipantRestClient
 import net.lshift.diffa.participant.scanning.StringPrefixConstraint
 import org.junit.Test
 import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.schema.servicelimits.ServiceLimit
 
 class UsersScanningTest {
   val limits = new PairServiceLimitsView {

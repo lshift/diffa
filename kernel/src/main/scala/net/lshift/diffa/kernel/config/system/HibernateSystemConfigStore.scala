@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.config.system
 
 import net.lshift.diffa.kernel.util.db.{DatabaseFacade,HibernateQueryUtils}
-import net.lshift.diffa.kernel.util.db.SessionHelper._
+import net.lshift.diffa.schema.hibernate.SessionHelper._
 import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException}
@@ -44,7 +44,7 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
 
     // TODO Why is do we not just do a DELETE CASCADE?
 
-    s.getNamedQuery("deleteExternalHttpCredentialsByDomain").setString("domain",domain).executeUpdate()
+    db.execute("deleteExternalHttpCredentialsByDomain", Map("domain" -> domain))
 
     deleteByDomain[EndpointView](s, domain, "endpointViewsByDomain")
     deleteByDomain[Escalation](s, domain, "escalationsByDomain")

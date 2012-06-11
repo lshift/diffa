@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.config.limits
 
-import net.lshift.diffa.kernel.config.ServiceLimit
+import net.lshift.diffa.schema.servicelimits._
 import net.lshift.diffa.kernel.util.MissingObjectException
 
 /**

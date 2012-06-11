@@ -35,6 +35,20 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>diffa-schema</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>diffa-schema-bindings</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq</artifactId>
+    </dependency>
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
@@ -275,6 +289,7 @@
           <configuration>
             <systemPropertyVariables>
               <diffa.hibernate.dialect>${diffa.hibernate.dialect}</diffa.hibernate.dialect>
+              <diffa.jooq.dialect>HSQLDB</diffa.jooq.dialect>
               <diffa.jdbc.url>${diffa.jdbc.url}</diffa.jdbc.url>
               <diffa.jdbc.driver>${diffa.jdbc.driver}</diffa.jdbc.driver>
               <diffa.jdbc.username>${diffa.jdbc.username}</diffa.jdbc.username>
@@ -304,6 +319,7 @@
           <configuration>
             <systemPropertyVariables>
               <diffa.hibernate.dialect>${diffa.hibernate.dialect}</diffa.hibernate.dialect>
+              <diffa.jooq.dialect>ORACLE</diffa.jooq.dialect>
               <diffa.jdbc.url>${diffa.jdbc.url}</diffa.jdbc.url>
               <diffa.jdbc.driver>${diffa.jdbc.driver}</diffa.jdbc.driver>
               <diffa.jdbc.username>${diffa.jdbc.username}</diffa.jdbc.username>
@@ -333,6 +349,7 @@
           <configuration>
             <systemPropertyVariables>
               <diffa.hibernate.dialect>${diffa.hibernate.dialect}</diffa.hibernate.dialect>
+              <diffa.jooq.dialect>MYSQL</diffa.jooq.dialect>
               <diffa.jdbc.dbname>${diffa.jdbc.dbname}</diffa.jdbc.dbname>
               <diffa.jdbc.sys.url>${diffa.jdbc.sys.url}</diffa.jdbc.sys.url>
               <diffa.jdbc.url>${diffa.jdbc.url}</diffa.jdbc.url>

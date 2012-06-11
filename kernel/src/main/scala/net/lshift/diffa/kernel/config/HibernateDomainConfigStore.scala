@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils, DatabaseFacade}
-import net.lshift.diffa.kernel.util.db.SessionHelper._
+import net.lshift.diffa.schema.hibernate.SessionHelper._
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._

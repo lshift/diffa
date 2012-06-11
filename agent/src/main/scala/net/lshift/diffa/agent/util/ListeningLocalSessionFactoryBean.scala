@@ -20,7 +20,7 @@ import org.springframework.orm.hibernate3.LocalSessionFactoryBean
 import org.hibernate.SessionFactoryObserver
 import org.hibernate.cfg.Configuration
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.config.HibernatePreparationStep
+import net.lshift.diffa.schema.migrations.HibernatePreparationStep
 import net.lshift.diffa.kernel.hooks.HookManager
 
 /**

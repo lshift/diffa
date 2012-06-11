@@ -22,7 +22,7 @@ import org.junit.{Test, After, Before}
 import org.junit.Assert._
 import net.lshift.diffa.agent.client.{ConfigurationRestClient, DomainLimitsRestClient, SystemConfigRestClient}
 import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef, DomainDef}
-import net.lshift.diffa.kernel.config.limits.{ScanResponseSizeLimit, ChangeEventRate}
+import net.lshift.diffa.schema.servicelimits.{ScanResponseSizeLimit, ChangeEventRate}
 import net.lshift.diffa.client.NotFoundException
 
 class DomainLimitsTest {

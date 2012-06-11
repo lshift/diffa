@@ -20,6 +20,8 @@
     <module>docgen-maven-plugin</module>
     <module>dist</module>
     <module>hibernate-migrations</module>
+    <module>schema</module>
+    <module>schema-bindings</module>
     <module>jst-packaging</module>
   </modules>
 
@@ -47,6 +49,7 @@
     <jodatime.version>2.0</jodatime.version>
     <jadira.version>1.9</jadira.version>
     <javamail.file.transport.version>1.0</javamail.file.transport.version>
+    <jooq.version>2.3.1</jooq.version>
     <slf4j.version>1.6.4</slf4j.version>
     <logback.version>1.0.0</logback.version>
     <akka.version>2.0.1</akka.version>
@@ -492,6 +495,11 @@
       <artifactId>postgresql</artifactId>
       <version>${postgresql.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
   </dependencies>
   </dependencyManagement>
   <distributionManagement>
@@ -509,7 +517,6 @@
           <artifactId>jetty-maven-plugin</artifactId>
           <version>${jetty.version}</version>
         </plugin>
-
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
@@ -539,6 +546,18 @@
           <configuration>
             <scalaVersion>${scala.version}</scalaVersion>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.jooq</groupId>
+          <artifactId>jooq-codegen-maven</artifactId>
+          <version>${jooq.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>generate</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

@@ -7,6 +7,7 @@ import org.hibernate.cfg.{Configuration => HibernateConfig}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import net.lshift.diffa.kernel.StoreReferenceContainer
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.junit.{AfterClass, Test}
 
 /**

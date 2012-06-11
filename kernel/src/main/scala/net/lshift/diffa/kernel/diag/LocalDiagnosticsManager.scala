@@ -11,7 +11,7 @@ import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.joda.time.{DateTimeZone, DateTime}
 import net.lshift.diffa.kernel.config.{PairServiceLimitsView, ConfigOption, DiffaPairRef, DomainConfigStore}
-import net.lshift.diffa.kernel.config.limits._
+import net.lshift.diffa.schema.servicelimits._
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.

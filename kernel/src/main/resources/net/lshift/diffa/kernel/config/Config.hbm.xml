@@ -252,32 +252,9 @@
     <property name="target" type="string" column="target" not-null="true" length="1024" />
   </class>
 
-  <class name="ExternalHttpCredentials" table="external_http_credentials" abstract="false">
-    <composite-id mapped="false">
-      <key-property name="domain" type="string" column="domain" />
-      <key-property name="url"    type="string" column="url" />
-    </composite-id>
-    <property name="credentialType" type="string" column="cred_type" not-null="true"/>
-    <property name="key" type="string" column="cred_key" not-null="true" />
-    <property name="value" type="string" column="cred_value" not-null="true" />
-  </class>
-
-  <query name="externalHttpCredentialsByDomain" cacheable="false">
-    select c.url, c.key, c.credentialType from ExternalHttpCredentials c where c.domain = :domain
-  </query>
-
-  <query name="externalHttpCredentialsByDomainAndUrl" cacheable="false">
-    select c from ExternalHttpCredentials c
-    where c.domain = :domain and c.url like :base_url
-  </query>
-
-  <query name="deleteExternalHttpCredentials" cacheable="false">
-    delete from ExternalHttpCredentials c where c.domain = :domain and c.url = :url
-  </query>
-
-  <query name="deleteExternalHttpCredentialsByDomain" cacheable="false">
-    delete from ExternalHttpCredentials c where c.domain = :domain
-  </query>
+  <sql-query name="deleteExternalHttpCredentialsByDomain">
+    delete from external_http_credentials where domain = :domain
+  </sql-query>
 
   <query name="userByName" cacheable="true">
     select u from User u where u.name = :name

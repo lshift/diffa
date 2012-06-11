@@ -33,6 +33,7 @@ import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
 import org.hibernate.cfg.{Configuration => HibernateConfig}
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.junit.{AfterClass, Test, Before}
 
 /**

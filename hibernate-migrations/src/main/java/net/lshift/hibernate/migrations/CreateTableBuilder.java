@@ -144,7 +144,7 @@ public class CreateTableBuilder extends TraceableMigrationElement {
     }
     buffer.append(getPrimaryKey().sqlConstraintString(dialect));
 
-    buffer.append(")");
+    buffer.append(")").append(dialect.getTableTypeString());
 
     partitionHelper.appendPartitionString(buffer);
 

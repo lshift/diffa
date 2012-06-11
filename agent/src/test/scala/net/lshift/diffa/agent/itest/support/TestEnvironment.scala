@@ -27,7 +27,7 @@ import org.restlet.data.Protocol
 import org.restlet.routing.Router
 import org.restlet.resource.{ServerResource, Post}
 import net.lshift.diffa.kernel.config._
-import limits.ChangeEventRate
+import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import org.restlet.{Application, Component}
 import collection.mutable.HashMap
 import net.lshift.diffa.agent.client._

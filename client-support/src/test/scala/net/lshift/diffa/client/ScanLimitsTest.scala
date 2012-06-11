@@ -22,7 +22,7 @@ import org.easymock.{EasyMock, IAnswer}
 import net.lshift.diffa.kernel.config.{PairServiceLimitsView, FixedDomainCredentialsLookup, DiffaPairRef}
 import net.lshift.diffa.participant.scanning._
 import org.junit.{Test, Before}
-import net.lshift.diffa.kernel.config.limits.{ScanReadTimeout, ScanConnectTimeout, ScanResponseSizeLimit}
+import net.lshift.diffa.schema.servicelimits.{ScanReadTimeout, ScanConnectTimeout, ScanResponseSizeLimit}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.differencing.{ScanLimitBreachedException, ScanFailedException}
 

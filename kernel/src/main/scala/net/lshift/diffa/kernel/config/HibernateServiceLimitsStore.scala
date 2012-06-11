@@ -1,8 +1,8 @@
 package net.lshift.diffa.kernel.config
 
-import limits.Unlimited
 import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils, DatabaseFacade}
-import net.lshift.diffa.kernel.util.db.SessionHelper._
+import net.lshift.diffa.schema.servicelimits._
+import net.lshift.diffa.schema.hibernate.SessionHelper._
 import org.hibernate.SessionFactory
 
 

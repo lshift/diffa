@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import org.junit.{Before, Test, Assert}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, DataPoints, Theory}
-import net.lshift.diffa.kernel.config.limits.ChangeEventRate
+import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.diffa.kernel.config.DomainServiceLimitsView
 
 @RunWith(classOf[Theories])

@@ -22,7 +22,7 @@ import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam
 import net.lshift.diffa.docgen.annotations.MandatoryParams.MandatoryParam._
 import javax.ws.rs._
 import net.lshift.diffa.participant.changes.ChangeEvent
-import net.lshift.diffa.kernel.config.limits.ChangeEventRate
+import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.diffa.kernel.limiting.{DomainRateLimiterFactory, ServiceLimiterKey, ServiceLimiterRegistry}
 
 /**

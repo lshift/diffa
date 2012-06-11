@@ -34,7 +34,7 @@ import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
 import java.net.{ConnectException, SocketException, URI}
 import net.lshift.diffa.kernel.config._
-import limits.ScanResponseSizeLimit
+import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
 import org.apache.http.HttpResponse
 import java.io.{IOException, InputStream}
 import net.lshift.diffa.kernel.differencing.{ScanLimitBreachedException, ScanFailedException}

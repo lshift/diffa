@@ -22,7 +22,7 @@ import org.junit.Assert._
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.frontend.DomainDef
 import net.lshift.diffa.client.NotFoundException
-import net.lshift.diffa.kernel.config.limits.ChangeEventRate
+import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import org.junit.Test
 
 class SystemConfigTest {

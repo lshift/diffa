@@ -9,7 +9,8 @@ import org.joda.time.DateTime
 import org.junit.Assert._
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, Before, Test}
-import net.lshift.diffa.kernel.config.{TestDatabaseEnvironments, DiffaPairRef, Domain}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain}
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 
 class ReportManagerTest {
   private val storeReferences = ReportManagerTest.storeReferences

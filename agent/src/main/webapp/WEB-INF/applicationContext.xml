@@ -105,18 +105,15 @@
     <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
   </bean>
-  <bean id="domainDifferenceStoreFactory" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreFactory">
+  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStore">
     <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg ref="databaseFacade" />
+    <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="zoomCacheManager"/>
-    <constructor-arg ref="dialect"/>
     <constructor-arg ref="hookManager" />
   </bean>
-  <bean id="domainDifferenceStore"
-        factory-bean="domainDifferenceStoreFactory"
-        factory-method="create"/>
+
   <bean id="sweeper" class="net.lshift.diffa.kernel.util.Sweeper" init-method="start" destroy-method="shutdown">
     <constructor-arg value="5" />
     <constructor-arg ref="domainDifferenceStore" />
@@ -327,9 +324,14 @@
       Data
     ========
   -->
-  <bean id="dialect" class="org.springframework.jndi.JndiObjectFactoryBean">
+  <bean id="hibernateDialect" class="org.springframework.jndi.JndiObjectFactoryBean">
     <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
   </bean>
+
+  <bean id="jooqDialect" class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="java:comp/env/diffaJooqDialect"/>
+  </bean>
+
   <bean id="hookManager" class="net.lshift.diffa.kernel.hooks.HookManager" />
 
   <bean id="databaseFacade" class="net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade">
@@ -339,6 +341,15 @@
         <property name="jndiName" value="java:comp/env/jdbc/diffaDS"/>
       </bean>
     </constructor-arg>
+  </bean>
+
+  <bean id="jooqDatabaseFacade" class="net.lshift.diffa.schema.jooq.DatabaseFacade">
+    <constructor-arg>
+      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
+            <property name="jndiName" value="java:comp/env/jdbc/diffaDS"/>
+      </bean>
+    </constructor-arg>
+    <constructor-arg ref="jooqDialect"/>
   </bean>
 
   <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
@@ -352,14 +363,13 @@
     </property>
     <property name="hibernateProperties">
       <bean class="net.lshift.diffa.agent.util.HibernatePropertiesFactory">
-        <constructor-arg ref="dialect"/>
+        <constructor-arg ref="hibernateDialect"/>
         <constructor-arg value="net.sf.ehcache.hibernate.EhCacheRegionFactory"/>
       </bean>
     </property>
     <property name="mappingResources">
       <list>
           <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
-          <value>net/lshift/diffa/kernel/differencing/Differences.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/DomainConfig.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/SystemConfig.hbm.xml</value>
@@ -368,7 +378,7 @@
     </property>
     <property name="preparationSteps">
       <list>
-        <bean class="net.lshift.diffa.kernel.config.HibernateConfigStorePreparationStep" />
+        <bean class="net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep" />
       </list>
     </property>
     <property name="hookManager" ref="hookManager" />
@@ -459,9 +469,8 @@
     ===========
   -->
 
-  <bean id="domainCredentialsStore" class="net.lshift.diffa.kernel.config.HibernateDomainCredentialsStore">
-    <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg ref="databaseFacade" />
+  <bean id="domainCredentialsStore" class="net.lshift.diffa.kernel.config.JooqDomainCredentialsStore">
+    <constructor-arg ref="jooqDatabaseFacade" />
   </bean>
 
   <!--

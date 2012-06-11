@@ -21,6 +21,8 @@ import org.junit.Assert._
 import net.lshift.diffa.client.ScanningParticipantRestClient
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.schema.servicelimits.ServiceLimit
+
 class DomainsScanningTest {
 
   val limits = new PairServiceLimitsView {

@@ -19,6 +19,11 @@
       <artifactId>diffa-kernel</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>diffa-schema</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>commons-io</groupId>

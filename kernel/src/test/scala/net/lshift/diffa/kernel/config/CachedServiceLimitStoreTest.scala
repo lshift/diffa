@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
-import limits.Unlimited
+import net.lshift.diffa.schema.servicelimits.{ServiceLimit, Unlimited}
 import org.easymock.EasyMock._
 import org.junit.{Before, Test}
 import org.junit.Assert._

@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.limiting
 
 import net.lshift.diffa.kernel.config.DomainServiceLimitsView
-import net.lshift.diffa.kernel.config.limits.{Unlimited, ChangeEventRate}
+import net.lshift.diffa.schema.servicelimits.{Unlimited, ChangeEventRate}
 
 class ServiceLimitsDomainRateLimiterFactory(domainLimitsView: DomainServiceLimitsView) extends DomainRateLimiterFactory {
   def createRateLimiter(domainName: String): RateLimiter = new RateLimiter(

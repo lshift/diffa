@@ -383,16 +383,12 @@ case class User(@BeanProperty var name: String = null,
 }
 
 case class ExternalHttpCredentials(
-  @BeanProperty var domain: String = null,
-  @BeanProperty var url: String = null,
-  @BeanProperty var key: String = null,
-  @BeanProperty var value: String = null,
-  @BeanProperty var credentialType: String = null
+  domain: String,
+  url: String,
+  key: String,
+  value: String,
+  credentialType: String
 ) {
-
-  import ExternalHttpCredentials._
-
-  def this() = this(domain = null)
 
   override def equals(that:Any) = that match {
     case e:ExternalHttpCredentials =>

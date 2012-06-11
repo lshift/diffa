@@ -110,20 +110,6 @@ object FrontendConversions {
     target = r.target
   )
 
-  def toOutboundExternalHttpCredentialsDef(c: ExternalHttpCredentials) = OutboundExternalHttpCredentialsDef(
-    url = c.url,
-    key = c.key,
-    `type` = c.getCredentialType()
-  )
-
-  def fromInboundExternalHttpCredentialsDef(domainName:String, c: InboundExternalHttpCredentialsDef) = ExternalHttpCredentials(
-    domain = domainName,
-    url = c.url,
-    key = c.key,
-    value = c.value,
-    credentialType = c.`type`
-  )
-
   def toDomainDef(d: Domain) = DomainDef(name = d.name)
   
   def fromDomainDef(d:DomainDef) = Domain(name=d.name)

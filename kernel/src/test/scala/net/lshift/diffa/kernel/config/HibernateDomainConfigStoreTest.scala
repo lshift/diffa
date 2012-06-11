@@ -21,8 +21,9 @@ import scala.collection.Map
 import org.joda.time.DateTime
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend._
-import net.lshift.diffa.kernel.util.{MissingObjectException}
+import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.slf4j.LoggerFactory
 import org.junit.{Test, AfterClass, Before}
 

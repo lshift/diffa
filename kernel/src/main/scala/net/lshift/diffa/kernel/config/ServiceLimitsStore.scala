@@ -53,7 +53,7 @@ package net.lshift.diffa.kernel.config
  </ol>
  */
 
-import net.lshift.diffa.kernel.config.limits.Unlimited
+import net.lshift.diffa.schema.servicelimits._
 
 trait ServiceLimitsStore extends ServiceLimitsView {
   def defineLimit(limit: ServiceLimit): Unit

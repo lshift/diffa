@@ -35,7 +35,8 @@ import org.apache.commons.io.FileUtils
 import net.lshift.diffa.kernel.matching.{MatchingStatusListener, MatchingManager, EventMatcher}
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, After, Before, Test}
-import net.lshift.diffa.kernel.config.{TestDatabaseEnvironments, Domain, Endpoint, DiffaPair}
+import net.lshift.diffa.kernel.config.{Domain, Endpoint, DiffaPair}
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 
 class StoreSynchronizationTest {
 

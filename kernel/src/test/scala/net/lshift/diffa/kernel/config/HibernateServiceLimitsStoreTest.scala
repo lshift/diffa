@@ -1,6 +1,7 @@
 package net.lshift.diffa.kernel.config
 
-import limits.Unlimited
+import net.lshift.diffa.schema.servicelimits.{ServiceLimit, Unlimited}
+import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, Before, Test}
 

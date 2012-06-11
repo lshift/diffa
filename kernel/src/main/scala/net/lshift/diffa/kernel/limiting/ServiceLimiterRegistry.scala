@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.limiting
 
-import net.lshift.diffa.kernel.config.ServiceLimit
+import net.lshift.diffa.schema.servicelimits.ServiceLimit
 import java.util.concurrent.ConcurrentHashMap
 import net.lshift.diffa.kernel.util.{Lazy, Registry}
 import org.apache.http.annotation.ThreadSafe
