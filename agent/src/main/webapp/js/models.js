@@ -279,7 +279,7 @@ Diffa.Collections.EndpointViews = Backbone.Collection.extend({
 Diffa.Collections.Pairs = Diffa.Collections.CollectionBase.extend({
   model: Diffa.Models.Pair,
   url: function() { return "/domains/" + this.domain.id + "/config/pairs"; },
-  comparator: function(endpoint) { return endpoint.get('name'); }
+  comparator: function(pair) { return pair.id; }
 });
 Diffa.Collections.CategoryCollection = Backbone.Collection.extend({
   model: Backbone.Model,
@@ -324,6 +324,8 @@ Diffa.Collections.PairStates = Diffa.Collections.CollectionBase.extend({
       pair.set({selected: pair.id == this.selectedPair});
     });
   },
+
+  comparator: function(state) { return state.id; },
 
   sync: function() {
     var self = this;
