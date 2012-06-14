@@ -41,4 +41,12 @@ trait DefValidationTestBase {
       fn(name), msg.format(name) + " is too long. Limit is %d, value %s is %d".format(
         maxLength, name, len))
   }
+
+  def assertIsValid(v: Validatable) {
+    try {
+      v.validate("config")
+    } catch {
+      case e:ConfigValidationException => fail("Validation of %s failed with message: %s".format(v, e.getMessage))
+    }
+  }
 }

@@ -68,7 +68,7 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
 
   def doesDomainExist(name: String) = null != sessionFactory.withSession(s => s.get(classOf[Domain], name))
 
-  def listDomains = db.listQuery[Domain]("allDomains", Map())
+  def listDomains = db.listQuery[Domain]("allDomains", Map()).sortBy(_.getName)
 
   def getPair(pair:DiffaPairRef) : DiffaPair = getPair(pair.domain, pair.key)
   def getPair(domain:String, key: String) = sessionFactory.withSession(s => getPair(s, domain, key))

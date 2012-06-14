@@ -64,7 +64,8 @@ case class EndpointDef (
   @BeanProperty var versionGenerationUrl: String = null,
   @BeanProperty var inboundUrl: String = null,
   @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor],
-  @BeanProperty var views: java.util.List[EndpointViewDef] = new java.util.ArrayList[EndpointViewDef]) {
+  @BeanProperty var views: java.util.List[EndpointViewDef] = new java.util.ArrayList[EndpointViewDef],
+  @BeanProperty var collation: String = AsciiCollationOrdering.name) {
 
   def this() = this(name = null)
 
@@ -85,7 +86,11 @@ case class EndpointDef (
     ValidationUtil.ensureLengthLimit(endPointPath, "contentRetrievalUrl", contentRetrievalUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "versionGenerationUrl", versionGenerationUrl, DEFAULT_URL_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(endPointPath, "inboundUrl", inboundUrl, DEFAULT_URL_LENGTH_LIMIT)
-    
+
+    collation = ValidationUtil.maybeDefault(collation, AsciiCollationOrdering.name)
+    ValidationUtil.ensureMembership(endPointPath, "collation", collation,
+      Set(AsciiCollationOrdering.name, UnicodeCollationOrdering.name))
+
     Array(scanUrl,
           contentRetrievalUrl,
           versionGenerationUrl,

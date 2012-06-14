@@ -101,6 +101,18 @@ class HibernateSystemConfigStoreTest {
     assertEquals(expected.passwordEnc, actual.passwordEnc)
     assertEquals(expected.superuser, actual.superuser)
   }
+
+  @Test
+  def shouldListDomainsWithAsciiCollationByDefault = {
+    val domainNames = Seq("bar", "Baz", "Foo", "diffa", domainName)
+    domainNames.foreach { name =>
+      systemConfigStore.createOrUpdateDomain(Domain(name))
+    }
+    val results = systemConfigStore.listDomains.map(_.getName)
+
+    assertEquals(List("Baz", "Foo", "bar", "diffa", "domain"), results.toList)
+
+  }
 }
 
 object HibernateSystemConfigStoreTest {

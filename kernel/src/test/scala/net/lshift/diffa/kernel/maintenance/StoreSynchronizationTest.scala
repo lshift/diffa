@@ -95,7 +95,7 @@ class StoreSynchronizationTest {
       FileUtils.deleteDirectory(dir)
     }
     stores = new LuceneVersionCorrelationStoreFactory(
-      StoreSynchronizationTest.indexDir, systemConfigStore, diagnosticsManager)
+      StoreSynchronizationTest.indexDir, systemConfigStore, domainConfigStore, diagnosticsManager)
     store = stores(pairRef)
 
     systemConfigStore.createOrUpdateDomain(domain)

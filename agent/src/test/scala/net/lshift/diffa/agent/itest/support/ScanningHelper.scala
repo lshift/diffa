@@ -7,11 +7,14 @@ import net.lshift.diffa.agent.client.ScanningRestClient
 object ScanningHelper {
 
   def waitForScanStatus(scanClient:ScanningRestClient, pairKey:String, state:PairScanState, n:Int = 30, wait:Int = 100) {
-    def hasReached(states:Map[String, PairScanState]) = states.getOrElse(pairKey, PairScanState.UNKNOWN) == state
+    def hasReached(states:Map[String, PairScanState], status: PairScanState = state) = {
+      val currentStatus = states.getOrElse(pairKey, PairScanState.UNKNOWN)
+      currentStatus == status
+    }
 
     var i = n
     var scanStatus = scanClient.getScanStatus
-    while(!hasReached(scanStatus) && i > 0) {
+    while(!hasReached(scanStatus) && !hasReached(scanStatus, PairScanState.FAILED) && i > 0) {
       Thread.sleep(wait)
 
       scanStatus = scanClient.getScanStatus

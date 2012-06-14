@@ -20,11 +20,11 @@ import java.io.File
 import net.lshift.diffa.kernel.differencing.VersionCorrelationStoreFactory
 import scala.collection.mutable.HashMap
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.apache.commons.io.FileUtils
 import org.apache.lucene.store.{SimpleFSDirectory, NIOFSDirectory}
 import org.slf4j.LoggerFactory
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef}
 
 /**
  * Factory that creates LuceneVersionCorrelationStore instances.
@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory
 class LuceneVersionCorrelationStoreFactory(
   baseDir: String,
   configStore: SystemConfigStore,
+  domainConfigStore: DomainConfigStore,
   diagnostics:DiagnosticsManager
 ) extends VersionCorrelationStoreFactory {
 
@@ -41,7 +42,7 @@ class LuceneVersionCorrelationStoreFactory(
   
   def apply(pair: DiffaPairRef) =
     stores.getOrElseUpdate(pair,
-      new LuceneVersionCorrelationStore(pair, luceneDirectory(pair), configStore, diagnostics))
+      new LuceneVersionCorrelationStore(pair, luceneDirectory(pair), configStore, domainConfigStore, diagnostics))
 
   private def directory(pair: DiffaPairRef) = new File(baseDir, pair.identifier)
 

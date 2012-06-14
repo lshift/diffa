@@ -77,8 +77,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
 
   def startInventory(pairRef:DiffaPairRef, endpoint:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter, side:EndpointSide) = {
     val strategy = side match {
-      case UpstreamEndpoint   => new UpstreamScanStrategy
-      case DownstreamEndpoint => downstreamStrategy(null, null)
+      case UpstreamEndpoint   => new UpstreamScanStrategy(endpoint.lookupCollation)
+      case DownstreamEndpoint => downstreamStrategy(null, null, endpoint.lookupCollation)
     }
 
     strategy.startInventory(pairRef, endpoint, view, writer)
@@ -90,8 +90,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
   def processInventory(pairRef:DiffaPairRef, endpoint:Endpoint, writer: LimitedVersionCorrelationWriter, side:EndpointSide,
                        constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]) = {
     val strategy = side match {
-      case UpstreamEndpoint   => new UpstreamScanStrategy
-      case DownstreamEndpoint => downstreamStrategy(null, null)
+      case UpstreamEndpoint   => new UpstreamScanStrategy(endpoint.lookupCollation)
+      case DownstreamEndpoint => downstreamStrategy(null, null, endpoint.lookupCollation)
     }
 
     strategy.processInventory(pairRef, endpoint, writer, constraints, aggregations, entries, listener)
@@ -118,8 +118,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                    listener:DifferencingListener, handle:FeedbackHandle) = {
     benchmark(pairRef, "upstream scan", () => {
       val upstreamConstraints = upstream.groupedConstraints(view)
-      constraintsOrEmpty(upstreamConstraints).foreach((new UpstreamScanStrategy)
-        .scanParticipant(pairRef, writer, upstream, upstream.initialBucketing(view), _, participant, listener, handle))
+      constraintsOrEmpty(upstreamConstraints).foreach((new UpstreamScanStrategy(upstream.lookupCollation)
+        .scanParticipant(pairRef, writer, upstream, upstream.initialBucketing(view), _, participant, listener, handle)))
     })
   }
 
@@ -127,7 +127,7 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
                      ds:DownstreamParticipant, listener:DifferencingListener, handle:FeedbackHandle) = {
     benchmark(pairRef, "downstream scan", () => {
       val downstreamConstraints = downstream.groupedConstraints(view)
-      constraintsOrEmpty(downstreamConstraints).foreach(downstreamStrategy(us,ds)
+      constraintsOrEmpty(downstreamConstraints).foreach(downstreamStrategy(us,ds, downstream.lookupCollation)
         .scanParticipant(pairRef, writer, downstream, downstream.initialBucketing(view), _, ds, listener, handle))
     })
   }
@@ -141,7 +141,7 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
   /**
    * Allows an implementing policy to define what kind of downstream scanning policy it requires
    */
-  def downstreamStrategy(us:UpstreamParticipant, ds:DownstreamParticipant) : ScanStrategy
+  def downstreamStrategy(us:UpstreamParticipant, ds:DownstreamParticipant, collation: Collation) : ScanStrategy
 
   /**
    * The basic functionality for a scanning strategy.
@@ -317,11 +317,11 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
     def handleMismatch(pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener)
   }
 
-  protected class UpstreamScanStrategy extends ScanStrategy {
+  protected class UpstreamScanStrategy (collation: Collation) extends ScanStrategy {
     val name = "Upstream"
 
     def getAggregates(pair:DiffaPairRef, bucketing:Seq[ScanAggregation], constraints:Seq[ScanConstraint]) = {
-      val aggregator = new Aggregator(bucketing)
+      val aggregator = new Aggregator(bucketing, collation)
       stores(pair).queryUpstreams(constraints, aggregator.collectUpstream)
       aggregator.digests
     }
@@ -344,8 +344,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
     }
   }
 
-  protected class Aggregator(bucketing:Seq[ScanAggregation]) {
-    val builder = new DigestBuilder(bucketing)
+  protected class Aggregator(bucketing:Seq[ScanAggregation], collation: Collation) {
+    val builder = new DigestBuilder(bucketing, collation)
 
     def collectUpstream(id:VersionID, attributes:Map[String, String], lastUpdate:DateTime, vsn:String) =
       builder.add(id.id, attributes, vsn)

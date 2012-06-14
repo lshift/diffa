@@ -285,6 +285,14 @@ class HibernateDomainConfigStoreTest {
   }
 
   @Test
+  def testEndpointCollationIsPersisted = {
+    systemConfigStore.createOrUpdateDomain(domain)
+    domainConfigStore.createOrUpdateEndpoint(domainName, upstream1.copy(collation = UnicodeCollationOrdering.name))
+    val retrieved = domainConfigStore.getEndpointDef(domainName, upstream1.name)
+    assertEquals(UnicodeCollationOrdering.name, retrieved.collation)
+  }
+
+  @Test
   def testUpdatePair: Unit = {
     declareAll
 

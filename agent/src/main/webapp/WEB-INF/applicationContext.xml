@@ -487,6 +487,7 @@
       </bean>
     </constructor-arg>
     <constructor-arg ref="systemConfigStore" />
+    <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="diagnosticsManager" />
   </bean>
 

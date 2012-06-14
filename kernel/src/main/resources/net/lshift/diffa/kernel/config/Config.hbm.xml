@@ -68,6 +68,7 @@
     <property name="contentRetrievalUrl" column="content_retrieval_url" type="string" not-null="false" unique="false" length="1024"/>
     <property name="versionGenerationUrl" column="version_generation_url" type="string" not-null="false" unique="false" length="1024"/>
     <property name="inboundUrl" column="inbound_url" type="string" not-null="false" unique="false" length="1024"/>
+    <property name="collation" column="collation_type" type="string" not-null="true" unique="false" length="16"/>
     <map name="categories" lazy="false" cascade="all">
       <key>
         <column name="id"/>

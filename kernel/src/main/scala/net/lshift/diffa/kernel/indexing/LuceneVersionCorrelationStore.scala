@@ -38,7 +38,9 @@ import net.lshift.diffa.kernel.util._
  * provided. Lucene is utilised as it provides for schema-free storage, which strongly suits the dynamic schema nature
  * of pair attributes.
  */
-class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, configStore:SystemConfigStore, diagnostics:DiagnosticsManager)
+class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory,
+                                    configStore:SystemConfigStore, domainConfigStore: DomainConfigStore,
+                                    diagnostics:DiagnosticsManager)
     extends VersionCorrelationStore
     with Closeable {
 
@@ -113,7 +115,7 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
     withSearcher(writer, s => {
       val idOnlyCollector = new DocIdOnlyCollector
       s.search(preventEmptyQuery(query), idOnlyCollector)
-      idOnlyCollector.allSortedCorrelations(s).filter(c => c.upstreamVsn != null)
+      idOnlyCollector.allSortedCorrelations(s, orderingFor(UpstreamEndpoint)).filter(c => c.upstreamVsn != null)
     })
 
   }
@@ -124,7 +126,16 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
     val idOnlyCollector = new DocIdOnlyCollector
     val searcher = new IndexSearcher(writer.getReader)
     searcher.search(preventEmptyQuery(query), idOnlyCollector)
-    idOnlyCollector.allSortedCorrelations(searcher).filter(c => c.downstreamUVsn != null)
+    idOnlyCollector.allSortedCorrelations(searcher, orderingFor(DownstreamEndpoint)).filter(c => c.downstreamUVsn != null)
+  }
+
+  def orderingFor(side: EndpointSide): Collation = {
+    val p = configStore.getPair(pair)
+    val endpointName = side match {
+      case UpstreamEndpoint => p.upstream
+      case DownstreamEndpoint => p.downstream
+    }
+    domainConfigStore.getEndpoint(pair.domain, endpointName).lookupCollation
   }
 
   def ensureUpgradeable(side:EndpointSide, changes:Seq[CategoryChange]) {
@@ -236,7 +247,8 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory, con
       })
     }
 
-    def allSortedCorrelations(searcher:IndexSearcher) = allCorrelations(searcher).sortBy(c => c.id)
+    def allSortedCorrelations(searcher:IndexSearcher, ordering: Collation) =
+      allCorrelations(searcher).sortWith((a, b) => ordering.sortsBefore(a.id, b.id))
   }
 
   def close = {

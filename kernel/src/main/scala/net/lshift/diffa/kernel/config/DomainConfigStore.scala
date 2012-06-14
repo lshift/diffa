@@ -18,13 +18,13 @@ package net.lshift.diffa.kernel.config
 
 import reflect.BeanProperty
 import scala.collection.JavaConversions._
-import java.util.HashMap
 import net.lshift.diffa.kernel.differencing.AttributesUtil
-import net.lshift.diffa.kernel.participants._
 import scala.Option._
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.util.{EndpointSide, UpstreamEndpoint, DownstreamEndpoint, CategoryUtil}
 import net.lshift.diffa.participant.scanning.{AggregationBuilder, ConstraintsBuilder, SetConstraint, ScanConstraint}
+import java.util.HashMap
+import net.lshift.diffa.kernel.participants._
 
 /**
  * Provides general configuration options within the scope of a particular domain.
@@ -115,7 +115,8 @@ case class Endpoint(
   @BeanProperty var contentRetrievalUrl: String = null,
   @BeanProperty var versionGenerationUrl: String = null,
   @BeanProperty var inboundUrl: String = null,
-  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor]) {
+  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor],
+  @BeanProperty var collation: String = AsciiCollationOrdering.name) {
 
   // Don't include this in the header definition, since it is a lazy collection
   @BeanProperty var views: java.util.Set[EndpointView] = new java.util.HashSet[EndpointView]
@@ -163,8 +164,13 @@ case class Endpoint(
   def buildAggregations(builder:AggregationBuilder) {
     CategoryUtil.buildAggregations(builder, categories.toMap)
   }
-}
 
+ def lookupCollation () = collation match {
+    case UnicodeCollationOrdering.name => UnicodeCollationOrdering
+    case AsciiCollationOrdering.name => AsciiCollationOrdering
+  }
+
+}
 case class EndpointView(
   @BeanProperty var name:String = null,
   @BeanProperty var endpoint:Endpoint = null,

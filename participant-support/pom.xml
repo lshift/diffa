@@ -87,7 +87,11 @@
       <artifactId>commons-codec</artifactId>
       <version>1.4</version>
     </dependency>
-
+    <dependency>
+      <groupId>com.ibm.icu</groupId>
+      <artifactId>icu4j</artifactId>
+      <version>49.1</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
