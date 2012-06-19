@@ -34,7 +34,7 @@ import net.lshift.diffa.participant.scanning.ScanResultEntry
  * Test cases for the same version policy.
  */
 class SameVersionPolicyTest extends AbstractPolicyTest {
-  val policy = new SameVersionPolicy(stores, listener, systemConfigStore, diagnostics)
+  val policy = new SameVersionPolicy(stores, listener, diagnostics)
 
   def downstreamVersionFor(v:String) = v
 

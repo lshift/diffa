@@ -32,8 +32,8 @@ import net.lshift.diffa.participant.scanning.{Collation, ScanAggregation, ScanCo
  * Compliance with this policy could also be achieved by the downstream simply recording the versions of received
  * upstream events.
  */
-class SameVersionPolicy(stores:VersionCorrelationStoreFactory, listener:DifferencingListener, systemConfigStore:SystemConfigStore, diagnostics:DiagnosticsManager)
-    extends BaseScanningVersionPolicy(stores, listener, systemConfigStore, diagnostics) {
+class SameVersionPolicy(stores:VersionCorrelationStoreFactory, listener:DifferencingListener, diagnostics:DiagnosticsManager)
+    extends BaseScanningVersionPolicy(stores, listener, diagnostics) {
 
   def downstreamStrategy(us:UpstreamParticipant, ds:DownstreamParticipant, collation: Collation) =
     new DownstreamSameScanStrategy(collation)

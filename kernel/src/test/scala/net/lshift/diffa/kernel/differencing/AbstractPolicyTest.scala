@@ -38,6 +38,7 @@ import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
+import net.lshift.diffa.kernel.frontend.DomainPairDef
 
 /**
  * Base class for the various policy tests.
@@ -72,7 +73,8 @@ abstract class AbstractPolicyTest {
   val listener = createStrictMock("listener", classOf[DifferencingListener])
   val diffWriter = createStrictMock("diffWriter", classOf[DifferenceWriter])
 
-  val systemConfigStore = createStrictMock("configStore", classOf[SystemConfigStore])
+  val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
+  val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
   val domainName = "domain"
   val domain = Domain(name=domainName)
   val pairKey = "A-B"
@@ -85,9 +87,9 @@ abstract class AbstractPolicyTest {
 
   val upstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
   val downstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
-  val pair = new DiffaPair(key=pairKey, domain=domain, upstream=upstream.name, downstream=downstream.name)
+  val pair = new DomainPairDef(key=pairKey, domain=domainName, upstreamName=upstream.name, downstreamName=downstream.name)
 
-  expect(systemConfigStore.getPair(domainName,pairKey)).andReturn(pair).anyTimes
+  expect(domainConfigStore.getPairDef(domainName,pairKey)).andReturn(pair).anyTimes
   replay(systemConfigStore)
 
   protected def replayAll = replay(usMock, dsMock, store, writer, listener, diffWriter)
@@ -318,7 +320,7 @@ abstract class AbstractPolicyTest {
     expectUpstreamAggregateScan(pair, bucketing, constraints, partResp, storeResp: Seq[UpstreamVersion])
   }
 
-  protected def expectUpstreamAggregateScan(pair:DiffaPair, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint], partResp:Seq[ScanResultEntry], storeResp:Seq[UpstreamVersion]) {
+  protected def expectUpstreamAggregateScan(pair:DomainPairDef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint], partResp:Seq[ScanResultEntry], storeResp:Seq[UpstreamVersion]) {
     expect(usMock.scan(constraints, bucketing)).andReturn(partResp)
     store.queryUpstreams(EasyMock.eq(constraints), anyUnitF4)
       expectLastCall[Unit].andAnswer(UpstreamVersionAnswer(storeResp))
@@ -329,7 +331,7 @@ abstract class AbstractPolicyTest {
     expectDownstreamAggregateScan(pair, bucketing, constraints, partResp, storeResp)
   }
 
-  protected def expectDownstreamAggregateScan(pair:DiffaPair, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint], partResp:Seq[ScanResultEntry], storeResp:Seq[DownstreamVersion]) {
+  protected def expectDownstreamAggregateScan(pair:DomainPairDef, bucketing:Seq[CategoryFunction], constraints:Seq[ScanConstraint], partResp:Seq[ScanResultEntry], storeResp:Seq[DownstreamVersion]) {
     expect(dsMock.scan(constraints, bucketing)).andReturn(partResp)
     store.queryDownstreams(EasyMock.eq(constraints), anyUnitF5)
       expectLastCall[Unit].andAnswer(DownstreamVersionAnswer(storeResp))

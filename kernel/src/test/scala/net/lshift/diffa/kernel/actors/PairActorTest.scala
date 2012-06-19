@@ -33,7 +33,6 @@ import akka.actor._
 import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
-import net.lshift.diffa.kernel.frontend.FrontendConversions
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
@@ -42,6 +41,7 @@ import akka.dispatch.{ExecutionContext, Future}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.junit.{Test, After, Before}
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, FrontendConversions}
 
 @RunWith(classOf[Theories])
 class PairActorTest {
@@ -53,12 +53,12 @@ class PairActorTest {
   val upstream = Endpoint(name = "up", scanUrl = "up")
   val downstream = Endpoint(name = "down", scanUrl = "down")
 
-  val pair = new DiffaPair()
+  val pair = new DomainPairDef()
   pair.key = pairKey
-  pair.domain = Domain(name = domainName)
+  pair.domain = domainName
   pair.versionPolicyName = policyName
-  pair.upstream = upstream.name
-  pair.downstream = downstream.name
+  pair.upstreamName = upstream.name
+  pair.downstreamName = downstream.name
 
   val pairRef = pair.asRef
 
@@ -83,15 +83,15 @@ class PairActorTest {
   org.easymock.classextension.EasyMock.replay(versionPolicyManager)
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
+  val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
 
-  expect(systemConfigStore.getPair(domainName, pairKey)).andStubReturn(pair)
-  expect(systemConfigStore.getPair(DiffaPairRef(pairKey, domainName))).andStubReturn(pair)
+  expect(domainConfigStore.getPairDef(domainName, pairKey)).andStubReturn(pair)
+  expect(domainConfigStore.getPairDef(DiffaPairRef(pairKey, domainName))).andStubReturn(pair)
   expect(systemConfigStore.listDomains).andStubReturn(Seq(Domain(name = domainName)))
   expect(systemConfigStore.listPairs).andReturn(Seq())      // Don't return our pair in the list, since we don't want it started immediately
-  replay(systemConfigStore)
 
-  val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
-  expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(FrontendConversions.toPairDef(pair)))
+
+  expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(pair))
   expect(domainConfigStore.getEndpoint(domainName, upstream.name)).andStubReturn(upstream)
   expect(domainConfigStore.getEndpoint(domainName, downstream.name)).andStubReturn(downstream)
 
@@ -100,6 +100,7 @@ class PairActorTest {
                                                  CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)).
     andStubReturn(CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)
 
+  replay(systemConfigStore)
   replay(domainConfigStore)
 
   val writer = createMock("writer", classOf[ExtendedVersionCorrelationWriter])

@@ -21,11 +21,12 @@ import collection.mutable.{HashMap, LinkedHashMap, ListBuffer}
 import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.config.{DiffaPair}
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef}
 
 /**
  * Local, in memory, event matcher.
  */
-class LocalEventMatcher(val pair:DiffaPair, reaper:LocalEventMatcherReaper) extends EventMatcher {
+class LocalEventMatcher(val pair:DomainPairDef, reaper:LocalEventMatcherReaper) extends EventMatcher {
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
   val listeners = new ListBuffer[MatchingStatusListener]

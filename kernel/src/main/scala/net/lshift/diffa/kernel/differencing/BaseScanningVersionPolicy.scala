@@ -37,7 +37,6 @@ import net.lshift.diffa.kernel.util.{CategoryUtil, DownstreamEndpoint, EndpointS
  */
 abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFactory,
                                          listener:DifferencingListener,
-                                         systemConfigStore:SystemConfigStore,
                                          diagnostics:DiagnosticsManager)
     extends VersionPolicy {
   protected val alerter = Alerter.forClass(getClass)
@@ -51,7 +50,7 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
    * version correlation store.
    */
   def onChange(writer: LimitedVersionCorrelationWriter, evt: PairChangeEvent) = {
-    val pair = systemConfigStore.getPair(evt.id.pair.domain, evt.id.pair.key)
+
 
     val corr = evt match {
       case UpstreamPairChangeEvent(id, _, lastUpdate, vsn) => vsn match {

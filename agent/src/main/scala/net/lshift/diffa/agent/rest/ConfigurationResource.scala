@@ -174,7 +174,7 @@ class ConfigurationResource(val config:Configuration,
   @Produces(Array("application/json"))
   @Description("Returns an endpoint pairing by its identifier.")
   @MandatoryParams(Array(new MandatoryParam(name="id", datatype="string", description="Pair ID")))
-  def getPair(@PathParam("id") id:String) = toPairDef(config.getPair(domain, id))
+  def getPair(@PathParam("id") id:String) = config.getPairDef(domain, id)
 
   @POST
   @Path("/members/{username}")

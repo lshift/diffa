@@ -18,30 +18,34 @@ package net.lshift.diffa.kernel.matching
 
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DiffaPair}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, DiffaPair}
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef}
 
 /**
  * Keeps track of and updates Local event matchers for pair entries from DomainConfigStore.
  */
-class LocalEventMatchingManager(configStore: SystemConfigStore) extends MatchingManager {
+class LocalEventMatchingManager(systemConfigStore: SystemConfigStore,
+                                domainConfigStore: DomainConfigStore) extends MatchingManager {
   private val reaper = new LocalEventMatcherReaper
   private val matchers = new HashMap[DiffaPairRef, LocalEventMatcher]
   private val listeners = new ListBuffer[MatchingStatusListener]
 
   // Create a matcher for each pre-existing pair
-  configStore.listPairs.foreach(updateMatcher(_))
+  systemConfigStore.listPairs.foreach(updateMatcher(_))
 
   def getMatcher(pair:DiffaPairRef) = matchers.get(pair)
 
-  def onUpdatePair(pair:DiffaPair):Unit = {
+  def onUpdatePair(pairRef:DiffaPairRef):Unit = {
+
+    val pair = domainConfigStore.getPairDef(pairRef)
 
     pair.matchingTimeout match {
-      case DiffaPair.NO_MATCHING => removeMatcher(pair)
+      case DiffaPair.NO_MATCHING => removeMatcher(pairRef)
       case timeout => updateMatcher(pair)
     }
   }
 
-  def onDeletePair(pair:DiffaPair) = {
+  def onDeletePair(pair:DiffaPairRef) = {
     removeMatcher(pair)
   }
 
@@ -57,7 +61,7 @@ class LocalEventMatchingManager(configStore: SystemConfigStore) extends Matching
     }
   }
 
-  private def updateMatcher(pair:DiffaPair):Unit = {
+  private def updateMatcher(pair:DomainPairDef):Unit = {
     val newMatcher = new LocalEventMatcher(pair, reaper)
 
     matchers.remove(pair.asRef) match {
@@ -77,12 +81,11 @@ class LocalEventMatchingManager(configStore: SystemConfigStore) extends Matching
     matchers(pair.asRef) = newMatcher
   }
 
-  private def removeMatcher(pair:DiffaPair):Unit = {
-    val ref = pair.asRef
-    matchers.get(ref) match {
+  private def removeMatcher(pair:DiffaPairRef):Unit = {
+    matchers.get(pair) match {
       case Some(matcher) => {
         matcher.dispose
-        matchers -= ref
+        matchers -= pair
       }
       case None => // nothing to do
     }

@@ -56,8 +56,8 @@ class ActionsProxy(val config:DomainConfigStore,
   def listPairScopedActions(pair:DiffaPairRef) = listActions(pair).filter(_.scope == RepairAction.PAIR_SCOPE)
 
   def invoke(request: ActionableRequest): InvocationResult =
-    withValidPair(request.domain, request.pairKey) { pair =>
-      val pairRef = pair.asRef
+    withValidPair(DiffaPairRef(request.pairKey, request.domain)) { pairRef =>
+
       val repairAction = config.getRepairActionDef(request.domain, request.actionId, request.pairKey)
       val url = repairAction.scope match {
         case RepairAction.ENTITY_SCOPE => repairAction.url.replace("{id}", request.entityId)
@@ -91,11 +91,10 @@ class ActionsProxy(val config:DomainConfigStore,
       }
     }
 
-  def withValidPair[T](pair:DiffaPairRef)(f: DiffaPair => T) : T = withValidPair(pair.domain, pair.key)(f)
-
-  def withValidPair[T](domain:String,pairKey:String)(f: DiffaPair => T) : T = {
-    val p = systemConfig.getPair(domain, pairKey)
-    f(p)
+  def withValidPair[T](pair:DiffaPairRef)(f: DiffaPairRef => T) : T = {
+    config.getPairDef(pair.domain, pair.key)
+    // Continue if the pair exists
+    f(pair)
   }
 
   private def createHttpClient() = {

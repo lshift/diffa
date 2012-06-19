@@ -21,28 +21,33 @@ import net.lshift.diffa.schema.hibernate.SessionHelper._
 import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.{AlertCodes, MissingObjectException}
-import net.lshift.diffa.kernel.differencing.StoreCheckpoint
 import org.hibernate.{Query, Session, SessionFactory}
 import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
+import net.lshift.diffa.schema.tables.Pair.PAIR
+import net.lshift.diffa.kernel.lifecycle.DomainLifecycleAware
+import collection.mutable.ListBuffer
 
 class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
                                  db:DatabaseFacade,
-                                 val pairCache:PairCache)
+                                 jooq:JooqDatabaseFacade)
     extends SystemConfigStore with HibernateQueryUtils {
 
   val logger = LoggerFactory.getLogger(getClass)
 
+  private val domainEventSubscribers = new ListBuffer[DomainLifecycleAware]
+
+  def registerDomainEventListener(d:DomainLifecycleAware) = domainEventSubscribers += d
+
   def createOrUpdateDomain(d: Domain) = sessionFactory.withSession( s => {
-    pairCache.invalidate(d.name)
+    domainEventSubscribers.foreach(_.onDomainUpdated(d.name))
     s.saveOrUpdate(d)
   })
 
   def deleteDomain(domain:String) = sessionFactory.withSession( s => {
 
-    pairCache.invalidate(domain)
-
-    // TODO Why is do we not just do a DELETE CASCADE?
+    domainEventSubscribers.foreach(_.onDomainRemoved(domain))
 
     db.execute("deleteExternalHttpCredentialsByDomain", Map("domain" -> domain))
 
@@ -70,10 +75,10 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
 
   def listDomains = db.listQuery[Domain]("allDomains", Map()).sortBy(_.getName)
 
-  def getPair(pair:DiffaPairRef) : DiffaPair = getPair(pair.domain, pair.key)
-  def getPair(domain:String, key: String) = sessionFactory.withSession(s => getPair(s, domain, key))
+  def listPairs = jooq.execute { t =>
+    t.select().from(PAIR).fetch().map(ResultMappingUtil.recordToDomainPairDef)
+  }
 
-  def listPairs = db.listQuery[DiffaPair]("allPairs", Map())
   def listEndpoints = db.listQuery[Endpoint]("allEndpoints", Map())
 
 
@@ -124,7 +129,6 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
 
   def getUser(name: String) : User = sessionFactory.withSession(getUser(_,name))
 
-  // TODO This needs to be cached
   def getUserByToken(token: String) : User
     = db.singleQuery[User]("userByToken", Map("token" -> token), "user token %s".format(token))
 

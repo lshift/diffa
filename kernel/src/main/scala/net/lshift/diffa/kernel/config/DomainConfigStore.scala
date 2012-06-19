@@ -29,6 +29,7 @@ import net.lshift.diffa.kernel.participants._
 /**
  * Provides general configuration options within the scope of a particular domain.
  */
+
 trait DomainConfigStore {
 
   def createOrUpdateEndpoint(domain:String, endpoint: EndpointDef) : Endpoint
@@ -37,11 +38,14 @@ trait DomainConfigStore {
 
   def createOrUpdatePair(domain:String, pairDef: PairDef) : Unit
   def deletePair(domain:String, key: String) : Unit
-  def listPairs(domain:String) : Seq[PairDef]
-  def listPairsForEndpoint(domain:String, endpoint:String) : Seq[DiffaPair]
+  def listPairs(domain:String) : Seq[DomainPairDef]
+  def listPairsForEndpoint(domain:String, endpoint:String) : Seq[DomainPairDef]
 
-  def createOrUpdateRepairAction(domain:String, action: RepairActionDef) : Unit
-  def deleteRepairAction(domain:String, name: String, pairKey: String) : Unit
+  def getPairDef(domain:String, key: String) : DomainPairDef
+  def getPairDef(ref:DiffaPairRef) : DomainPairDef = getPairDef(ref.domain, ref.key)
+
+  def createOrUpdateRepairAction(domain:String, action: RepairActionDef)
+  def deleteRepairAction(domain:String, name: String, pairKey: String)
 
   def listRepairActions(domain:String) : Seq[RepairActionDef]
   def listRepairActionsForPair(domain:String, key: String) : Seq[RepairActionDef]
@@ -58,7 +62,6 @@ trait DomainConfigStore {
 
   def getEndpointDef(domain:String, name: String) : EndpointDef
   def getEndpoint(domain:String, name: String) : Endpoint
-  def getPairDef(domain:String, key: String) : PairDef
 
   def getRepairActionDef(domain:String, name: String, pairKey: String): RepairActionDef
   def getPairReportDef(domain:String, name:String, pairKey:String):PairReportDef

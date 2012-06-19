@@ -21,6 +21,8 @@ import net.lshift.diffa.participant.scanning.ScanConstraint;
 import org.codehaus.jackson.annotate.JsonSubTypes;
 import org.codehaus.jackson.annotate.JsonTypeInfo;
 
+import java.io.Serializable;
+
 /**
  * This provides various endpoint-specific attributes of a category that are necessary for the kernel
  * to be able auto-narrow a category.
@@ -31,7 +33,7 @@ import org.codehaus.jackson.annotate.JsonTypeInfo;
   @JsonSubTypes.Type(value = SetCategoryDescriptor.class, name = "set"),
   @JsonSubTypes.Type(value = PrefixCategoryDescriptor.class, name = "prefix")
 })
-abstract public class CategoryDescriptor {
+abstract public class CategoryDescriptor implements Serializable {
 
   protected CategoryDescriptor() {
   }

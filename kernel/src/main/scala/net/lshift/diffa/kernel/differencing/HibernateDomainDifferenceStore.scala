@@ -44,14 +44,13 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
                                      db: DatabaseFacade,
                                      cacheProvider:CacheProvider,
                                      sequenceProvider:SequenceProvider,
-                                     val cacheManager:CacheManager,
                                      val hookManager:HookManager)
     extends DomainDifferenceStore
     with HibernateQueryUtils {
 
   intializeExistingSequences()
 
-  val aggregationCache = new DifferenceAggregationCache(this, cacheManager)
+  val aggregationCache = new DifferenceAggregationCache(this, cacheProvider)
   val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
 
   val pendingEvents = cacheProvider.getCachedMap[VersionID, PendingDifferenceEvent]("pending.difference.events")

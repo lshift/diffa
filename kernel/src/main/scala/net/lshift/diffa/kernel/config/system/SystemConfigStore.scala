@@ -2,6 +2,7 @@ package net.lshift.diffa.kernel.config.system
 
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.config.{Member, DiffaPairRef, User, Endpoint, Domain, DiffaPair}
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef}
 
 /**
  * Copyright (C) 2010-2011 LShift Ltd.
@@ -25,8 +26,8 @@ import net.lshift.diffa.kernel.config.{Member, DiffaPairRef, User, Endpoint, Dom
  */
 trait SystemConfigStore {
 
-  def createOrUpdateDomain(domain: Domain) : Unit
-  def deleteDomain(name: String): Unit
+  def createOrUpdateDomain(domain: Domain)
+  def deleteDomain(name: String)
   def doesDomainExist(name: String): Boolean
   def listDomains : Seq[Domain]
   
@@ -43,33 +44,16 @@ trait SystemConfigStore {
   def systemConfigOptionOrDefault(key:String, defaultVal:String) : String
 
   /**
-   * Return the internal representation of a pair
-   */
-  // TODO Consider deprecating this in favour of getPair(pair:DiffaPairRef)
-  def getPair(domain:String, pairKey:String) : DiffaPair
-  def getPair(pair:DiffaPairRef) : DiffaPair
-
-  /**
    * Enumerate all pairs of all domains
    */
-  def listPairs : Seq[DiffaPair]
+  def listPairs : Seq[DomainPairDef]
 
   /**
    * Enumerate all pairs of all domains
    */
   def listEndpoints : Seq[Endpoint]
 
-
-  // CRUD operations for users
-  // TODO should this be in a separate interface?
-
-
-  /**
-   * The intention is to deprecate the createOrUpdate semantics from all APIs
-   * We should let the user indicate to us whether they think the operation is an insert or an update,
-   * and all we need to do is handle the exceptions. This way, we can save ourselves unnecessaryDB round trips.
-   */
-  @Deprecated def createOrUpdateUser(user: User)
+  def createOrUpdateUser(user: User)
   def createUser(user: User)
   def updateUser(user: User) : Int
 

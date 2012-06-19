@@ -49,7 +49,7 @@ object FrontendConversions {
 
   def toEndpointViewDef(v:EndpointView) = EndpointViewDef(name = v.name, categories = v.categories)
 
-  def toPairDef(p:DiffaPair) = PairDef(
+  @Deprecated def toPairDef(p:DiffaPair) = PairDef(
     key = p.key,
     versionPolicyName = p.versionPolicyName,
     matchingTimeout = p.matchingTimeout,
@@ -59,7 +59,19 @@ object FrontendConversions {
     allowManualScans = p.allowManualScans,
     views = p.views.map(v => toPairViewDef(v)).toList)
 
-  def toPairViewDef(v:PairView) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec)
+  def toPairDef(p:DomainPairDef) = PairDef(
+    key = p.key,
+    versionPolicyName = p.versionPolicyName,
+    matchingTimeout = p.matchingTimeout,
+    upstreamName = p.upstreamName,
+    downstreamName = p.downstreamName,
+    scanCronSpec = p.scanCronSpec,
+    allowManualScans = p.allowManualScans,
+    views = p.views.map(v => toPairViewDef(v)).toList)
+
+  @Deprecated def toPairViewDef(v:PairView) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec)
+  def toPairViewDef(v:PairViewDef) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec)
+
   def fromPairViewDef(p:DiffaPair, v:PairViewDef) = {
     val result = PairView(name = v.name, scanCronSpec = v.scanCronSpec)
     result.pair = p

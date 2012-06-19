@@ -51,7 +51,7 @@ class Changes(val domainConfig:DomainConfigStore,
     val typedAttributes = targetEndpoint.schematize(evtAttributes)
 
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
-      val pairEvt = if (pair.upstream == endpoint) {
+      val pairEvt = if (pair.upstreamName == endpoint) {
         UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), typedAttributes, evt.getLastUpdated, evt.getVersion)
       } else {
         if (pair.versionPolicyName == "same" || evt.getParentVersion == null) {
@@ -99,7 +99,7 @@ class Changes(val domainConfig:DomainConfigStore,
     })
 
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
-      val side = pair.whichSide(targetEndpoint)
+      val side = pair.withoutDomain.whichSide(targetEndpoint)
 
       // Propagate the change event to the corresponding policy
       requests ++= changeEventClient.startInventory(pair.asRef, side, view)
@@ -128,7 +128,7 @@ class Changes(val domainConfig:DomainConfigStore,
 
     val nextRequests = scala.collection.mutable.Set[ScanRequest]()
     domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
-      val side = if (pair.upstream == endpoint) UpstreamEndpoint else DownstreamEndpoint
+      val side = if (pair.upstreamName == endpoint) UpstreamEndpoint else DownstreamEndpoint
 
       // Propagate the change event to the corresponding policy
       nextRequests ++= changeEventClient.submitInventory(pair.asRef, side, fullConstraints, aggregations, entries)

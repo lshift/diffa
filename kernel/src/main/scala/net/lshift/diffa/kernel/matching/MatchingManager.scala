@@ -37,10 +37,10 @@ trait MatchingManager extends Closeable {
    * Handler for new pair creation or update of an existing one. This method should
    * recreate/keep intact all set-up matcher listeners before the update.
    */
-  def onUpdatePair(pair:DiffaPair) : Unit
+  def onUpdatePair(pair:DiffaPairRef) : Unit
 
   /**
    * Handler for pair deletion.
    */
-  def onDeletePair(pair:DiffaPair) : Unit
+  def onDeletePair(pair:DiffaPairRef) : Unit
 }

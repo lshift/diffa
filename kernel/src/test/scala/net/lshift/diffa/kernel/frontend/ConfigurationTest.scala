@@ -168,23 +168,23 @@ class ConfigurationTest {
       )
     )
 
-    val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
+    val ab = DomainPairDef(key = "ab", domain = "domain", matchingTimeout = 5,
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
-    val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
+    val ac = DomainPairDef(key = "ac", domain = "domain", matchingTimeout = 5,
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
 
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep2))).once
     expect(pairManager.startActor(pairInstance("ab"))).once
-    expect(matchingManager.onUpdatePair(ab)).once
-    expect(scanScheduler.onUpdatePair(ab)).once
+    expect(matchingManager.onUpdatePair(ab.asRef)).once
+    expect(scanScheduler.onUpdatePair(ab.asRef)).once
     expect(differencesManager.onUpdatePair(ab.asRef)).once
     expect(pairPolicyClient.difference(ab.asRef)).once
     expect(pairManager.startActor(pairInstance("ac"))).once
-    expect(matchingManager.onUpdatePair(ac)).once
-    expect(scanScheduler.onUpdatePair(ac)).once
+    expect(matchingManager.onUpdatePair(ac.asRef)).once
+    expect(scanScheduler.onUpdatePair(ac.asRef)).once
     expect(differencesManager.onUpdatePair(ac.asRef)).once
     expect(pairPolicyClient.difference(ac.asRef)).once
     replayAll
@@ -242,19 +242,19 @@ class ConfigurationTest {
                           versionPolicyName = "same", upstream = ep1.name, downstream = ep2.name)
 
     expect(pairManager.startActor(pairInstance("ab"))).once   // Note that this will result in the actor being restarted
-    expect(matchingManager.onUpdatePair(DiffaPair(key = "ab", domain = Domain(name="domain")))).once
-    expect(scanScheduler.onUpdatePair(ab)).once
+    expect(matchingManager.onUpdatePair(ab.asRef)).once
+    expect(scanScheduler.onUpdatePair(ab.asRef)).once
     expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(pairPolicyClient.difference(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(pairManager.stopActor(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(matchingManager.onDeletePair(DiffaPair(key = "ac", domain = Domain(name="domain")))).once
-    expect(scanScheduler.onDeletePair(ac)).once
+    expect(matchingManager.onDeletePair(ac.asRef)).once
+    expect(scanScheduler.onDeletePair(ac.asRef)).once
     expect(differencesManager.onDeletePair(ac.asRef)).once
     expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ac", domain = "domain"))).once
     expect(diagnostics.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
     expect(pairManager.startActor(pairInstance("ad"))).once
-    expect(matchingManager.onUpdatePair(DiffaPair(key = "ad", domain = Domain(name="domain")))).once
-    expect(scanScheduler.onUpdatePair(ad)).once
+    expect(matchingManager.onUpdatePair(ad.asRef)).once
+    expect(scanScheduler.onUpdatePair(ad.asRef)).once
     expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ad", domain = "domain"))).once
     expect(pairPolicyClient.difference(DiffaPairRef(key = "ad", domain = "domain"))).once
 
@@ -283,10 +283,10 @@ class ConfigurationTest {
 
     expect(pairManager.stopActor(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(pairManager.stopActor(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(matchingManager.onDeletePair(DiffaPair(key = "ab", domain = Domain(name="domain")))).once
-    expect(matchingManager.onDeletePair(DiffaPair(key = "ac", domain = Domain(name="domain")))).once
-    expect(scanScheduler.onDeletePair(ab)).once
-    expect(scanScheduler.onDeletePair(ac)).once
+    expect(matchingManager.onDeletePair(ab.asRef)).once
+    expect(matchingManager.onDeletePair(ac.asRef)).once
+    expect(scanScheduler.onDeletePair(ab.asRef)).once
+    expect(scanScheduler.onDeletePair(ac.asRef)).once
     expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ab", domain = "domain"))).once
     expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ac", domain = "domain"))).once
     expect(diagnostics.onDeletePair(DiffaPairRef(key = "ab", domain = "domain"))).once

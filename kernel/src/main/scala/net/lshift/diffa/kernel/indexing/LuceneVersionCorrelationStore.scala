@@ -38,8 +38,10 @@ import net.lshift.diffa.kernel.util._
  * provided. Lucene is utilised as it provides for schema-free storage, which strongly suits the dynamic schema nature
  * of pair attributes.
  */
-class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory,
-                                    configStore:SystemConfigStore, domainConfigStore: DomainConfigStore,
+class LuceneVersionCorrelationStore(val pair: DiffaPairRef,
+                                    index:Directory,
+                                    configStore:SystemConfigStore,
+                                    domainConfigStore: DomainConfigStore,
                                     diagnostics:DiagnosticsManager)
     extends VersionCorrelationStore
     with Closeable {
@@ -130,10 +132,10 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef, index:Directory,
   }
 
   def orderingFor(side: EndpointSide): Collation = {
-    val p = configStore.getPair(pair)
+    val p = domainConfigStore.getPairDef(pair)
     val endpointName = side match {
-      case UpstreamEndpoint => p.upstream
-      case DownstreamEndpoint => p.downstream
+      case UpstreamEndpoint => p.upstreamName
+      case DownstreamEndpoint => p.downstreamName
     }
     domainConfigStore.getEndpoint(pair.domain, endpointName).lookupCollation
   }

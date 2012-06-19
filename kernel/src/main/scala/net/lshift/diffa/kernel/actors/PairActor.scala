@@ -40,12 +40,13 @@ import net.lshift.diffa.kernel.util.{EndpointSide, DownstreamEndpoint, UpstreamE
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 import akka.util.Timeout
 import akka.util.duration._
+import net.lshift.diffa.kernel.frontend.DomainPairDef
 
 
 /**
  * This actor serializes access to the underlying version policy from concurrent processes.
  */
-case class PairActor(pair:DiffaPair,
+case class PairActor(pair:DomainPairDef,
                      us:Endpoint,
                      ds:Endpoint,
                      usp:UpstreamParticipant,

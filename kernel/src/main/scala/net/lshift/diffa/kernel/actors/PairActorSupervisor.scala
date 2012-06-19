@@ -57,11 +57,11 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
   }
 
  def createPairActor(pairRef: DiffaPairRef) = {
-   val pair = systemConfig.getPair(pairRef)
+   val pair = domainConfig.getPairDef(pairRef)
    policyManager.lookupPolicy(pair.versionPolicyName) match {
      case Some(pol) =>
-       val us = domainConfig.getEndpoint(pair.domain.name,  pair.upstream)
-       val ds = domainConfig.getEndpoint(pair.domain.name,  pair.downstream)
+       val us = domainConfig.getEndpoint(pair.domain,  pair.upstreamName)
+       val ds = domainConfig.getEndpoint(pair.domain,  pair.downstreamName)
 
        val usp = participantFactory.createUpstreamParticipant(us, pairRef)
        val dsp = participantFactory.createDownstreamParticipant(ds, pairRef)

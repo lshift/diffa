@@ -32,14 +32,17 @@ import org.quartz.CronScheduleBuilder.cronSchedule
 import org.quartz.JobBuilder.newJob
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore, DiffaPair}
 import scala.collection.JavaConversions._
 import reflect.BeanProperty
+import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore, DiffaPair}
 
 /**
  * Quartz backed implementation of the ScanScheduler.
  */
-class QuartzScanScheduler(systemConfig:SystemConfigStore, pairPolicyClient:PairPolicyClient, name:String)
+class QuartzScanScheduler(systemConfig:SystemConfigStore,
+                          domainConfig:DomainConfigStore,
+                          pairPolicyClient:PairPolicyClient,
+                          name:String)
     extends ScanScheduler
     with Closeable {
 
@@ -82,11 +85,14 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore, pairPolicyClient:PairP
   })
 
   // Ensure that a trigger is registered for each pair on startup
-  systemConfig.listPairs.foreach(onUpdatePair(_))
+  systemConfig.listPairs.foreach(p => onUpdatePair(p.asRef))
 
-  def onUpdatePair(pair:DiffaPair) {
-    val existingJob = jobForPair(pair)
-    val jobId = jobIdentifier(pair)
+  def onUpdatePair(pairRef:DiffaPairRef) {
+
+    val pair = domainConfig.getPairDef(pairRef)
+
+    val existingJob = jobForPair(pairRef)
+    val jobId = jobIdentifier(pairRef)
     val jobName = jobId.toString
 
     def buildTriggerKey(view:String) = triggerKey(if (view != null) jobName + "%" + view else jobName)
@@ -141,7 +147,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore, pairPolicyClient:PairP
     }
   }
 
-  def onDeletePair(pair:DiffaPair) {
+  def onDeletePair(pair:DiffaPairRef) {
     val existingJob = jobForPair(pair)
     if (existingJob != null) {
       scheduler.deleteJob(jobIdentifier(pair))
@@ -155,8 +161,8 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore, pairPolicyClient:PairP
     scheduler.shutdown()
   }
 
-  private def jobForPair(pair:DiffaPair) = scheduler.getJobDetail(jobIdentifier(pair))
-  private def jobIdentifier(pair:DiffaPair) = new JobKey(pair.identifier)
+  private def jobForPair(pair:DiffaPairRef) = scheduler.getJobDetail(jobIdentifier(pair))
+  private def jobIdentifier(pair:DiffaPairRef) = new JobKey(pair.identifier)
   private def createScheduler() = {
     val threadPool = new SimpleThreadPool(1, Thread.NORM_PRIORITY)
     threadPool.initialize()

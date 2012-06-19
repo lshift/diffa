@@ -19,6 +19,7 @@ import scala.collection.JavaConversions._
 import java.util.concurrent.TimeUnit
 import com.hazelcast.core.{MapEntry, IMap, Hazelcast}
 import com.hazelcast.query.{SqlPredicate, PredicateBuilder, Predicate}
+import java.util
 
 class HazelcastCacheProvider extends CacheProvider {
 

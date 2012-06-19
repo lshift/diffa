@@ -31,7 +31,6 @@ import javax.servlet.http.HttpServletRequest
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef}
 
 class DifferencesResource(val differencesManager: DifferencesManager,
-                          val domainSequenceCache:DomainSequenceCache,
                           val domainConfigStore:DomainConfigStore,
                           val domain:String,
                           val uriInfo:UriInfo) {
@@ -156,7 +155,7 @@ class DifferencesResource(val differencesManager: DifferencesManager,
 
   def validateETag(request:Request) = {
     val domainConfigVersion = domainConfigStore.getConfigVersion(domain)
-    val eventSequenceNumber = getSequenceNumber(domain)
+    val eventSequenceNumber = differencesManager.retrieveDomainSequenceNum(domain)
 
     val domainVsn = new EntityTag(eventSequenceNumber + "@" + domainConfigVersion)
 
@@ -177,8 +176,6 @@ class DifferencesResource(val differencesManager: DifferencesManager,
     case "" | null => default
     case x         => x.toInt
   }
-
-  private def getSequenceNumber(domain:String) = domainSequenceCache.readThrough( domain, () => differencesManager.retrieveDomainSequenceNum(domain) )
 
   val aggregateParamPrefix = "agg-"
 

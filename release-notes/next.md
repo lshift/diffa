@@ -48,12 +48,14 @@
 * [178] - Fixed a bug in the rate limiter which unfairly rejected some actions which should have been accepted.
 * [182] - Allow limiting the maximum physical response size that we accept from a participant
 * [187] - Ensure alphabetical ordering of elements in the UI
+* [194] - Introduce caching of some calls in the domain config store
 * [189] - Allow a user to specify if an endpoint sorts keys by their ASCII-equivalent values, or via the Unicode Collation Algorithm
 
 ## Library Upgrades
 
 * Upgraded to Lucene 3.6.0
 * Upgraded to Akka 2.0.1
+* Upgraded to Hazelcast 2.1.2
 
 ## Upgrading
 

@@ -27,6 +27,7 @@ import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAwar
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, DiffaPair}
 import org.joda.time.{DateTime, Interval}
+import net.lshift.diffa.kernel.frontend.DomainPairDef
 
 /**
  * Standard implementation of the DifferencesManager.
@@ -123,13 +124,13 @@ class DefaultDifferencesManager(
       case ParticipantType.UPSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.upstreamVsn != null},
-                      {p:DiffaPair => p.upstream},
+                      {p:DomainPairDef => p.upstreamName},
                       participantFactory.createUpstreamParticipant)
       }
       case ParticipantType.DOWNSTREAM => {
         withValidEvent(domain, evtSeqId,
                       {e:DifferenceEvent => e.downstreamVsn != null},
-                      {p:DiffaPair => p.downstream},
+                      {p:DomainPairDef => p.downstreamName},
                       participantFactory.createDownstreamParticipant)
       }
     }
@@ -139,7 +140,7 @@ class DefaultDifferencesManager(
   // -> the participant factory call is probably low hanging fruit for refactoring
   private def withValidEvent(domain:String, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
-                     resolve:(DiffaPair) => String,
+                     resolve:(DomainPairDef) => String,
                      p:(Endpoint, DiffaPairRef) => Participant): String = {
     val event = domainDifferenceStore.getEvent(domain, evtSeqId)
 
@@ -147,7 +148,7 @@ class DefaultDifferencesManager(
       case false => "Expanded detail not available"
       case true  => {
        val id = event.objId
-       val pair = systemConfig.getPair(id.pair.domain, id.pair.key)
+       val pair = domainConfig.getPairDef(id.pair)
        val endpointName = resolve(pair)
        val endpoint = domainConfig.getEndpoint(domain, endpointName)
        if (endpoint.contentRetrievalUrl != null) {

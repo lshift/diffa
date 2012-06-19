@@ -55,7 +55,6 @@ class DomainResource {
   @Autowired var systemConfigStore:CachedSystemConfigStore = null
   @Autowired var changes:Changes = null
   @Autowired var changeEventRateLimiterFactory: DomainRateLimiterFactory = null
-  @Autowired var domainSequenceCache:DomainSequenceCache = null
   @Autowired var reports:ReportManager = null
 
   private def getCurrentUser(domain:String) : String = SecurityContextHolder.getContext.getAuthentication.getPrincipal match {
@@ -90,7 +89,7 @@ class DomainResource {
   @Path("/diffs")
   def getDifferencesResource(@Context uri:UriInfo,
                              @PathParam("domain") domain:String) =
-    withValidDomain(domain, new DifferencesResource(differencesManager, domainSequenceCache, domainConfigStore, domain, uri))
+    withValidDomain(domain, new DifferencesResource(differencesManager, domainConfigStore, domain, uri))
 
   @Path("/escalations")
   def getEscalationsResource(@PathParam("domain") domain:String) =

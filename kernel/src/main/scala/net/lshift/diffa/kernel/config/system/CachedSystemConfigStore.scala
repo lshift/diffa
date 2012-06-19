@@ -46,7 +46,7 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   }
 
   // TODO Currently the only operations that are cached are the frequently invoked
-  // lookups of users by username, token and their respective memeberships for authentication purposes
+  // lookups of users by username, token and their respective memberships for authentication purposes
   // Ultimately, all operations on this store should get cached
 
   def createOrUpdateDomain(domain:Domain) = underlying.createOrUpdateDomain(domain)
@@ -57,12 +57,9 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   def clearSystemConfigOption(key: String) = underlying.clearSystemConfigOption(key)
   def maybeSystemConfigOption(key: String) = underlying.maybeSystemConfigOption(key)
   def systemConfigOptionOrDefault(key: String, defaultVal: String) = underlying.systemConfigOptionOrDefault(key, defaultVal)
-  def getPair(domain: String, pairKey: String) = underlying.getPair(domain, pairKey)
-  def getPair(pair: DiffaPairRef) = underlying.getPair(pair)
   def listPairs = underlying.listPairs
   def listEndpoints = underlying.listEndpoints
-
-  @Deprecated def createOrUpdateUser(user: User) = underlying.createOrUpdateUser(user)
+  def createOrUpdateUser(user: User) = underlying.createOrUpdateUser(user)
   def createUser(user: User) = underlying.createUser(user)
   def updateUser(user: User) = underlying.updateUser(user)
   def getUserToken(username: String) = underlying.getUserToken(username)

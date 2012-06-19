@@ -38,6 +38,7 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.util.{CategoryChange, UpstreamEndpoint}
 import net.lshift.diffa.kernel.config._
 import org.junit.{Ignore, Before, Test}
+import net.lshift.diffa.kernel.frontend.DomainPairDef
 
 /**
  * Test cases for the Hibernate backed VersionCorrelationStore.
@@ -754,11 +755,13 @@ object LuceneVersionCorrelationStoreTest {
   Map(pair -> AsciiCollationOrdering.name,
     pairWithUnicodeOrder -> UnicodeCollationOrdering.name).foreach {
     case (pair, collation) =>
-    EasyMock.expect(dummyConfigStore.getPair(pair)
+    EasyMock.expect(dummyDomainConfigStore.getPairDef(pair)
     ).andStubReturn(
-      DiffaPair(key=pair.key, domain=Domain(name=domainName),
-        upstream="%s-dummyUpstream".format(pair.key),
-        downstream="%s-dummyDownstream".format(pair.key))
+      DomainPairDef(
+        key = pair.key,
+        domain = domainName,
+        upstreamName = "%s-dummyUpstream".format(pair.key),
+        downstreamName = "%s-dummyDownstream".format(pair.key))
     )
     Seq( "dummyUpstream", "dummyDownstream").foreach { sideName: String =>
       EasyMock.expect(dummyDomainConfigStore.getEndpoint(domainName, "%s-%s".format(pair.key, sideName))

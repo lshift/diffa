@@ -28,15 +28,9 @@ import net.lshift.diffa.kernel.hooks.HookManager
  * created. This is a subclass of the Spring template because that template doesn't expose
  * the Hibernate Configuration object in a suitable way. 
  */
-class ListeningLocalSessionFactoryBean(observer:SessionFactoryObserver) extends LocalSessionFactoryBean {
+class ListeningLocalSessionFactoryBean extends LocalSessionFactoryBean {
   @BeanProperty var preparationSteps:Array[HibernatePreparationStep] = Array[HibernatePreparationStep]()
   @BeanProperty var hookManager:HookManager = null
-
-  override def newConfiguration() = {
-    val config = super.newConfiguration()
-    config.setSessionFactoryObserver(observer)
-    config
-	}
 
   /**
    * Override the final step in the session factory creation to let us prepare the database.

@@ -118,7 +118,7 @@ class Configuration(val configStore: DomainConfigStore,
         properties = configStore.allConfigOptions(domain),
         members = configStore.listDomainMembers(domain).map(_.user.name).toSet,
         endpoints = configStore.listEndpoints(domain).toSet,
-        pairs = configStore.listPairs(domain).toSet,
+        pairs = configStore.listPairs(domain).map(_.withoutDomain).toSet,
         repairActions = configStore.listRepairActions(domain).map(
           a => RepairActionDef(a.name, a.url, a.scope, a.pair)).toSet,
         escalations = configStore.listEscalations(domain).toSet,
@@ -147,7 +147,7 @@ class Configuration(val configStore: DomainConfigStore,
 
       if (changes.length > 0) {
         configStore.listPairsForEndpoint(domain, endpointDef.name).foreach(p => {
-          versionCorrelationStoreFactory(p.asRef).ensureUpgradeable(p.whichSide(existing), changes)
+          versionCorrelationStoreFactory(p.asRef).ensureUpgradeable(p.withoutDomain.whichSide(existing), changes)
         })
       }
     } catch {
@@ -159,7 +159,7 @@ class Configuration(val configStore: DomainConfigStore,
 
     // Inform each related pair that it has been updated
     if (restartPairs) {
-      configStore.listPairsForEndpoint(domain, endpoint.name).foreach(notifyPairUpdate(_))
+      configStore.listPairsForEndpoint(domain, endpoint.name).foreach(p => notifyPairUpdate(p.asRef))
     }
   }
 
@@ -168,7 +168,7 @@ class Configuration(val configStore: DomainConfigStore,
     endpointListener.onEndpointRemoved(domain, endpoint)
   }
 
-  def listPairs(domain:String) : Seq[PairDef] = configStore.listPairs(domain)
+  def listPairs(domain:String) : Seq[PairDef] = configStore.listPairs(domain).map(_.withoutDomain)
   def listEndpoints(domain:String) : Seq[EndpointDef] = configStore.listEndpoints(domain)
   def listUsers(domain:String) : Seq[User] = systemConfigStore.listUsers
 
@@ -178,8 +178,7 @@ class Configuration(val configStore: DomainConfigStore,
   // This might have to get refactored in light of the fact that we are now pretty much
   // just using REST to configure the agent
   def getEndpointDef(domain:String, x:String) = configStore.getEndpointDef(domain, x)
-  def getPairDef(domain:String, x:String) = configStore.getPairDef(domain, x)
-  def getPair(domain:String, x:String) = systemConfigStore.getPair(domain, x)
+  def getPairDef(domain:String, x:String) : PairDef = configStore.getPairDef(domain, x).withoutDomain
   def getUser(x:String) = systemConfigStore.getUser(x)
 
   def createOrUpdateUser(domain:String, u: User): Unit = {
@@ -202,14 +201,14 @@ class Configuration(val configStore: DomainConfigStore,
 
   def deletePair(domain:String, key: String): Unit = {
 
-    withCurrentPair(domain, key, (p:DiffaPair) => {
-      val pair = p.asRef
-      supervisors.foreach(_.stopActor(pair))
+    withCurrentPair(domain, key, (p:DiffaPairRef) => {
+
+      supervisors.foreach(_.stopActor(p))
       matchingManager.onDeletePair(p)
-      versionCorrelationStoreFactory.remove(pair)
+      versionCorrelationStoreFactory.remove(p)
       scanScheduler.onDeletePair(p)
-      differencesManager.onDeletePair(pair)
-      diagnostics.onDeletePair(pair)
+      differencesManager.onDeletePair(p)
+      diagnostics.onDeletePair(p)
     })
 
     serviceLimitsStore.deletePairLimitsByDomain(domain)
@@ -221,7 +220,7 @@ class Configuration(val configStore: DomainConfigStore,
    * this will return normally.
    * @see withCurrentPair
    */
-  def maybeWithPair(domain:String, pairKey: String, f:Function1[DiffaPair,Unit]) = {
+  def maybeWithPair(domain:String, pairKey: String, f:Function1[DiffaPairRef,Unit]) = {
     try {
       withCurrentPair(domain,pairKey,f)
     }
@@ -234,8 +233,8 @@ class Configuration(val configStore: DomainConfigStore,
    * This will execute the lambda if the pair exists.
    * @throws MissingObjectException If the pair does not exist.
    */
-  def withCurrentPair(domain:String, pairKey: String, f:Function1[DiffaPair,Unit]) = {
-    val current = systemConfigStore.getPair(domain, pairKey)
+  def withCurrentPair(domain:String, pairKey: String, f:Function1[DiffaPairRef,Unit]) = {
+    val current = configStore.getPairDef(domain, pairKey).asRef
     f(current)
   }
 
@@ -290,13 +289,12 @@ class Configuration(val configStore: DomainConfigStore,
   def removeDomainMembership(domain:String, userName:String) = configStore.removeDomainMembership(domain, userName)
   def listDomainMembers(domain:String) = configStore.listDomainMembers(domain)
 
-  def notifyPairUpdate(p:DiffaPair) {
-    val pairRef = p.asRef
-    supervisors.foreach(_.startActor(pairRef))
+  def notifyPairUpdate(p:DiffaPairRef) {
+    supervisors.foreach(_.startActor(p))
     matchingManager.onUpdatePair(p)
-    differencesManager.onUpdatePair(pairRef)
+    differencesManager.onUpdatePair(p)
     scanScheduler.onUpdatePair(p)
-    pairPolicyClient.difference(pairRef)
+    pairPolicyClient.difference(p)
   }
 
   def getEffectiveDomainLimit(domain:String, limitName:String) = {

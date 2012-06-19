@@ -178,20 +178,17 @@
   </class>
 
   <class name="ServiceLimitDefinitions" table="limit_definitions" abstract="false">
-    <cache usage="read-write"/>
     <id name="limitName" type="string" column="name"/>
     <property name="limitDescription" type="string" column="description"/>
   </class>
 
   <class name="SystemServiceLimits" table="system_limits" abstract="false">
-    <cache usage="read-write"/>
     <id name="limitName" type="string" column="name"/>
     <property name="hardLimit" type="int" column="hard_limit"/>
     <property name="defaultLimit" type="int" column="default_limit"/>
   </class>
 
   <class name="DomainServiceLimits" table="domain_limits" abstract="false">
-    <cache usage="read-write"/>
     <composite-id mapped="true" class="net.lshift.diffa.kernel.config.DomainScopedLimit">
       <key-property name="limitName" type="string" column="name"/>
       <key-many-to-one name="domain" class="Domain" column="domain" lazy="false"/>
@@ -201,7 +198,6 @@
   </class>
 
   <class name="PairServiceLimits" table="pair_limits" abstract="false">
-    <cache usage="read-write"/>
     <composite-id mapped="true" class="net.lshift.diffa.kernel.config.PairScopedLimit">
       <key-property name="limitName" type="string" column="name"/>
       <key-many-to-one name="pair" class="DiffaPair" lazy="false">
@@ -274,10 +270,6 @@
     select u from User u order by u.name asc
   </query>
 
-  <query name="allPairs">
-    select p from DiffaPair p
-  </query>
-
   <query name="allDomains">
     select d from Domain d order by d.name asc
   </query>
@@ -301,14 +293,6 @@
 
   <query name="rootUserCount" cacheable="true">
     select count(*) from User u where u.name in (:user_names) and u.superuser = true
-  </query>
-
-  <!-- Queries by endpoint -->
-  <query name="pairsByEndpoint" cacheable="true">
-    select p from DiffaPair p
-    where
-      p.domain.name = :domain_name and
-      (p.upstream = :endpoint_name or p.downstream = :endpoint_name)
   </query>
 
   <query name="endpointViewsByEndpoint" cacheable="true">
