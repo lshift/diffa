@@ -19,6 +19,7 @@ import net.lshift.accent.ConnectionFailureListener
 import java.lang.Exception
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.util.AlertCodes
+import java.net.ConnectException
 
 /**
  * Default handler for listening to failures in Accent connections.
@@ -27,6 +28,12 @@ class AccentConnectionFailureHandler extends ConnectionFailureListener {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  def connectionFailure(e: Exception)
-    = log.error("%s: Accent connection failure".format(AlertCodes.GENERAL_MESSAGING_ERROR), e)
+  def connectionFailure(x: Exception) = x match {
+    case c:ConnectException => {
+      log.warn("%s: Accent connection failure: %s".format(AlertCodes.GENERAL_MESSAGING_ERROR, x.getMessage))
+    }
+    case e => {
+      log.error("%s: Accent error".format(AlertCodes.GENERAL_MESSAGING_ERROR), e)
+    }
+  }
 }

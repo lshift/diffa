@@ -41,6 +41,7 @@ import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.PendingDiffs.PENDING_DIFFS
 import net.lshift.diffa.schema.tables.Diffs.DIFFS
 import net.lshift.diffa.schema.tables.Domains.DOMAINS
+import net.lshift.diffa.schema.tables.SystemConfigOptions.SYSTEM_CONFIG_OPTIONS
 import net.lshift.diffa.kernel.lifecycle.DomainLifecycleAware
 import collection.mutable.ListBuffer
 
@@ -165,44 +166,41 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
       query.uniqueResult().asInstanceOf[java.lang.Long] > 0
     })
 
-  // TODO Add a unit test for this
-  def maybeSystemConfigOption(key: String) = {
-    sessionFactory.withSession(s => {
-      s.get(classOf[SystemConfigOption], key) match {
-        case null                       => None
-        case current:SystemConfigOption => Some(current.value)
-      }
-    })
-  }
-  def setSystemConfigOption(key:String, value:String) {
-    sessionFactory.withSession(s => {
-      val co = s.get(classOf[SystemConfigOption], key) match {
-        case null =>
-          new SystemConfigOption(key = key, value = value)
-        case current:SystemConfigOption =>  {
-          current.value = value
-          current
-        }
-      }
-      s.saveOrUpdate(co)
-    })
-  }
-  def clearSystemConfigOption(key:String) = sessionFactory.withSession(s => {
-    s.get(classOf[SystemConfigOption], key) match {
-      case null =>
-      case current:SystemConfigOption =>  s.delete(current)
+  def maybeSystemConfigOption(key: String) = jooq.execute( t => {
+    val record = t.select(SYSTEM_CONFIG_OPTIONS.OPT_VAL).
+      from(SYSTEM_CONFIG_OPTIONS).
+      where(SYSTEM_CONFIG_OPTIONS.OPT_KEY.equal(key)).
+      fetchOne()
+
+    if (record != null) {
+      Some(record.getValue(SYSTEM_CONFIG_OPTIONS.OPT_VAL))
+    }
+    else {
+      None
     }
   })
 
   def systemConfigOptionOrDefault(key:String, defaultVal:String) = {
     maybeSystemConfigOption(key) match {
-      case Some(s)   => s
+      case Some(str) => str
       case None      => defaultVal
     }
   }
 
-  private def deleteByDomain[T](s:Session, domain:String, queryName:String) =
-    db.listQuery[T](queryName, Map("domain_name" -> domain)).foreach(s.delete(_))
+  def setSystemConfigOption(key:String, value:String) = jooq.execute(t => {
+    t.insertInto(SYSTEM_CONFIG_OPTIONS).
+        set(SYSTEM_CONFIG_OPTIONS.OPT_KEY, key).
+        set(SYSTEM_CONFIG_OPTIONS.OPT_VAL, value).
+      onDuplicateKeyUpdate().
+        set(SYSTEM_CONFIG_OPTIONS.OPT_VAL, value).
+      execute()
+  })
+
+  def clearSystemConfigOption(key:String) = jooq.execute(t => {
+    t.delete(SYSTEM_CONFIG_OPTIONS).
+      where(SYSTEM_CONFIG_OPTIONS.OPT_KEY.equal(key)).
+      execute()
+  })
 }
 
 /**

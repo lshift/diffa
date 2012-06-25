@@ -26,6 +26,7 @@ import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 import org.easymock.classextension.{EasyMock => E4}
 import org.jooq.impl.Factory
 import net.lshift.diffa.kernel.frontend.{EndpointDef, DomainPairDef}
+import scala.collection.JavaConversions._
 
 class CachedDomainConfigStoreTest {
 
@@ -43,6 +44,127 @@ class CachedDomainConfigStoreTest {
   def resetCaches {
     domainConfig.reset
   }
+
+  @Test
+  def shouldCacheIndividualDomainConfigOptionsAndThenInvalidateOnUpdate {
+
+    expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("firstValue").once()
+
+    E4.replay(jooq)
+
+    // The first call to get maybeConfigOption should propagate against the DB, but the second call will be cached
+
+    val firstCall = domainConfig.maybeConfigOption("domain", "key")
+    assertEquals(Some("firstValue"), firstCall)
+
+    val secondCall = domainConfig.maybeConfigOption("domain", "key")
+    assertEquals(Some("firstValue"), secondCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Remove one of the underlying values and expect the DB to be updated. A subsequent call to
+    // get maybeConfigOption should also propagate against the DB.
+
+
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("\u0000").once()
+
+    E4.replay(jooq)
+
+    domainConfig.clearConfigOption("domain", "key")
+
+    val thirdCall = domainConfig.maybeConfigOption("domain", "key")
+    assertEquals(None, thirdCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Add a new underlying value values and expect the DB to be updated. A subsequent call to
+    // get allConfigOptions should also propagate against the DB.
+
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("secondValue").once()
+
+    E4.replay(jooq)
+
+    domainConfig.setConfigOption("domain", "key", "secondValue")
+
+    val fourthCall = domainConfig.maybeConfigOption("domain", "key")
+    assertEquals(Some("secondValue"), fourthCall)
+
+    E4.verify(jooq)
+  }
+
+  @Test
+  def shouldCacheListingDomainConfigOptionsAndThenInvalidateOnUpdate {
+
+    val opts = new java.util.HashMap[String,String]()
+
+    opts.put("k1","v1")
+    opts.put("k2","v2")
+
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.Map[String,String]]]())).andReturn(opts).once()
+
+    E4.replay(jooq)
+
+    // The first call to get allConfigOptions should propagate against the DB, but the second call will be cached
+
+    val firstCall = domainConfig.allConfigOptions("domain")
+    assertEquals(opts.toMap, firstCall)
+
+    val secondCall = domainConfig.allConfigOptions("domain")
+    assertEquals(opts.toMap, secondCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Remove one of the underlying values and expect the DB to be updated. A subsequent call to
+    // get allConfigOptions should also propagate against the DB.
+
+    opts.remove("k1")
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.Map[String,String]]]())).andReturn(opts).once()
+
+    E4.replay(jooq)
+
+    domainConfig.clearConfigOption("domain", "k1")
+
+    val thirdCall = domainConfig.allConfigOptions("domain")
+    assertEquals(opts.toMap, thirdCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Add a new underlying value and expect the DB to be updated. A subsequent call to
+    // get allConfigOptions should also propagate against the DB.
+
+    opts.put("k3","v3")
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.Map[String,String]]]())).andReturn(opts).once()
+
+    E4.replay(jooq)
+
+    domainConfig.setConfigOption("domain", "k3", "v3")
+
+    val fourthCall = domainConfig.allConfigOptions("domain")
+    assertEquals(opts.toMap, fourthCall)
+
+    E4.verify(jooq)
+  }
+
 
   @Test
   def shouldCacheIndividualPairDefs {

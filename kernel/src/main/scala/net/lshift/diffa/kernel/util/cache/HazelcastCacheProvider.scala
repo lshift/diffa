@@ -20,11 +20,17 @@ import java.util.concurrent.TimeUnit
 import com.hazelcast.core.{MapEntry, IMap, Hazelcast}
 import com.hazelcast.query.{SqlPredicate, PredicateBuilder, Predicate}
 import java.util
+import net.lshift.diffa.kernel.naming.CacheName
 
 class HazelcastCacheProvider extends CacheProvider {
 
   def getCachedMap[K,V](name: String) = {
     val underlying = Hazelcast.getMap[K,V](name)
+    new HazelcastBackedMap[K,V](underlying)
+  }
+
+  def getCachedMap[K,V](name:CacheName) : CachedMap[K,V] = {
+    val underlying = Hazelcast.getMap[K,V](name.toString)
     new HazelcastBackedMap[K,V](underlying)
   }
 }

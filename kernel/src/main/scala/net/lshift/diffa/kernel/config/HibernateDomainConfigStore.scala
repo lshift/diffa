@@ -27,6 +27,8 @@ import java.util.List
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.Domains.DOMAINS
+import net.lshift.diffa.schema.tables.Members.MEMBERS
+import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
@@ -37,6 +39,7 @@ import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import org.jooq.Record
+import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
 import net.lshift.diffa.kernel.util.cache.{KeyPredicate, CacheProvider}
@@ -69,6 +72,10 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   private val cachedEndpointsByKey = cacheProvider.getCachedMap[DomainEndpointKey, EndpointDef]("domain.endpoints.by.key")
   private val cachedPairsByEndpoint = cacheProvider.getCachedMap[DomainEndpointKey, List[DomainPairDef]]("domain.pairs.by.endpoint")
 
+  // Config options
+  private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
+  private val cachedDomainConfigOptions = cacheProvider.getCachedMap[DomainConfigKey, String](DOMAIN_CONFIG_OPTIONS)
+
   def reset {
     cachedConfigVersions.evictAll()
     cachedPairs.evictAll()
@@ -76,6 +83,14 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     cachedEndpoints.evictAll()
     cachedEndpointsByKey.evictAll()
     cachedPairsByEndpoint.evictAll()
+
+    cachedDomainConfigOptionsMap.evictAll()
+    cachedDomainConfigOptions.evictAll()
+  }
+
+  private def invalidateConfigCaches(domain:String) = {
+    cachedDomainConfigOptionsMap.evict(domain)
+    cachedDomainConfigOptions.keySubset(ConfigOptionByDomainPredicate(domain)).evictAll()
   }
 
   private def invalidateAllCaches(domain:String) = {
@@ -85,6 +100,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(domain)).evictAll()
     cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
     cachedEndpointsByKey.keySubset(EndpointByDomainPredicate(domain)).evictAll()
+    invalidateConfigCaches(domain)
   }
 
   private def invalidateEndpointCachesOnly(domain:String, endpointName: String) = {
@@ -388,12 +404,47 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     )
   }
 
-  def allConfigOptions(domain:String) = {
-    db.listQuery[ConfigOption]("configOptionsByDomain", Map("domain_name" -> domain)).map(opt => opt.key -> opt.value).toMap
-  }
+  def allConfigOptions(domain:String) = cachedDomainConfigOptionsMap.readThrough(domain, () => jooq.execute( t => {
+    val results = t.select(CONFIG_OPTIONS.OPT_KEY, CONFIG_OPTIONS.OPT_VAL).
+      from(CONFIG_OPTIONS).
+      where(CONFIG_OPTIONS.DOMAIN.equal(domain)).fetch()
 
-  def maybeConfigOption(domain:String, key:String) =
-    db.singleQueryMaybe[String]("configOptionByNameAndKey", Map("key" -> key, "domain_name" -> domain))
+    val configs = new java.util.HashMap[String,String]()
+
+    results.iterator().foreach(r => {
+      configs.put(r.getValue(CONFIG_OPTIONS.OPT_KEY), r.getValue(CONFIG_OPTIONS.OPT_VAL))
+    })
+
+    configs
+  })).toMap
+
+
+  def maybeConfigOption(domain:String, key:String) = {
+
+    val option = cachedDomainConfigOptions.readThrough(DomainConfigKey(domain,key), () => jooq.execute( t => {
+
+      val record = t.select(CONFIG_OPTIONS.OPT_VAL).
+                     from(CONFIG_OPTIONS).
+                     where(CONFIG_OPTIONS.DOMAIN.equal(domain)).
+                       and(CONFIG_OPTIONS.OPT_KEY.equal(key)).
+                     fetchOne()
+
+      if (record != null) {
+        record.getValue(CONFIG_OPTIONS.OPT_VAL)
+      }
+      else {
+        // Insert a null byte into as a value for this key in the cache to denote that this key does not
+        // exist and should not get queried for against the the underlying database
+        "\u0000"
+      }
+
+    }))
+
+    option match {
+      case "\u0000"     => None
+      case value        => Some(value)
+    }
+  }
 
   def configOptionOrDefault(domain:String, key: String, defaultVal: String) =
     maybeConfigOption(domain, key) match {
@@ -401,8 +452,31 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       case None      => defaultVal
     }
 
-  def setConfigOption(domain:String, key:String, value:String) = writeConfigOption(domain, key, value)
-  def clearConfigOption(domain:String, key:String) = deleteConfigOption(domain, key)
+  def setConfigOption(domain:String, key:String, value:String) = {
+    jooq.execute(t => {
+      t.insertInto(CONFIG_OPTIONS).
+        set(CONFIG_OPTIONS.DOMAIN, domain).
+        set(CONFIG_OPTIONS.OPT_KEY, key).
+        set(CONFIG_OPTIONS.OPT_VAL, value).
+      onDuplicateKeyUpdate().
+        set(CONFIG_OPTIONS.OPT_VAL, value).
+      execute()
+    })
+
+    invalidateConfigCaches(domain)
+  }
+
+  def clearConfigOption(domain:String, key:String) = {
+    jooq.execute(t => {
+      t.delete(CONFIG_OPTIONS).
+        where(CONFIG_OPTIONS.DOMAIN.equal(domain)).
+        and(CONFIG_OPTIONS.OPT_KEY.equal(key)).
+      execute()
+    })
+
+    // TODO This is a very coarse grained invalidation
+    invalidateConfigCaches(domain)
+  }
 
   @Deprecated private def deletePairInSession(s:Session, domain:String, pair:DiffaPair) = {
     getRepairActionsInPair(domain, pair.key).foreach(s.delete)
@@ -476,6 +550,17 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
       execute()
   }
+   /*
+  def makeDomainMember(domain:String, userName:String) = {
+    jooq.execute(t => {
+      t.insertInto(MEMBERS).
+        set(MEMBERS.DOMAIN_NAME, domain).
+        set(MEMBERS.USER_NAME, domain).
+        onDuplicateKeyIgnore()
+
+    })
+  }
+  */
 
   def makeDomainMember(domain:String, userName:String) = {
     try {
@@ -493,6 +578,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     membershipListener.onMembershipCreated(member)
     member
   }
+
 
   def removeDomainMembership(domain:String, userName:String) = {
     val member = Member(User(name = userName), Domain(name = domain))
@@ -533,6 +619,20 @@ case class DomainPairKey(
 
   def this() = this(domain = null)
 
+}
+
+case class DomainConfigKey(
+  @BeanProperty var domain: String = null,
+  @BeanProperty var configKey: String = null) {
+
+  def this() = this(domain = null)
+
+}
+
+case class ConfigOptionByDomainPredicate(
+  @BeanProperty domain:String = null) extends KeyPredicate[DomainConfigKey] {
+  def this() = this(domain = null)
+  def constrain(key: DomainConfigKey) = key.domain == domain
 }
 
 case class PairByDomainAndEndpointPredicate(

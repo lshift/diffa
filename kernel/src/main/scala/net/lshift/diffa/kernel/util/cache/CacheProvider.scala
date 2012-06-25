@@ -17,6 +17,7 @@ package net.lshift.diffa.kernel.util.cache
 
 import scala.collection.JavaConversions._
 import java.io.Serializable
+import net.lshift.diffa.kernel.naming.CacheName
 
 /**
  * Service definition that abstracts away concrete cache implementations from higher level application code.
@@ -26,7 +27,8 @@ trait CacheProvider {
   /**
    * Returns a reference to a managed cache instance identified by the given name.
    */
-  def getCachedMap[K,V](name:String) : CachedMap[K,V]
+  @Deprecated def getCachedMap[K,V](name:String) : CachedMap[K,V]
+  def getCachedMap[K,V](name:CacheName) : CachedMap[K,V]
 
 }
 
