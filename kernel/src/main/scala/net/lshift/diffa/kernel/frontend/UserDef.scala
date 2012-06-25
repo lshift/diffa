@@ -40,7 +40,6 @@ case class UserDef(@BeanProperty var name: String = null,
 
     ValidationUtil.requiredAndNotEmpty(userPath, "name", name)
     ValidationUtil.ensureLengthLimit(userPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
-    ValidationUtil.requiredAndNotEmpty(userPath, "email", email)
 
     if (!external) {
       ValidationUtil.requiredAndNotEmpty(userPath, "password", password)

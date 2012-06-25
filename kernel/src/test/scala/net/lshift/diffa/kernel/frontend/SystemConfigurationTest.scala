@@ -60,12 +60,6 @@ class SystemConfigurationTest {
   }
 
   @Test(expected = classOf[ConfigValidationException])
-  def shouldRejectUserDefinitionWithoutEmail() {
-    systemConfiguration.createOrUpdateUser(
-      UserDef(name = validUserDef.name, email = null, superuser = validUserDef.superuser, password = validUserDef.password))
-  }
-
-  @Test(expected = classOf[ConfigValidationException])
   def shouldRejectUserDefinitionWithoutPassword() {
     systemConfiguration.createOrUpdateUser(
       UserDef(name = validUserDef.name, email = validUserDef.email, superuser = validUserDef.superuser, password = null))

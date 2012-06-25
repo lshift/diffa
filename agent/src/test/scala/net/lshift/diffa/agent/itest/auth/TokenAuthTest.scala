@@ -18,7 +18,7 @@ package net.lshift.diffa.agent.itest.auth
 import org.junit.Test
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.kernel.frontend.UserDef
-import net.lshift.diffa.agent.client.{ScanningRestClient, UsersRestClient}
+import net.lshift.diffa.agent.client.{ScanningRestClient, SecurityRestClient}
 import net.lshift.diffa.client.RestClientParams
 import org.junit.Assert._
 
@@ -26,24 +26,24 @@ import org.junit.Assert._
  * Integration test for token based authentication.
  */
 class TokenAuthTest {
-  val usersClient = new UsersRestClient(agentURL)
+  val securityClient = new SecurityRestClient(agentURL)
 
   @Test
   def shouldAllowUserToLoginWithToken() {
-    usersClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
+    securityClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
 
-    val token = usersClient.getUserToken("TokenUser")
+    val token = securityClient.getUserToken("TokenUser")
     val tokenScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(token = Some(token)))
     assertEquals(0, tokenScanningClient.getScanStatus.size)
   }
 
   @Test
   def shouldAllowUserTokenToBeRegenerated() {
-    usersClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
+    securityClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
 
-    val token = usersClient.getUserToken("TokenUser")
-    usersClient.clearUserToken("TokenUser")
-    val token2 = usersClient.getUserToken("TokenUser")
+    val token = securityClient.getUserToken("TokenUser")
+    securityClient.clearUserToken("TokenUser")
+    val token2 = securityClient.getUserToken("TokenUser")
 
     val badTokenScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(token = Some(token)))
     try {

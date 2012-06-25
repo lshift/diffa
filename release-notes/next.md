@@ -22,6 +22,7 @@
 * [168] - Rate limit the submission of Real Time Events (Change Events).
 * [180] - Replace the codeboxes from the content viewer with a lightbox that shows when a diff row item is double-clicked.
 * [186] - Expose the system and domain limit APIs via the REST API
+* [195] - Provide a mechanism for users to persist their visibility preferences
 
 ## General Maintenance
 

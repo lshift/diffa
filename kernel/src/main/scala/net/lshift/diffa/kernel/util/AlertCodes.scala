@@ -58,8 +58,11 @@ object AlertCodes {
   val ACTOR_STARTED = 250
   val ACTOR_STOPPED = 251
 
-  // 4xx Errors that occur that as result of an invalid inbound request from a client
+  // 4xx Errors that occur that as a result of an invalid inbound request from a client
 
+  // 42x DB errors
+  val DB_ERROR = 420
+  val INTEGRITY_CONSTRAINT_VIOLATED = 421
 
   // 5xx Errors
   

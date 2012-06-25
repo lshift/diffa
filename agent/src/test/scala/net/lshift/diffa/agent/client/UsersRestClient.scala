@@ -1,7 +1,5 @@
-package net.lshift.diffa.agent.client
-
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +13,43 @@ package net.lshift.diffa.agent.client
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.diffa.agent.client
 
-import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
-import net.lshift.diffa.client.{RestClientParams, ExternalRestClient}
+import net.lshift.diffa.client.{RestClientParams, AccessDeniedException, NotFoundException, ExternalRestClient}
+import net.lshift.diffa.kernel.preferences.FilteredItemType
+import javax.ws.rs.core.MediaType
+import com.sun.jersey.api.client.ClientResponse
+import net.lshift.diffa.kernel.config.DiffaPairRef
+import scala.collection.JavaConversions._
 
-class UsersRestClient(u:String, params: RestClientParams = RestClientParams.default)
-  extends ExternalRestClient(u, "security/", params) {
+class UsersRestClient(rootUrl:String, username:String, params: RestClientParams = RestClientParams.default)
+  extends ExternalRestClient(rootUrl, "/users/" + username, params) {
 
-  def getUserToken(username: String) = rpc("users/" + username + "/token", classOf[String])
-  def clearUserToken(username: String) = delete("users/" + username + "/token")
+  def removeFilter(pair:DiffaPairRef, itemType:FilteredItemType)
+    = delete("/" + pair.domain + "/" + pair.key + "/filter/"  + itemType.toString)
 
-  def declareUser(user:UserDef) : UserDef = {
-    create("users", user)
-    user
+  def createFilter(pair:DiffaPairRef, itemType:FilteredItemType) = {
+    val path = resource.path("/" + pair.domain + "/" + pair.key + "/filter/"  + itemType.toString)
+    val media = path.accept(MediaType.TEXT_PLAIN)
+    val response = media.put(classOf[ClientResponse])
+    val status = response.getClientResponseStatus
+    status.getStatusCode match {
+      case 204   => ()
+      case 403   => throw new AccessDeniedException(path.toString)
+      case 404   => throw new NotFoundException(path.toString)
+      case x:Int => handleHTTPError(x, path, status)
+    }
   }
 
-  def getMembershipDomains(username: String) = rpc("users/" + username + "/memberships", classOf[Array[DomainDef]])
+  def getFilteredItems(domain:String, itemType:FilteredItemType) : Seq[String] = {
+    val path = resource.path("/" + domain + "/filter/"  + itemType.toString)
+    val media = path.accept(MediaType.APPLICATION_JSON)
+    val response = media.get(classOf[ClientResponse])
+    val status = response.getClientResponseStatus
+    status.getStatusCode match {
+      case 200   => response.getEntity(classOf[java.util.List[String]]).toList
+      case 404   => throw new NotFoundException(path.toString)
+      case x:Int => handleHTTPError(x, path, status)
+    }
+  }
 }

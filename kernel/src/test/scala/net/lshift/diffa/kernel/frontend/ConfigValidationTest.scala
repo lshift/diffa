@@ -365,14 +365,6 @@ class ConfigValidationTest extends DefValidationTestBase {
   }
 
   @Test
-  def shouldRejectUserWithoutEmail() {
-    validateError(
-      UserDef(name = "some.user", password = "password"),
-      "config/user[name=some.user]: email cannot be null or empty"
-    )
-  }
-
-  @Test
   def shouldRejectUserWithoutPasswordWhenNotExternal() {
     validateError(
       UserDef(name = "some.user", email = "user@domain.com"),
@@ -382,7 +374,7 @@ class ConfigValidationTest extends DefValidationTestBase {
 
   @Test
   def shouldAcceptExternalUserWithoutPassword() {
-    val userDef = UserDef(name = "some.user", email = "user@domain.com", external = true)
+    val userDef = UserDef(name = "some.user", external = true)
     userDef.validate("config")
   }
 

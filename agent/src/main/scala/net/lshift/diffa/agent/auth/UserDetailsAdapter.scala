@@ -60,6 +60,17 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
         val domain = targetDomainObject.asInstanceOf[String]
         isRoot(auth) || hasDomainRole(auth, domain, "user")
 
+        // Tests to see whether the requesting user is the owner of the requested object
+      case "user-preferences" =>
+        /*
+        os.ten.si.ble [o-sten-suh-buhl]
+        adjective
+        1. outwardly appearing as such; professed; pretended: an ostensible cheerfulness concealing sadness.
+        2.apparent, evident, or conspicuous: the ostensible truth of their theories.
+        */
+        val ostensibleUsername = targetDomainObject.asInstanceOf[String]
+        isUserWhoTheyClaimToBe(auth, ostensibleUsername)
+
         // Unknown permission request type
       case _ =>
         false
@@ -72,7 +83,9 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     val isRoot = user.superuser
     val memberships = systemConfigStore.listDomainMemberships(user.name)
     val domainAuthorities = memberships.map(m => DomainAuthority(m.domain.name, "user"))
-    val authorities = domainAuthorities ++ Seq(new SimpleGrantedAuthority("user")) ++ (isRoot match {
+    val authorities = domainAuthorities ++
+                      Seq(new SimpleGrantedAuthority("user"), new UserAuthority(user.name)) ++
+    (isRoot match {
       case true   => Seq(new SimpleGrantedAuthority("root"))
       case false  => Seq()
     })
@@ -94,8 +107,17 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
       case _ =>
         false
     }.isDefined
+
+  def isUserWhoTheyClaimToBe(auth: Authentication, ostensibleUsername:String) = auth.getAuthorities.find {
+    case UserAuthority(actualUsername) => actualUsername == ostensibleUsername
+    case _                             => false
+  }.isDefined
 }
 
 case class DomainAuthority(domain:String, domainRole:String) extends GrantedAuthority {
   def getAuthority = domainRole + "@" + domain
+}
+
+case class UserAuthority(username:String) extends GrantedAuthority {
+  def getAuthority = username
 }

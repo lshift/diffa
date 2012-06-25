@@ -23,15 +23,15 @@ import net.lshift.diffa.client.RestClientParams
 import net.lshift.diffa.kernel.frontend.UserDef
 import java.io.File
 import org.apache.commons.io.FileUtils
-import net.lshift.diffa.agent.client.{ScanningRestClient, ConfigurationRestClient, UsersRestClient, SystemConfigRestClient}
+import net.lshift.diffa.agent.client.{ScanningRestClient, ConfigurationRestClient, SecurityRestClient, SystemConfigRestClient}
 
 /**
  * Test cases for Diffa external authentication support.
  */
 class ExternalAuthTest {
   val configClient = new SystemConfigRestClient(agentURL)
-  val usersClient = new UsersRestClient(agentURL)
-  val externalAdminUsersClient = new UsersRestClient(agentURL, RestClientParams(username = Some("External Admin"), password = Some("admin123")))
+  val securityClient = new SecurityRestClient(agentURL)
+  val externalAdminUsersClient = new SecurityRestClient(agentURL, RestClientParams(username = Some("External Admin"), password = Some("admin123")))
   val externalAdminDomainConfigClient = new ConfigurationRestClient(agentURL, "diffa", RestClientParams(username = Some("External Admin"), password = Some("admin123")))
   val externalUserScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(username = Some("External User"), password = Some("user123")))
 
@@ -88,7 +88,7 @@ class ExternalAuthTest {
       configClient.setConfigOptions(Map("ldap.url" -> url, "ldap.userdn.pattern" -> "cn={0}"))
 
       // Create an external admin
-      usersClient.declareUser(UserDef(name = "External Admin", email = "external-admin@diffa.io", superuser = true, external = true))
+      securityClient.declareUser(UserDef(name = "External Admin", email = "external-admin@diffa.io", superuser = true, external = true))
 
       // Create an internal user, and make it a member of the Diffa domain. We'll use our new external superuser to do it.
       externalAdminUsersClient.declareUser(UserDef(name = "External User", email = "external-user@diffa.io", superuser = false, external = true))

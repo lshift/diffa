@@ -110,7 +110,7 @@ class TestEnvironment(val pairKey: String,
   val escalationsClient:EscalationsRestClient = new EscalationsRestClient(serverRoot, domain.name)
   val upstreamChangesClient:ChangesClient = changesClientBuilder(this, upstreamEpName)
   val downstreamChangesClient:ChangesClient = changesClientBuilder(this, downstreamEpName)
-  val usersClient:UsersRestClient = new UsersRestClient(serverRoot)
+  val usersClient:SecurityRestClient = new SecurityRestClient(serverRoot)
   val scanningClient:ScanningRestClient = new ScanningRestClient(serverRoot, domain.name)
   val systemConfig = new SystemConfigRestClient(serverRoot)
   val inventoryClient = new InventoryRestClient(serverRoot, domain.name)

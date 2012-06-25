@@ -368,7 +368,7 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
+      <!--plugin>
         <groupId>net.lshift.diffa</groupId>
         <artifactId>diffa-docgen-maven-plugin</artifactId>
         <version>${project.version}</version>
@@ -383,7 +383,7 @@
             <resource>net.lshift.diffa.agent.rest.DiagnosticsResource</resource>
             <resource>net.lshift.diffa.agent.rest.DifferencesResource</resource>
             <resource>net.lshift.diffa.agent.rest.ActionsResource</resource>
-            <resource>net.lshift.diffa.agent.rest.UsersResource</resource>
+            <resource>net.lshift.diffa.agent.rest.SecurityResource</resource>
             <resource>net.lshift.diffa.agent.rest.EscalationsResource</resource>
             <resource>net.lshift.diffa.agent.rest.SystemConfigResource</resource>
           </resources>
@@ -398,7 +398,7 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
+      </plugin-->
       <plugin>
         <groupId>ro.isdc.wro4j</groupId>
         <artifactId>wro4j-maven-plugin</artifactId>

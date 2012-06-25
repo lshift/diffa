@@ -108,12 +108,25 @@ trait HibernateQueryUtils {
     singleQuery[Domain](s, "domainByName", Map("domain_name" -> name), "domain %s".format(name))
   })
 
-  def removeDomainDifferences(domain: String) = sessionFactory.withSession(s => {
+  @Deprecated def removeDomainDifferences(domain: String) = sessionFactory.withSession(s => {
     // TODO Maybe this should be integrated with HibernateSystemConfigStore:deleteDomain/1
     executeUpdate(s, "removeDomainCheckpoints", Map("domain_name" -> domain))
     executeUpdate(s, "removeDomainDiffs", Map("domain" -> domain))
     executeUpdate(s, "removeDomainPendingDiffs", Map("domain" -> domain))
   })
+
+  @Deprecated def forceHibernateCacheEviction() = {
+    try {
+      val cache = sessionFactory.getCache
+      cache.evictEntityRegions()
+      cache.evictCollectionRegions()
+      cache.evictDefaultQueryRegion()
+    }
+    catch {
+      case x:Exception =>
+        log.error("Could not manually evict the Hibernate cache", x)
+    }
+  }
 
   /**
    * This is un-protected call to set a configuration option.

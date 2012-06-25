@@ -7,6 +7,7 @@ import hooks.HookManager
 import org.hibernate.dialect.Dialect
 import net.sf.ehcache.CacheManager
 import org.slf4j.LoggerFactory
+import preferences.JooqUserPreferencesStore
 import util.cache.HazelcastCacheProvider
 import util.db.HibernateDatabaseFacade
 import util.sequence.HazelcastSequenceProvider
@@ -126,6 +127,9 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private lazy val _domainCredentialsStore =
     makeStore(sf => new JooqDomainCredentialsStore(facade), "domainCredentialsStore")
 
+  private lazy val _userPreferencesStore =
+    makeStore(sf => new JooqUserPreferencesStore(facade, cacheProvider), "userPreferencesStore")
+
   private lazy val _domainDifferenceStore =
     makeStore(sf => new HibernateDomainDifferenceStore(sf, facade, cacheProvider, sequenceProvider, hookManager), "DomainDifferenceStore")
 
@@ -134,6 +138,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   def domainConfigStore: HibernateDomainConfigStore = _domainConfigStore
   def domainCredentialsStore: JooqDomainCredentialsStore = _domainCredentialsStore
   def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore
+  def userPreferencesStore: JooqUserPreferencesStore = _userPreferencesStore
 
   def prepareEnvironmentForStores {
     performCleanerAction(cleaner => cleaner.clean)

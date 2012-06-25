@@ -20,7 +20,7 @@ import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import com.eaio.uuid.UUID
-import net.lshift.diffa.agent.client.{ConfigurationRestClient, UsersRestClient, SystemConfigRestClient}
+import net.lshift.diffa.agent.client.{ConfigurationRestClient, SecurityRestClient, SystemConfigRestClient}
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
 import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
 import com.sun.jersey.api.client.UniformInterfaceException
@@ -36,7 +36,7 @@ class MembershipTest {
   val password = "foo"
 
   val systemConfigClient = new SystemConfigRestClient(agentURL)
-  val usersClient = new UsersRestClient(agentURL)
+  val securityClient = new SecurityRestClient(agentURL)
   val configClient = new ConfigurationRestClient(agentURL, domain.name)
   val userConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some(password)))
 
@@ -49,7 +49,7 @@ class MembershipTest {
       assertEquals(expectation, isMember)
     }
     systemConfigClient.declareDomain(domain)
-    usersClient.declareUser(UserDef(username,email,false,password))
+    securityClient.declareUser(UserDef(username,email,false,password))
 
     configClient.makeDomainMember(username)
 
@@ -62,20 +62,20 @@ class MembershipTest {
   @Test
   def shouldBeAbleToListDomainsUserIsAMemberOf() = {
     systemConfigClient.declareDomain(domain)
-    usersClient.declareUser(UserDef(username, email, false, password))
+    securityClient.declareUser(UserDef(username, email, false, password))
     configClient.makeDomainMember(username)
 
-    assertEquals(List(domain), usersClient.getMembershipDomains(username).toList)
+    assertEquals(List(domain), securityClient.getMembershipDomains(username).toList)
 
     configClient.removeDomainMembership(username)
 
-    assertEquals(List(), usersClient.getMembershipDomains(username).toList)
+    assertEquals(List(), securityClient.getMembershipDomains(username).toList)
   }
 
   @Test(expected = classOf[AccessDeniedException])
   def shouldNotBeAbleToAccessDomainConfigurationWhenNotADomainMember() {
     systemConfigClient.declareDomain(domain)
-    usersClient.declareUser(UserDef(username,email,false,password))
+    securityClient.declareUser(UserDef(username,email,false,password))
     configClient.removeDomainMembership(username)   // Ensure the user isn't a domain member
     userConfigClient.listDomainMembers
   }
@@ -83,19 +83,19 @@ class MembershipTest {
   @Test
   def shouldBeAbleToAccessDomainConfigurationWhenDomainMember() {
     systemConfigClient.declareDomain(domain)
-    usersClient.declareUser(UserDef(username,email,false,password))
+    securityClient.declareUser(UserDef(username,email,false,password))
     configClient.makeDomainMember(username)
     userConfigClient.listDomainMembers
   }
 
   @Test
   def shouldBeAbleToCreateExternalUser() {
-    usersClient.declareUser(UserDef(name = username, email = email, external = true))
+    securityClient.declareUser(UserDef(name = username, email = email, external = true))
   }
 
   @Test
   def shouldNotBeAbleToAuthenticateWithExternalUser() {
-    usersClient.declareUser(UserDef(name = username, email = email, external = true))
+    securityClient.declareUser(UserDef(name = username, email = email, external = true))
 
     val noPasswordConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some("")))
     try {

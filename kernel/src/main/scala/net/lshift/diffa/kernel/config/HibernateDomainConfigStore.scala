@@ -26,17 +26,25 @@ import net.lshift.diffa.kernel.hooks.HookManager
 import java.util.List
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
+import net.lshift.diffa.schema.tables.Domains.DOMAINS
+import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
+import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
+import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Pair.PAIR
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
+import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
+import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import org.jooq.Record
 import net.lshift.diffa.kernel.util.MissingObjectException
-import net.lshift.diffa.kernel.lifecycle.DomainLifecycleAware
+import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
 import net.lshift.diffa.kernel.util.cache.{KeyPredicate, CacheProvider}
 import reflect.BeanProperty
 import collection.mutable
 import java.util
+import collection.mutable.ListBuffer
+import org.jooq.impl.Factory
 ;
 
 class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
@@ -50,6 +58,9 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     with HibernateQueryUtils {
 
   val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
+
+  private val pairEventSubscribers = new ListBuffer[PairLifecycleAware]
+  def registerPairEventListener(p:PairLifecycleAware) = pairEventSubscribers += p
 
   private val cachedConfigVersions = cacheProvider.getCachedMap[String,Int]("domain.config.versions")
   private val cachedPairs = cacheProvider.getCachedMap[String, List[DomainPairDef]]("domain.pairs")
@@ -165,16 +176,15 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     hook.pairCreated(domain, p.key)
   }
 
-  def deletePair(domain:String, key: String) {
-    withVersionUpgrade(domain, s => {
-
+  def deletePair(domain:String, key: String) = {
+    jooq.execute(t => {
+      val ref = DiffaPairRef(key,domain)
       invalidatePairCachesOnly(domain)
-
-      val pair = getPair(s, domain, key)
-      deletePairInSession(s, domain, pair)
+      deletePairWithDependencies(t, ref)
+      pairEventSubscribers.foreach(_.onPairDeleted(ref))
+      hook.pairRemoved(domain, key)
     })
-
-    hook.pairRemoved(domain, key)
+    forceHibernateCacheEviction()
   }
 
   def listPairs(domain:String) = cachedPairs.readThrough(domain, () => listPairsInternal(domain))
@@ -345,14 +355,27 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   /**
    * Force the DB to uprev the config version column for this particular domain
    */
-  private def upgradeConfigVersion(domain:String)(s:Session) = {
+  @Deprecated private def upgradeConfigVersion(domain:String)(s:Session) = {
     s.getNamedQuery("upgradeConfigVersionByDomain").setString("domain", domain).executeUpdate()
+  }
+
+  /**
+   * Force the DB to uprev the config version column for this particular domain
+   */
+  private def upgradeConfigVersion(t:Factory, domain:String) {
+
+    cachedConfigVersions.evict(domain)
+
+    t.update(DOMAINS).
+      set(DOMAINS.CONFIG_VERSION, DOMAINS.CONFIG_VERSION.add(1)).
+      where(DOMAINS.NAME.equal(domain)).
+      execute()
   }
 
   /**
    * Force an upgrade of the domain config version in the db and the cache after the DB work has executed successfully.
    */
-  private def withVersionUpgrade[T](domain:String, dbCommands:Function1[Session, T]) : T = {
+  @Deprecated private def withVersionUpgrade[T](domain:String, dbCommands:Function1[Session, T]) : T = {
 
     def beforeCommit(session:Session) = upgradeConfigVersion(domain)(session)
     def commandsToExecute(session:Session) = dbCommands(session)
@@ -381,13 +404,77 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   def setConfigOption(domain:String, key:String, value:String) = writeConfigOption(domain, key, value)
   def clearConfigOption(domain:String, key:String) = deleteConfigOption(domain, key)
 
-  private def deletePairInSession(s:Session, domain:String, pair:DiffaPair) = {
+  @Deprecated private def deletePairInSession(s:Session, domain:String, pair:DiffaPair) = {
     getRepairActionsInPair(domain, pair.key).foreach(s.delete)
     getEscalationsForPair(domain, pair.key).foreach(s.delete)
     getReportsForPair(domain, pair.key).foreach(s.delete)
     pair.views.foreach(s.delete(_))
     deleteStoreCheckpoint(pair.asRef)
     s.delete(pair)
+  }
+
+  private def deletePairWithDependencies(t:Factory, pair:DiffaPairRef) = {
+    upgradeConfigVersion(t, pair.domain)
+    deleteRepairActionsByPair(t, pair)
+    deleteEscalationsByPair(t, pair)
+    deleteReportsByPair(t, pair)
+    deletePairViewsByPair(t, pair)
+    deleteStoreCheckpointsByPair(t, pair)
+    deleteUserItemsByPair(t, pair)
+    deletePairWithoutDependencies(t, pair)
+  }
+
+  private def deletePairWithoutDependencies(t:Factory, pair:DiffaPairRef) = {
+    val deleted = t.delete(PAIR).
+      where(PAIR.DOMAIN.equal(pair.domain)).
+      and(PAIR.PAIR_KEY.equal(pair.key)).
+      execute()
+
+    if (deleted == 0) {
+      throw new MissingObjectException(pair.identifier)
+    }
+  }
+
+  private def deleteUserItemsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(USER_ITEM_VISIBILITY).
+      where(USER_ITEM_VISIBILITY.DOMAIN.equal(pair.domain)).
+      and(USER_ITEM_VISIBILITY.PAIR.equal(pair.key)).
+      execute()
+  }
+
+  private def deleteRepairActionsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(REPAIR_ACTIONS).
+      where(REPAIR_ACTIONS.DOMAIN.equal(pair.domain)).
+      and(REPAIR_ACTIONS.PAIR_KEY.equal(pair.key)).
+      execute()
+  }
+
+  private def deleteEscalationsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(ESCALATIONS).
+      where(ESCALATIONS.DOMAIN.equal(pair.domain)).
+      and(ESCALATIONS.PAIR_KEY.equal(pair.key)).
+      execute()
+  }
+
+  private def deleteReportsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(PAIR_REPORTS).
+      where(PAIR_REPORTS.DOMAIN.equal(pair.domain)).
+      and(PAIR_REPORTS.PAIR_KEY.equal(pair.key)).
+      execute()
+  }
+
+  private def deletePairViewsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(PAIR_VIEWS).
+      where(PAIR_VIEWS.DOMAIN.equal(pair.domain)).
+      and(PAIR_VIEWS.PAIR.equal(pair.key)).
+      execute()
+  }
+
+  private def deleteStoreCheckpointsByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(STORE_CHECKPOINTS).
+      where(STORE_CHECKPOINTS.DOMAIN.equal(pair.domain)).
+      and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
+      execute()
   }
 
   def makeDomainMember(domain:String, userName:String) = {
