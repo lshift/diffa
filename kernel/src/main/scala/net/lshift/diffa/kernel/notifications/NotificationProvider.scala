@@ -26,5 +26,5 @@ trait NotificationProvider {
   /**
    * Emit an event that should get relayed to a downstream recipient
    */
-  def notify(event:NotificationEvent, user:User) : Unit
+  def notify(event:NotificationEvent, user:String) : Unit
 }

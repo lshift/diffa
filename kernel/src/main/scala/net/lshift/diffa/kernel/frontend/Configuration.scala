@@ -62,9 +62,9 @@ class Configuration(val configStore: DomainConfigStore,
     diffaConfig.properties.foreach { case (k, v) => configStore.setConfigOption(domain, k, v) }
 
     // Remove missing members, and create/update the rest
-    val removedMembers = configStore.listDomainMembers(domain).filter(m => diffaConfig.members.find(newM => newM == m.user.name).isEmpty)
+    val removedMembers = configStore.listDomainMembers(domain).filter(m => diffaConfig.members.find(newM => newM == m.user).isEmpty)
     removedMembers.foreach(m => {
-      val userToRemove = m.user.name
+      val userToRemove = m.user
       callingUser match {
         case Some(currentUser) if userToRemove == currentUser => // don't this guy kill himself
         case _                                                => configStore.removeDomainMembership(domain, userToRemove)
@@ -116,7 +116,7 @@ class Configuration(val configStore: DomainConfigStore,
     if (doesDomainExist(domain))
       Some(DiffaConfig(
         properties = configStore.allConfigOptions(domain),
-        members = configStore.listDomainMembers(domain).map(_.user.name).toSet,
+        members = configStore.listDomainMembers(domain).map(_.user).toSet,
         endpoints = configStore.listEndpoints(domain).toSet,
         pairs = configStore.listPairs(domain).map(_.withoutDomain).toSet,
         repairActions = configStore.listRepairActions(domain).map(

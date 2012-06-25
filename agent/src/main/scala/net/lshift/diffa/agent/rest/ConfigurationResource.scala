@@ -182,7 +182,7 @@ class ConfigurationResource(val config:Configuration,
   @MandatoryParams(Array(new MandatoryParam(name="username", datatype="string", description="Username")))
   def makeDomainMember(@PathParam("username") userName:String) = {
     val member = config.makeDomainMember(domain, userName)
-    resourceCreated(member.user.name, uri)
+    resourceCreated(member.user, uri)
   }
 
   @DELETE
@@ -195,6 +195,6 @@ class ConfigurationResource(val config:Configuration,
   @Path("/members")
   @Produces(Array("application/json"))
   @Description("Returns a list of all of the members of this domain.")
-  def listDomainMembers : Array[UserDef] = config.listDomainMembers(domain).map(m => toUserDef(m.user)).toArray
+  def listDomainMembers : Array[String] = config.listDomainMembers(domain).map(m => m.user).toArray
 
 }

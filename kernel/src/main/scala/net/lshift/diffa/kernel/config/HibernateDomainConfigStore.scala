@@ -76,6 +76,8 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
   private val cachedDomainConfigOptions = cacheProvider.getCachedMap[DomainConfigKey, String](DOMAIN_CONFIG_OPTIONS)
 
+  private val cachedMembers = cacheProvider.getCachedMap[String, java.util.List[Member]](USER_DOMAIN_MEMBERS)
+
   def reset {
     cachedConfigVersions.evictAll()
     cachedPairs.evictAll()
@@ -86,6 +88,12 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
     cachedDomainConfigOptionsMap.evictAll()
     cachedDomainConfigOptions.evictAll()
+
+    cachedMembers.evictAll()
+  }
+
+  private def invalidateMembershipCache(domain:String) = {
+    cachedMembers.evict(domain)
   }
 
   private def invalidateConfigCaches(domain:String) = {
@@ -550,51 +558,53 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
       execute()
   }
-   /*
+
   def makeDomainMember(domain:String, userName:String) = {
+
     jooq.execute(t => {
       t.insertInto(MEMBERS).
         set(MEMBERS.DOMAIN_NAME, domain).
-        set(MEMBERS.USER_NAME, domain).
-        onDuplicateKeyIgnore()
-
+        set(MEMBERS.USER_NAME, userName).
+        onDuplicateKeyIgnore().
+        execute()
     })
-  }
-  */
 
-  def makeDomainMember(domain:String, userName:String) = {
-    try {
-      db.execute("createDomainMembership", Map("domain_name" -> domain, "user_name" -> userName))
-    }
-    catch {
-      case x:SQLIntegrityConstraintViolationException =>
-        handleMemberConstraintViolation(domain, userName)
-      case e:Exception if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
-        handleMemberConstraintViolation(domain, userName)
-      // Otherwise just let the exception get thrown further
-    }
+    invalidateMembershipCache(domain)
 
-    val member = Member(User(name = userName), Domain(name = domain))
+    val member = Member(userName,domain)
     membershipListener.onMembershipCreated(member)
     member
   }
 
-
   def removeDomainMembership(domain:String, userName:String) = {
-    val member = Member(User(name = userName), Domain(name = domain))
 
-    db.execute("deleteDomainMembership", Map("domain_name" -> domain, "user_name" -> userName))
+    jooq.execute(t => {
+      t.delete(MEMBERS).
+        where(MEMBERS.DOMAIN_NAME.equal(domain)).
+        and(MEMBERS.USER_NAME.equal(userName)).
+        execute()
+    })
 
+    invalidateMembershipCache(domain)
+
+    val member = Member(userName,domain)
     membershipListener.onMembershipRemoved(member)
   }
 
-  private def handleMemberConstraintViolation(domain:String, userName:String) = {
-    log.info("Ignoring integrity constraint violation for domain = %s and user = %s".format(domain,userName))
-  }
+  def listDomainMembers(domain:String) = cachedMembers.readThrough(domain, () => {
+    jooq.execute(t => {
 
-  def listDomainMembers(domain:String) = sessionFactory.withSession(s => {
-    db.listQuery[Member]("membersByDomain", Map("domain_name" -> domain))
-  })
+      val results = t.select(MEMBERS.USER_NAME).
+                     from(MEMBERS).
+                     where(MEMBERS.DOMAIN_NAME.equal(domain)).
+                     fetch()
+
+      val members = new java.util.ArrayList[Member]()
+      results.iterator().foreach(r => members.add(Member(r.getValue(MEMBERS.USER_NAME), domain)))
+      members
+
+    })
+  }).toSeq
 
   def listEndpointViews(s:Session, domain:String, endpointName:String) =
     db.listQuery[EndpointView]("endpointViewsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpointName))

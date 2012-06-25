@@ -82,7 +82,7 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
   def extractDetails(user:User) = {
     val isRoot = user.superuser
     val memberships = systemConfigStore.listDomainMemberships(user.name)
-    val domainAuthorities = memberships.map(m => DomainAuthority(m.domain.name, "user"))
+    val domainAuthorities = memberships.map(m => DomainAuthority(m.domain, "user"))
     val authorities = domainAuthorities ++
                       Seq(new SimpleGrantedAuthority("user"), new UserAuthority(user.name)) ++
     (isRoot match {

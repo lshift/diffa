@@ -367,7 +367,6 @@
       <list>
           <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
-          <value>net/lshift/diffa/kernel/config/DomainConfig.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/SystemConfig.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml</value>
       </list>

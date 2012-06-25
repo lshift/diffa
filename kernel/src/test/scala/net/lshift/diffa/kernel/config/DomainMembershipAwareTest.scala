@@ -45,9 +45,7 @@ class DomainMembershipAwareTest {
 
   val domainConfigStore = new HibernateDomainConfigStore(sf,db,jf, hm, cp, membershipListener)
 
-  val user = User(name = "u")
-  val domain = Domain(name = "d")
-  val member = Member(user,domain)
+  val member = Member("user","domain")
 
   @Test
   def shouldEmitDomainMembershipCreationEvent() = {
@@ -55,7 +53,7 @@ class DomainMembershipAwareTest {
 
     replay(membershipListener)
 
-    domainConfigStore.makeDomainMember(domain.name, user.name)
+    domainConfigStore.makeDomainMember("domain", "user")
 
     verify(membershipListener)
   }
@@ -66,7 +64,7 @@ class DomainMembershipAwareTest {
 
     replay(membershipListener)
 
-    domainConfigStore.removeDomainMembership(domain.name, user.name)
+    domainConfigStore.removeDomainMembership("domain", "user")
 
     verify(membershipListener)
   }

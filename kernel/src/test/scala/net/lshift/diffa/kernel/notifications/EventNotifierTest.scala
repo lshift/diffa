@@ -37,8 +37,8 @@ class EventNotifierTest {
 
   @Before
   def setup = {
-    val user = User("Foo Bar","dev_null@lshift.net")
-    val member = Member(domain = domain, user = user)
+    val user = User("FooBar","dev_null@lshift.net")
+    val member = Member(domain = "domain", user = "FooBar")
     expect(domainConfigStore.listDomainMembers(domain.name)).andStubReturn(List(member))
     replay(domainConfigStore, differencesManager)
   }
@@ -53,7 +53,7 @@ class EventNotifierTest {
     var notifications = 0
 
     val provider = new NotificationProvider() {
-      def notify(event:NotificationEvent, user:User) = {
+      def notify(event:NotificationEvent, user:String) = {
         notifications += 1
       }
     }

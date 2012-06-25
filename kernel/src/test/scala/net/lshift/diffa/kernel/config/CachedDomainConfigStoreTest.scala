@@ -46,6 +46,68 @@ class CachedDomainConfigStoreTest {
   }
 
   @Test
+  def shouldCacheDomainMembershipsAndThenInvalidateOnUpdate {
+
+    val members = new java.util.ArrayList[String]()
+    members.add("m1")
+    members.add("m2")
+
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.List[String]]]())).andReturn(members).once()
+
+    E4.replay(jooq)
+
+    // The first call to get maybeConfigOption should propagate against the DB, but the second call will be cached
+
+    val firstCall = domainConfig.listDomainMembers("domain")
+    assertEquals(members.toList, firstCall)
+
+    val secondCall = domainConfig.listDomainMembers("domain")
+    assertEquals(members.toList, secondCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Remove one of the underlying values and expect the DB to be updated. A subsequent call to
+    // get listDomainMembers should also propagate against the DB.
+
+    members.remove("m1")
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.List[String]]]())).andReturn(members).once()
+
+    E4.replay(jooq)
+
+    domainConfig.removeDomainMembership("domain", "m1")
+
+    val thirdCall = domainConfig.listDomainMembers("domain")
+    assertEquals(members.toList, thirdCall)
+
+    E4.verify(jooq)
+
+    // Reset the mocks control and an intermediate step to verify the calls to the underlying mock are all in order
+
+    E4.reset(jooq)
+
+    // Add a new underlying value values and expect the DB to be updated. A subsequent call to
+    // get listDomainMembers should also propagate against the DB.
+
+    members.remove("m3")
+    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,java.util.List[String]]]())).andReturn(members).once()
+
+    E4.replay(jooq)
+
+    domainConfig.makeDomainMember("domain", "m3")
+
+    val fourthCall = domainConfig.listDomainMembers("domain")
+    assertEquals(members.toList, fourthCall)
+
+    E4.verify(jooq)
+  }
+
+  @Test
   def shouldCacheIndividualDomainConfigOptionsAndThenInvalidateOnUpdate {
 
     expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("firstValue").once()

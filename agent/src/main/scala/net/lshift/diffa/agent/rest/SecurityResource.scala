@@ -102,7 +102,7 @@ class SecurityResource {
   @Description("Retrieves the domains which the user is a member of.")
   @MandatoryParams(Array(new MandatoryParam(name="name", datatype="string", description="Username")))
   def listUserDomains(@PathParam("name") name: String) : Array[String] =
-    systemConfig.listDomainMemberships(name).map(m => m.domain.name).toArray
+    systemConfig.listDomainMemberships(name).map(m => m.domain).toArray
 
   @GET
   @Produces(Array("application/json"))

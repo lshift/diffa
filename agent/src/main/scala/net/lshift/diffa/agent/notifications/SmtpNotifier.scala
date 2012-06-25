@@ -46,7 +46,9 @@ class SmtpNotifier(val session:Session,
   log.debug("Setting the notification URL to: " + url)
 
 
-  def notify(event:NotificationEvent, user:User) = {
+  def notify(event:NotificationEvent, user:String) = {
+  // TODO Delete this
+  /*
     log.debug("Sending notification about " + event + " to " + user)
     try {
 
@@ -90,6 +92,7 @@ class SmtpNotifier(val session:Session,
         log.error("Unknown error", e)        
       }
     }
+    */
   }
 
 }

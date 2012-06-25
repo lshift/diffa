@@ -417,8 +417,8 @@ object ExternalHttpCredentials {
 /**
  * Defines a user's membership to a domain
  */
-case class Member(@BeanProperty var user: User = null,
-                  @BeanProperty var domain: Domain = null) {
+case class Member(@BeanProperty var user:String = null,
+                  @BeanProperty var domain:String = null) {
 
   def this() = this(user = null)
 

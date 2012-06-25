@@ -114,7 +114,7 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   }
 
   private def evictMember(member: Member) = {
-    val username = member.user.name
+    val username = member.user
     membershipCache.evict(username)
   }
 }

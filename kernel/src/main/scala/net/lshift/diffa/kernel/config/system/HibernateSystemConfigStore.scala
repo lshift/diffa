@@ -155,8 +155,16 @@ class HibernateSystemConfigStore(val sessionFactory:SessionFactory,
     = db.singleQuery[User]("userByToken", Map("token" -> token), "user token %s".format(token))
 
   def listUsers : Seq[User] = db.listQuery[User]("allUsers", Map())
-  def listDomainMemberships(username: String) : Seq[Member] =
-    db.listQuery[Member]("membersByUser", Map("user_name" -> username))
+
+  def listDomainMemberships(username: String) : Seq[Member] = {
+    jooq.execute(t => {
+      val results = t.select(MEMBERS.DOMAIN_NAME).
+                      from(MEMBERS).
+                      where(MEMBERS.USER_NAME.equal(username)).
+                      fetch()
+      results.iterator().map(r => Member(username, r.getValue(MEMBERS.DOMAIN_NAME)))
+    }).toSeq
+  }
 
   def containsRootUser(usernames: Seq[String]) : Boolean =
     sessionFactory.withSession(s => {

@@ -52,6 +52,7 @@
 * [194] - Introduce caching of some calls in the domain config store
 * [189] - Allow a user to specify if an endpoint sorts keys by their ASCII-equivalent values, or via the Unicode Collation Algorithm
 * [198] - Port domain and system config options away from Hibernate.
+* [199] - Port domain members away from Hibernate.
 
 ## Library Upgrades
 
