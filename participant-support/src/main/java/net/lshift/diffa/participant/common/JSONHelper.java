@@ -71,7 +71,7 @@ public class JSONHelper {
     }
   }
 
-  public static ScanResultEntry[] readQueryResult(InputStream stream)
+  public static ScanResultEntry[] readQueryResult(InputStream stream, ScanEntityValidator validator)
       throws IOException {
     try {
       List<ScanResultEntry> scanResultEntries = new ArrayList<ScanResultEntry>();
@@ -81,14 +81,17 @@ public class JSONHelper {
       }
 
       while (parser.nextToken() != JsonToken.END_ARRAY) {
-        scanResultEntries.add(mapper.readValue(parser, ScanResultEntry.class));
+          ScanResultEntry entry = mapper.readValue(parser, ScanResultEntry.class);
+          validator.process(entry);
+          scanResultEntries.add(entry);
+
       }
       log.info("ScanResultEntry readQueryResult [count = " + scanResultEntries.size() + "]");
       return scanResultEntries.toArray(new ScanResultEntry[scanResultEntries.size()]);
     } catch (IOException ex) {
       throw ex;
     } catch (Exception ex) {
-      throw new IOException("Failed to deserialize result from JSON", ex);
+      throw new IOException("Failed to deserialize result from JSON: %s".format(ex.getMessage()), ex);
     }
   }
 
@@ -160,14 +163,18 @@ public class JSONHelper {
     }
   }
 
-  public static ChangeEvent[] readChangeEvents(InputStream stream)
+  public static ChangeEvent[] readChangeEvents(InputStream stream, ScanEntityValidator validator)
       throws IOException {
     try {
       JsonNode nextNode = mapper.readTree(stream);
       if (nextNode instanceof ArrayNode) {
-        return mapper.convertValue(nextNode, ChangeEvent[].class);
+        ChangeEvent[] events = mapper.convertValue(nextNode, ChangeEvent[].class);
+        for(ChangeEvent event: events) validator.process(event);
+        return events;
       } else {
-        return new ChangeEvent[] { mapper.convertValue(nextNode, ChangeEvent.class) };
+        ChangeEvent event = mapper.convertValue(nextNode, ChangeEvent.class);
+        validator.process(event);
+        return new ChangeEvent[] { event };
       }
     } catch (IOException ex) {
       throw ex;
@@ -175,4 +182,5 @@ public class JSONHelper {
       throw new IOException("Failed to deserialize event from JSON", ex);
     }
   }
+
 }

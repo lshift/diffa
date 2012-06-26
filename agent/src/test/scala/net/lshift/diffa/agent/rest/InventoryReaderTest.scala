@@ -23,6 +23,9 @@ import org.joda.time.{DateTimeZone, DateTime}
 import java.util.HashMap
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.InvalidInventoryException
+import net.lshift.diffa.participant.common.ScanEntityValidator
+import org.easymock.EasyMock._
+import org.hamcrest.Matchers._
 
 class InventoryReaderTest {
   val reader = new InventoryReader
@@ -119,6 +122,33 @@ class InventoryReaderTest {
   }
 
   @Test
+  def shouldInvokeEntryProcessor() {
+    val reader = new InventoryReader(mockValidator)
+    mockValidator.process(ScanResultEntry.forEntity("a", "v1",
+      new DateTime(2012, 3, 7, 12, 31, 0, 0, DateTimeZone.UTC),
+      (Map("foo" -> "x", "bar" -> "y"))))
+    replay(mockValidator)
+
+    parseCSVWith(reader, Seq("id,version,updated,foo,bar", "a,v1,2012-03-07T12:31:00Z,x,y"))
+    verify(mockValidator)
+  }
+
+  // In a sense, this is redundant with shouldInvokeEntryProcessor, but
+  // We we want to validate that it does use a sane default.
+  @Test
+  def shouldRejectCSVWithInvalidIdByDefault() {
+    val snowman = "\u2603"
+    try {
+      parseCSV("id,version,updated,foo,bar", snowman + ",v1,2012-03-07T12:31:00Z,a,b")
+      fail("Expected parsing to throw exception")
+    } catch {
+      case e:InvalidInventoryException =>
+        assertThat(e.getMessage, containsString(snowman))
+    }
+  }
+
+
+  @Test
   def shouldAcceptCSVWithEmptyValues() {
     val result = parseCSV("id,version,updated,foo,bar", "a,v1,2012-03-07T12:31:00Z,x,y", "b,v2,2011-12-31T07:15:12Z,,")
     assertEquals(Seq(
@@ -129,6 +159,12 @@ class InventoryReaderTest {
       result.results)
   }
 
-  private def parseCSV(s:String*) =
+  lazy val mockValidator = createMock(classOf[ScanEntityValidator])
+
+  private def parseCSVWith(reader: InventoryReader, s: Seq[String]) =
     reader.readFrom(null, null, null, null, null, new ByteArrayInputStream(s.mkString("\n").getBytes("UTF-8")))
+  private def parseCSV(s:String*) =
+    parseCSVWith(this.reader, s)
+
+
 }

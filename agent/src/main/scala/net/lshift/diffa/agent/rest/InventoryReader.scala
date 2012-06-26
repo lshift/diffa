@@ -24,19 +24,23 @@ import java.lang.{String, Class}
 import net.lshift.diffa.participant.scanning.ScanResultEntry
 import au.com.bytecode.opencsv.CSVReader
 import java.io.{InputStreamReader, InputStream}
-import scala.collection.JavaConversions._
 import collection.mutable.ListBuffer
 import org.joda.time.format.ISODateTimeFormat
 import java.util.HashMap
 import net.lshift.diffa.kernel.frontend.InvalidInventoryException
+import net.lshift.diffa.kernel.differencing.EntityValidator
+import net.lshift.diffa.participant.common.{InvalidEntityException, ScanEntityValidator}
 
 /**
  * Provider for encoding and decoding Diffa inventory submissions blocks.
  */
 @Provider
 @Consumes(Array("text/csv", "text/comma-separated-values"))
-class InventoryReader extends MessageBodyReader[ScanResultList] {
+class InventoryReader(resultValidator:ScanEntityValidator)
+  extends MessageBodyReader[ScanResultList] {
   val updatedParser = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC()
+
+  def this() { this(EntityValidator) }
 
   def isReadable(propType : Class[_], genericType: Type, annotations: Array[Annotation], mediaType: MediaType) =
     classOf[ScanResultList].isAssignableFrom(propType)
@@ -87,7 +91,11 @@ class InventoryReader extends MessageBodyReader[ScanResultList] {
         })
         entry.setAttributes(new HashMap[String, String])
         headerIndex.foreach { case (fieldName, idx) => entry.getAttributes.put(fieldName, line(idx)) }
-
+        try {
+          resultValidator.process(entry)
+        } catch { case error:InvalidEntityException =>
+          throw new InvalidInventoryException("Invalid parsed result on line: %s: %s".format(lineCounter, error.getMessage))
+        }
         result += entry
 
         lineCounter += 1

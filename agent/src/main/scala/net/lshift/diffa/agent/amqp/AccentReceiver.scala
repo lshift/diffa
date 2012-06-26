@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.lang.String
 import net.lshift.diffa.kernel.frontend.Changes
 import net.lshift.diffa.participant.common.JSONHelper
+import net.lshift.diffa.kernel.differencing.EntityValidator
 
 
 /**
@@ -67,7 +68,7 @@ class AccentReceiver(con: AccentConnection,
         def run() {
           try {
 
-            JSONHelper.readChangeEvents(new ByteArrayInputStream(body)).foreach(
+            JSONHelper.readChangeEvents(new ByteArrayInputStream(body), EntityValidator).foreach(
               changes.onChange(domain, endpoint, _)
             )
 

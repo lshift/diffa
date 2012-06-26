@@ -53,6 +53,7 @@
 * [189] - Allow a user to specify if an endpoint sorts keys by their ASCII-equivalent values, or via the Unicode Collation Algorithm
 * [198] - Port domain and system config options away from Hibernate.
 * [199] - Port domain members away from Hibernate.
+* [190] - Ensure that only printable characters from the ASCII range are valid for use in entity IDs
 
 ## Library Upgrades
 

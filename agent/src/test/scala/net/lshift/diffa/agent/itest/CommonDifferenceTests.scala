@@ -386,6 +386,25 @@ trait CommonDifferenceTests {
     }
   }
 
+  @Test
+  def scanShouldFailWithInvalidIdentifiersInUpstream = {
+    env.upstream.addEntity("\u2603", datetime = today, someString = "ss", lastUpdated = new DateTime, body = "abcdef")
+
+    // This test is sketchy, as it could fail for any number of reasons. We should look at the log to figure out why.
+    env.scanningClient.startScan(env.pairKey)
+    ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.FAILED)
+  }
+
+  @Test
+  def scanShouldFailWithInvalidIdentifiersInDownstream = {
+    env.downstream.addEntity("\u2603", datetime = today, someString = "ss", lastUpdated = new DateTime, body = "abcdef")
+
+    // This test is sketchy, as it could fail for any number of reasons. We should look at the log to figure out why.
+    env.scanningClient.startScan(env.pairKey)
+    ScanningHelper.waitForScanStatus(env.scanningClient, env.pairKey, PairScanState.FAILED)
+  }
+
+
   def runScanAndWaitForCompletion(from:DateTime, until:DateTime, n:Int = 200, wait:Int = 200, view:Option[String] = None) {
     env.scanningClient.startScan(env.pairKey, view = view)
 

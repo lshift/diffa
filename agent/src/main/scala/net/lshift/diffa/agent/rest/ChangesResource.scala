@@ -24,11 +24,17 @@ import javax.ws.rs._
 import net.lshift.diffa.participant.changes.ChangeEvent
 import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.diffa.kernel.limiting.{DomainRateLimiterFactory, ServiceLimiterKey, ServiceLimiterRegistry}
+import net.lshift.diffa.participant.common.{InvalidEntityException, ScanEntityValidator}
+import net.lshift.diffa.kernel.differencing.EntityValidator
 
 /**
  * Resource allowing participants to provide details of changes that have occurred.
  */
-class ChangesResource(changes:Changes, domain:String, rateLimiterFactory: DomainRateLimiterFactory) {
+class ChangesResource(changes:Changes, domain:String, rateLimiterFactory: DomainRateLimiterFactory,
+                      validator: ScanEntityValidator) {
+
+  def this(changes:Changes, domain:String, rateLimiterFactory: DomainRateLimiterFactory) =
+    this(changes, domain, rateLimiterFactory, EntityValidator)
   @POST
   @Path("/{endpoint}")
   @Consumes(Array("application/json"))
@@ -38,12 +44,20 @@ class ChangesResource(changes:Changes, domain:String, rateLimiterFactory: Domain
     val limiter = ServiceLimiterRegistry.get(
       ServiceLimiterKey(ChangeEventRate, Some(domain), None),
       () => rateLimiterFactory.createRateLimiter(domain))
+
     val responseBuilder = if (limiter.accept()) {
-      changes.onChange(domain, endpoint, e)
-      Response.status(Response.Status.ACCEPTED)
+      try {
+        validator.process(e)
+        changes.onChange(domain, endpoint, e)
+        Response.status(Response.Status.ACCEPTED)
+      } catch {
+        case e: InvalidEntityException => Response.status(400).entity(e.getMessage + "\n")
+      }
     } else {
       Response.status(420)
     }
     responseBuilder.`type`("text/plain").build()
   }
 }
+
+
