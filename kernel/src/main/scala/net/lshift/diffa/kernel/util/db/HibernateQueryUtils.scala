@@ -146,21 +146,6 @@ trait HibernateQueryUtils {
 
   def getPair(s: Session, domain: String, key: String) = getOrFail(s, classOf[DiffaPair], DomainScopedKey(key, Domain(name = domain)), "pair")
 
-  def getRepairAction(s: Session, domain: String, name: String, pairKey: String) =
-    singleQuery[RepairAction](s, "repairActionsByNameAndPair",
-      Map("name" -> name, "pair_key" -> pairKey, "domain_name" -> domain),
-      "repair action %s for pair %s in domain %s".format(name, pairKey, domain))
-
-  def getEscalation(s: Session, domain: String, name: String, pairKey: String) =
-    singleQuery[Escalation](s, "escalationsByNameAndPair",
-      Map("name" -> name, "pair_key" -> pairKey, "domain_name" -> domain),
-      "esclation %s for pair %s in domain %s".format(name, pairKey, domain))
-
-  def getReport(s: Session, domain: String, name: String, pairKey: String) =
-    singleQuery[PairReport](s, "reportsByNameAndPair",
-      Map("name" -> name, "pair_key" -> pairKey, "domain_name" -> domain),
-      "report %s for pair %s in domain %s".format(name, pairKey, domain))
-
   def listPairsInDomain(domain: String) = sessionFactory.withSession(s => HibernateQueryUtils.listQuery[DiffaPair](s, "pairsByDomain", Map("domain_name" -> domain)))
 
 }

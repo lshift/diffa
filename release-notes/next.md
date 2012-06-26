@@ -54,6 +54,7 @@
 * [198] - Port domain and system config options away from Hibernate.
 * [199] - Port domain members away from Hibernate.
 * [190] - Ensure that only printable characters from the ASCII range are valid for use in entity IDs
+* [204] - Port escalations, repairs and reports away from Hibernate.
 
 ## Library Upgrades
 

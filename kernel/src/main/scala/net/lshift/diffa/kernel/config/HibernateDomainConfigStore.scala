@@ -24,7 +24,6 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
 import java.util.List
-import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.Domains.DOMAINS
 import net.lshift.diffa.schema.tables.Members.MEMBERS
@@ -38,7 +37,7 @@ import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
-import org.jooq.Record
+import org.jooq.{Result, Record}
 import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
@@ -76,7 +75,17 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
   private val cachedDomainConfigOptions = cacheProvider.getCachedMap[DomainConfigKey, String](DOMAIN_CONFIG_OPTIONS)
 
+  // Members
   private val cachedMembers = cacheProvider.getCachedMap[String, java.util.List[Member]](USER_DOMAIN_MEMBERS)
+
+  // Escalations
+  private val cachedEscalations = cacheProvider.getCachedMap[DomainPairKey, java.util.List[EscalationDef]](DOMAIN_ESCALATIONS)
+
+  // Repair Actions
+  private val cachedRepairActions = cacheProvider.getCachedMap[DomainPairKey, java.util.List[RepairActionDef]](DOMAIN_REPAIR_ACTIONS)
+
+  // Pair Reports
+  private val cachedPairReports = cacheProvider.getCachedMap[DomainPairKey, java.util.List[PairReportDef]](DOMAIN_PAIR_REPORTS)
 
   def reset {
     cachedConfigVersions.evictAll()
@@ -90,6 +99,24 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     cachedDomainConfigOptions.evictAll()
 
     cachedMembers.evictAll()
+
+    cachedEscalations.evictAll()
+
+    cachedRepairActions.evictAll()
+
+    cachedPairReports.evictAll()
+  }
+
+  private def invalidatePairReportsCache(domain:String) = {
+    cachedPairReports.keySubset(PairByDomainPredicate(domain)).evictAll()
+  }
+
+  private def invalidateEscalationCache(domain:String) = {
+    cachedEscalations.keySubset(PairByDomainPredicate(domain)).evictAll()
+  }
+
+  private def invalidateRepairActionCache(domain:String) = {
+    cachedRepairActions.keySubset(PairByDomainPredicate(domain)).evictAll()
   }
 
   private def invalidateMembershipCache(domain:String) = {
@@ -108,7 +135,13 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(domain)).evictAll()
     cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
     cachedEndpointsByKey.keySubset(EndpointByDomainPredicate(domain)).evictAll()
+
     invalidateConfigCaches(domain)
+
+    invalidateMembershipCache(domain)
+    invalidateEscalationCache(domain)
+    invalidateRepairActionCache(domain)
+    invalidatePairReportsCache(domain)
   }
 
   private def invalidateEndpointCachesOnly(domain:String, endpointName: String) = {
@@ -166,19 +199,6 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     db.listQuery[Endpoint]("endpointsByDomain", Map("domain_name" -> domain)).map(toEndpointDef(_))
   })
 
-
-  def createOrUpdateRepairAction(domain:String, a: RepairActionDef) = sessionFactory.withSession(s => {
-    val pair = getPair(s, domain, a.pair)
-    s.saveOrUpdate(fromRepairActionDef(pair, a))
-  })
-
-  def deleteRepairAction(domain:String, name: String, pairKey: String) {
-    sessionFactory.withSession(s => {
-      val action = getRepairAction(s, domain, name, pairKey)
-      s.delete(action)
-    })
-  }
-
   def createOrUpdatePair(domain:String, p: PairDef): Unit = {
     withVersionUpgrade(domain, s => {
       p.validate()
@@ -205,6 +225,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       val ref = DiffaPairRef(key,domain)
       invalidatePairCachesOnly(domain)
       deletePairWithDependencies(t, ref)
+      upgradeConfigVersion(t, domain)
       pairEventSubscribers.foreach(_.onPairDeleted(ref))
       hook.pairRemoved(domain, key)
     })
@@ -270,61 +291,224 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     }).toList
   })
 
-  def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] =
-    getRepairActionsInPair(domain, pairKey).map(toRepairActionDef(_))
+  def listEscalationsForPair(domain:String, pairKey: String) : Seq[EscalationDef] = {
+    cachedEscalations.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
+      val results = t.select().
+                      from(ESCALATIONS).
+                      where(ESCALATIONS.DOMAIN.equal(domain)).
+                      and(ESCALATIONS.PAIR_KEY.equal(pairKey)).
+                      fetch()
 
-  def listEscalations(domain:String) =
-    db.listQuery[Escalation]("escalationsByDomain", Map("domain_name" -> domain)).map(toEscalationDef(_))
+      mapResultsToList(results, recordToEscalation)
+    }))
+  }
+
+  // TODO Currently this is an uncached call because rather than putting in yet another cache
+  // it would be nice to query cachedEscalations, since that contains the data in any case.
+  // However, to maintain coherency, we would need to lister to evictions from that cache,
+  // so that we can make sure that we're not reading stale data
+  def listEscalations(domain:String) = jooq.execute(t => {
+    val results = t.select().
+                    from(ESCALATIONS).
+                    where(ESCALATIONS.DOMAIN.equal(domain)).
+                    fetch()
+
+    mapResultsToList(results, recordToEscalation)
+  })
 
   def deleteEscalation(domain:String, name: String, pairKey: String) = {
-    sessionFactory.withSession(s => {
-      val escalation = getEscalation(s, domain, name, pairKey)
-      s.delete(escalation)
+
+    jooq.execute(t => {
+      t.delete(ESCALATIONS).
+        where(ESCALATIONS.DOMAIN.equal(domain)).
+        and(ESCALATIONS.PAIR_KEY.equal(pairKey)).
+        and(ESCALATIONS.NAME.equal(name)).
+        execute()
     })
+
+    invalidateEscalationCache(domain)
   }
 
-  def createOrUpdateEscalation(domain:String, e: EscalationDef) = sessionFactory.withSession( s => {
-    val pair = getPair(s, domain, e.pair)
-    val escalation = fromEscalationDef(pair,e)
-    s.saveOrUpdate(escalation)
+  def createOrUpdateEscalation(domain:String, e: EscalationDef) = {
+
+    jooq.execute(t => {
+      t.insertInto(ESCALATIONS).
+        set(ESCALATIONS.DOMAIN, domain).
+        set(ESCALATIONS.PAIR_KEY, e.pair).
+        set(ESCALATIONS.NAME, e.name).
+        set(ESCALATIONS.ACTION, e.action).
+        set(ESCALATIONS.ACTION_TYPE, e.actionType).
+        set(ESCALATIONS.EVENT, e.event).
+        set(ESCALATIONS.ORIGIN, e.origin).
+        onDuplicateKeyUpdate().
+
+        // TODO The domain should be part of the PK  (see #200)
+        set(ESCALATIONS.DOMAIN, domain).
+
+        set(ESCALATIONS.ACTION, e.action).
+        set(ESCALATIONS.ACTION_TYPE, e.actionType).
+        set(ESCALATIONS.EVENT, e.event).
+        set(ESCALATIONS.ORIGIN, e.origin).
+        execute()
+
+    })
+
+    invalidateEscalationCache(domain)
+  }
+
+  def listReportsForPair(domain:String, pairKey: String) : Seq[PairReportDef] = {
+    cachedPairReports.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
+      val results = t.select().
+        from(PAIR_REPORTS).
+        where(PAIR_REPORTS.DOMAIN.equal(domain)).
+        and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
+        fetch()
+
+      mapResultsToList(results, recordToPairReport)
+    }))
+  }
+
+  // TODO see comment about listEscalations/1
+  def listReports(domain:String) = jooq.execute(t => {
+    val results = t.select().
+      from(PAIR_REPORTS).
+      where(PAIR_REPORTS.DOMAIN.equal(domain)).
+      fetch()
+
+    mapResultsToList(results, recordToPairReport)
   })
-
-  def listEscalationsForPair(domain:String, pairKey: String) : Seq[EscalationDef] =
-    getEscalationsForPair(domain, pairKey).map(toEscalationDef(_))
-
-  def listReports(domain:String) = db.listQuery[PairReport]("reportsByDomain", Map("domain_name" -> domain)).map(toPairReportDef(_))
-
 
   def deleteReport(domain:String, name: String, pairKey: String) = {
-    sessionFactory.withSession(s => {
-      val report = getReport(s, domain, name, pairKey)
-      s.delete(report)
+    jooq.execute(t => {
+      t.delete(PAIR_REPORTS).
+        where(PAIR_REPORTS.DOMAIN.equal(domain)).
+        and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
+        and(PAIR_REPORTS.NAME.equal(name)).
+        execute()
     })
+
+    invalidatePairReportsCache(domain)
   }
 
-  def createOrUpdateReport(domain:String, r: PairReportDef) = sessionFactory.withSession( s => {
-    val pair = getPair(s, domain, r.pair)
-    val report = fromPairReportDef(pair, r)
-    s.saveOrUpdate(report)
+  def createOrUpdateReport(domain:String, r: PairReportDef) = {
+    jooq.execute(t => {
+      t.insertInto(PAIR_REPORTS).
+          set(PAIR_REPORTS.DOMAIN, domain).
+          set(PAIR_REPORTS.PAIR_KEY, r.pair).
+          set(PAIR_REPORTS.NAME, r.name).
+          set(PAIR_REPORTS.REPORT_TYPE, r.reportType).
+          set(PAIR_REPORTS.TARGET, r.target).
+        onDuplicateKeyUpdate().
+          set(PAIR_REPORTS.REPORT_TYPE, r.reportType).
+          set(PAIR_REPORTS.TARGET, r.target).
+        execute()
+    })
+
+    invalidatePairReportsCache(domain)
+  }
+
+  // TODO Not cached right now
+  def getPairReportDef(domain:String, name: String, pairKey: String) = jooq.execute(t => {
+    val record = t.select().
+                   from(PAIR_REPORTS).
+                   where(PAIR_REPORTS.DOMAIN.equal(domain)).
+                     and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
+                     and(PAIR_REPORTS.NAME.equal(name)).
+                   fetchOne()
+
+    if (record == null) {
+      throw new MissingObjectException("pair report")
+    }
+    else {
+      recordToPairReport(record)
+    }
+
   })
 
-  def listReportsForPair(domain:String, pairKey: String) : Seq[PairReportDef]
-    = getReportsForPair(domain, pairKey).map(toPairReportDef(_))
+  def createOrUpdateRepairAction(domain:String, a: RepairActionDef) = {
+    jooq.execute(t => {
+      t.insertInto(REPAIR_ACTIONS).
+          set(REPAIR_ACTIONS.DOMAIN, domain).
+          set(REPAIR_ACTIONS.PAIR_KEY, a.pair).
+          set(REPAIR_ACTIONS.NAME, a.name).
+          set(REPAIR_ACTIONS.SCOPE, a.scope).
+          set(REPAIR_ACTIONS.URL, a.url).
+        onDuplicateKeyUpdate().
 
-  private def getRepairActionsInPair(domain:String, pairKey: String): Seq[RepairAction] =
+          // TODO The domain should be part of the primary key (see #200)
+          set(REPAIR_ACTIONS.DOMAIN, domain).
+
+          set(REPAIR_ACTIONS.SCOPE, a.scope).
+          set(REPAIR_ACTIONS.URL, a.url).
+        execute()
+    })
+
+    invalidateRepairActionCache(domain)
+  }
+
+
+  def deleteRepairAction(domain:String, name: String, pairKey: String) = {
+    jooq.execute(t => {
+      t.delete(REPAIR_ACTIONS).
+        where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
+          and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
+          and(REPAIR_ACTIONS.NAME.equal(name)).
+        execute()
+    })
+
+    invalidateRepairActionCache(domain)
+  }
+
+  def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] = {
+    cachedRepairActions.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
+      val results = t.select().
+                      from(REPAIR_ACTIONS).
+                      where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
+                        and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
+                      fetch()
+
+      mapResultsToList(results, recordToRepairAction)
+    }))
+  }
+
+  def listRepairActions(domain:String) : Seq[RepairActionDef] = jooq.execute(t => {
+    val results = t.select().
+                    from(REPAIR_ACTIONS).
+                    where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
+                    fetch()
+
+    mapResultsToList(results, recordToRepairAction)
+  })
+
+  // TODO Not cached right now
+  def getRepairActionDef(domain:String, name: String, pairKey: String) = jooq.execute(t => {
+    val record = t.select().
+                   from(REPAIR_ACTIONS).
+                   where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
+                     and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
+                     and(REPAIR_ACTIONS.NAME.equal(name)).
+                   fetchOne()
+
+    if (record == null) {
+      throw new MissingObjectException("repair action")
+    }
+    else {
+      recordToRepairAction(record)
+    }
+
+  })
+
+  @Deprecated private def getRepairActionsInPair(domain:String, pairKey: String): Seq[RepairAction] =
     db.listQuery[RepairAction]("repairActionsByPair", Map("pair_key" -> pairKey,
                                                           "domain_name" -> domain))
 
-  private def getEscalationsForPair(domain:String, pairKey:String): Seq[Escalation] =
+  @Deprecated private def getEscalationsForPair(domain:String, pairKey:String): Seq[Escalation] =
     db.listQuery[Escalation]("escalationsByPair", Map("pair_key" -> pairKey,
                                                       "domain_name" -> domain))
 
-  private def getReportsForPair(domain:String, pairKey:String): Seq[PairReport] =
+  @Deprecated private def getReportsForPair(domain:String, pairKey:String): Seq[PairReport] =
     db.listQuery[PairReport]("reportsByPair", Map("pair_key" -> pairKey,
                                                   "domain_name" -> domain))
-
-  def listRepairActions(domain:String) : Seq[RepairActionDef] =
-    db.listQuery[RepairAction]("repairActionsByDomain", Map("domain_name" -> domain)).map(toRepairActionDef(_))
 
   def getEndpointDef(domain:String, name: String) = sessionFactory.withSession(s => toEndpointDef(getEndpoint(s, domain, name)))
   def getEndpoint(domain:String, name: String) = sessionFactory.withSession(s => getEndpoint(s, domain, name))
@@ -369,12 +553,43 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
   })
 
-  def getRepairActionDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toRepairActionDef(getRepairAction(s, domain, name, pairKey)))
-  def getPairReportDef(domain:String, name: String, pairKey: String) = sessionFactory.withSession(s => toPairReportDef(getReport(s, domain, name, pairKey)))
-
   def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => sessionFactory.withSession(s => {
     s.getNamedQuery("configVersionByDomain").setString("domain", domain).uniqueResult().asInstanceOf[Int]
   }))
+
+  private def mapResultsToList[T](results:Result[Record], rowMapper:Record => T) = {
+    val escalations = new java.util.ArrayList[T]()
+    results.iterator().foreach(r => escalations.add(rowMapper(r)))
+    escalations
+  }
+
+  private def recordToEscalation(record:Record) : EscalationDef = {
+    EscalationDef(
+      pair = record.getValue(ESCALATIONS.PAIR_KEY),
+      name = record.getValue(ESCALATIONS.NAME),
+      action = record.getValue(ESCALATIONS.ACTION),
+      actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
+      event = record.getValue(ESCALATIONS.EVENT),
+      origin = record.getValue(ESCALATIONS.ORIGIN))
+  }
+
+  private def recordToPairReport(record:Record) : PairReportDef = {
+    PairReportDef(
+      pair = record.getValue(PAIR_REPORTS.PAIR_KEY),
+      name = record.getValue(PAIR_REPORTS.NAME),
+      target = record.getValue(PAIR_REPORTS.TARGET),
+      reportType = record.getValue(PAIR_REPORTS.REPORT_TYPE)
+    )
+  }
+
+  private def recordToRepairAction(record:Record) : RepairActionDef = {
+    RepairActionDef(
+      pair = record.getValue(REPAIR_ACTIONS.PAIR_KEY),
+      name = record.getValue(REPAIR_ACTIONS.NAME),
+      scope = record.getValue(REPAIR_ACTIONS.SCOPE),
+      url = record.getValue(REPAIR_ACTIONS.URL)
+    )
+  }
 
   /**
    * Force the DB to uprev the config version column for this particular domain
@@ -496,7 +711,6 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   }
 
   private def deletePairWithDependencies(t:Factory, pair:DiffaPairRef) = {
-    upgradeConfigVersion(t, pair.domain)
     deleteRepairActionsByPair(t, pair)
     deleteEscalationsByPair(t, pair)
     deleteReportsByPair(t, pair)

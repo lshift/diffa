@@ -288,24 +288,6 @@
     select v from EndpointView v where v.endpoint.domain.name = :domain_name
   </query>
 
-  <query name="escalationsByDomain" cacheable="true">
-    select e from Escalation e
-    join e.pair as p
-    join p.domain as d with d.name = :domain_name
-  </query>
-
-  <query name="reportsByDomain" cacheable="true">
-    select r from PairReport r
-    join r.pair as p
-    join p.domain as d with d.name = :domain_name
-  </query>
-
-  <query name="repairActionsByDomain" cacheable="true">
-    select a from RepairAction a
-    join a.pair as p
-    join p.domain as d with d.name = :domain_name
-  </query>
-
   <query name="configVersionByDomain" cacheable="false">
     select d.configVersion from Domain d where d.name = :domain
   </query>
@@ -314,7 +296,6 @@
     update Domain d set d.configVersion = d.configVersion + 1 where d.name = :domain
   </query>
 
-  <!-- Query by pair with domain -->
 
   <query name="repairActionsByPair" cacheable="true">
     select a from RepairAction a
@@ -333,30 +314,7 @@
     join r.pair as p with p.key = :pair_key
     join p.domain as d with d.name = :domain_name
   </query>
-
-  <!-- Query by pair with domain and key -->
-
-  <query name="repairActionsByNameAndPair" cacheable="true">
-    select a from RepairAction a
-    join a.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-    where a.name = :name
-  </query>
-
-  <query name="escalationsByNameAndPair" cacheable="true">
-    select e from Escalation e
-    join e.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-    where e.name = :name
-  </query>
-
-  <query name="reportsByNameAndPair" cacheable="true">
-    select r from PairReport r
-    join r.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-    where r.name = :name
-  </query>
-
+  
   <!-- Limits -->
 
   <query name="systemHardLimitByName" cacheable="false">
