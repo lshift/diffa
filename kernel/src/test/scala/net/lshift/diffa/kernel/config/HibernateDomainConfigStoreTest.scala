@@ -17,6 +17,7 @@
 package net.lshift.diffa.kernel.config
 
 import org.junit.Assert._
+import org.hamcrest.Matchers._
 import scala.collection.Map
 import org.joda.time.DateTime
 import scala.collection.JavaConversions._
@@ -155,7 +156,57 @@ class HibernateDomainConfigStoreTest {
     assertTrue(systemConfigStore.listDomains.filter(_.name == domainName).isEmpty)
   }
 
+
   @Test
+  def escalationsWithSameNameInSeperateDomainsMustHaveSeperateIdentities {
+    val domain2 = domain.copy(name = domain.name + "2")
+
+    val escalations = Seq(domain, domain2).map { dom =>
+      systemConfigStore.createOrUpdateDomain(dom)
+      domainConfigStore.createOrUpdateEndpoint(dom.name, upstream1.copy(name = dom.name + "-up"))
+      domainConfigStore.createOrUpdateEndpoint(dom.name, downstream1.copy(name = dom.name + "-down"))
+      domainConfigStore.createOrUpdatePair(dom.name,
+        pairDef.copy(upstreamName = dom.name + "-up", downstreamName = dom.name + "-down"))
+      val anEscalation = escalation.copy(name = "identicalName", pair = pairDef.key)
+      // When the primary key on escalations is over (pair_key, name) then
+      // this test will fail with a constraint violation, even though the
+      // second escalation is in a different domain.
+
+      domainConfigStore.createOrUpdateEscalation(dom.name, anEscalation)
+      anEscalation
+    }
+    // And at this point, we need to ensure that we have successfully inserted two escalations total.
+    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listEscalations(d.name) },
+      is(equalTo(escalations)))
+  }
+
+  @Test
+  def repairActionsWithSameNameInSeperateDomainsMustHaveSeperateIdentities = {
+    val domain2 = domain.copy(name = domain.name + "2")
+
+    val repairActions = Seq(domain, domain2).map { dom =>
+      systemConfigStore.createOrUpdateDomain(dom)
+      domainConfigStore.createOrUpdateEndpoint(dom.name, upstream1.copy(name = dom.name + "-up"))
+      domainConfigStore.createOrUpdateEndpoint(dom.name, downstream1.copy(name = dom.name + "-down"))
+      domainConfigStore.createOrUpdatePair(dom.name,
+        pairDef.copy(upstreamName = dom.name + "-up", downstreamName = dom.name + "-down"))
+      val aRepairAction = repairAction.copy(name = "identicalName", pair = pairDef.key)
+      // When the primary key on repair_actions is over (pair_key, name) then
+      // this test will fail with a constraint violation, even though the
+      // second repair action is in a different domain.
+
+      domainConfigStore.createOrUpdateRepairAction(dom.name, aRepairAction)
+      aRepairAction
+    }
+
+    // And at this point, we need to ensure that we have successfully inserted two repair actions total.
+    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listRepairActions(d.name) },
+      is(equalTo(repairActions)))
+
+  }
+
+
+@Test
   def testDeclare {
     // declare the domain
     systemConfigStore.createOrUpdateDomain(domain)

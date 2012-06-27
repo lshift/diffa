@@ -220,6 +220,7 @@ object HibernateConfigStorePreparationStep {
     Step0031,
     Step0032,
     Step0033,
-    Step0034
+    Step0034,
+    Step0035
   )
 }

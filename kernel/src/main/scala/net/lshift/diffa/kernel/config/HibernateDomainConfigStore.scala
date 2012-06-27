@@ -341,10 +341,6 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
         set(ESCALATIONS.EVENT, e.event).
         set(ESCALATIONS.ORIGIN, e.origin).
         onDuplicateKeyUpdate().
-
-        // TODO The domain should be part of the PK  (see #200)
-        set(ESCALATIONS.DOMAIN, domain).
-
         set(ESCALATIONS.ACTION, e.action).
         set(ESCALATIONS.ACTION_TYPE, e.actionType).
         set(ESCALATIONS.EVENT, e.event).
@@ -434,10 +430,6 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
           set(REPAIR_ACTIONS.SCOPE, a.scope).
           set(REPAIR_ACTIONS.URL, a.url).
         onDuplicateKeyUpdate().
-
-          // TODO The domain should be part of the primary key (see #200)
-          set(REPAIR_ACTIONS.DOMAIN, domain).
-
           set(REPAIR_ACTIONS.SCOPE, a.scope).
           set(REPAIR_ACTIONS.URL, a.url).
         execute()

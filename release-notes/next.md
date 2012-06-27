@@ -55,6 +55,7 @@
 * [199] - Port domain members away from Hibernate.
 * [190] - Ensure that only printable characters from the ASCII range are valid for use in entity IDs
 * [204] - Port escalations, repairs and reports away from Hibernate.
+* [200] - Update primary keys on escalations, repair_actions and endpoint_categories to be unique per domain.
 
 ## Library Upgrades
 
