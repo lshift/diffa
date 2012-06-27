@@ -46,6 +46,7 @@ class TestEnvironment(val pairKey: String,
                       changesClientBuilder: (TestEnvironment, String) => ChangesClient,
                       versionScheme: VersionScheme,
                       inboundURLBuilder:String => String = (_) => null) {
+  import TestEnvironment._
 
   // Keep a tally of the amount of requested resends
   val entityResendTally = new HashMap[String,Int]
@@ -76,13 +77,12 @@ class TestEnvironment(val pairKey: String,
   }
 
   // Domain
-  val domain = DomainDef(name="domain")
+  val domain = TestEnvironment.domain
 
   // Pair
   val pairRef = DiffaPairRef(key = pairKey, domain = domain.name)
 
-  def serverRoot = agentURL
-  val matchingTimeout = 1  // 1 second
+  val serverRoot = TestEnvironment.serverRoot
 
   // Version Generation
   val versionForUpstream = versionScheme.upstreamVersionGen
@@ -104,16 +104,18 @@ class TestEnvironment(val pairKey: String,
   val downstream = new DownstreamMemoryParticipant(versionScheme.upstreamVersionGen, versionScheme.downstreamVersionGen)
 
   // Clients
-  val configurationClient:ConfigurationRestClient = new ConfigurationRestClient(serverRoot, domain.name)
-  val diffClient:DifferencesRestClient = new DifferencesRestClient(serverRoot, domain.name)
-  val actionsClient:ActionsClient = new ActionsRestClient(serverRoot, domain.name)
-  val escalationsClient:EscalationsRestClient = new EscalationsRestClient(serverRoot, domain.name)
-  val upstreamChangesClient:ChangesClient = changesClientBuilder(this, upstreamEpName)
-  val downstreamChangesClient:ChangesClient = changesClientBuilder(this, downstreamEpName)
-  val usersClient:SecurityRestClient = new SecurityRestClient(serverRoot)
-  val scanningClient:ScanningRestClient = new ScanningRestClient(serverRoot, domain.name)
-  val systemConfig = new SystemConfigRestClient(serverRoot)
-  val inventoryClient = new InventoryRestClient(serverRoot, domain.name)
+  lazy val upstreamChangesClient:ChangesClient = changesClientBuilder(this, upstreamEpName)
+  lazy val downstreamChangesClient:ChangesClient = changesClientBuilder(this, downstreamEpName)
+
+  lazy val configurationClient:ConfigurationRestClient = TestEnvironment.configurationClient
+  lazy val diffClient:DifferencesRestClient = TestEnvironment.diffClient
+  lazy val actionsClient:ActionsClient = TestEnvironment.actionsClient
+  lazy val escalationsClient:EscalationsRestClient = TestEnvironment.escalationsClient
+  lazy val usersClient:SecurityRestClient = TestEnvironment.usersClient
+  lazy val scanningClient:ScanningRestClient = TestEnvironment.scanningClient
+  lazy val systemConfig = TestEnvironment.systemConfig
+  lazy val inventoryClient = TestEnvironment.inventoryClient
+
 
   // Helpers
   val differencesHelper = new DifferencesHelper(pairKey, diffClient)
@@ -220,6 +222,27 @@ class TestEnvironment(val pairKey: String,
   }
 
   def pack(someDate:DateTime, someString:String) = Map("someDate" -> someDate.toString(), "someString" -> someString)
+
+}
+
+object TestEnvironment {
+
+  // Domain
+  val domain = DomainDef(name="domain")
+
+  def serverRoot = agentURL
+  val matchingTimeout = 1  // 1 second
+
+
+  // Clients
+  lazy val configurationClient:ConfigurationRestClient = new ConfigurationRestClient(serverRoot, domain.name)
+  lazy val diffClient:DifferencesRestClient = new DifferencesRestClient(serverRoot, domain.name)
+  lazy val actionsClient:ActionsClient = new ActionsRestClient(serverRoot, domain.name)
+  lazy val escalationsClient:EscalationsRestClient = new EscalationsRestClient(serverRoot, domain.name)
+  lazy val usersClient:SecurityRestClient = new SecurityRestClient(serverRoot)
+  lazy val scanningClient:ScanningRestClient = new ScanningRestClient(serverRoot, domain.name)
+  lazy val systemConfig = new SystemConfigRestClient(serverRoot)
+  lazy val inventoryClient = new InventoryRestClient(serverRoot, domain.name)
 
 }
 

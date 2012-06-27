@@ -131,7 +131,7 @@ trait CommonDifferenceTests {
     }
 
     val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
-    runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
+    runScanAndWaitForCompletion(fullLowerBound, upperBound)
 
     val requests = expectedZoomedViews.map { case (zoomLevel, expectedBlobs) =>
       val lowerBound = upperBound.minusMinutes(ZoomLevels.lookupZoomLevel(zoomLevel) * columns)
@@ -164,7 +164,7 @@ trait CommonDifferenceTests {
     }
 
     val fullLowerBound = rightNow.minusMinutes(ZoomLevels.lookupZoomLevel(DAILY) * columns)
-    runScanAndWaitForCompletion(fullLowerBound, upperBound, 100, 100)
+    runScanAndWaitForCompletion(fullLowerBound, upperBound)
 
     val requests = Map(
       "open-top" -> AggregateRequest(upperBound.minusMinutes(50), null, None),
