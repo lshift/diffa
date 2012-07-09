@@ -54,7 +54,7 @@ class ScanLimitsTest {
   import ScanLimitsTest._
 
   val limits = createMock(classOf[PairServiceLimitsView])
-  lazy val scanningRestClient = new ScanningParticipantRestClient(
+  lazy val scanningRestClient = ScanningParticipantRestClientFactory.create(
     pair,
     "http://localhost:" + serverPort + "/scan",
     limits,
@@ -63,11 +63,21 @@ class ScanLimitsTest {
 
   @Before def startServer() = ensureServerStarted
 
+/*
+ I realize that this isn't a fantastic test, but I've ended up layering
+ configuration lookup into the ScanningParticipantRestClientFactory,
+ which probably isn't a hugely optimal choice. I could add more indirection
+ to verify that the timeouts get passed into the http client, but that's
+ maybe not the best choice, and I can't think of a better way to do that
+ right now  --CS
+*/
+
   @Test
   def shouldQueryResponseLimitsForPair {
     val arbitrarilyLargeResponseSize = 10 * 1024 * 1024
     configureLimitsWithResponseSizeOf(arbitrarilyLargeResponseSize)
     scanningRestClient.scan(Seq(), Seq())
+    verify(limits)
   }
 
   @Test(expected=classOf[ScanLimitBreachedException])
