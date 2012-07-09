@@ -206,8 +206,9 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       invalidatePairCachesOnly(domain)
 
       val dom = getDomain(domain)
-      val toUpdate = DiffaPair(p.key, dom, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout,
-        p.scanCronSpec, p.allowManualScans)
+      val toUpdate = DiffaPair(key = p.key, domain = dom, upstream = p.upstreamName, downstream = p.downstreamName,
+        versionPolicyName = p.versionPolicyName, matchingTimeout = p.matchingTimeout, scanCronSpec = p.scanCronSpec,
+        scanCronEnabled = p.scanCronEnabled, allowManualScans = p.allowManualScans)
       s.saveOrUpdate(toUpdate)
 
       // Update the view definitions
@@ -241,7 +242,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
 
     val baseQuery = t.select(PAIR.getFields).
-                      select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC).
+                      select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
                       from(PAIR).
                         leftOuterJoin(PAIR_VIEWS).
                           on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
@@ -270,19 +271,20 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
           downstreamName = record.getValue(PAIR.DOWNSTREAM),
           versionPolicyName = record.getValue(PAIR.VERSION_POLICY_NAME),
           scanCronSpec = record.getValue(PAIR.SCAN_CRON_SPEC),
+          scanCronEnabled = record.getValue(PAIR.SCAN_CRON_ENABLED),
           matchingTimeout = record.getValue(PAIR.MATCHING_TIMEOUT),
           allowManualScans = record.getValue(PAIR.ALLOW_MANUAL_SCANS),
           views = new util.ArrayList[PairViewDef]()
         )
       )
 
-      val viewScanCronSpec = record.getValue(PAIR_VIEWS.SCAN_CRON_SPEC)
       val viewName = record.getValue(PAIR_VIEWS.NAME)
 
       if (viewName != null) {
         pair.views.add(PairViewDef(
           name = viewName,
-          scanCronSpec = viewScanCronSpec
+          scanCronSpec = record.getValue(PAIR_VIEWS.SCAN_CRON_SPEC),
+          scanCronEnabled = record.getValue(PAIR_VIEWS.SCAN_CRON_ENABLED)
         ))
       }
 
@@ -510,7 +512,7 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
     val result =
       t.select(PAIR.getFields).
-        select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC).
+        select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
         from(PAIR).
           leftOuterJoin(PAIR_VIEWS).
             on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).

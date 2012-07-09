@@ -97,7 +97,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
 
     def buildTriggerKey(view:String) = triggerKey(if (view != null) jobName + "%" + view else jobName)
 
-    def assertSchedule(oldTrigger:Option[CronTrigger],  view:String, cron:String) {
+    def assertSchedule(oldTrigger:Option[CronTrigger], view:String, cron:String) {
       // Don't reschedule if nothing has changed
       if (oldTrigger.isDefined && oldTrigger.get.getCronExpression == cron) return;
 
@@ -117,12 +117,13 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
       scheduler.scheduleJob(trigger)
     }
     
-    def cronSpecDefined(spec:String) = spec != null && spec.length > 0;
+    def hasActiveCronSpec(obj: { def scanCronSpec: String; def scanCronEnabled: Boolean }) =
+      obj.scanCronEnabled && (obj.scanCronSpec != null) && (obj.scanCronSpec.length > 0)
 
     // Calculate the schedules that we're after
     val schedules:Map[String, String] =
-      (if(cronSpecDefined(pair.scanCronSpec)) Map[String,String]("" -> pair.scanCronSpec) else Map[String,String]()) ++
-      pair.views.filter(v => cronSpecDefined(v.scanCronSpec)).map(v => v.name -> v.scanCronSpec).toMap
+      (if(hasActiveCronSpec(pair)) Map[String,String]("" -> pair.scanCronSpec) else Map[String,String]()) ++
+      pair.views.filter(v => hasActiveCronSpec(v)).map(v => v.name -> v.scanCronSpec).toMap
 
     if (schedules.size == 0) {
       if (existingJob != null) {

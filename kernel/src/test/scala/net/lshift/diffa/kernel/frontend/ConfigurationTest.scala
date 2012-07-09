@@ -158,8 +158,8 @@ class ConfigurationTest {
       endpoints = Set(ep1, ep2),
       pairs = Set(
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
-          allowManualScans = true, views = List(PairViewDef("v1"))),
-        PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?")),
+          allowManualScans = true, views = List(PairViewDef("v1", "0 * * * * ?", false))),
+        PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?", scanCronEnabled = false)),
       repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair", "ab")),
       reports = Set(PairReportDef("Bulk Send Differences", "ab", "differences", "http://location:5432/diffhandler")),
       escalations = Set(
@@ -169,10 +169,11 @@ class ConfigurationTest {
     )
 
     val ab = DomainPairDef(key = "ab", domain = "domain", matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
+                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name,
+                       views = List(PairViewDef("v1", "0 * * * * ?", false)))
 
-    val ac = DomainPairDef(key = "ac", domain = "domain", matchingTimeout = 5,
-                       versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
+    val ac = DomainPairDef(key = "ac", domain = "domain", matchingTimeout = 5, scanCronEnabled = false,
+                           versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
 
     expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once

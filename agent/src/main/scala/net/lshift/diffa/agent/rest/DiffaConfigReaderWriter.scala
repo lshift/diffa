@@ -224,19 +224,35 @@ class CastorSerializablePair(
   @BeanProperty var escalations: java.util.List[EscalationDef] = new java.util.ArrayList[EscalationDef],
   @BeanProperty var reports: java.util.List[PairReportDef] = new java.util.ArrayList[PairReportDef],
   @BeanProperty var scanCronSpec: String = null,
+  @BeanProperty var scanCronEnabled: java.lang.Boolean = null,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views: java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef],
+  @BeanProperty var views: java.util.List[CastorSerializablePairView] = new java.util.ArrayList[CastorSerializablePairView],
   @BeanProperty var eventsToLog: Int = 0,
   @BeanProperty var maxExplainFiles: Int = 0
 ) {
   def this() = this(key = null)
 
-  def toPairDef = PairDef(key, versionPolicy, matchingTimeout, upstream, downstream, scanCronSpec, allowManualScans, views)
+  def toPairDef = PairDef(key, versionPolicy, matchingTimeout, upstream, downstream, scanCronSpec,
+                         (scanCronEnabled == null || scanCronEnabled), allowManualScans, views.map(_.toPairViewDef))
+}
+
+class CastorSerializablePairView(
+  @BeanProperty var name:String = null,
+  @BeanProperty var scanCronSpec:String = null,
+  @BeanProperty var scanCronEnabled:java.lang.Boolean = null
+) {
+  def this() = this(name = null)
+
+  def toPairViewDef = PairViewDef(name, scanCronSpec, scanCronEnabled == null || scanCronEnabled)
 }
 
 object CastorSerializablePair {
   def fromPairDef(p: PairDef, repairActions: java.util.List[RepairActionDef],
                               escalations: java.util.List[EscalationDef], reports: java.util.List[PairReportDef]): CastorSerializablePair =
     new CastorSerializablePair(p.key, p.upstreamName, p.downstreamName, p.versionPolicyName, p.matchingTimeout,
-                               repairActions, escalations, reports, p.scanCronSpec, p.allowManualScans, p.views)
+                               repairActions, escalations, reports, p.scanCronSpec, (if (p.scanCronEnabled) null else false),
+                               p.allowManualScans, p.views.map(fromPairViewDef))
+
+  def fromPairViewDef(p: PairViewDef): CastorSerializablePairView =
+    new CastorSerializablePairView(p.name, p.scanCronSpec, (if (p.scanCronEnabled) null else false))
 }

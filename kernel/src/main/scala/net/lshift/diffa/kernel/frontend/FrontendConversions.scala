@@ -56,6 +56,7 @@ object FrontendConversions {
     upstreamName = p.upstream,
     downstreamName = p.downstream,
     scanCronSpec = p.scanCronSpec,
+    scanCronEnabled = p.scanCronEnabled,
     allowManualScans = p.allowManualScans,
     views = p.views.map(v => toPairViewDef(v)).toList)
 
@@ -66,14 +67,15 @@ object FrontendConversions {
     upstreamName = p.upstreamName,
     downstreamName = p.downstreamName,
     scanCronSpec = p.scanCronSpec,
+    scanCronEnabled = p.scanCronEnabled,
     allowManualScans = p.allowManualScans,
-    views = p.views.map(v => toPairViewDef(v)).toList)
+    views = new java.util.ArrayList[PairViewDef](p.views))
 
-  @Deprecated def toPairViewDef(v:PairView) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec)
-  def toPairViewDef(v:PairViewDef) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec)
+  @Deprecated
+  def toPairViewDef(v:PairView) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec, scanCronEnabled = v.scanCronEnabled)
 
   def fromPairViewDef(p:DiffaPair, v:PairViewDef) = {
-    val result = PairView(name = v.name, scanCronSpec = v.scanCronSpec)
+    val result = PairView(name = v.name, scanCronSpec = v.scanCronSpec, scanCronEnabled = v.scanCronEnabled)
     result.pair = p
     result
   }

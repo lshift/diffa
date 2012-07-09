@@ -56,6 +56,7 @@ object ResultMappingUtil {
       matchingTimeout = record.getValue(PAIR.MATCHING_TIMEOUT),
       versionPolicyName = record.getValue(PAIR.VERSION_POLICY_NAME),
       scanCronSpec = record.getValue(PAIR.SCAN_CRON_SPEC),
+      scanCronEnabled = record.getValue(PAIR.SCAN_CRON_ENABLED),
       allowManualScans = record.getValue(PAIR.ALLOW_MANUAL_SCANS),
       views = new util.ArrayList[PairViewDef]()
     )
@@ -63,7 +64,8 @@ object ResultMappingUtil {
     result.iterator().filterNot(_.getValue(PAIR_VIEWS.NAME) == null).foreach(r => {
       pair.views.add(PairViewDef(
         name = r.getValue(PAIR_VIEWS.NAME),
-        scanCronSpec = r.getValue(PAIR_VIEWS.SCAN_CRON_SPEC)
+        scanCronSpec = r.getValue(PAIR_VIEWS.SCAN_CRON_SPEC),
+        scanCronEnabled = r.getValue(PAIR_VIEWS.SCAN_CRON_ENABLED)
       ))
     })
 

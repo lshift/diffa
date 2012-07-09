@@ -1,4 +1,3 @@
-
 /**
  * Copyright (C) 2010-2012 LShift Ltd.
  *
@@ -16,30 +15,27 @@
  */
 package net.lshift.diffa.schema.migrations.steps
 
-import net.lshift.diffa.schema.migrations.HibernateMigrationStep
+import java.sql.Types
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
-import java.sql.Types
+import net.lshift.diffa.schema.migrations.HibernateMigrationStep
 
+object Step0036 extends HibernateMigrationStep {
 
-object Step0034 extends HibernateMigrationStep {
+  def versionId = 36
 
-  def versionId = 34
-  def name = "Add the user item visibility table"
+  def name = "Add columns to support enabling/disabling of scan cron specs"
 
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
-    migration.createTable("user_item_visibility").
-      column("domain", Types.VARCHAR, 50, false).
-      column("pair", Types.VARCHAR, 50, false).
-      column("username", Types.VARCHAR, 50, false).
-      column("item_type", Types.VARCHAR, 20, false).
-      pk("domain", "pair", "username", "item_type")
+    migration
+      .alterTable("pair")
+      .addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
 
-    migration.alterTable("user_item_visibility").
-      addForeignKey("fk_uiv_pair", Array("domain", "pair"), "pair", Array("domain", "pair_key")).
-      addForeignKey("fk_uiv_mmbs", Array("domain", "username"), "members", Array("domain_name", "user_name"))
+    migration
+      .alterTable("pair_views")
+      .addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
 
     migration
   }

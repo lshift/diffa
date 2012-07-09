@@ -42,6 +42,7 @@ class DiffaConfigReaderWriterTest {
           categories = Map(
             "a" -> new RangeCategoryDescriptor("date", "2009", "2010"),
             "b" -> new SetCategoryDescriptor(Set("a", "b", "c")),
+            "b" -> new SetCategoryDescriptor(Set("a", "b", "c")),
             "c" -> new RangeCategoryDescriptor("date", "1888", "1889", "individual")),
           views = List(EndpointViewDef(name = "little-view",
             categories = Map(
@@ -60,7 +61,7 @@ class DiffaConfigReaderWriterTest {
             )))
         ),
       pairs = Set(
-        PairDef("ab", "same", 5, "upstream1", "downstream1", "0 0 0 * 0 0",
+        PairDef("ab", "same", 5, "upstream1", "downstream1", "0 0 0 * 0 0", scanCronEnabled=false,
           views = List(PairViewDef(name = "little-view", scanCronSpec = "0 0 0 * * 0"))),
         PairDef("ac", "same", 5, "upstream1", "downstream1", allowManualScans = false)),
       repairActions = Set(
@@ -113,7 +114,8 @@ class DiffaConfigReaderWriterTest {
             <prefix-category name="c" prefix-length="2" max-length="5" step="1" />
           </view>
         </endpoint>
-        <pair key="ab" upstream="upstream1" downstream="downstream1" version-policy="same" matching-timeout="5" scan-schedule="0 0 0 * 0 0">
+        <pair key="ab" upstream="upstream1" downstream="downstream1" version-policy="same" matching-timeout="5"
+              scan-schedule="0 0 0 * 0 0" scan-schedule-enabled="false">
           <repair-action url="http://example.com/resend/{id}" name="Resend Sauce" scope="entity" />
           <repair-action url="http://example.com/delete/{id}" name="Delete Result" scope="entity" />
           <escalation name="Delete From Upstream" action="Delete Result" type="repair" event="upstream-missing" origin="scan" />

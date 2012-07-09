@@ -117,6 +117,7 @@
     <property name="versionPolicyName" type="string" column="version_policy_name" not-null="false"/>
     <property name="matchingTimeout" type="int" column="matching_timeout" not-null="false"/>
     <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
+    <property name="scanCronEnabled" type="boolean" column="scan_cron_enabled" not-null="true"/>
     <property name="allowManualScans" type="boolean" column="allow_manual_scans" not-null="false"/>
     <set name="views" inverse="true" lazy="false">
       <key>
@@ -137,6 +138,7 @@
       </key-many-to-one>
     </composite-id>
     <property name="scanCronSpec" type="string" column="scan_cron_spec" not-null="false"/>
+    <property name="scanCronEnabled" type="boolean" column="scan_cron_enabled" not-null="true"/>
   </class>
 
   <class name="Domain" table="domains" abstract="false">

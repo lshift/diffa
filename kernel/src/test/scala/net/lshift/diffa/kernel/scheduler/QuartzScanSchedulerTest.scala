@@ -40,8 +40,6 @@ class QuartzScanSchedulerTest {
   val domainConfig = createStrictMock(classOf[DomainConfigStore])
   val pairPolicyClient = createStrictMock(classOf[PairPolicyClient])
 
-  val domain = Domain(name="domain")
-
   @Test
   def shouldAllowScheduleCreation() {
     val mb = createExecuteListenerQueue
@@ -204,8 +202,8 @@ class QuartzScanSchedulerTest {
       views = List(buildView("PairE", "someview2", generateOldCronSpec)))
 
     expect(systemConfig.listPairs).andReturn(Seq())
-    expect(domainConfig.getPairDef(p2.asRef)).andStubReturn(p2)
-    expect(domainConfig.getPairDef(p2.asRef)).andStubReturn(p2)
+    expect(domainConfig.getPairDef(p1.asRef)).andReturn(p1).once()
+    expect(domainConfig.getPairDef(p2.asRef)).andReturn(p2).once()
 
     replayAll()
 
@@ -218,6 +216,106 @@ class QuartzScanSchedulerTest {
       mb.poll(3, TimeUnit.SECONDS) match {
         case null =>
         case ScanInvocation(p, v) => fail("Scheduler should not have started scan for pair " + p)
+      }
+    }
+  }
+
+  @Test
+  def shouldAllowPairScanSchedulesToBeDisabled {
+    val mb = createExecuteListenerQueue
+
+    val p1 = DomainPairDef(key="PairG", domain="domain", scanCronSpec=generateNowishCronSpec)
+    val p2 = p1.copy(scanCronEnabled = false)
+
+    expect(systemConfig.listPairs).andReturn(Seq())
+    expect(domainConfig.getPairDef(p1.asRef)).andReturn(p1).once()
+    expect(domainConfig.getPairDef(p2.asRef)).andReturn(p2).once()
+
+    replayAll()
+
+    withScheduler(new QuartzScanScheduler(systemConfig, domainConfig, pairPolicyClient, "shouldAllowPairScanSchedulesToBeDisabled")) { scheduler =>
+      scheduler.onUpdatePair(p1.asRef)
+      scheduler.onUpdatePair(p2.asRef)
+
+      mb.poll(3, TimeUnit.SECONDS) match {
+        case null =>
+        case ScanInvocation(p, v) => fail("Scheduler should not have started scan for pair " + p)
+      }
+    }
+  }
+
+  @Test
+  def shouldAllowPairScanSchedulesToBeReEnabled {
+    val mb = createExecuteListenerQueue
+
+    val p1 = DomainPairDef(key="PairH", domain="domain", scanCronSpec=generateNowishCronSpec, scanCronEnabled=false)
+    val p2 = p1.copy(scanCronEnabled = true)
+
+    expect(systemConfig.listPairs).andReturn(Seq())
+    expect(domainConfig.getPairDef(p1.asRef)).andReturn(p1).once()
+    expect(domainConfig.getPairDef(p2.asRef)).andReturn(p2).once()
+
+    replayAll()
+
+    withScheduler(new QuartzScanScheduler(systemConfig, domainConfig, pairPolicyClient, "shouldAllowPairScanSchedulesToBeReEnabled")) { scheduler =>
+      scheduler.onUpdatePair(p1.asRef)
+      scheduler.onUpdatePair(p2.asRef)
+
+      mb.poll(3, TimeUnit.SECONDS) match {
+        case null => fail("Scan was not triggered")
+        case ScanInvocation(p, v) =>
+          assertEquals("PairH", p.key)
+          assertEquals(None, v)
+      }
+    }
+  }
+
+  @Test
+  def shouldAllowViewScanSchedulesToBeDisabled {
+    val mb = createExecuteListenerQueue
+
+    val p1 = DomainPairDef(key="PairI", domain="domain", views=List(buildView("PairI", "someview", generateNowishCronSpec)))
+    val p2 = p1.copy(views=List(buildView("PairI", "someview", generateNowishCronSpec, scanCronEnabled=false)))
+
+    expect(systemConfig.listPairs).andReturn(Seq())
+    expect(domainConfig.getPairDef(p1.asRef)).andReturn(p1).once()
+    expect(domainConfig.getPairDef(p2.asRef)).andReturn(p2).once()
+
+    replayAll()
+
+    withScheduler(new QuartzScanScheduler(systemConfig, domainConfig, pairPolicyClient, "shouldAllowViewScanSchedulesToBeDisabled")) { scheduler =>
+      scheduler.onUpdatePair(p1.asRef)
+      scheduler.onUpdatePair(p2.asRef)
+
+      mb.poll(3, TimeUnit.SECONDS) match {
+        case null =>
+        case ScanInvocation(p, v) => fail("Scheduler should not have started scan for pair " + p)
+      }
+    }
+  }
+
+  @Test
+  def shouldAllowViewScanSchedulesToBeReEnabled {
+    val mb = createExecuteListenerQueue
+
+    val p1 = DomainPairDef(key="PairJ", domain="domain", views=List(buildView("PairJ", "someview", generateNowishCronSpec, false)))
+    val p2 = p1.copy(views=List(buildView("PairJ", "someview", generateNowishCronSpec, true)))
+
+    expect(systemConfig.listPairs).andReturn(Seq())
+    expect(domainConfig.getPairDef(p1.asRef)).andReturn(p1).once()
+    expect(domainConfig.getPairDef(p2.asRef)).andReturn(p2).once()
+
+    replayAll()
+
+    withScheduler(new QuartzScanScheduler(systemConfig, domainConfig, pairPolicyClient, "shouldAllowViewScanSchedulesToBeReEnabled")) { scheduler =>
+      scheduler.onUpdatePair(p1.asRef)
+      scheduler.onUpdatePair(p2.asRef)
+
+      mb.poll(3, TimeUnit.SECONDS) match {
+        case null => fail("Scan was not triggered")
+        case ScanInvocation(p, v) =>
+          assertEquals("PairJ", p.key)
+          assertEquals(Some("someview"), v)
       }
     }
   }
@@ -255,8 +353,8 @@ class QuartzScanSchedulerTest {
     q
   }
 
-  private def buildView(pairKey:String, name:String, scanCronSpec:String) = {
-    PairViewDef(name, scanCronSpec)
+  private def buildView(pairKey:String, name:String, scanCronSpec:String, scanCronEnabled:Boolean = true) = {
+    PairViewDef(name, scanCronSpec, scanCronEnabled)
   }
 
   private case class ScanInvocation(pair:DiffaPairRef, view:Option[String])
