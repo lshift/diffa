@@ -17,9 +17,9 @@ package net.lshift.diffa.schema.migrations.steps
 
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.schema.migrations.{CommonSteps, HibernateMigrationStep}
+import net.lshift.diffa.schema.migrations.{CommonSteps, MigrationStep}
 
-object Step0028 extends HibernateMigrationStep {
+object Step0028 extends MigrationStep {
 
   def versionId = 28
 

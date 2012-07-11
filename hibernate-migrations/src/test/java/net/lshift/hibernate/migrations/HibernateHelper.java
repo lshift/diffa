@@ -58,6 +58,15 @@ public class HibernateHelper {
     return stmtMock;
   }
 
+  public static PreparedStatement mockExecutablePreparedStatementForUpdate(int rows) throws SQLException {
+    PreparedStatement stmtMock = createStrictMock(PreparedStatement.class);
+    expect(stmtMock.executeUpdate()).andReturn(rows);
+    stmtMock.close(); expectLastCall();
+    replay(stmtMock);
+
+    return stmtMock;
+  }
+
   public static CallableStatement mockExecutableCallableStatement() throws SQLException {
     CallableStatement stmtMock = createStrictMock(CallableStatement.class);
     expect(stmtMock.execute()).andReturn(true);

@@ -237,10 +237,6 @@
 
   <!-- Select all statements -->
 
-  <query name="allEndpoints">
-    select e from Endpoint e
-  </query>
-
   <query name="allUsers">
     select u from User u order by u.name asc
   </query>
@@ -261,62 +257,10 @@
     select count(*) from User u where u.name in (:user_names) and u.superuser = true
   </query>
 
-  <query name="endpointViewsByEndpoint" cacheable="true">
-    select v from EndpointView v
-    where
-      v.endpoint.domain.name = :domain_name and
-      v.endpoint.name = :endpoint_name
-  </query>
-
-  <!-- Queries by domain only -->
-
   <query name="domainByName" cacheable="true">
     select d from Domain d where d.name = :domain_name
   </query>
 
-  <query name="pairsByDomain" cacheable="true">
-    select p from DiffaPair p where p.domain.name = :domain_name
-  </query>
-
-  <query name="pairViewsByDomain" cacheable="true">
-    select v from PairView v where v.pair.domain.name = :domain_name
-  </query>
-
-  <query name="endpointsByDomain" cacheable="true">
-    select e from Endpoint e where e.domain.name = :domain_name
-  </query>
-
-  <query name="endpointViewsByDomain" cacheable="true">
-    select v from EndpointView v where v.endpoint.domain.name = :domain_name
-  </query>
-
-  <query name="configVersionByDomain" cacheable="false">
-    select d.configVersion from Domain d where d.name = :domain
-  </query>
-
-  <query name="upgradeConfigVersionByDomain" cacheable="false">
-    update Domain d set d.configVersion = d.configVersion + 1 where d.name = :domain
-  </query>
-
-
-  <query name="repairActionsByPair" cacheable="true">
-    select a from RepairAction a
-    join a.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-  </query>
-
-  <query name="escalationsByPair" cacheable="true">
-    select e from Escalation e
-    join e.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-  </query>
-
-  <query name="reportsByPair" cacheable="true">
-    select r from PairReport r
-    join r.pair as p with p.key = :pair_key
-    join p.domain as d with d.name = :domain_name
-  </query>
-  
   <!-- Limits -->
 
   <query name="systemHardLimitByName" cacheable="false">
@@ -375,11 +319,6 @@
     select l
     from PairServiceLimits l
     where l.limitName = :limit_name
-  </query>
-
-  <query name="pairViewsByPair" cacheable="false">
-    select v from PairView v
-    where v.pair.domain.name = :domain_name and v.pair.key = :pair_key
   </query>
 
 </hibernate-mapping>

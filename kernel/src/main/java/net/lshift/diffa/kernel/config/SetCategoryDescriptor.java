@@ -20,8 +20,8 @@ import net.lshift.diffa.kernel.util.InvalidConstraintException;
 import net.lshift.diffa.participant.scanning.ScanConstraint;
 import net.lshift.diffa.participant.scanning.SetConstraint;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * This describes a category that constrains attributes based on a set of values.
@@ -31,7 +31,7 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
   /**
    * The set of attribute values that a search space should contain.
    */
-  public Set<String> values = new HashSet<String>();
+  public Set<String> values = new TreeSet<String>();
 
   public SetCategoryDescriptor() {
   }
@@ -42,6 +42,10 @@ public class SetCategoryDescriptor extends CategoryDescriptor {
 
   public Set<String> getValues() {
     return values;
+  }
+
+  public void addValue(String v) {
+    values.add(v);
   }
 
   public void setValues(Set<String> values) {

@@ -17,8 +17,7 @@
 package net.lshift.diffa.agent.amqp
 
 import collection.mutable.HashMap
-import net.lshift.diffa.kernel.config.Endpoint
-import net.lshift.diffa.kernel.frontend.Changes
+import net.lshift.diffa.kernel.frontend.{DomainEndpointDef, Changes}
 import net.lshift.diffa.kernel.participants.InboundEndpointFactory
 import org.slf4j.LoggerFactory
 import net.lshift.accent.AccentConnection
@@ -37,8 +36,8 @@ class AmqpInboundEndpointFactory(changes: Changes)
   case class ReceiverKey(domain: String, endpoint: String)
 
   object ReceiverKey {
-    def fromEndpoint(e: Endpoint) =
-      ReceiverKey(domain = e.domain.name, endpoint = e.name)
+    def fromEndpoint(e: DomainEndpointDef) =
+      ReceiverKey(domain = e.domain, endpoint = e.name)
   }
 
   class Receivers(val connection: AccentConnection,
@@ -51,7 +50,7 @@ class AmqpInboundEndpointFactory(changes: Changes)
   def canHandleInboundEndpoint(inboundUrl: String) =
     inboundUrl.startsWith("amqp://")
 
-  def ensureEndpointReceiver(e: Endpoint) {
+  def ensureEndpointReceiver(e: DomainEndpointDef) {
     log.info("Starting receiver for endpoint: %s".format(e))
 
     val amqpUrl = AmqpQueueUrl.parse(e.inboundUrl)

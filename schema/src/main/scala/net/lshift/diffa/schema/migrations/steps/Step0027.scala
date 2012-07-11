@@ -18,9 +18,9 @@ package net.lshift.diffa.schema.migrations.steps
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import net.lshift.diffa.schema.servicelimits.{DiagnosticEventBufferSize, ExplainFiles}
-import net.lshift.diffa.schema.migrations.{MigrationUtil, HibernateMigrationStep}
+import net.lshift.diffa.schema.migrations.{MigrationStep, MigrationUtil}
 
-object Step0027 extends HibernateMigrationStep {
+object Step0027 extends MigrationStep {
 
   def versionId = 27
 

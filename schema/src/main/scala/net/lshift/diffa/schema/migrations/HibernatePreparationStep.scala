@@ -23,8 +23,11 @@ import org.hibernate.SessionFactory
  * Implemented by components that perform work to prepare the hibernate configuration for use.
  */
 trait HibernatePreparationStep {
+
   /**
    * Executes this preparation step with the given session factory and configuration.
+   * If the applyVerification is set to true, then any verifications that are defined will
+   * also get applied to the database (usually used for testing purposes).
    */
-  def prepare(sf:SessionFactory, config:Configuration)
+  def prepare(sf:SessionFactory, config:Configuration, applyVerification:Boolean = false)
 }

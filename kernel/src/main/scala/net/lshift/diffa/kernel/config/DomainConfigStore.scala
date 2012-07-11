@@ -32,7 +32,7 @@ import net.lshift.diffa.kernel.participants._
 
 trait DomainConfigStore {
 
-  def createOrUpdateEndpoint(domain:String, endpoint: EndpointDef) : Endpoint
+  def createOrUpdateEndpoint(domain:String, endpoint: EndpointDef) : DomainEndpointDef
   def deleteEndpoint(domain:String, name: String) : Unit
   def listEndpoints(domain:String) : Seq[EndpointDef]
 
@@ -62,7 +62,7 @@ trait DomainConfigStore {
   def listReportsForPair(domain:String, key: String) : Seq[PairReportDef]
 
   def getEndpointDef(domain:String, name: String) : EndpointDef
-  def getEndpoint(domain:String, name: String) : Endpoint
+  @Deprecated def getEndpoint(domain:String, name: String) : Endpoint
 
   def getRepairActionDef(domain:String, name: String, pairKey: String): RepairActionDef
   def getPairReportDef(domain:String, name:String, pairKey:String):PairReportDef

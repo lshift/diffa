@@ -23,7 +23,7 @@ import net.sf.ehcache.CacheManager
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.hooks.HookManager
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DiffaPair}
+import net.lshift.diffa.kernel.config.{JooqConfigStoreCompanion, DiffaPairRef, DiffaPair}
 import net.lshift.diffa.kernel.util.cache.{CachedMap, CacheProvider}
 import net.lshift.diffa.kernel.util.db.HibernateQueryUtils
 import net.lshift.diffa.kernel.util.sequence.SequenceProvider
@@ -51,7 +51,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
   intializeExistingSequences()
 
   val aggregationCache = new DifferenceAggregationCache(this, cacheProvider)
-  val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
+  val hook = hookManager.createDifferencePartitioningHook(db)
 
   val pendingEvents = cacheProvider.getCachedMap[VersionID, PendingDifferenceEvent]("pending.difference.events")
   val reportedEvents = cacheProvider.getCachedMap[VersionID, ReportedDifferenceEvent]("reported.difference.events")
@@ -81,10 +81,12 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     // If difference partitioning is enabled, ask the hook to clean up each pair. Note that we'll end up running a
     // delete over all pair differences later anyway, so we won't record the result of the removal operation.
     if (hook.isDifferencePartitioningEnabled) {
-      listPairsInDomain(domain).foreach(p => {
+
+      JooqConfigStoreCompanion.listPairs(db,domain).foreach(p => {
         hook.removeAllPairDifferences(domain, p.key)
         removeLatestRecordedVersion(p.asRef)
       })
+
     }
 
     removeDomainDifferences(domain)

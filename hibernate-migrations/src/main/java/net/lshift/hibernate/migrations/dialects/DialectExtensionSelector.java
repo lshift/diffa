@@ -19,11 +19,16 @@ import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.MySQL5Dialect;
 import org.hibernate.dialect.Oracle10gDialect;
 import org.hibernate.dialect.Oracle8iDialect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper for selecting an appropriate dialect extension for a given dialect.
  */
 public class DialectExtensionSelector {
+
+  static Logger log = LoggerFactory.getLogger(DialectExtensionSelector.class);
+
   public static DialectExtension select(Dialect hibernateDialect) {
     if (hibernateDialect instanceof Oracle8iDialect) {
       return new OracleDialectExtension();
@@ -35,6 +40,21 @@ public class DialectExtensionSelector {
 
     if (hibernateDialect instanceof MySQL5Dialect) {
         return new MySQL5DialectExtension();
+    }
+
+    return new DefaultDialectExtension();
+  }
+
+  public static DialectExtension select(String dialect) {
+
+    log.info("Using dialect: " + dialect);
+
+    if (dialect.equalsIgnoreCase("Oracle"))  {
+      return new OracleDialectExtension();
+    }
+
+    if (dialect.equalsIgnoreCase("MySQL"))  {
+      return new MySQL5DialectExtension();
     }
 
     return new DefaultDialectExtension();

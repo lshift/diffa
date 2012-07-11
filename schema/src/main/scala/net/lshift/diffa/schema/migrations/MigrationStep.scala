@@ -13,22 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.diffa.schema.migrations.steps
+package net.lshift.diffa.schema.migrations
 
 import org.hibernate.cfg.Configuration
-import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.schema.migrations.{MigrationUtil, MigrationStep}
 
-object Step0030 extends MigrationStep {
-  def versionId = 30
-  def name = "Configure system-wide change event rate limit"
+/**
+ * Performs a database migration
+ */
+trait MigrationStep {
 
-  def createMigration(config: Configuration) = {
-    val migration = new MigrationBuilder(config)
+  /**
+   * The version that this step gets the database to.
+   */
+  def versionId:Int
 
-    MigrationUtil.insertLimit(migration, ChangeEventRate)
+  /**
+   * The name of this migration step
+   */
+  def name:String
 
-    migration
-  }
+  /**
+   * Requests that the step create migration builder for doing it's migration.
+   */
+  def createMigration(config:Configuration):MigrationBuilder
+
+}
+
+trait VerifiedMigrationStep extends MigrationStep {
+
+  /**
+   * This allows for a step to insert data into the database to prove this step works
+   * and to provide an existing state for a subsequent migration to use
+   */
+  def applyVerification(config:Configuration):MigrationBuilder
 }

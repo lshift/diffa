@@ -15,13 +15,11 @@
  */
 package net.lshift.diffa.schema.migrations.steps
 
-import net.lshift.diffa.schema.migrations.HibernateMigrationStep
+import net.lshift.diffa.schema.migrations.MigrationStep
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
-import java.sql.Types
 
-
-object Step0035 extends HibernateMigrationStep {
+object Step0035 extends MigrationStep {
 
   def versionId = 35
   def name = "Ensure that escalations and repair_actions are unique per domain"

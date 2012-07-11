@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.participants
 
-import net.lshift.diffa.kernel.config.Endpoint
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 /**
  * Trait implemented by factories that can generate inbound endpoint change receivers.
@@ -34,7 +34,7 @@ trait InboundEndpointFactory {
    * only be made if a previous call to <code>canHandleInboundEndpoint</code> has been made and returned a positive
    * result.
    */
-  def ensureEndpointReceiver(e:Endpoint)
+  def ensureEndpointReceiver(e:DomainEndpointDef)
 
   /**
    * Indicates to the factory that the endpoint with the given domain and name has been removed from the system. Note that the

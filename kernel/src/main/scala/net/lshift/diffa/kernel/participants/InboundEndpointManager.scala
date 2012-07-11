@@ -19,8 +19,8 @@ package net.lshift.diffa.kernel.participants
 import collection.mutable.ListBuffer
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.lifecycle.AgentLifecycleAware
-import net.lshift.diffa.kernel.config.Endpoint
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 /**
  * Manager for delegating inbound endpoint setup/destruction to InboundEndpointFactory instances.
@@ -37,7 +37,7 @@ class InboundEndpointManager(configStore:SystemConfigStore) extends EndpointLife
   /**
    * Should be called whenever an endpoint becomes available (in either a new or updated form)
    */
-  def onEndpointAvailable(e:Endpoint) {
+  def onEndpointAvailable(e:DomainEndpointDef) {
     if (e.inboundUrl != null) {
       // We need to ensure we have an inbound receiver
       val validFactories = factories.filter(_.canHandleInboundEndpoint(e.inboundUrl))

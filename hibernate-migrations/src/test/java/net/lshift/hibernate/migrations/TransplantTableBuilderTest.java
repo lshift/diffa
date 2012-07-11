@@ -27,6 +27,7 @@ import java.sql.Types;
 import java.util.HashMap;
 
 import static net.lshift.hibernate.migrations.HibernateHelper.mockExecutablePreparedStatement;
+import static net.lshift.hibernate.migrations.HibernateHelper.mockExecutablePreparedStatementForUpdate;
 import static org.easymock.EasyMock.*;
 
 public class TransplantTableBuilderTest {
@@ -50,7 +51,7 @@ public class TransplantTableBuilderTest {
 
     Connection conn = createStrictMock(Connection.class);
     expect(conn.prepareStatement("create table temp_table (new_foo integer not null, bar varchar(255) not null, primary key (new_foo))")).andReturn(mockExecutablePreparedStatement());
-    expect(conn.prepareStatement("insert into temp_table(new_foo,bar) select old_foo,bar from source_table")).andReturn(mockExecutablePreparedStatement());
+    expect(conn.prepareStatement("insert into temp_table(new_foo,bar) select old_foo,bar from source_table")).andReturn(mockExecutablePreparedStatementForUpdate(1));
     expect(conn.prepareStatement("drop table source_table")).andReturn(mockExecutablePreparedStatement());
     expect(conn.prepareStatement("alter table temp_table rename to source_table")).andReturn(mockExecutablePreparedStatement());
     replay(conn);
@@ -75,7 +76,7 @@ public class TransplantTableBuilderTest {
 
     Connection conn = createStrictMock(Connection.class);
     expect(conn.prepareStatement("create table temp_table (foo integer not null, bar varchar(255) not null, primary key (foo))")).andReturn(mockExecutablePreparedStatement());
-    expect(conn.prepareStatement("insert into temp_table(foo,bar) select foo,bar from source_table")).andReturn(mockExecutablePreparedStatement());
+    expect(conn.prepareStatement("insert into temp_table(foo,bar) select foo,bar from source_table")).andReturn(mockExecutablePreparedStatementForUpdate(1));
     expect(conn.prepareStatement("drop table source_table")).andReturn(mockExecutablePreparedStatement());
     expect(conn.prepareStatement("alter table temp_table rename to source_table")).andReturn(mockExecutablePreparedStatement());
     replay(conn);

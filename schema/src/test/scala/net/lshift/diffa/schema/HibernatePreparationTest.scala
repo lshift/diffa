@@ -47,7 +47,13 @@ class HibernatePreparationTest {
   // adversely affect it's operation. Since we do care that we delete some objects, we'll have a specific ban-list of
   // objects that we don't want to be present.
   val invalidTables = Seq(
-    "pair_group"      // Removed as of the v1 migration
+    "pair_group",                      // Removed as of the v1 migration
+    "prefix_category_descriptor",      // Removed as of the v38 migration
+    "set_category_descriptor",         // Removed as of the v38 migration
+    "set_constraint_values",           // Removed as of the v38 migration
+    "range_category_descriptor",       // Removed as of the v38 migration
+    "endpoint_categories",             // Removed as of the v38 migration
+    "endpoint_views_categories"        // Removed as of the v38 migration
   )
   val invalidColumns = Map(
     "pair" -> Seq(
@@ -93,7 +99,7 @@ class HibernatePreparationTest {
 
     // When
     log.info("Installing schema and upgrading to latest version")
-    (new HibernateConfigStorePreparationStep).prepare(sessionFactory, dbConfig)
+    (new HibernateConfigStorePreparationStep).prepare(sessionFactory, dbConfig, true)
 
     // Then
     log.info("Validating the correctness of the schema")

@@ -95,6 +95,10 @@ public class MigrationBuilder {
     return register(new CopyTableBuilder(source, destination, sourceCols, destCols));
   }
 
+  public CopyTableBuilder copyTableContents(String source, String destination, Iterable<String> destCols) {
+    return register(new CopyTableBuilder(source, destination, destCols));
+  }
+
   public AnalyzeTableBuilder analyzeTable(String table) {
     return register(new AnalyzeTableBuilder(dialectExtension, table));
   }

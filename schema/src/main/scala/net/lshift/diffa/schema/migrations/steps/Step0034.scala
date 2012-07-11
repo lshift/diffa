@@ -16,13 +16,13 @@
  */
 package net.lshift.diffa.schema.migrations.steps
 
-import net.lshift.diffa.schema.migrations.HibernateMigrationStep
+import net.lshift.diffa.schema.migrations.MigrationStep
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import java.sql.Types
 
 
-object Step0034 extends HibernateMigrationStep {
+object Step0034 extends MigrationStep {
 
   def versionId = 34
   def name = "Add the user item visibility table"

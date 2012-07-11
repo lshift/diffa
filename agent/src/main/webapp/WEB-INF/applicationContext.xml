@@ -331,7 +331,13 @@
     <property name="jndiName" value="java:comp/env/diffaJooqDialect"/>
   </bean>
 
-  <bean id="hookManager" class="net.lshift.diffa.kernel.hooks.HookManager" />
+  <bean id="hookManager" class="net.lshift.diffa.kernel.hooks.HookManager" >
+    <constructor-arg>
+      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName" value="java:comp/env/diffaJooqDialect"/>
+      </bean>
+    </constructor-arg>
+  </bean>
 
   <bean id="databaseFacade" class="net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade">
     <constructor-arg ref="diffaSessionFactory" />
@@ -376,7 +382,6 @@
         <bean class="net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep" />
       </list>
     </property>
-    <property name="hookManager" ref="hookManager" />
   </bean>
 
   <!--
@@ -410,9 +415,7 @@
     <constructor-arg ref="jooqDatabaseFacade" />
   </bean>
 
-  <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.HibernateDomainConfigStore">
-    <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg ref="databaseFacade" />
+  <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.JooqDomainConfigStore">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hookManager" />
     <constructor-arg ref="hazelcastCacheProvider" />

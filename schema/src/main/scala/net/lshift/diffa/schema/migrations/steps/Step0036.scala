@@ -15,12 +15,13 @@
  */
 package net.lshift.diffa.schema.migrations.steps
 
-import java.sql.Types
+import net.lshift.diffa.schema.migrations.MigrationStep
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.schema.migrations.HibernateMigrationStep
+import java.sql.Types
+import scala.collection.JavaConversions._
 
-object Step0036 extends HibernateMigrationStep {
+object Step0036 extends MigrationStep {
 
   def versionId = 36
 
@@ -29,14 +30,13 @@ object Step0036 extends HibernateMigrationStep {
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
 
-    migration
-      .alterTable("pair")
-      .addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
+    migration.alterTable("pair").
+              addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
 
-    migration
-      .alterTable("pair_views")
-      .addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
+    migration.alterTable("pair_views").
+              addColumn("scan_cron_enabled", Types.BIT, 1, false, 1)
 
     migration
   }
+
 }

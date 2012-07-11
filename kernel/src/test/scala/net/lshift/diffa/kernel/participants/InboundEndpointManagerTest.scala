@@ -21,6 +21,7 @@ import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.config.Endpoint
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.junit.Assert._
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 /**
  * Test cases for the InboundEndpointManager.
@@ -29,29 +30,29 @@ class InboundEndpointManagerTest {
   val configStore = createMock(classOf[SystemConfigStore])
   val manager = new InboundEndpointManager(configStore)
   val inboundEndpointFactory = new InboundEndpointFactory {
-    var lastEp:Endpoint = null
+    var lastEp:DomainEndpointDef = null
 
     def canHandleInboundEndpoint(url: String) = url.startsWith("amqp")
-    def ensureEndpointReceiver(e: Endpoint) = lastEp = e
+    def ensureEndpointReceiver(e: DomainEndpointDef) = lastEp = e
     def endpointGone(domain: String, endpoint: String) = null
   }
 
   @Test
   def shouldIgnoreEndpointWhereNoInboundUrlIsConfigured {
     // TODO [#146] Wire in log verification for this test
-    manager.onEndpointAvailable(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan"))
+    manager.onEndpointAvailable(DomainEndpointDef(name = "e", scanUrl = "http://localhost/1234/scan"))
   }
 
   @Test
   def shouldHandleEndpointWhereInboundUrlIsNotSupported {
     // TODO [#146] Wire in log verification for this test
-    manager.onEndpointAvailable(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name"))
+    manager.onEndpointAvailable(DomainEndpointDef(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name"))
   }
 
   @Test
   def shouldInformFactoryWhenValidEndpointIsAvailable {
     manager.registerFactory(inboundEndpointFactory)
-    manager.onEndpointAvailable(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name"))
+    manager.onEndpointAvailable(DomainEndpointDef(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name"))
 
     assertNotNull(inboundEndpointFactory.lastEp)
     assertEquals("e", inboundEndpointFactory.lastEp.name)
@@ -61,7 +62,7 @@ class InboundEndpointManagerTest {
   def shouldActivateStoredEndpoint {
     manager.registerFactory(inboundEndpointFactory)
 
-    expect(configStore.listEndpoints).andReturn(Seq(Endpoint(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name")))
+    expect(configStore.listEndpoints).andReturn(Seq(DomainEndpointDef(name = "e", scanUrl = "http://localhost/1234/scan", inboundUrl = "amqp:queue.name")))
     replay(configStore)
 
     manager.onAgentConfigurationActivated

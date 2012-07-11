@@ -2,7 +2,7 @@ package net.lshift.diffa.kernel.config.system
 
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.config.{Member, DiffaPairRef, User, Endpoint, Domain, DiffaPair}
-import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef}
+import net.lshift.diffa.kernel.frontend.{DomainEndpointDef, DomainPairDef, PairDef}
 
 /**
  * Copyright (C) 2010-2011 LShift Ltd.
@@ -51,7 +51,7 @@ trait SystemConfigStore {
   /**
    * Enumerate all pairs of all domains
    */
-  def listEndpoints : Seq[Endpoint]
+  def listEndpoints : Seq[DomainEndpointDef]
 
   def createOrUpdateUser(user: User)
   def createUser(user: User)

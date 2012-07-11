@@ -29,10 +29,10 @@ import org.slf4j.LoggerFactory
 import org.junit.{Test, AfterClass, Before}
 import net.lshift.diffa.kernel.preferences.FilteredItemType
 
-class HibernateDomainConfigStoreTest {
+class JooqDomainConfigStoreTest {
   private val log = LoggerFactory.getLogger(getClass)
 
-  private val storeReferences = HibernateDomainConfigStoreTest.storeReferences
+  private val storeReferences = JooqDomainConfigStoreTest.storeReferences
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
   private val userPreferencesStore = storeReferences.userPreferencesStore
@@ -426,29 +426,85 @@ class HibernateDomainConfigStoreTest {
   }
 
   @Test
-  def testDeclarePairNullConstraints: Unit = {
-    // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
-    domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
-    domainConfigStore.createOrUpdateEndpoint(domainName, downstream1)
+  def shouldBeAbleToRedeclareEndpoints = {
 
-    expectConfigValidationException("upstreamName") {
-      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, DiffaPair.NO_MATCHING, null, downstream1.name))
-    }
-    expectConfigValidationException("downstreamName") {
-      domainConfigStore.createOrUpdatePair(domainName, PairDef(pairKey, versionPolicyName1, DiffaPair.NO_MATCHING, upstream1.name, null))
-    }
-  }
+    // Note that this is a heuristic that attempts to flush out all of the main state transitions
+    // that we can think of. It is in no way systematic or exhaustive.
+    // If somebody knew their way around property based testing, then could break a leg here.
 
-  @Test
-  def testRedeclareEndpointSucceeds = {
-    // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
-    domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
-    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = upstream1.name, scanUrl = "DIFFERENT_URL",
-                                                                     inboundUrl = "changes"))
-    assertEquals(1, domainConfigStore.listEndpoints(domainName).length)
-    assertEquals("DIFFERENT_URL", domainConfigStore.getEndpointDef(domainName, upstream1.name).scanUrl)
+    systemConfigStore.createOrUpdateDomain(Domain(name="domain"))
+
+    def verifyEndpoints(endpoints:Seq[EndpointDef]) {
+      endpoints.foreach(e => {
+        domainConfigStore.createOrUpdateEndpoint("domain", e)
+
+        val endpoint = domainConfigStore.getEndpointDef("domain", e.name)
+        assertEquals(e, endpoint)
+      })
+
+      val result = domainConfigStore.listEndpoints("domain")
+      assertEquals(endpoints, result)
+    }
+
+    val up_v0 = EndpointDef(
+      name = "upstream",
+      scanUrl = "upstream_url"
+    )
+
+    val down_v0 = EndpointDef(
+      name = "downstream",
+      scanUrl = "downstream_url"
+    )
+
+    verifyEndpoints(Seq(down_v0, up_v0))
+
+    val up_v1 = up_v0.copy(scanUrl = "some_other_url")
+    verifyEndpoints(Seq(down_v0, up_v1))
+
+    val up_v2 = up_v1.copy(views = List(EndpointViewDef(name = "view1")))
+    verifyEndpoints(Seq(down_v0, up_v2))
+
+    val down_v1 = down_v0.copy(categories = Map("foo" -> new RangeCategoryDescriptor("date", null, null, null)))
+    verifyEndpoints(Seq(down_v1, up_v2))
+
+    val down_v2 = down_v1.copy(
+      categories = Map(
+        "foo" -> new RangeCategoryDescriptor("date", null, null, null),
+        "bar" -> new PrefixCategoryDescriptor(1,3,1)
+      ))
+    verifyEndpoints(Seq(down_v2, up_v2))
+
+    val down_v3 = down_v2.copy(
+      categories = Map(
+        "foo" -> new RangeCategoryDescriptor("date", null, null, null),
+        "bar" -> new PrefixCategoryDescriptor(1,3,1),
+        "baz" -> new SetCategoryDescriptor(Set("a","b","c"))
+      ))
+    verifyEndpoints(Seq(down_v3, up_v2))
+
+    val down_v4 = down_v3.copy(
+      categories = Map(
+        "foo" -> new RangeCategoryDescriptor("date", null, null, null),
+        "ibm" -> new RangeCategoryDescriptor("date", "1999-10-10", "1999-10-11", null),
+        "bar" -> new PrefixCategoryDescriptor(1,3,1),
+        "who" -> new PrefixCategoryDescriptor(2,3,2),
+        "baz" -> new SetCategoryDescriptor(Set("sierra","lima","yankie")),
+        "pom" -> new SetCategoryDescriptor(Set("indigo","victor","charlie"))
+      ))
+    verifyEndpoints(Seq(down_v4, up_v2))
+
+    val up_v3 = up_v0.copy(views = List(EndpointViewDef(
+      name = "view1",
+      categories = Map(
+        "november" -> new RangeCategoryDescriptor("date", null, "2010-11-11", null),
+        "zulu"     -> new PrefixCategoryDescriptor(3,6,3)
+      )
+    )))
+    verifyEndpoints(Seq(down_v4, up_v3))
+
+    verifyEndpoints(Seq(down_v0, up_v3))
+    verifyEndpoints(Seq(down_v0, up_v0))
+
   }
 
   @Test
@@ -708,42 +764,13 @@ class HibernateDomainConfigStoreTest {
     }
   }
 
-  private def expectNullPropertyException(name:String)(f: => Unit) {
-    try {
-      f
-      fail("Expected PropertyValueException")
-    } catch {
-      case e:org.hibernate.PropertyValueException =>
-        assertTrue(
-          "PropertyValueException for wrong object. Expected null error for " + name + ", got msg: " + e.getMessage,
-          e.getMessage.contains("not-null property references a null or transient value"))
-        assertTrue(
-          "PropertyValueException for wrong object. Expected for field " + name + ", got msg: " + e.getMessage,
-          e.getMessage.contains(name))
-    }
-  }
-
-  private def expectConfigValidationException(name:String)(f: => Unit) {
-    try {
-      f
-      fail("Expected ConfigValidationException")
-    } catch {
-      case e:ConfigValidationException =>
-        assertTrue(
-          "ConfigValidationException for wrong object. Expected null error for " + name + ", got msg: " + e.getMessage,
-          e.getMessage.contains("cannot be null or empty"))
-        assertTrue(
-          "ConfigValidationException for wrong object. Expected for field " + name + ", got msg: " + e.getMessage,
-          e.getMessage.contains(name))
-    }
-  }
 }
 
-object HibernateDomainConfigStoreTest {
-  private[HibernateDomainConfigStoreTest] val env =
+object JooqDomainConfigStoreTest {
+  private[JooqDomainConfigStoreTest] val env =
     TestDatabaseEnvironments.uniqueEnvironment("target/domainConfigStore")
 
-  private[HibernateDomainConfigStoreTest] val storeReferences =
+  private[JooqDomainConfigStoreTest] val storeReferences =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
 
   @AfterClass

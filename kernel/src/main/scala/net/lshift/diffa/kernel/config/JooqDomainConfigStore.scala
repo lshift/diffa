@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,8 @@
 
 package net.lshift.diffa.kernel.config
 
-import net.lshift.diffa.kernel.util.db.{HibernateQueryUtils, DatabaseFacade}
-import net.lshift.diffa.schema.hibernate.SessionHelper._
-import net.lshift.diffa.kernel.frontend.FrontendConversions._
-import org.hibernate.{Session, SessionFactory}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.kernel.hooks.HookManager
-import java.util.List
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.Domains.DOMAINS
 import net.lshift.diffa.schema.tables.Members.MEMBERS
@@ -33,11 +27,9 @@ import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Pair.PAIR
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
-import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
-import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
-import org.jooq.{Result, Record}
+import JooqConfigStoreCompanion._
 import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
@@ -47,29 +39,33 @@ import collection.mutable
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
-;
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
+import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.frontend.RepairActionDef
+import net.lshift.diffa.kernel.frontend.PairDef
+import net.lshift.diffa.kernel.frontend.PairViewDef
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.frontend.EscalationDef
+import net.lshift.diffa.kernel.frontend.PairReportDef
 
-class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
-                                 db:DatabaseFacade,
-                                 jooq:JooqDatabaseFacade,
-                                 hookManager:HookManager,
-                                 cacheProvider:CacheProvider,
-                                 membershipListener:DomainMembershipAware)
+class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
+                            hookManager:HookManager,
+                            cacheProvider:CacheProvider,
+                            membershipListener:DomainMembershipAware)
     extends DomainConfigStore
-    with DomainLifecycleAware
-    with HibernateQueryUtils {
+    with DomainLifecycleAware {
 
-  val hook = hookManager.createDifferencePartitioningHook(sessionFactory)
+  val hook = hookManager.createDifferencePartitioningHook(jooq)
 
   private val pairEventSubscribers = new ListBuffer[PairLifecycleAware]
   def registerPairEventListener(p:PairLifecycleAware) = pairEventSubscribers += p
 
   private val cachedConfigVersions = cacheProvider.getCachedMap[String,Int]("domain.config.versions")
-  private val cachedPairs = cacheProvider.getCachedMap[String, List[DomainPairDef]]("domain.pairs")
+  private val cachedPairs = cacheProvider.getCachedMap[String, java.util.List[DomainPairDef]]("domain.pairs")
   private val cachedPairsByKey = cacheProvider.getCachedMap[DomainPairKey, DomainPairDef]("domain.pairs.by.key")
-  private val cachedEndpoints = cacheProvider.getCachedMap[String, List[EndpointDef]]("domain.endpoints")
-  private val cachedEndpointsByKey = cacheProvider.getCachedMap[DomainEndpointKey, EndpointDef]("domain.endpoints.by.key")
-  private val cachedPairsByEndpoint = cacheProvider.getCachedMap[DomainEndpointKey, List[DomainPairDef]]("domain.pairs.by.endpoint")
+  private val cachedEndpoints = cacheProvider.getCachedMap[String, java.util.List[DomainEndpointDef]]("domain.endpoints")
+  private val cachedEndpointsByKey = cacheProvider.getCachedMap[DomainEndpointKey, DomainEndpointDef]("domain.endpoints.by.key")
+  private val cachedPairsByEndpoint = cacheProvider.getCachedMap[DomainEndpointKey, java.util.List[DomainPairDef]]("domain.pairs.by.endpoint")
 
   // Config options
   private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
@@ -163,62 +159,213 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
   def onDomainUpdated(domain: String) = invalidateAllCaches(domain)
   def onDomainRemoved(domain: String) = invalidateAllCaches(domain)
 
-  def createOrUpdateEndpoint(domainName:String, e: EndpointDef) : Endpoint = withVersionUpgrade(domainName, s => {
+  def createOrUpdateEndpoint(domain:String, endpointDef: EndpointDef) : DomainEndpointDef = {
 
-    invalidateEndpointCachesOnly(domainName, e.name)
+    jooq.execute(t => {
 
-    val domain = getDomain(domainName)
-    val endpoint = fromEndpointDef(domain, e)
-    s.saveOrUpdate(endpoint)
+      t.insertInto(ENDPOINT).
+          set(ENDPOINT.DOMAIN, domain).
+          set(ENDPOINT.NAME, endpointDef.name).
+          set(ENDPOINT.COLLATION_TYPE, endpointDef.collation).
+          set(ENDPOINT.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+          set(ENDPOINT.SCAN_URL, endpointDef.scanUrl).
+          set(ENDPOINT.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+          set(ENDPOINT.INBOUND_URL, endpointDef.inboundUrl).
+        onDuplicateKeyUpdate().
+          set(ENDPOINT.COLLATION_TYPE, endpointDef.collation).
+          set(ENDPOINT.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+          set(ENDPOINT.SCAN_URL, endpointDef.scanUrl).
+          set(ENDPOINT.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+          set(ENDPOINT.INBOUND_URL, endpointDef.inboundUrl).
+        execute()
 
-    // Update the view definitions
-    val existingViews = listEndpointViews(s, domainName, e.name)
-    val viewsToRemove = existingViews.filter(existing => e.views.find(v => v.name == existing.name).isEmpty)
-    viewsToRemove.foreach(r => s.delete(r))
-    e.views.foreach(v => s.saveOrUpdate(fromEndpointViewDef(endpoint, v)))
+      // Don't attempt to update to update any rows per se, just delete every associated
+      // category and re-insert the new definitions, irrespective of
+      // whether they are identical to the previous definitions
 
-    endpoint
-  })
+      deleteCategories(t, domain, endpointDef.name)
 
-  def deleteEndpoint(domain:String, name: String): Unit = withVersionUpgrade(domain, s => {
-
-    invalidateEndpointCachesOnly(domain, name)
-
-    val endpoint = getEndpoint(s, domain, name)
-
-    // Remove all pairs that reference the endpoint
-    s.createQuery("FROM DiffaPair WHERE upstream = :endpoint OR downstream = :endpoint").
-            setString("endpoint", name).list.foreach(p => deletePairInSession(s, domain, p.asInstanceOf[DiffaPair]))
-
-    endpoint.views.foreach(s.delete(_))
-
-    s.delete(endpoint)
-  })
-
-  def listEndpoints(domain:String): Seq[EndpointDef] = cachedEndpoints.readThrough(domain, () => {
-    db.listQuery[Endpoint]("endpointsByDomain", Map("domain_name" -> domain)).map(toEndpointDef(_))
-  })
-
-  def createOrUpdatePair(domain:String, p: PairDef): Unit = {
-    withVersionUpgrade(domain, s => {
-      p.validate()
-
-      invalidatePairCachesOnly(domain)
-
-      val dom = getDomain(domain)
-      val toUpdate = DiffaPair(key = p.key, domain = dom, upstream = p.upstreamName, downstream = p.downstreamName,
-        versionPolicyName = p.versionPolicyName, matchingTimeout = p.matchingTimeout, scanCronSpec = p.scanCronSpec,
-        scanCronEnabled = p.scanCronEnabled, allowManualScans = p.allowManualScans)
-      s.saveOrUpdate(toUpdate)
+      // Insert categories for the endpoint proper
+      insertCategories(t, domain, endpointDef.name, endpointDef.categories)
 
       // Update the view definitions
-      val existingViews = listPairViews(s, domain, p.key)
-      val viewsToRemove = existingViews.filter(existing => p.views.find(v => v.name == existing.name).isEmpty)
-      viewsToRemove.foreach(r => s.delete(r))
-      p.views.foreach(v => s.saveOrUpdate(fromPairViewDef(toUpdate, v)))
+
+      if (endpointDef.views.isEmpty) {
+
+        t.delete(ENDPOINT_VIEWS).
+          where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+            and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
+          execute()
+
+      } else {
+
+        t.delete(ENDPOINT_VIEWS).
+          where(ENDPOINT_VIEWS.NAME.notIn(endpointDef.views.map(v => v.name))).
+            and(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+            and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
+          execute()
+
+      }
+
+      endpointDef.views.foreach(v => {
+        t.insertInto(ENDPOINT_VIEWS).
+            set(ENDPOINT_VIEWS.DOMAIN, domain).
+            set(ENDPOINT_VIEWS.ENDPOINT, endpointDef.name).
+            set(ENDPOINT_VIEWS.NAME, v.name).
+          onDuplicateKeyIgnore().
+          execute()
+
+          // Insert categories for the endpoint view
+        insertCategories(t, domain, endpointDef.name, v.categories, Some(v.name))
+      })
+
+      upgradeConfigVersion(t, domain)
+
     })
 
-    hook.pairCreated(domain, p.key)
+    invalidateEndpointCachesOnly(domain, endpointDef.name)
+
+    DomainEndpointDef(
+      domain = domain,
+      name = endpointDef.name,
+      collation = endpointDef.collation,
+      contentRetrievalUrl = endpointDef.contentRetrievalUrl,
+      scanUrl = endpointDef.scanUrl,
+      versionGenerationUrl = endpointDef.versionGenerationUrl,
+      inboundUrl = endpointDef.inboundUrl,
+      categories = endpointDef.categories,
+      views = endpointDef.views
+    )
+  }
+
+
+
+  def deleteEndpoint(domain:String, endpoint: String) = {
+
+    jooq.execute(t => {
+
+      // Remove all pairs that reference the endpoint
+
+      val results = t.select(PAIR.DOMAIN, PAIR.PAIR_KEY).
+                      from(PAIR).
+                      where(PAIR.DOMAIN.equal(domain)).
+                        and(PAIR.UPSTREAM.equal(endpoint).
+                            or(PAIR.DOWNSTREAM.equal(endpoint))).fetch()
+
+      results.iterator().foreach(r => {
+        val ref = DiffaPairRef(r.getValue(PAIR.PAIR_KEY), r.getValue(PAIR.DOMAIN))
+        deletePairWithDependencies(t, ref)
+      })
+
+      deleteCategories(t, domain, endpoint)
+
+      t.delete(ENDPOINT_VIEWS).
+        where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+          and(ENDPOINT_VIEWS.ENDPOINT.equal(endpoint)).
+        execute()
+
+      var deleted = t.delete(ENDPOINT).
+                      where(ENDPOINT.DOMAIN.equal(domain)).
+                        and(ENDPOINT.NAME.equal(endpoint)).
+                      execute()
+
+      if (deleted == 0) {
+        throw new MissingObjectException("endpoint")
+      }
+
+      upgradeConfigVersion(t, domain)
+
+    })
+
+    invalidatePairCachesOnly(domain)
+    invalidateEndpointCachesOnly(domain, endpoint)
+
+  }
+
+  def getEndpointDef(domain:String, endpoint: String) = {
+    cachedEndpointsByKey.readThrough(DomainEndpointKey(domain, endpoint), () => {
+
+      val endpoints = JooqConfigStoreCompanion.listEndpoints(jooq, Some(domain), Some(endpoint))
+
+      if (endpoints.isEmpty) {
+        throw new MissingObjectException("endpoint")
+      } else {
+        endpoints.head
+      }
+
+    })
+  }.withoutDomain()
+
+
+  def listEndpoints(domain:String): Seq[EndpointDef] = {
+    cachedEndpoints.readThrough(domain, () => JooqConfigStoreCompanion.listEndpoints(jooq, Some(domain)))
+  }.map(_.withoutDomain())
+
+  def createOrUpdatePair(domain:String, pair: PairDef) = {
+
+    pair.validate()
+
+    jooq.execute(t => {
+      t.insertInto(PAIR).
+          set(PAIR.DOMAIN, domain).
+          set(PAIR.PAIR_KEY, pair.key).
+          set(PAIR.UPSTREAM, pair.upstreamName).
+          set(PAIR.DOWNSTREAM, pair.downstreamName).
+          set(PAIR.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+          set(PAIR.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+          set(PAIR.SCAN_CRON_SPEC, pair.scanCronSpec).
+          set(PAIR.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+          set(PAIR.VERSION_POLICY_NAME, pair.versionPolicyName).
+        onDuplicateKeyUpdate().
+          set(PAIR.UPSTREAM, pair.upstreamName).
+          set(PAIR.DOWNSTREAM, pair.downstreamName).
+          set(PAIR.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+          set(PAIR.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+          set(PAIR.SCAN_CRON_SPEC, pair.scanCronSpec).
+          set(PAIR.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+          set(PAIR.VERSION_POLICY_NAME, pair.versionPolicyName).
+        execute()
+
+      // Update the view definitions
+
+      if (pair.views.isEmpty) {
+
+        t.delete(PAIR_VIEWS).
+          where(PAIR_VIEWS.DOMAIN.equal(domain)).
+            and(PAIR_VIEWS.PAIR.equal(pair.key)).
+          execute()
+
+      } else {
+
+        t.delete(PAIR_VIEWS).
+          where(PAIR_VIEWS.NAME.notIn(pair.views.map(p => p.name))).
+            and(PAIR_VIEWS.DOMAIN.equal(domain)).
+            and(PAIR_VIEWS.PAIR.equal(pair.key)).
+          execute()
+      }
+
+
+
+      pair.views.foreach(v => {
+        t.insertInto(PAIR_VIEWS).
+            set(PAIR_VIEWS.DOMAIN, domain).
+            set(PAIR_VIEWS.PAIR, pair.key).
+            set(PAIR_VIEWS.NAME, v.name).
+            set(PAIR_VIEWS.SCAN_CRON_SPEC, v.scanCronSpec).
+            set(PAIR_VIEWS.SCAN_CRON_ENABLED, boolean2Boolean(v.scanCronEnabled)).
+          onDuplicateKeyUpdate().
+            set(PAIR_VIEWS.SCAN_CRON_SPEC, v.scanCronSpec).
+            set(PAIR_VIEWS.SCAN_CRON_ENABLED, boolean2Boolean(v.scanCronEnabled)).
+          execute()
+      })
+
+      upgradeConfigVersion(t, domain)
+
+    })
+
+    invalidatePairCachesOnly(domain)
+
+    hook.pairCreated(domain, pair.key)
   }
 
   def deletePair(domain:String, key: String) = {
@@ -230,68 +377,12 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
       pairEventSubscribers.foreach(_.onPairDeleted(ref))
       hook.pairRemoved(domain, key)
     })
-    forceHibernateCacheEviction()
   }
 
-  def listPairs(domain:String) = cachedPairs.readThrough(domain, () => listPairsInternal(domain))
+  def listPairs(domain:String) = cachedPairs.readThrough(domain, () => JooqConfigStoreCompanion.listPairs(jooq,domain))
 
   def listPairsForEndpoint(domain:String, endpoint:String) =
-    cachedPairsByEndpoint.readThrough(DomainEndpointKey(domain, endpoint), () => listPairsInternal(domain, Some(endpoint)))
-
-  private def listPairsInternal(domain:String, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
-
-
-    val baseQuery = t.select(PAIR.getFields).
-                      select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
-                      from(PAIR).
-                        leftOuterJoin(PAIR_VIEWS).
-                          on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
-                          and(PAIR_VIEWS.DOMAIN.equal(PAIR.DOMAIN)).
-                      where(PAIR.DOMAIN.equal(domain))
-
-    val query = endpoint match {
-      case None       => baseQuery
-      case Some(name) => baseQuery.and(PAIR.UPSTREAM.equal(name).or(PAIR.DOWNSTREAM.equal(name)))
-    }
-
-    val results = query.fetch()
-
-    val compressed = new mutable.HashMap[String, DomainPairDef]()
-
-    def compressionKey(pairKey:String) = domain + "/" + pairKey
-
-    results.iterator().map(record => {
-      val pairKey = record.getValue(PAIR.PAIR_KEY)
-      val compressedKey = compressionKey(pairKey)
-      val pair = compressed.getOrElseUpdate(compressedKey,
-        DomainPairDef(
-          domain = record.getValue(PAIR.DOMAIN),
-          key = record.getValue(PAIR.PAIR_KEY),
-          upstreamName = record.getValue(PAIR.UPSTREAM),
-          downstreamName = record.getValue(PAIR.DOWNSTREAM),
-          versionPolicyName = record.getValue(PAIR.VERSION_POLICY_NAME),
-          scanCronSpec = record.getValue(PAIR.SCAN_CRON_SPEC),
-          scanCronEnabled = record.getValue(PAIR.SCAN_CRON_ENABLED),
-          matchingTimeout = record.getValue(PAIR.MATCHING_TIMEOUT),
-          allowManualScans = record.getValue(PAIR.ALLOW_MANUAL_SCANS),
-          views = new util.ArrayList[PairViewDef]()
-        )
-      )
-
-      val viewName = record.getValue(PAIR_VIEWS.NAME)
-
-      if (viewName != null) {
-        pair.views.add(PairViewDef(
-          name = viewName,
-          scanCronSpec = record.getValue(PAIR_VIEWS.SCAN_CRON_SPEC),
-          scanCronEnabled = record.getValue(PAIR_VIEWS.SCAN_CRON_ENABLED)
-        ))
-      }
-
-      pair
-
-    }).toList
-  })
+    cachedPairsByEndpoint.readThrough(DomainEndpointKey(domain, endpoint), () => JooqConfigStoreCompanion.listPairs(jooq, domain, Some(endpoint)))
 
   def listEscalationsForPair(domain:String, pairKey: String) : Seq[EscalationDef] = {
     cachedEscalations.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
@@ -492,20 +583,34 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
   })
 
-  @Deprecated private def getRepairActionsInPair(domain:String, pairKey: String): Seq[RepairAction] =
-    db.listQuery[RepairAction]("repairActionsByPair", Map("pair_key" -> pairKey,
-                                                          "domain_name" -> domain))
+  @Deprecated def getEndpoint(domain:String, endpoint: String) = {
 
-  @Deprecated private def getEscalationsForPair(domain:String, pairKey:String): Seq[Escalation] =
-    db.listQuery[Escalation]("escalationsByPair", Map("pair_key" -> pairKey,
-                                                      "domain_name" -> domain))
+    val endpointDef = getEndpointDef(domain, endpoint)
 
-  @Deprecated private def getReportsForPair(domain:String, pairKey:String): Seq[PairReport] =
-    db.listQuery[PairReport]("reportsByPair", Map("pair_key" -> pairKey,
-                                                  "domain_name" -> domain))
+    val ep = Endpoint(
+      name = endpointDef.name,
+      domain = Domain(name = domain),
+      scanUrl = endpointDef.scanUrl,
+      versionGenerationUrl = endpointDef.versionGenerationUrl,
+      contentRetrievalUrl = endpointDef.contentRetrievalUrl,
+      collation = endpointDef.collation,
+      categories = endpointDef.categories
+    )
 
-  def getEndpointDef(domain:String, name: String) = sessionFactory.withSession(s => toEndpointDef(getEndpoint(s, domain, name)))
-  def getEndpoint(domain:String, name: String) = sessionFactory.withSession(s => getEndpoint(s, domain, name))
+    val views = new util.HashSet[EndpointView]()
+
+    endpointDef.views.foreach(v => {
+      views.add(EndpointView(
+        name = v.name,
+        endpoint = ep,
+        categories = v.categories
+      ))
+    })
+
+    ep.setViews(views)
+
+    ep
+  }
 
 
   def getPairDef(domain:String, key: String) = cachedPairsByKey.readThrough(DomainPairKey(domain,key), () => jooq.execute { t =>
@@ -547,79 +652,23 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
   })
 
-  def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => sessionFactory.withSession(s => {
-    s.getNamedQuery("configVersionByDomain").setString("domain", domain).uniqueResult().asInstanceOf[Int]
+  def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => jooq.execute(t => {
+
+    val result = t.select(DOMAINS.CONFIG_VERSION).
+                   from(DOMAINS).
+                   where(DOMAINS.NAME.equal(domain)).
+                   fetchOne()
+
+    if (result == null) {
+      throw new MissingObjectException("domain")
+    }
+    else {
+      result.getValue(DOMAINS.CONFIG_VERSION)
+    }
+
   }))
 
-  private def mapResultsToList[T](results:Result[Record], rowMapper:Record => T) = {
-    val escalations = new java.util.ArrayList[T]()
-    results.iterator().foreach(r => escalations.add(rowMapper(r)))
-    escalations
-  }
 
-  private def recordToEscalation(record:Record) : EscalationDef = {
-    EscalationDef(
-      pair = record.getValue(ESCALATIONS.PAIR_KEY),
-      name = record.getValue(ESCALATIONS.NAME),
-      action = record.getValue(ESCALATIONS.ACTION),
-      actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
-      event = record.getValue(ESCALATIONS.EVENT),
-      origin = record.getValue(ESCALATIONS.ORIGIN))
-  }
-
-  private def recordToPairReport(record:Record) : PairReportDef = {
-    PairReportDef(
-      pair = record.getValue(PAIR_REPORTS.PAIR_KEY),
-      name = record.getValue(PAIR_REPORTS.NAME),
-      target = record.getValue(PAIR_REPORTS.TARGET),
-      reportType = record.getValue(PAIR_REPORTS.REPORT_TYPE)
-    )
-  }
-
-  private def recordToRepairAction(record:Record) : RepairActionDef = {
-    RepairActionDef(
-      pair = record.getValue(REPAIR_ACTIONS.PAIR_KEY),
-      name = record.getValue(REPAIR_ACTIONS.NAME),
-      scope = record.getValue(REPAIR_ACTIONS.SCOPE),
-      url = record.getValue(REPAIR_ACTIONS.URL)
-    )
-  }
-
-  /**
-   * Force the DB to uprev the config version column for this particular domain
-   */
-  @Deprecated private def upgradeConfigVersion(domain:String)(s:Session) = {
-    s.getNamedQuery("upgradeConfigVersionByDomain").setString("domain", domain).executeUpdate()
-  }
-
-  /**
-   * Force the DB to uprev the config version column for this particular domain
-   */
-  private def upgradeConfigVersion(t:Factory, domain:String) {
-
-    cachedConfigVersions.evict(domain)
-
-    t.update(DOMAINS).
-      set(DOMAINS.CONFIG_VERSION, DOMAINS.CONFIG_VERSION.add(1)).
-      where(DOMAINS.NAME.equal(domain)).
-      execute()
-  }
-
-  /**
-   * Force an upgrade of the domain config version in the db and the cache after the DB work has executed successfully.
-   */
-  @Deprecated private def withVersionUpgrade[T](domain:String, dbCommands:Function1[Session, T]) : T = {
-
-    def beforeCommit(session:Session) = upgradeConfigVersion(domain)(session)
-    def commandsToExecute(session:Session) = dbCommands(session)
-    def afterCommit() = cachedConfigVersions.evict(domain)
-
-    sessionFactory.withSession(
-      beforeCommit _,
-      commandsToExecute,
-      afterCommit _
-    )
-  }
 
   def allConfigOptions(domain:String) = cachedDomainConfigOptionsMap.readThrough(domain, () => jooq.execute( t => {
     val results = t.select(CONFIG_OPTIONS.OPT_KEY, CONFIG_OPTIONS.OPT_VAL).
@@ -695,75 +744,16 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
     invalidateConfigCaches(domain)
   }
 
-  @Deprecated private def deletePairInSession(s:Session, domain:String, pair:DiffaPair) = {
-    getRepairActionsInPair(domain, pair.key).foreach(s.delete)
-    getEscalationsForPair(domain, pair.key).foreach(s.delete)
-    getReportsForPair(domain, pair.key).foreach(s.delete)
-    pair.views.foreach(s.delete(_))
-    deleteStoreCheckpoint(pair.asRef)
-    s.delete(pair)
-  }
+  /**
+   * Force the DB to uprev the config version column for this particular domain
+   */
+  private def upgradeConfigVersion(t:Factory, domain:String) {
 
-  private def deletePairWithDependencies(t:Factory, pair:DiffaPairRef) = {
-    deleteRepairActionsByPair(t, pair)
-    deleteEscalationsByPair(t, pair)
-    deleteReportsByPair(t, pair)
-    deletePairViewsByPair(t, pair)
-    deleteStoreCheckpointsByPair(t, pair)
-    deleteUserItemsByPair(t, pair)
-    deletePairWithoutDependencies(t, pair)
-  }
+    cachedConfigVersions.evict(domain)
 
-  private def deletePairWithoutDependencies(t:Factory, pair:DiffaPairRef) = {
-    val deleted = t.delete(PAIR).
-      where(PAIR.DOMAIN.equal(pair.domain)).
-      and(PAIR.PAIR_KEY.equal(pair.key)).
-      execute()
-
-    if (deleted == 0) {
-      throw new MissingObjectException(pair.identifier)
-    }
-  }
-
-  private def deleteUserItemsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(USER_ITEM_VISIBILITY).
-      where(USER_ITEM_VISIBILITY.DOMAIN.equal(pair.domain)).
-      and(USER_ITEM_VISIBILITY.PAIR.equal(pair.key)).
-      execute()
-  }
-
-  private def deleteRepairActionsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(REPAIR_ACTIONS).
-      where(REPAIR_ACTIONS.DOMAIN.equal(pair.domain)).
-      and(REPAIR_ACTIONS.PAIR_KEY.equal(pair.key)).
-      execute()
-  }
-
-  private def deleteEscalationsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(ESCALATIONS).
-      where(ESCALATIONS.DOMAIN.equal(pair.domain)).
-      and(ESCALATIONS.PAIR_KEY.equal(pair.key)).
-      execute()
-  }
-
-  private def deleteReportsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(PAIR_REPORTS).
-      where(PAIR_REPORTS.DOMAIN.equal(pair.domain)).
-      and(PAIR_REPORTS.PAIR_KEY.equal(pair.key)).
-      execute()
-  }
-
-  private def deletePairViewsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(PAIR_VIEWS).
-      where(PAIR_VIEWS.DOMAIN.equal(pair.domain)).
-      and(PAIR_VIEWS.PAIR.equal(pair.key)).
-      execute()
-  }
-
-  private def deleteStoreCheckpointsByPair(t:Factory, pair:DiffaPairRef) = {
-    t.delete(STORE_CHECKPOINTS).
-      where(STORE_CHECKPOINTS.DOMAIN.equal(pair.domain)).
-      and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
+    t.update(DOMAINS).
+      set(DOMAINS.CONFIG_VERSION, DOMAINS.CONFIG_VERSION.add(1)).
+      where(DOMAINS.NAME.equal(domain)).
       execute()
   }
 
@@ -813,11 +803,6 @@ class HibernateDomainConfigStore(val sessionFactory: SessionFactory,
 
     })
   }).toSeq
-
-  def listEndpointViews(s:Session, domain:String, endpointName:String) =
-    db.listQuery[EndpointView]("endpointViewsByEndpoint", Map("domain_name" -> domain, "endpoint_name" -> endpointName))
-  def listPairViews(s:Session, domain:String, pairKey:String) =
-    db.listQuery[PairView]("pairViewsByPair", Map("domain_name" -> domain, "pair_key" -> pairKey))
 
 }
 

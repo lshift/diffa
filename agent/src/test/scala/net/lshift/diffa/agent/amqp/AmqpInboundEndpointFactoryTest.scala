@@ -26,6 +26,7 @@ import org.easymock.EasyMock.expect
 import org.easymock.classextension.EasyMock._
 import net.lshift.diffa.kernel.config.{Domain, Endpoint}
 import scala.collection.mutable.ListBuffer
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 class AmqpInboundEndpointFactoryTest { thisTest =>
 
@@ -69,7 +70,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
   }
 
   private def endpointWithAmqpUrl(name: String, amqpUrl: String) = {
-    Endpoint(name = name, inboundUrl = amqpUrl, domain = Domain("domain"))
+    DomainEndpointDef(name = name, inboundUrl = amqpUrl, domain = "domain")
   }
 
   @Test
@@ -83,7 +84,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(receivers(0).close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e.domain.name, e.name)
+    inboundEndpointFactory.endpointGone(e.domain, e.name)
     verifyAll()
   }
 
@@ -102,7 +103,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
 
     expect(c1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e1.domain.name, e1.name)
+    inboundEndpointFactory.endpointGone(e1.domain, e1.name)
     verifyAll()
 
     resetAll()
@@ -110,7 +111,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(c2.close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e2.domain.name, e2.name)
+    inboundEndpointFactory.endpointGone(e2.domain, e2.name)
     verifyAll()
   }
 
@@ -140,7 +141,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
 
     expect(foo1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e1.domain.name, e1.name)
+    inboundEndpointFactory.endpointGone(e1.domain, e1.name)
     verifyAll()
 
     resetAll()
@@ -148,14 +149,14 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(foo2.close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e2.domain.name, e2.name)
+    inboundEndpointFactory.endpointGone(e2.domain, e2.name)
     verifyAll()
 
     resetAll()
 
     expect(bar1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e3.domain.name, e3.name)
+    inboundEndpointFactory.endpointGone(e3.domain, e3.name)
     verifyAll()
 
     resetAll()
@@ -163,7 +164,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(bar2.close())
     expect(connections(1).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e4.domain.name, e4.name)
+    inboundEndpointFactory.endpointGone(e4.domain, e4.name)
     verifyAll()
   }
 }

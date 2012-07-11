@@ -140,13 +140,13 @@ class ConfigurationTest {
     systemConfigStore.createOrUpdateUser(user1)
     systemConfigStore.createOrUpdateUser(user2)
 
-    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:1234",
+    val ep1 = DomainEndpointDef(domain= "domain", name = "upstream1", scanUrl = "http://localhost:1234",
                 inboundUrl = "http://inbound",
                 categories = Map(
                   "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
                   "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))),
                 views = List(EndpointViewDef("v1")))
-    val ep2 = EndpointDef(name = "downstream1", scanUrl = "http://localhost:5432/scan",
+    val ep2 = DomainEndpointDef(domain= "domain", name = "downstream1", scanUrl = "http://localhost:5432/scan",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
             "d" -> new PrefixCategoryDescriptor(1, 6, 1)
@@ -155,7 +155,7 @@ class ConfigurationTest {
     val config = new DiffaConfig(
       properties = Map("diffa.host" -> "localhost:1234", "a" -> "b"),
       members = Set("abc","def"),
-      endpoints = Set(ep1, ep2),
+      endpoints = Set(ep1.withoutDomain, ep2.withoutDomain),
       pairs = Set(
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
           allowManualScans = true, views = List(PairViewDef("v1", "0 * * * * ?", false))),
@@ -176,8 +176,8 @@ class ConfigurationTest {
                            versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
 
-    expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
-    expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep2))).once
+    expect(endpointListener.onEndpointAvailable(ep1)).once
+    expect(endpointListener.onEndpointAvailable(ep2)).once
     expect(pairManager.startActor(pairInstance("ab"))).once
     expect(matchingManager.onUpdatePair(ab.asRef)).once
     expect(scanScheduler.onUpdatePair(ab.asRef)).once
@@ -202,23 +202,23 @@ class ConfigurationTest {
     resetAll
 
       // upstream1 is kept but changed
-    val ep1 = EndpointDef(name = "upstream1", scanUrl = "http://localhost:6543/scan",
+    val ep1 = DomainEndpointDef(domain= "domain", name = "upstream1", scanUrl = "http://localhost:6543/scan",
           inboundUrl = "http://inbound",
           categories = Map(
             "a" -> new RangeCategoryDescriptor("datetime", "2009", "2010"),
             "b" -> new SetCategoryDescriptor(Set("a", "b", "c"))))
       // downstream1 is gone, downstream2 is added
-    val ep2 = EndpointDef(name = "downstream2", scanUrl = "http://localhost:54321/scan",
+    val ep2 = DomainEndpointDef(domain= "domain", name = "downstream2", scanUrl = "http://localhost:54321/scan",
           categories = Map(
             "c" -> new PrefixCategoryDescriptor(1, 5, 1),
             "d" -> new PrefixCategoryDescriptor(1, 6, 1)
           ))
     val config = new DiffaConfig(
         // diffa.host is changed, a -> b is gone, c -> d is added
-      properties = Map("diffa.host" -> "localhost:2345", "c" -> "d"),
+      properties = Map("c" -> "d", "diffa.host" -> "localhost:2345"),
         // abc is changed, def is gone, ghi is added
       members = Set("abc","def"),
-      endpoints = Set(ep1, ep2),
+      endpoints = Set(ep2.withoutDomain(), ep1.withoutDomain()),
         // gaa is gone, gcc is created, gbb is the same
       pairs = Set(
           // ab has moved from gaa to gcc
@@ -260,8 +260,8 @@ class ConfigurationTest {
     expect(pairPolicyClient.difference(DiffaPairRef(key = "ad", domain = "domain"))).once
 
     expect(endpointListener.onEndpointRemoved("domain", "downstream1")).once
-    expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep1))).once
-    expect(endpointListener.onEndpointAvailable(fromEndpointDef(domain, ep2))).once
+    expect(endpointListener.onEndpointAvailable(ep1)).once
+    expect(endpointListener.onEndpointAvailable(ep2)).once
     replayAll
 
     configuration.applyConfiguration("domain",config)

@@ -18,12 +18,12 @@ package net.lshift.diffa.schema.migrations.steps
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import java.sql.Types
-import net.lshift.diffa.schema.migrations.HibernateMigrationStep
+import net.lshift.diffa.schema.migrations.MigrationStep
 
 /**
  * Add configuration tables for enforcing limits on the Diffa service.
  */
-object Step0023 extends HibernateMigrationStep {
+object Step0023 extends MigrationStep {
   def versionId = 23
 
   def name = "Configure Service Limits"

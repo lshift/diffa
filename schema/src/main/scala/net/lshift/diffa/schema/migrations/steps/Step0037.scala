@@ -15,19 +15,20 @@
  */
 package net.lshift.diffa.schema.migrations.steps
 
+import net.lshift.diffa.schema.migrations.MigrationStep
 import org.hibernate.cfg.Configuration
-import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.schema.migrations.{MigrationUtil, MigrationStep}
+import java.sql.Types
 
-object Step0030 extends MigrationStep {
-  def versionId = 30
-  def name = "Configure system-wide change event rate limit"
+object Step0037 extends MigrationStep {
 
-  def createMigration(config: Configuration) = {
+  def versionId = 37
+  def name = "Make the user password field nullable"
+  def createMigration(config: Configuration): MigrationBuilder = {
     val migration = new MigrationBuilder(config)
 
-    MigrationUtil.insertLimit(migration, ChangeEventRate)
+    migration.alterTable("users")
+             .setColumnNullable("password_enc", Types.VARCHAR, 100, true)
 
     migration
   }

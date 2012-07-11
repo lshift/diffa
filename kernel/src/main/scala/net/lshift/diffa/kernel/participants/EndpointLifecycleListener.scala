@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.participants
 
-import net.lshift.diffa.kernel.config.Endpoint
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 /**
  * Trait for receiving notifications about the lifecycle of endpoints within the system.
@@ -25,10 +25,10 @@ trait EndpointLifecycleListener {
   /**
    * Indicates that the given endpoint has become available (or has been updated).
    */
-  def onEndpointAvailable(e:Endpoint):Unit
+  def onEndpointAvailable(e:DomainEndpointDef)
 
   /**
    * Indicates that the endpoint with the given domain and name is no longer available within the system.
    */
-  def onEndpointRemoved(domain: String, endpoint: String): Unit
+  def onEndpointRemoved(domain: String, endpoint: String)
 }

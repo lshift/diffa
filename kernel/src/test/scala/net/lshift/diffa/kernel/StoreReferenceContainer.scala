@@ -5,7 +5,6 @@ import config.system.HibernateSystemConfigStore
 import differencing.HibernateDomainDifferenceStore
 import hooks.HookManager
 import org.hibernate.dialect.Dialect
-import net.sf.ehcache.CacheManager
 import org.slf4j.LoggerFactory
 import preferences.JooqUserPreferencesStore
 import util.cache.HazelcastCacheProvider
@@ -20,7 +19,6 @@ import net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep
 import collection.JavaConversions._
 import com.jolbox.bonecp.BoneCPDataSource
 import net.lshift.diffa.schema.jooq.DatabaseFacade
-import javax.sql.DataSource
 
 object StoreReferenceContainer {
   def withCleanDatabaseEnvironment(env: DatabaseEnvironment) = {
@@ -42,7 +40,7 @@ trait StoreReferenceContainer {
   def facade: DatabaseFacade
   def dialect: Dialect
   def systemConfigStore: HibernateSystemConfigStore
-  def domainConfigStore: HibernateDomainConfigStore
+  def domainConfigStore: JooqDomainConfigStore
   def domainDifferenceStore: HibernateDomainDifferenceStore
   def serviceLimitsStore: ServiceLimitsStore
 
@@ -58,7 +56,7 @@ trait StoreReferenceContainer {
       systemConfigStore.deleteDomain(domainName)
     }  catch {
       case e: MissingObjectException => {
-        logger.warn("Could not clear configuration for domain " + domainName, e)
+        logger.warn("Could not clear configuration for domain " + domainName)
       }
     }
   }
@@ -84,9 +82,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
 
   def facade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
 
-  private val cacheManager = new CacheManager
-
-  private val hookManager = new HookManager(applicationConfig)
+  private val hookManager = new HookManager(applicationEnvironment.jooqDialect)
   private val membershipListener = new DomainMembershipAware {
     def onMembershipCreated(member: Member) {}
     def onMembershipRemoved(member: Member) {}
@@ -115,7 +111,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore[ServiceLimitsStore](sf => new HibernateServiceLimitsStore(sf, new HibernateDatabaseFacade(sf,ds)), "ServiceLimitsStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new HibernateDomainConfigStore(sf, new HibernateDatabaseFacade(sf,ds), jooqDatabaseFacade, hookManager, cacheProvider, membershipListener), "domainConfigStore")
+    makeStore(sf => new JooqDomainConfigStore(jooqDatabaseFacade, hookManager, cacheProvider, membershipListener), "domainConfigStore")
 
   private lazy val _systemConfigStore =
     makeStore(sf => {
@@ -135,7 +131,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
 
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore
-  def domainConfigStore: HibernateDomainConfigStore = _domainConfigStore
+  def domainConfigStore: JooqDomainConfigStore = _domainConfigStore
   def domainCredentialsStore: JooqDomainCredentialsStore = _domainCredentialsStore
   def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore
   def userPreferencesStore: JooqUserPreferencesStore = _userPreferencesStore
@@ -160,15 +156,36 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
 
   def tearDown {
     log.debug("Dropping test schema")
+
+    // This is a bit of a hack, but basically what is happening is that we are connecting to the DB as a DBA and
+    // are nuking the user session on the server side, hence the client side data source (and Hibernate session factory)
+    // will be toast
+
+    try {
+      _ds.get.close()
+    } catch {
+      case x => {
+        log.warn("Could not close data source", x)
+      }
+    }
+
+    try {
+      _sessionFactory.get.close()
+    } catch {
+      case x => {
+        log.warn("Could not close sessionFactory", x)
+      }
+    }
+
+    _sessionFactory = None
+    _ds = None
+
     try {
       performCleanerAction(cleaner => cleaner.drop)
     } catch {
       case _ =>
     }
-    _sessionFactory.get.close()
-    _sessionFactory = None
-    _ds.get.close()
-    _ds = None
+
   }
 
   private def performCleanerAction(action: SchemaCleaner => (DatabaseEnvironment, DatabaseEnvironment) => Unit) {

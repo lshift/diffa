@@ -6,6 +6,8 @@ import org.hibernate.jdbc.Work
 import java.sql.Connection
 import org.hibernate.SessionFactory
 import org.slf4j.LoggerFactory
+import org.joda.time.DateTime
+import org.joda.time.Interval
 
 /**
  * Implements the SchemaCleaner for Oracle databases.
@@ -46,7 +48,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
     sessionFactory.withSession(session => {
       session.doWork(new Work {
         def execute(connection: Connection) {
-          val getSessionInfo = "select sid, serial# from v$session where username = '%s'".format(username.toUpperCase)
+          val getSessionInfo = "select sid, serial# from v$session where upper(username) = '%s'".format(username.toUpperCase)
           val sessionInfoStmt = connection.prepareStatement(getSessionInfo)
           val rs = sessionInfoStmt.executeQuery
           var sessions: List[(Int, Int)] = Nil
@@ -64,7 +66,8 @@ object OracleSchemaCleaner extends SchemaCleaner {
                 log.debug("Disconnected user: %s".format(disconnectUser))
               } catch {
                 case ex =>
-                  log.info("Failed to disconnect session [%d/%d]".format(sid, serialnum))
+                  log.error("Failed to disconnect session [%d/%d]".format(sid, serialnum))
+                  throw ex
               }
           }
         }
@@ -73,11 +76,13 @@ object OracleSchemaCleaner extends SchemaCleaner {
   }
 
   private def dropSchema(sessionFactory: SessionFactory, schemaName: String) {
-    val dropSchemaStatement = "drop user %s cascade".format(schemaName)
-    val recreateAttemptThreshold = 3
+    val dropSchemaStatement = "drop user %s cascade".format(schemaName.toUpperCase)
+    val recreateAttemptThreshold = 10
     val retryIntervalMs = 1000L
     var recreateAttemptCount = 0
     var userExists = true
+
+    val start = new DateTime()
 
     // Disconnecting a user can succeed, but the effect may not be immediate.  Retry this a few times.
     while (userExists && recreateAttemptCount < recreateAttemptThreshold) {
@@ -91,7 +96,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
                 userExists = false
               } catch {
                 case ex =>
-                  log.debug("Failed to execute prepared statement: %s".format(stmtText))
+                  log.error("Failed to execute prepared statement: %s".format(stmtText))
                   throw ex
               }
             }
@@ -100,13 +105,17 @@ object OracleSchemaCleaner extends SchemaCleaner {
         })
       } catch {
         case ex: Exception =>
+
           recreateAttemptCount += 1
-          Thread.sleep(retryIntervalMs)
+
           if (recreateAttemptCount >= recreateAttemptThreshold) {
-            log.info("Failed to drop user [%s]".format(schemaName))
-            log.info(ex.getMessage)
+            val end = new DateTime()
+            val interval = new Interval(start,end)
+            log.error("Failed to drop user [%s] after %s, attempted at %s".format(schemaName, interval.toPeriod, interval))
             throw ex
           }
+
+          Thread.sleep(retryIntervalMs)
       }
     }
   }
@@ -140,7 +149,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
             log.debug("Executed: %s".format(stmtText))
           } catch {
             case ex =>
-              log.info("Failed to execute prepared statement: %s".format(stmtText))
+              log.error("Failed to execute prepared statement: %s".format(stmtText))
               throw ex
           }
         }
@@ -165,7 +174,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
           Thread.sleep(pollIntervalMs)
           failCount += 1
           if (failCount >= failThreshold) {
-            log.info("Timed out waiting for schema creation. Waited %lms".format(timeoutMs))
+            log.error("Timed out waiting for schema creation. Waited %lms".format(timeoutMs))
             throw ex
           }
       }
