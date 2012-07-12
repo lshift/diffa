@@ -79,7 +79,6 @@ class DatabaseEnvironment(path: String) {
     getHibernateConfigurationWithoutMappingResources
       .addResource("net/lshift/diffa/kernel/config/Config.hbm.xml")
       .addResource("net/lshift/diffa/kernel/config/SystemConfig.hbm.xml")
-      .addResource("net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml")
       .addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml")
   }
 

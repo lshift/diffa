@@ -14,7 +14,7 @@ import org.junit.experimental.theories.{DataPoint, Theories, Theory, DataPoints}
 /**
  */
 @RunWith(classOf[Theories])
-class HibernateServiceLimitsStoreTest {
+class JooqServiceLimitsStoreTest {
   private val testDomain = Domain("diffa-test-domain")
   private val testPair = DiffaPair(key = "diffa-test-pair", domain = testDomain)
 
@@ -25,7 +25,7 @@ class HibernateServiceLimitsStoreTest {
     def hardLimit = 153
   }
 
-  private val storeReferences = HibernateServiceLimitsStoreTest.storeReferences
+  private val storeReferences = JooqServiceLimitsStoreTest.storeReferences
   private val serviceLimitsStore = storeReferences.serviceLimitsStore
 
   @Before
@@ -354,10 +354,10 @@ case class CascadingLimitScenario(systemHardLimit: (Int, Option[Int], Int),
                                   domainDefaultLimit: (Option[Int], Option[Int], Option[Int]),
                                   pairLimit: (Option[Int], Option[Int], Option[Int])) extends Scenario
 
-object HibernateServiceLimitsStoreTest {
-  private[HibernateServiceLimitsStoreTest] val env = TestDatabaseEnvironments.uniqueEnvironment("target/serviceLimitsStore")
+object JooqServiceLimitsStoreTest {
+  private[JooqServiceLimitsStoreTest] val env = TestDatabaseEnvironments.uniqueEnvironment("target/serviceLimitsStore")
 
-  private[HibernateServiceLimitsStoreTest] val storeReferences =
+  private[JooqServiceLimitsStoreTest] val storeReferences =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
 
   implicit def intToSome(i: Int): Option[Int] = Some(i)

@@ -109,7 +109,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   }
 
   private lazy val _serviceLimitsStore =
-    makeStore[ServiceLimitsStore](sf => new HibernateServiceLimitsStore(sf, new HibernateDatabaseFacade(sf,ds)), "ServiceLimitsStore")
+    makeStore[ServiceLimitsStore](sf => new JooqServiceLimitsStore(jooqDatabaseFacade), "ServiceLimitsStore")
 
   private lazy val _domainConfigStore =
     makeStore(sf => new JooqDomainConfigStore(jooqDatabaseFacade, hookManager, cacheProvider, membershipListener), "domainConfigStore")

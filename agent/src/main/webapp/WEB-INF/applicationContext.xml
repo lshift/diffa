@@ -374,7 +374,6 @@
           <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
           <value>net/lshift/diffa/kernel/config/SystemConfig.hbm.xml</value>
-          <value>net/lshift/diffa/kernel/config/ServiceLimits.hbm.xml</value>
       </list>
     </property>
     <property name="preparationSteps">
@@ -438,9 +437,8 @@
     <constructor-arg ref="hazelcastCacheProvider" />
   </bean>
 
-  <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.HibernateServiceLimitsStore">
-    <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg ref="databaseFacade" />
+  <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.JooqServiceLimitsStore">
+    <constructor-arg ref="jooqDatabaseFacade" />
   </bean>
 
   <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.CachedServiceLimitsStore">
