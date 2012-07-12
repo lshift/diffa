@@ -28,6 +28,10 @@ case class ServiceLimiterKey(limit: ServiceLimit, domain: Option[String], pair: 
 object ServiceLimiterRegistry extends Registry[ServiceLimiterKey, Limiter] {
   val hashMap = new ConcurrentHashMap[ServiceLimiterKey, Lazy[Limiter]]()
 
+  def clear() {
+    hashMap.clear()
+  }
+
   @ThreadSafe
   def get(key: ServiceLimiterKey, factory: () => Limiter): Limiter = {
     val newLimiter = new Lazy(factory())

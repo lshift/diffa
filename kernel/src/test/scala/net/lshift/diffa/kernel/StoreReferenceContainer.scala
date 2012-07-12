@@ -62,6 +62,7 @@ trait StoreReferenceContainer {
   }
 
   def defaultDomain = "domain"
+  def defaultUser = "guest"
   
   def tearDown: Unit
 }
@@ -203,7 +204,10 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   }
 
   override def clearUserConfig {
-    _sessionFactory.get.withSession(s => s.createCriteria(classOf[User]).list.foreach(s.delete(_)))
+    _sessionFactory.get.withSession(s =>
+      s.createCriteria(classOf[User]).list.filterNot {
+        case u: User => u.name == "guest"
+      }.foreach(s.delete(_))
+    )
   }
-
 }

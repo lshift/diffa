@@ -34,6 +34,7 @@ object Step0022 extends VerifiedMigrationStep {
   @Deprecated val eventExplanationLimitKey = "maxEventsToExplainPerPair"
   @Deprecated val explainFilesLimitKey = "maxExplainFilesPerPair"
   val defaultDomainName = "diffa"
+  val defaultUserName = "guest"
 
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
@@ -281,7 +282,7 @@ object Step0022 extends VerifiedMigrationStep {
 
     migration.insert("users").
       values(Map(
-      "name" -> "guest", "email" -> "guest@diffa.io",
+      "name" -> defaultUserName, "email" -> "guest@diffa.io",
       "password_enc" -> "84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec",
       "superuser" -> Boolean.box(true)))
 

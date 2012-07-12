@@ -63,7 +63,7 @@ class HibernateSystemConfigStoreTest {
   @Test
   def shouldBeAbleToAddUserAndSeeItInList() {
     systemConfigStore.createOrUpdateUser(TEST_USER)
-    val result = systemConfigStore.listUsers
+    val result = systemConfigStore.listUsers.filterNot(_.name == storeReferences.defaultUser)
     assertEquals(1, result.length)
     assertUserEquals(TEST_USER, result(0))
   }
@@ -79,7 +79,7 @@ class HibernateSystemConfigStoreTest {
   def shouldNotSeeDeletedUsersInList() {
     systemConfigStore.createOrUpdateUser(TEST_USER)
     systemConfigStore.deleteUser(TEST_USER.name)
-    val result = systemConfigStore.listUsers
+    val result = systemConfigStore.listUsers.filterNot(_.name == storeReferences.defaultUser)
     assertEquals(0, result.length)
   }
 
