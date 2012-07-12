@@ -18,14 +18,11 @@ package net.lshift.diffa.kernel.differencing
 
 import net.lshift.diffa.kernel.events.VersionID
 import reflect.BeanProperty
-import org.hibernate.SessionFactory
-import net.sf.ehcache.CacheManager
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.config.{JooqConfigStoreCompanion, DiffaPairRef, DiffaPair}
 import net.lshift.diffa.kernel.util.cache.{CachedMap, CacheProvider}
-import net.lshift.diffa.kernel.util.db.HibernateQueryUtils
 import net.lshift.diffa.kernel.util.sequence.SequenceProvider
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.schema.jooq.DatabaseFacade
@@ -36,17 +33,18 @@ import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import org.jooq.{ResultQuery, Record}
 import org.jooq.impl.Factory
+import org.slf4j.LoggerFactory
 
 /**
  * Hibernate backed Domain Cache provider.
  */
-class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
-                                     db: DatabaseFacade,
-                                     cacheProvider:CacheProvider,
-                                     sequenceProvider:SequenceProvider,
-                                     val hookManager:HookManager)
-    extends DomainDifferenceStore
-    with HibernateQueryUtils {
+class JooqDomainDifferenceStore(db: DatabaseFacade,
+                                cacheProvider:CacheProvider,
+                                sequenceProvider:SequenceProvider,
+                                val hookManager:HookManager)
+    extends DomainDifferenceStore {
+
+  val logger = LoggerFactory.getLogger(getClass)
 
   intializeExistingSequences()
 
@@ -270,10 +268,20 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     updateAndConvertEvent(newEvent)
   }
 
-  def lastRecordedVersion(pair:DiffaPairRef) = getStoreCheckpoint(pair) match {
-    case None             => None
-    case Some(checkpoint) => Some(checkpoint.latestVersion)
-  }
+  def lastRecordedVersion(pair:DiffaPairRef) = db.execute(t => {
+    val record =  t.select(STORE_CHECKPOINTS.LATEST_VERSION).
+                    from(STORE_CHECKPOINTS).
+                    where(STORE_CHECKPOINTS.DOMAIN.equal(pair.domain)).
+                      and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
+                    fetchOne()
+
+    if (record == null) {
+      None
+    }
+    else {
+      Some(record.getValue(STORE_CHECKPOINTS.LATEST_VERSION))
+    }
+  })
 
   def recordLatestVersion(pairRef:DiffaPairRef, version:Long) = db.execute { t =>
     t.insertInto(STORE_CHECKPOINTS).
@@ -386,8 +394,6 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
       val persistentValue  = row.getValueAsLong("max_seq_id")
 
       if (domain != null && persistentValue != null) {
-
-        log.warn("Initializing using sequence for domain %s using %s".format(domain, persistentValue))
 
         val key = generateKeyName(domain)
         val currentValue = sequenceProvider.currentSequenceValue(key)
@@ -550,7 +556,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
           val pair = reportableUnmatched.objId.pair.key
           val alert = formatAlertCode(domain, pair, INCONSISTENT_DIFF_STORE)
           val msg = " %s Could not insert event %s, next sequence id was %s".format(alert, reportableUnmatched, nextSeqId)
-          log.error(msg)
+          logger.error(msg)
 
           throw x
       }
@@ -625,7 +631,7 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
     if (rows == 0) {
       val alert = formatAlertCode(domain, pair, INCONSISTENT_DIFF_STORE)
       val msg = " %s No rows updated for pending event %s, next sequence id was %s".format(alert, reportableUnmatched, nextSeqId)
-      log.error(msg)
+      logger.error(msg)
     }
 
     updateSequenceValueAndCache(reportableUnmatched, nextSeqId)
@@ -693,6 +699,21 @@ class HibernateDomainDifferenceStore(val sessionFactory:SessionFactory,
       and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
       execute()
   }
+
+  private def removeDomainDifferences(domain:String) = db.execute(t => {
+
+    t.delete(STORE_CHECKPOINTS).
+      where(STORE_CHECKPOINTS.DOMAIN.equal(domain)).
+      execute()
+
+    t.delete(DIFFS).
+      where(DIFFS.DOMAIN.equal(domain)).
+      execute()
+
+    t.delete(PENDING_DIFFS).
+      where(PENDING_DIFFS.DOMAIN.equal(domain)).
+      execute()
+  })
 
   private val recordToReportedDifferenceEvent = (r: DiffsRecord) =>
     ReportedDifferenceEvent(seqId = r.getValue(DIFFS.SEQ_ID),

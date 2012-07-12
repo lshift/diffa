@@ -2,7 +2,7 @@ package net.lshift.diffa.kernel
 
 import config._
 import config.system.HibernateSystemConfigStore
-import differencing.HibernateDomainDifferenceStore
+import differencing.JooqDomainDifferenceStore
 import hooks.HookManager
 import org.hibernate.dialect.Dialect
 import org.slf4j.LoggerFactory
@@ -41,7 +41,7 @@ trait StoreReferenceContainer {
   def dialect: Dialect
   def systemConfigStore: HibernateSystemConfigStore
   def domainConfigStore: JooqDomainConfigStore
-  def domainDifferenceStore: HibernateDomainDifferenceStore
+  def domainDifferenceStore: JooqDomainDifferenceStore
   def serviceLimitsStore: ServiceLimitsStore
 
   def prepareEnvironmentForStores: Unit
@@ -128,13 +128,13 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new JooqUserPreferencesStore(facade, cacheProvider), "userPreferencesStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new HibernateDomainDifferenceStore(sf, facade, cacheProvider, sequenceProvider, hookManager), "DomainDifferenceStore")
+    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider, hookManager), "DomainDifferenceStore")
 
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: HibernateSystemConfigStore = _systemConfigStore
   def domainConfigStore: JooqDomainConfigStore = _domainConfigStore
   def domainCredentialsStore: JooqDomainCredentialsStore = _domainCredentialsStore
-  def domainDifferenceStore: HibernateDomainDifferenceStore = _domainDifferenceStore
+  def domainDifferenceStore: JooqDomainDifferenceStore = _domainDifferenceStore
   def userPreferencesStore: JooqUserPreferencesStore = _userPreferencesStore
 
   def prepareEnvironmentForStores {

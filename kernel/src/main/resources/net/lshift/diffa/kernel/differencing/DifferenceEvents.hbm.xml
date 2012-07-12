@@ -67,17 +67,4 @@
     <property name="latestVersion" type="long" column="latest_version" not-null="true"/>
   </class>
 
-  <query name="storeCheckpointByPairAndDomain">
-    select c from StoreCheckpoint c where c.pair.domain.name = :domain_name and c.pair.key = :pair_key
-  </query>
-  <query name="removeDomainCheckpoints">
-    delete from StoreCheckpoint where domain = :domain_name
-  </query>
-  <query name="removeDomainDiffs">
-    delete from ReportedDifferenceEvent where objId.pair.domain = :domain
-  </query>
-  <query name="removeDomainPendingDiffs">
-    delete from PendingDifferenceEvent where objId.pair.domain = :domain
-  </query>
-
 </hibernate-mapping>

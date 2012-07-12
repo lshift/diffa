@@ -24,7 +24,7 @@ import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
 import org.junit._
 import experimental.theories.{Theories, DataPoint, Theory}
 import runner.RunWith
-import net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStoreTest.TileScenario
+import net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStoreTest.TileScenario
 import org.joda.time.{DateTime, Interval, DateTimeZone}
 import org.hibernate.dialect.Dialect
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
@@ -34,12 +34,11 @@ import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 
 /**
- * Test cases for the HibernateDomainDifferenceStore.
+ * Test cases for the JooqDomainDifferenceStore.
  */
 @RunWith(classOf[Theories])
-class HibernateDomainDifferenceStoreTest {
-  private val storeReferences = HibernateDomainDifferenceStoreTest.storeReferences
-  private val indexRebuilder = IndexRebuilder.dialectSpecificRebuilder(storeReferences.dialect)
+class JooqDomainDifferenceStoreTest {
+  private val storeReferences = JooqDomainDifferenceStoreTest.storeReferences
 
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
@@ -843,11 +842,11 @@ class HibernateDomainDifferenceStoreTest {
   }
 }
 
-object HibernateDomainDifferenceStoreTest {
-  private[HibernateDomainDifferenceStoreTest] val env =
+object JooqDomainDifferenceStoreTest {
+  private[JooqDomainDifferenceStoreTest] val env =
     TestDatabaseEnvironments.uniqueEnvironment("target/domainCache")
 
-  private[HibernateDomainDifferenceStoreTest] val storeReferences =
+  private[JooqDomainDifferenceStoreTest] val storeReferences =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
 
   @AfterClass

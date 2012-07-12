@@ -105,8 +105,7 @@
     <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
   </bean>
-  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.HibernateDomainDifferenceStore">
-    <constructor-arg ref="diffaSessionFactory" />
+  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStore">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />

@@ -108,25 +108,6 @@ trait HibernateQueryUtils {
     singleQuery[Domain](s, "domainByName", Map("domain_name" -> name), "domain %s".format(name))
   })
 
-  @Deprecated def removeDomainDifferences(domain: String) = sessionFactory.withSession(s => {
-    // TODO Maybe this should be integrated with HibernateSystemConfigStore:deleteDomain/1
-    executeUpdate(s, "removeDomainCheckpoints", Map("domain_name" -> domain))
-    executeUpdate(s, "removeDomainDiffs", Map("domain" -> domain))
-    executeUpdate(s, "removeDomainPendingDiffs", Map("domain" -> domain))
-  })
-
-  def getStoreCheckpoint(pair: DiffaPairRef) = sessionFactory.withSession(s => {
-    singleQueryOpt[StoreCheckpoint](s, "storeCheckpointByPairAndDomain",
-      Map("pair_key" -> pair.key, "domain_name" -> pair.domain))
-  })
-
-  def deleteStoreCheckpoint(pair: DiffaPairRef) = sessionFactory.withSession(s => {
-    getStoreCheckpoint(pair) match {
-      case Some(x) => s.delete(x)
-      case None => // nothing to do
-    }
-  })
-
   def getEndpoint(s: Session, domain: String, name: String) = getOrFail(s, classOf[Endpoint], DomainScopedName(name, Domain(name = domain)), "endpoint")
 
   def getUser(s: Session, name: String) = singleQuery[User](s, "userByName", Map("name" -> name), "user %s".format(name))
