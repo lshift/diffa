@@ -38,18 +38,18 @@ import net.lshift.diffa.kernel.frontend.DomainPairDef
 class StubParticipantProtocolFactory
     extends ScanningParticipantFactory {
 
-  def supportsAddress(address:String) = true
+  def supports(endpoint: Endpoint) = true
 
-  def createParticipantRef(address: String, pair:DiffaPairRef) = new ScanningParticipantRef {
+  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef) = new ScanningParticipantRef {
     def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = null
   }
 }
 class StubContentParticipantProtocolFactory
     extends ContentParticipantFactory {
 
-  def supportsAddress(address:String) = true
+  def supports(endpoint: Endpoint) = true
 
-  def createParticipantRef(address: String, pair:DiffaPairRef) = new ContentParticipantRef {
+  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef) = new ContentParticipantRef {
     def retrieveContent(identifier: String) = "Some Content for " + identifier
   }
 }

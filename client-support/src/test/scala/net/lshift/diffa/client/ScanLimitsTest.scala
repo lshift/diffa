@@ -18,13 +18,14 @@ package net.lshift.diffa.client
 
 import javax.servlet.http.HttpServletRequest
 import org.easymock.EasyMock._
-import org.easymock.{EasyMock, IAnswer}
-import net.lshift.diffa.kernel.config.{PairServiceLimitsView, FixedDomainCredentialsLookup, DiffaPairRef}
+import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.participant.scanning._
 import org.junit.{Test, Before}
 import net.lshift.diffa.schema.servicelimits.{ScanReadTimeout, ScanConnectTimeout, ScanResponseSizeLimit}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.differencing.{ScanLimitBreachedException, ScanFailedException}
+import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
+import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.Endpoint
 
 
 object ScanLimitsTest {
@@ -54,12 +55,10 @@ class ScanLimitsTest {
   import ScanLimitsTest._
 
   val limits = createMock(classOf[PairServiceLimitsView])
+  lazy val endpoint = Endpoint(name = "limitsEndpoint", scanUrl = "http://localhost:" + serverPort + "/scan")
+
   lazy val scanningRestClient = ScanningParticipantRestClientFactory.create(
-    pair,
-    "http://localhost:" + serverPort + "/scan",
-    limits,
-    domainCredentialsLookup
-  )
+    pair, endpoint, limits, domainCredentialsLookup)
 
   @Before def startServer() = ensureServerStarted
 

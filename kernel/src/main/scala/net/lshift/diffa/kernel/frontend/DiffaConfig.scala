@@ -22,6 +22,7 @@ import org.quartz.CronExpression
 import java.util.HashMap
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, EndpointSide}
+import net.lshift.diffa.participant.scanning.Collation
 
 /**
  * Describes a complete Diffa configuration in the context of a domain - this means that all of the objects
@@ -107,6 +108,9 @@ case class EndpointDef (
     ValidationUtil.ensureUniqueChildren(endPointPath, "views", "name", views.map(v => v.name))
     views.foreach(v => v.validate(this, endPointPath))
   }
+
+
+  def lookupCollation: Collation = CollationOrdering.named(collation)
 }
 
 /**

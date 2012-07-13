@@ -268,12 +268,13 @@ object ScanCompatibilityTest {
 
 
   val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, None)
+  lazy val endpoint = Endpoint(name = "scanEndpoint", scanUrl = "http://localhost:" + serverPort + "/scan")
 
   lazy val server = new ParticipantServer(serverPort, scanningParticipant)
   // This duplicates what is in ParticipantRestClientFactory
   lazy val scanningRestClient = ScanningParticipantRestClientFactory.create(
     pair,
-    "http://localhost:" + serverPort + "/scan",
+    endpoint,
     limits,
     domainCredentialsLookup
   )

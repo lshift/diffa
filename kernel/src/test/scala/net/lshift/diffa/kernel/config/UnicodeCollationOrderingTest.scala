@@ -6,6 +6,8 @@ import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.hamcrest.Matchers._
 import org.hamcrest.MatcherAssert.assertThat
 import net.lshift.diffa.participant.scanning.{AsciiCollation, Collation}
+import org.junit.Assert._
+import scala.Tuple3
 
 trait CollationTestMixin {
   val ordering: Collation
@@ -41,4 +43,18 @@ object AsciiCollationOrderingTest {
   @DataPoint def cSortsAfterB = ("c", "b", false)
   @DataPoint def upperCaseSortsBeforeLower = ("C", "b", true)
 
+}
+
+class CollationOrderingTest {
+  @Test def testGetCollatorForUnicode() = {
+    assertEquals(UnicodeCollationOrdering, CollationOrdering.named("unicode"))
+  }
+  @Test def testGetCollatorForAscii() = {
+    assertEquals(AsciiCollationOrdering, CollationOrdering.named("ascii"))
+  }
+
+  @Test(expected=classOf[Exception])
+  def testGetInvalidCollationThrowsException {
+    CollationOrdering.named("an invalid name")
+  }
 }

@@ -16,30 +16,19 @@
 
 package net.lshift.diffa.client
 
-import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanAggregation, ScanConstraint}
-import javax.ws.rs.core.MultivaluedMap
-import com.sun.jersey.core.util.MultivaluedMapImpl
-import java.io.{IOException, InputStream}
+import net.lshift.diffa.participant.scanning.{ScanResultEntry, ScanConstraint}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.participants.{CategoryFunction, ScanningParticipantRef}
 import org.slf4j.LoggerFactory
-import org.apache.http.client.methods.HttpUriRequest
-import org.apache.http.client.HttpClient
 import java.net.{SocketTimeoutException, SocketException, ConnectException, URI}
-import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.differencing.{ScanLimitBreachedException, ScanFailedException}
+import net.lshift.diffa.kernel.differencing.ScanFailedException
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.config.QueryParameterCredentials
 import net.lshift.diffa.kernel.config.BasicAuthCredentials
 import scala.Right
 import scala.Some
-import net.lshift.diffa.client.DiffaHttpQuery
 import scala.Left
-import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
-import org.apache.http.client.utils.URLEncodedUtils
-import org.apache.http.NameValuePair
-import org.apache.http.message.BasicNameValuePair
 
 class ScanParticipantRestClient(pair: DiffaPairRef,
                                 scanUrl: String,
@@ -65,7 +54,6 @@ class ScanParticipantRestClient(pair: DiffaPairRef,
     this.httpClient.get(queryWithCredentials) match {
       case Right(stream) => parser.parse(stream)
       case Left(ex) => handleHttpError(ex, queryWithCredentials)
-
     }
   }
 

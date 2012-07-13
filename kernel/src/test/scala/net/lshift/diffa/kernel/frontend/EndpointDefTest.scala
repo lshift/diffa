@@ -1,3 +1,9 @@
+package net.lshift.diffa.kernel.frontend
+
+import org.junit.Test
+import net.lshift.diffa.kernel.config.{AsciiCollationOrdering, UnicodeCollationOrdering, Endpoint}
+import org.junit.Assert._
+
 /**
  * Copyright (C) 2010-2012 LShift Ltd.
  *
@@ -14,18 +20,16 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.client
+class EndpointDefTest {
 
-import net.lshift.diffa.participant.scanning.ScanResultEntry
-import java.io.InputStream
+  @Test def testGetCollatorForUnicode() = {
+    val ep = new EndpointDef(collation = UnicodeCollationOrdering.name)
+    assertEquals(UnicodeCollationOrdering, ep.lookupCollation)
+  }
+  @Test def testGetCollatorForAscii() = {
+    val ep = new EndpointDef(collation = AsciiCollationOrdering.name)
+    assertEquals(AsciiCollationOrdering, ep.lookupCollation)
 
-/**
- * a JsonScanResultParser parses a scan result as JSON--chiefly, this allows
- * us to layer in functionality such as response-length checking and other
- * validation / accounting functionality via the stackable-trait pattern. Eg:
- * LengthCheckingParser.
- */
+  }
 
-trait JsonScanResultParser {
-  def parse(stream: InputStream): Seq[ScanResultEntry]
 }

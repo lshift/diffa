@@ -18,11 +18,30 @@ package net.lshift.diffa.kernel.config
 
 import net.lshift.diffa.participant.scanning.{AsciiCollation, UnicodeCollation, Collation}
 
-object UnicodeCollationOrdering extends UnicodeCollation {
+object UnicodeCollationOrdering extends UnicodeCollation with CollationOrdering {
   val name = "unicode"
 }
 
 
-object AsciiCollationOrdering extends AsciiCollation {
+object AsciiCollationOrdering extends AsciiCollation with CollationOrdering {
   val name = "ascii"
 }
+
+trait CollationOrdering extends Collation {
+  val name : String
+}
+
+object CollationOrdering {
+  def named(name: String): Collation = {
+    namedCollations.find(_.name == name).getOrElse {
+      throw new InvalidCollationOrderingSpecified(name)
+    }
+  }
+
+  private lazy val namedCollations = Seq(
+    UnicodeCollationOrdering,
+    AsciiCollationOrdering
+  )
+}
+
+class InvalidCollationOrderingSpecified(name: String) extends Exception("Unknown collation specified: %s".format(name))

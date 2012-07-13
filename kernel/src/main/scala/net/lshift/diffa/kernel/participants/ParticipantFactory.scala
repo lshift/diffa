@@ -49,19 +49,23 @@ class ParticipantFactory() {
   }
 
   def createScanningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ScanningParticipantRef] =
-    createParticipant(scanningFactories, endpoint.scanUrl, pair)
+    createParticipant(scanningFactories, endpoint, pair, _.scanUrl)
   def createContentParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ContentParticipantRef] =
-    createParticipant(contentFactories, endpoint.contentRetrievalUrl, pair)
+    createParticipant(contentFactories, endpoint, pair, _.contentRetrievalUrl)
   def createVersioningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[VersioningParticipantRef] =
-    createParticipant(versioningFactories, endpoint.versionGenerationUrl, pair)
+    createParticipant(versioningFactories, endpoint, pair, _.versionGenerationUrl)
 
-  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]], url:String, pair:DiffaPairRef):Option[T] = url match {
-    case null => None
-    case _ =>
-      factories.find(f => f.supportsAddress(url)) match {
-        case None     => throw new InvalidParticipantAddressException(url)
-        case Some(f)  => Some(f.createParticipantRef(url,pair))
+  private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]],
+                                   endpoint:Endpoint, pair:DiffaPairRef,
+                                    accessor: Endpoint => String) : Option[T] = {
+    val address = accessor(endpoint)
+    Option(address) flatMap { _ =>
+      factories.find(f => f.supports(endpoint)) map (
+        _.createParticipantRef(endpoint, pair)
+        ) orElse {
+        throw new InvalidParticipantAddressException(address)
       }
+    }
   }
 
   private class CompositeParticipant(partName:String, scanning:Option[ScanningParticipantRef], content:Option[ContentParticipantRef]) extends Participant {

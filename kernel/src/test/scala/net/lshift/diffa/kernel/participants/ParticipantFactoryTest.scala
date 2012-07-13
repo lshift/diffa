@@ -32,6 +32,7 @@ import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
  */
 @RunWith(classOf[Theories])
 class ParticipantFactoryTest {
+  import ParticipantFactoryTest._
 
   val pair = DiffaPairRef("foo","bar")
 
@@ -60,15 +61,18 @@ class ParticipantFactoryTest {
   allFactories.foreach(checkOrder(_, false))
 
   // Apply an accepted URL for each factory
-  expect(scanning1.supportsAddress("http://localhost/scan")).andReturn(true).anyTimes
-  expect(scanning2.supportsAddress("amqp://localhost/scan")).andReturn(true).anyTimes
-  expect(content1.supportsAddress("http://localhost/content")).andReturn(true).anyTimes
-  expect(content2.supportsAddress("amqp://localhost/content")).andReturn(true).anyTimes
-  expect(versioning1.supportsAddress("http://localhost/corr-version")).andReturn(true).anyTimes
-  expect(versioning2.supportsAddress("amqp://localhost/corr-version")).andReturn(true).anyTimes
+  expect(scanning1.supports(firstScanUrlEndpoint)).andReturn(true).anyTimes
+  expect(scanning2.supports(secondScanUrlEndpoint)).andReturn(true).anyTimes
+  expect(scanning1.supports(allUrlsEndpoint)).andReturn(true).anyTimes
+  expect(content1.supports(firstContentUrlEndpoint)).andReturn(true).anyTimes
+  expect(content2.supports(secondContentUrlEndpoint)).andReturn(true).anyTimes
+  expect(content1.supports(allUrlsEndpoint)).andReturn(true).anyTimes
+  expect(versioning1.supports(firstVersionUrlEndpoint)).andReturn(true).anyTimes
+  expect(versioning2.supports(secondVersionUrlEndpoint)).andReturn(true).anyTimes
+  expect(versioning1.supports(allUrlsEndpoint)).andReturn(true).anyTimes
 
   // Default to factories not supporting addresses
-  allFactories.foreach(f => expect(f.supportsAddress(anyString)).andReturn(false).anyTimes)
+  allFactories.foreach(f => expect(f.supports(anyObject[Endpoint])).andReturn(false).anyTimes)
 
   @Theory
   def shouldFailToCreateUpstreamWhenAddressIsInvalid(e:EndpointConfig) {
@@ -200,18 +204,18 @@ class ParticipantFactoryTest {
   def expectParticipantCreation(e:EndpointConfig) {
     e.scan match {
       case Fails     =>
-      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint.scanUrl, pair)).andReturn(scanningRef).anyTimes
-      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint.scanUrl, pair)).andReturn(scanningRef).anyTimes
+      case UseFirst  => expect(scanning1.createParticipantRef(e.endpoint, pair)).andReturn(scanningRef).anyTimes
+      case UseSecond => expect(scanning2.createParticipantRef(e.endpoint, pair)).andReturn(scanningRef).anyTimes
     }
     e.retrieveContent match {
       case Fails     =>
-      case UseFirst  => expect(content1.createParticipantRef(e.endpoint.contentRetrievalUrl, pair)).andReturn(contentRef).anyTimes
-      case UseSecond => expect(content2.createParticipantRef(e.endpoint.contentRetrievalUrl, pair)).andReturn(contentRef).anyTimes
+      case UseFirst  => expect(content1.createParticipantRef(e.endpoint, pair)).andReturn(contentRef).anyTimes
+      case UseSecond => expect(content2.createParticipantRef(e.endpoint, pair)).andReturn(contentRef).anyTimes
     }
     e.correlateVersion match {
       case Fails     =>
-      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint.versionGenerationUrl, pair)).andReturn(versionRef).anyTimes
-      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint.versionGenerationUrl, pair)).andReturn(versionRef).anyTimes
+      case UseFirst  => expect(versioning1.createParticipantRef(e.endpoint, pair)).andReturn(versionRef).anyTimes
+      case UseSecond => expect(versioning2.createParticipantRef(e.endpoint, pair)).andReturn(versionRef).anyTimes
     }
   }
 
@@ -247,45 +251,57 @@ object ParticipantFactoryTest {
   @DataPoint def noUrls = EndpointConfig(
     Endpoint(name = "invalid"))
 
+  var allUrlsEndpoint = Endpoint(name = "allUrls",
+    scanUrl = "http://localhost/scan", contentRetrievalUrl = "http://localhost/content",
+    versionGenerationUrl = "http://localhost/corr-version")
+
+  def invalidScanUrlEndpoint: Endpoint = Endpoint(name = "invalidScanUrl", scanUrl = "ftp://blah")
+  def firstScanUrlEndpoint: Endpoint = Endpoint(name = "firstScanUrl", scanUrl = "http://localhost/scan")
+  def secondScanUrlEndpoint: Endpoint = Endpoint(name = "secondScanUrl", scanUrl = "amqp://localhost/scan")
+  def invalidContentUrlEndpoint: Endpoint = Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "ftp://blah")
+  def firstContentUrlEndpoint: Endpoint = Endpoint(name = "firstContentUrl", contentRetrievalUrl = "http://localhost/content")
+  def secondContentUrlEndpoint: Endpoint = Endpoint(name = "secondContentUrl", contentRetrievalUrl = "amqp://localhost/content")
+  def invalidVersionUrlEndpoint: Endpoint = Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "ftp://blah")
+  def firstVersionUrlEndpoint: Endpoint = Endpoint(name = "firstVersionUrl", versionGenerationUrl = "http://localhost/corr-version")
+  def secondVersionUrlEndpoint: Endpoint = Endpoint(name = "secondVersionUrl", versionGenerationUrl = "amqp://localhost/corr-version")
+
   @DataPoint def allUrls = EndpointConfig(
-    Endpoint(name = "allUrls",
-      scanUrl = "http://localhost/scan", contentRetrievalUrl = "http://localhost/content",
-      versionGenerationUrl = "http://localhost/corr-version"),
-    scan = UseFirst, retrieveContent = UseFirst, correlateVersion = UseFirst)
+    allUrlsEndpoint, scan = UseFirst, retrieveContent = UseFirst, correlateVersion = UseFirst)
 
   @DataPoint def invalidScanUrl = EndpointConfig(
-    Endpoint(name = "invalidScanUrl", scanUrl = "ftp://blah"),
+    invalidScanUrlEndpoint,
     validUpstream = false, validDownstream = false)
 
   @DataPoint def firstScanUrl = EndpointConfig(
-    Endpoint(name = "firstScanUrl", scanUrl = "http://localhost/scan"),
+    firstScanUrlEndpoint,
     scan = UseFirst)
 
   @DataPoint def secondScanUrl = EndpointConfig(
-    Endpoint(name = "secondScanUrl", scanUrl = "amqp://localhost/scan"),
+    secondScanUrlEndpoint,
     scan = UseSecond)
 
   @DataPoint def invalidContentUrl = EndpointConfig(
-    Endpoint(name = "invalidContentUrl", contentRetrievalUrl = "ftp://blah"),
+    invalidContentUrlEndpoint,
     validUpstream = false, validDownstream = false)
 
   @DataPoint def firstContentUrl = EndpointConfig(
-    Endpoint(name = "firstContentUrl", contentRetrievalUrl = "http://localhost/content"),
+    firstContentUrlEndpoint,
     retrieveContent = UseFirst)
 
   @DataPoint def secondContentUrl = EndpointConfig(
-    Endpoint(name = "secondContentUrl", contentRetrievalUrl = "amqp://localhost/content"),
+    secondContentUrlEndpoint,
     retrieveContent = UseSecond)
-  
+
   @DataPoint def invalidVersionUrl = EndpointConfig(
-    Endpoint(name = "invalidVersionUrl", versionGenerationUrl = "ftp://blah"),
+    invalidVersionUrlEndpoint,
     validUpstream = true, validDownstream = false)
 
   @DataPoint def firstVersionUrl = EndpointConfig(
-    Endpoint(name = "firstVersionUrl", versionGenerationUrl = "http://localhost/corr-version"),
+    firstVersionUrlEndpoint,
     correlateVersion = UseFirst)
 
   @DataPoint def secondVersionUrl = EndpointConfig(
-    Endpoint(name = "secondVersionUrl", versionGenerationUrl = "amqp://localhost/corr-version"),
+    secondVersionUrlEndpoint,
     correlateVersion = UseSecond)
+
 }

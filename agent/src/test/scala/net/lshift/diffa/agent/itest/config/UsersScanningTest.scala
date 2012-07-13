@@ -30,9 +30,10 @@ class UsersScanningTest {
   }
 
   val pair = DiffaPairRef("foo","bar")
+  val endpoint = Endpoint(name = "usersScanningTestEndpoint", scanUrl = agentURL + "/security/scan")
 
   val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, Some(BasicAuthCredentials("guest", "guest")))
-  val participant = ScanningParticipantRestClientFactory.create(pair, agentURL + "/security/scan", limits, domainCredentialsLookup)
+  val participant = ScanningParticipantRestClientFactory.create(pair, endpoint, limits, domainCredentialsLookup)
 
   @Test
   def aggregationShouldIncludeGuestUser {
