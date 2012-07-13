@@ -79,7 +79,7 @@ class ConfigurationTest {
     catch {
       case e:MissingObjectException => // ignore non-existent domain, since the point of this call was to delete it anyway
     }
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
   }
 
   @Test
@@ -96,8 +96,8 @@ class ConfigurationTest {
     val callingUser = User(name = "callingUser", email = "call@me.com", superuser = false, passwordEnc = "e23e", token = "32sza")
     val anotherUser = User(name = "anotherUser", email = "another@me.com", superuser = false, passwordEnc = "e23e", token = "32sza")
 
-    systemConfigStore.createUser(callingUser)
-    systemConfigStore.createUser(anotherUser)
+    systemConfigStore.createOrUpdateUser(callingUser)
+    systemConfigStore.createOrUpdateUser(anotherUser)
     domainConfigStore.makeDomainMember("domain", "callingUser")
     domainConfigStore.makeDomainMember("domain", "anotherUser")
 

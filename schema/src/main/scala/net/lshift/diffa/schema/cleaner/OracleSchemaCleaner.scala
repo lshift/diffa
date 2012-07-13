@@ -17,7 +17,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
 
   override def drop(sysUserEnvironment: DatabaseEnvironment, appEnvironment: DatabaseEnvironment) {
     val schemaName = appEnvironment.username
-    val dbaConfig = sysUserEnvironment.getHibernateConfiguration
+    val dbaConfig = sysUserEnvironment.getHibernateConfigurationWithoutMappingResources
     val dbaSessionFactory = dbaConfig.buildSessionFactory
 
     conditionalDrop(dbaSessionFactory, schemaName)
@@ -26,7 +26,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
   override def clean(sysUserEnvironment: DatabaseEnvironment, appEnvironment: DatabaseEnvironment) {
     val schemaName = appEnvironment.username
     val password = appEnvironment.password
-    val dbaConfig = sysUserEnvironment.getHibernateConfiguration
+    val dbaConfig = sysUserEnvironment.getHibernateConfigurationWithoutMappingResources
     val dbaSessionFactory = dbaConfig.buildSessionFactory
 
     conditionalDrop(dbaSessionFactory, schemaName)
@@ -159,7 +159,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
   }
 
   private def waitForSchemaCreation(newDbEnviron: DatabaseEnvironment, pollIntervalMs: Long, timeoutMs: Long) {
-    val config = newDbEnviron.getHibernateConfiguration
+    val config = newDbEnviron.getHibernateConfigurationWithoutMappingResources
     val sessionFactory = config.buildSessionFactory
     var connected = false
     var failCount = 0

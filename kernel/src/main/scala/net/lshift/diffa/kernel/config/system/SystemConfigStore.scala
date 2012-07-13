@@ -26,10 +26,10 @@ import net.lshift.diffa.kernel.frontend.{DomainEndpointDef, DomainPairDef, PairD
  */
 trait SystemConfigStore {
 
-  def createOrUpdateDomain(domain: Domain)
+  def createOrUpdateDomain(domain: String)
   def deleteDomain(name: String)
   def doesDomainExist(name: String): Boolean
-  def listDomains : Seq[Domain]
+  def listDomains : Seq[String]
   
   /**
    * Sets the given configuration option to the given value.
@@ -54,8 +54,6 @@ trait SystemConfigStore {
   def listEndpoints : Seq[DomainEndpointDef]
 
   def createOrUpdateUser(user: User)
-  def createUser(user: User)
-  def updateUser(user: User) : Int
 
   def getUserToken(username: String): String
   def clearUserToken(username: String)

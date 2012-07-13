@@ -39,7 +39,7 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
   def createOrUpdateDomain(domain: DomainDef) = {
     log.info("Processing domain declare/update request: %s".format(domain))
     domain.validate()
-    systemConfigStore.createOrUpdateDomain(fromDomainDef(domain))
+    systemConfigStore.createOrUpdateDomain(domain.name)
     differencesManager.onUpdateDomain(domain.name)
   }
 

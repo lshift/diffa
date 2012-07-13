@@ -4,15 +4,10 @@ import org.junit.Assume._
 import org.junit.Assert._
 import org.hamcrest.CoreMatchers._
 import net.lshift.diffa.kernel.events.VersionID
-import org.hibernate.cfg.Configuration
 import org.apache.commons.io.FileUtils
 import java.io.File
 import org.joda.time.{Interval, DateTime}
 import org.junit.{Ignore, Test}
-import net.sf.ehcache.CacheManager
-
-import org.hibernate.dialect.Dialect
-import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer

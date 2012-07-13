@@ -72,7 +72,7 @@ class DefaultDifferencesManagerTest {
 
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
-  expect(systemConfigStore.listDomains).andStubReturn(Seq(domain1, domain2))
+  expect(systemConfigStore.listDomains).andStubReturn(Seq(domainName, domainName2))
   replay(systemConfigStore)
 
   val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])

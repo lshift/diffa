@@ -8,7 +8,7 @@ import net.lshift.diffa.schema.environment.DatabaseEnvironment
  */
 object MySqlSchemaCleaner extends SchemaCleaner {
   override def clean(sysEnvironment: DatabaseEnvironment, appEnvironment: DatabaseEnvironment) {
-    val configuration = sysEnvironment.getHibernateConfiguration
+    val configuration = sysEnvironment.getHibernateConfigurationWithoutMappingResources
     val sessionFactory = configuration.buildSessionFactory
 
     val dropDbStatement = """drop schema %s""".format(appEnvironment.dbName)

@@ -45,25 +45,24 @@ class JooqDomainDifferenceStoreTest {
   private val domainDiffStore = storeReferences.domainDifferenceStore
 
   private val domainName = "domain"
-  private val domain = Domain(domainName)
 
   @Before
   def clear() {
     domainDiffStore.clearAllDifferences
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     val us = EndpointDef(name = "upstream")
     val ds = EndpointDef(name = "downstream")
-    domainConfigStore.createOrUpdateEndpoint(domain.name, us)
-    domainConfigStore.createOrUpdateEndpoint(domain.name, ds)
+    domainConfigStore.createOrUpdateEndpoint(domainName, us)
+    domainConfigStore.createOrUpdateEndpoint(domainName, ds)
 
     val pairTemplate = PairDef(upstreamName = us.name, downstreamName = ds.name)
     val pair1 = pairTemplate.copy(key = "pair1")
     val pair2 = pairTemplate.copy(key = "pair2")
 
-    domainConfigStore.listPairs(domain.name).foreach(p => domainConfigStore.deletePair(domain.name, p.key))
-    domainConfigStore.createOrUpdatePair(domain.name, pair1)
-    domainConfigStore.createOrUpdatePair(domain.name, pair2)
+    domainConfigStore.listPairs(domainName).foreach(p => domainConfigStore.deletePair(domainName, p.key))
+    domainConfigStore.createOrUpdatePair(domainName, pair1)
+    domainConfigStore.createOrUpdatePair(domainName, pair2)
 
     domainDiffStore.reset
   }

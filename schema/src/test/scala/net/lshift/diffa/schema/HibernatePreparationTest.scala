@@ -16,22 +16,15 @@
 
 package net.lshift.diffa.kernel.config
 
-import java.sql._
 import org.junit.runner.RunWith
 import org.junit.Assert._
 import org.junit.experimental.theories.Theories
 import org.junit.Test
 import org.slf4j.LoggerFactory
 import org.hibernate.dialect.Dialect
-import org.hibernate.cfg.{Configuration, Environment}
-import org.hibernate.jdbc.Work
-import org.hibernate.tool.hbm2ddl.DatabaseMetadata
-
-import org.hibernate.{Session, SessionFactory}
 import net.lshift.diffa.schema.cleaner.SchemaCleaner
 import net.lshift.diffa.schema.environment.{DatabaseEnvironment, TestDatabaseEnvironments}
 import net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep
-import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHelper
 
 /**
  * Test cases for ensuring that preparation steps apply to database schemas at various levels, and allow us to upgrade
@@ -42,33 +35,6 @@ import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHe
 class HibernatePreparationTest {
 
   val log = LoggerFactory.getLogger(getClass)
-
-  // The Hibernate validateSchema method won't check for too-many tables being present, presumably since this won't
-  // adversely affect it's operation. Since we do care that we delete some objects, we'll have a specific ban-list of
-  // objects that we don't want to be present.
-  val invalidTables = Seq(
-    "pair_group",                      // Removed as of the v1 migration
-    "prefix_category_descriptor",      // Removed as of the v38 migration
-    "set_category_descriptor",         // Removed as of the v38 migration
-    "set_constraint_values",           // Removed as of the v38 migration
-    "range_category_descriptor",       // Removed as of the v38 migration
-    "endpoint_categories",             // Removed as of the v38 migration
-    "endpoint_views_categories"        // Removed as of the v38 migration
-  )
-  val invalidColumns = Map(
-    "pair" -> Seq(
-      "name",               // Removed as part of the v1 migration
-      "events_to_log",      // Removed as part of the v31 migration
-      "max_explain_files"   // Removed as part of the v31 migration
-    ),
-    "config_options" -> Seq(
-      "is_internal"    // Removed as part of the v3 migration
-    ),
-    "endpoint" -> Seq(
-      "inbound_content_type",   // Removed as part of the v13 migration
-      "content_type"   // Removed as of the v15 migration
-    )
-  )
 
   val startingVersion = 22
   
@@ -97,13 +63,9 @@ class HibernatePreparationTest {
     val dbConfig = databaseEnvironment.getHibernateConfigurationWithoutMappingResources
     val sessionFactory = dbConfig.buildSessionFactory
 
-    // When
+    // Then
     log.info("Installing schema and upgrading to latest version")
     (new HibernateConfigStorePreparationStep).prepare(sessionFactory, dbConfig, true)
-
-    // Then
-    log.info("Validating the correctness of the schema")
-    validateSchema(sessionFactory, dbConfig)
 
     sessionFactory.close
   }
@@ -129,40 +91,7 @@ class HibernatePreparationTest {
     log.info("A further attempt to upgrade to the latest version silently passes")
     (new HibernateConfigStorePreparationStep).prepare(sessionFactory, dbConfig)
 
-    // Then
-    log.info("Validating the correctness of the schema")
-    validateSchema(sessionFactory, dbConfig)
-
     sessionFactory.close
-  }
-
-  @Test
-  def verifyExternalDatabase() {
-    if(System.getProperty("verifyExternalDB") != null) {
-      val config = new Configuration().
-      addResource("net/lshift/diffa/kernel/config/Config.hbm.xml").
-      addResource("net/lshift/diffa/kernel/config/SystemConfig.hbm.xml").
-      addResource("net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml").
-      addResource("net/lshift/diffa/kernel/differencing/Differences.hbm.xml").
-      setProperty("hibernate.dialect", DatabaseEnvironment.HIBERNATE_DIALECT).
-      setProperty("hibernate.connection.url", DatabaseEnvironment.substitutableURL("configStore-export")).
-      setProperty("hibernate.connection.driver_class", DatabaseEnvironment.DRIVER).
-      setProperty("hibernate.connection.username", DatabaseEnvironment.USERNAME).
-      setProperty("hibernate.connection.password", DatabaseEnvironment.PASSWORD).
-      setProperty("hibernate.cache.region.factory_class", "net.sf.ehcache.hibernate.EhCacheRegionFactory").
-      setProperty("hibernate.cache.use_second_level_cache", "true")
-      val sf = config.buildSessionFactory
-      (new HibernateConfigStorePreparationStep).prepare(sf, config)
-    }
-  }
-
-  private def validateSchema(sessionFactory: SessionFactory, config: Configuration) {
-    val dialect = Dialect.getDialect(config.getProperties)
-    val metadata = sessionFactory.withSession(s => retrieveMetadata(s, dialect))
-
-    assertNotSame(None, metadata)
-    config.validateSchema(dialect, metadata.get)
-    validateNotTooManyObjects(config, metadata.get)
   }
 
   /**
@@ -174,32 +103,5 @@ class HibernatePreparationTest {
     val cleaner = SchemaCleaner.forDialect(Dialect.getDialect(sysConfig.getProperties))
     cleaner.clean(sysenv, appenv)
   }
-  
-  private def retrieveMetadata(session: Session, dialect: Dialect): Option[DatabaseMetadata] = {
-    var metadata: Option[DatabaseMetadata] = None
 
-    session.doWork(new Work() {
-      def execute(connection: Connection) {
-        metadata = Some(new DatabaseMetadata(connection, dialect))
-      }
-    })
-
-    metadata
-  }
-
-  /**
-   * Since hibernate only validates for presence, check for things we know should be gone
-   */
-  private def validateNotTooManyObjects(config:Configuration, dbMetadata:DatabaseMetadata) {
-    val defaultCatalog = config.getProperties.getProperty(Environment.DEFAULT_CATALOG)
-    val defaultSchema = config.getProperties.getProperty(Environment.DEFAULT_SCHEMA)
-
-    invalidTables.foreach(invalidTable =>
-      assertNull("Table '" + invalidTable + "' should not be present in the database",
-        dbMetadata.getTableMetadata(invalidTable, defaultSchema, defaultCatalog, false)))
-    invalidColumns.keys.foreach(owningTable =>
-      invalidColumns(owningTable).foreach(col =>
-        assertNull("Column '" + col + "' should not be present in table '" + owningTable + "'",
-        dbMetadata.getTableMetadata(owningTable, defaultSchema, defaultCatalog, false).getColumnMetadata(col))))
-  }
 }

@@ -20,7 +20,6 @@ class ReportManagerTest {
   private val domainDiffStore = storeReferences.domainDifferenceStore
 
   val domainName = "reportingDomain"
-  val domain = Domain(domainName)
   val pair = DiffaPairRef(key = "p1", domain = domainName)
   val diagnostics = createNiceMock(classOf[DiagnosticsManager])
 
@@ -31,7 +30,7 @@ class ReportManagerTest {
     storeReferences.clearConfiguration(domainName)
     domainDiffStore.clearAllDifferences
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e1"))
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e2"))
     domainConfigStore.createOrUpdatePair(domainName,

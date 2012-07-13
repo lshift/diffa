@@ -15,8 +15,8 @@ import org.junit.experimental.theories.{DataPoint, Theories, Theory, DataPoints}
  */
 @RunWith(classOf[Theories])
 class JooqServiceLimitsStoreTest {
-  private val testDomain = Domain("diffa-test-domain")
-  private val testPair = DiffaPair(key = "diffa-test-pair", domain = testDomain)
+  private val testDomain = "diffa-test-domain"
+  private val testPair = DiffaPair(key = "diffa-test-pair", domain = Domain(name = testDomain))
 
   val testLimit = new ServiceLimit {
     def key = "dummyLimit"
@@ -36,11 +36,11 @@ class JooqServiceLimitsStoreTest {
       upstreamName = upstream.name,
       downstreamName = downstream.name)
 
-    storeReferences.clearConfiguration(testDomain.name)
+    storeReferences.clearConfiguration(testDomain)
     storeReferences.systemConfigStore.createOrUpdateDomain(testDomain)
-    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain.name, upstream)
-    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain.name, downstream)
-    storeReferences.domainConfigStore.createOrUpdatePair(testDomain.name, pair)
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain, upstream)
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain, downstream)
+    storeReferences.domainConfigStore.createOrUpdatePair(testDomain, pair)
     serviceLimitsStore.defineLimit(testLimit)
   }
 
@@ -104,7 +104,7 @@ class JooqServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueNotLessThanDependentLimitsThenLimitShouldBeAppliedAndNoDependentLimitsChanged {
-    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit, 11, 10, 10)
+    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain, testLimit, 11, 10, 10)
     // Given
     serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
     serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
@@ -126,7 +126,7 @@ class JooqServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueLessThanDependentLimitsThenLimitShouldBeAppliedAndDependentLimitsLowered {
-    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain.name, testLimit, 11, 9, 10)
+    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain, testLimit, 11, 9, 10)
     // Given
     serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
     serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
@@ -149,7 +149,7 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[Exception])
   def whenDomainHardLimitConfiguredToInvalidValueThenExceptionThrownVerifyNoLimitChange {
     // Given
-    val (domainName, limit, oldLimit) = (testDomain.name, testLimit, 10)
+    val (domainName, limit, oldLimit) = (testDomain, testLimit, 10)
     serviceLimitsStore.setDomainHardLimit(domainName, limit, oldLimit)
 
     // When
@@ -226,7 +226,7 @@ class JooqServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionSuccess(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
@@ -247,7 +247,7 @@ class JooqServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionFailures(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
@@ -276,7 +276,7 @@ class JooqServiceLimitsStoreTest {
   
   @Theory
   def verifyLimitCascadingRules(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain.name, testPair.key)
+    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
     
     scenario match {
       case CascadingLimitScenario(shl, sdl, dhl, ddl, pl) =>
@@ -321,9 +321,9 @@ class JooqServiceLimitsStoreTest {
   private def setAllLimits(limit: ServiceLimit, sysHardLimitValue: Int, otherLimitsValue: Int) {
     serviceLimitsStore.setSystemHardLimit(limit, sysHardLimitValue)
     serviceLimitsStore.setSystemDefaultLimit(limit, otherLimitsValue)
-    serviceLimitsStore.setDomainHardLimit(testDomain.name, limit, otherLimitsValue)
-    serviceLimitsStore.setDomainDefaultLimit(testDomain.name, limit, otherLimitsValue)
-    serviceLimitsStore.setPairLimit(testDomain.name, testPair.key, limit, otherLimitsValue)
+    serviceLimitsStore.setDomainHardLimit(testDomain, limit, otherLimitsValue)
+    serviceLimitsStore.setDomainDefaultLimit(testDomain, limit, otherLimitsValue)
+    serviceLimitsStore.setPairLimit(testDomain, testPair.key, limit, otherLimitsValue)
   }
 
   private def limitValuesForPairByName(pair: DiffaPair, limit: ServiceLimit) = {

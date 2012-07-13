@@ -112,7 +112,7 @@ class SystemConfigResource {
   @Produces(Array("application/json"))
   @Description("")
   def scanPairs(@Context request:HttpServletRequest) = {
-    def generateVersion(domain:Domain) = ScannableUtils.generateDigest(domain.name)
+    def generateVersion(domain:String) = ScannableUtils.generateDigest(domain)
 
     val constraintsBuilder = new ConstraintsBuilder(request)
     constraintsBuilder.maybeAddStringPrefixConstraint("name")
@@ -122,8 +122,8 @@ class SystemConfigResource {
     aggregationsBuilder.maybeAddStringPrefixAggregation("name")
     val aggregations = aggregationsBuilder.toList
 
-    val domains = ScannableUtils.filterByKey[Domain](systemConfig.listDomains, constraints, _.name)
-    val scanResults = domains.map { d => new ScanResultEntry(d.name, generateVersion(d), null, Map("name" -> d.name)) }
+    val domains = ScannableUtils.filterByKey[String](systemConfig.listDomains, constraints, x => x)
+    val scanResults = domains.map { d => new ScanResultEntry(d, generateVersion(d), null, Map("name" -> d)) }
     val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations)
 
     Response.ok(aggregated).build()

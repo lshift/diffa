@@ -24,15 +24,10 @@ import java.util.Properties
  * to be able to configure Hibernate via the context.xml, and this just doesn't seem
  * to be possible via the provided mechanisms.
  */
-class HibernatePropertiesFactory(dialect:String, cacheFactory:String)
+class HibernatePropertiesFactory(dialect:String)
     extends FactoryBean[Properties] {
   private val props = new Properties
   props.setProperty("hibernate.dialect", dialect)
-  props.setProperty("hibernate.cache.region.factory_class", cacheFactory)
-  props.setProperty("hibernate.cache.use_query_cache", "true")
-  props.setProperty("hibernate.cache.use_structured_entries", "true")
-  props.setProperty("hibernate.cache.generate_statistics", "true")
-
   def isSingleton = true
   def getObjectType = classOf[Properties]
   def getObject = props

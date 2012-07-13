@@ -49,7 +49,7 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   // lookups of users by username, token and their respective memberships for authentication purposes
   // Ultimately, all operations on this store should get cached
 
-  def createOrUpdateDomain(domain:Domain) = underlying.createOrUpdateDomain(domain)
+  def createOrUpdateDomain(domain:String) = underlying.createOrUpdateDomain(domain)
   def deleteDomain(domain:String) = underlying.deleteDomain(domain)
   def doesDomainExist(name: String) = underlying.doesDomainExist(name)
   def listDomains = underlying.listDomains
@@ -60,8 +60,6 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   def listPairs = underlying.listPairs
   def listEndpoints = underlying.listEndpoints
   def createOrUpdateUser(user: User) = underlying.createOrUpdateUser(user)
-  def createUser(user: User) = underlying.createUser(user)
-  def updateUser(user: User) = underlying.updateUser(user)
   def getUserToken(username: String) = underlying.getUserToken(username)
 
   def clearUserToken(username: String) = {

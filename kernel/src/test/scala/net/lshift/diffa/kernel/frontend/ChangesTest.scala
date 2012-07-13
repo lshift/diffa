@@ -80,7 +80,7 @@ object ChangesTest {
 
   @BeforeClass
   def setupEnv() {
-    storeReferences.systemConfigStore.createOrUpdateDomain(Domain(name = "d1"))
+    storeReferences.systemConfigStore.createOrUpdateDomain("d1")
     storeReferences.domainConfigStore.createOrUpdateEndpoint("d1", EndpointDef(name = "e1"))
     storeReferences.domainConfigStore.createOrUpdateEndpoint("d1",
       EndpointDef(name = "e2", categories = Map("s" -> new SetCategoryDescriptor(Set("a", "b")))))

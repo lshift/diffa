@@ -98,7 +98,7 @@ class StoreSynchronizationTest {
       StoreSynchronizationTest.indexDir, systemConfigStore, domainConfigStore, diagnosticsManager)
     store = stores(pairRef)
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(u))
     domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(d))
     domainConfigStore.createOrUpdatePair(domainName, toPairDef(pair))

@@ -41,8 +41,8 @@ class JooqUserPreferencesStoreTest {
 
     preferencesStore.reset
 
-    systemConfigStore.createOrUpdateDomain(Domain(name = "domain"))
-    systemConfigStore.createOrUpdateDomain(Domain(name = "domain"))
+    systemConfigStore.createOrUpdateDomain("domain")
+    systemConfigStore.createOrUpdateDomain("domain")
     systemConfigStore.createOrUpdateUser(User(name = "user", email = "", passwordEnc = ""))
 
     domainConfigStore.makeDomainMember("domain", "user")

@@ -105,7 +105,7 @@
     <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
   </bean>
-  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStore">
+  <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStore" depends-on="diffaSessionFactory">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
@@ -338,15 +338,6 @@
     </constructor-arg>
   </bean>
 
-  <bean id="databaseFacade" class="net.lshift.diffa.kernel.util.db.HibernateDatabaseFacade">
-    <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg>
-      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-        <property name="jndiName" value="java:comp/env/jdbc/diffaDS"/>
-      </bean>
-    </constructor-arg>
-  </bean>
-
   <bean id="jooqDatabaseFacade" class="net.lshift.diffa.schema.jooq.DatabaseFacade">
     <constructor-arg>
       <bean class="org.springframework.jndi.JndiObjectFactoryBean">
@@ -356,7 +347,9 @@
     <constructor-arg ref="jooqDialect"/>
   </bean>
 
-  <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean">
+  <!-- Keep the Hibernate session factory around until the migration steps are ported away from Hibernate -->
+
+  <bean id="diffaSessionFactory" class="net.lshift.diffa.agent.util.ListeningLocalSessionFactoryBean" lazy-init="false">
     <property name="dataSource">
       <bean class="org.springframework.jndi.JndiObjectFactoryBean">
             <property name="jndiName" value="java:comp/env/jdbc/diffaDS"/>
@@ -365,16 +358,9 @@
     <property name="hibernateProperties">
       <bean class="net.lshift.diffa.agent.util.HibernatePropertiesFactory">
         <constructor-arg ref="hibernateDialect"/>
-        <constructor-arg value="net.sf.ehcache.hibernate.EhCacheRegionFactory"/>
       </bean>
     </property>
-    <property name="mappingResources">
-      <list>
-          <value>net/lshift/diffa/kernel/differencing/DifferenceEvents.hbm.xml</value>
-          <value>net/lshift/diffa/kernel/config/Config.hbm.xml</value>
-          <value>net/lshift/diffa/kernel/config/SystemConfig.hbm.xml</value>
-      </list>
-    </property>
+
     <property name="preparationSteps">
       <list>
         <bean class="net.lshift.diffa.schema.migrations.HibernateConfigStorePreparationStep" />
@@ -407,10 +393,9 @@
     ===========
   -->
 
-  <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.HibernateSystemConfigStore">
-    <constructor-arg ref="diffaSessionFactory" />
-    <constructor-arg ref="databaseFacade" />
+  <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.JooqSystemConfigStore">
     <constructor-arg ref="jooqDatabaseFacade" />
+    <constructor-arg ref="hazelcastCacheProvider" />
   </bean>
 
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.JooqDomainConfigStore">

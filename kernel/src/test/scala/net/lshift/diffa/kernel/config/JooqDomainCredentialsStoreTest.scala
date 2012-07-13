@@ -28,7 +28,6 @@ class JooqDomainCredentialsStoreTest {
   private val domainCredentialsStore = storeReferences.domainCredentialsStore
 
   val domainName = "domain-with-http-creds"
-  val domain = new Domain(domainName)
 
   @Before
   def setUp = storeReferences.clearConfiguration(domainName)
@@ -36,7 +35,7 @@ class JooqDomainCredentialsStoreTest {
   @Test
   def externalHttpCredentialsShouldBeWriteOnly() {
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     val basicAuthIn = InboundExternalHttpCredentialsDef(url = "https://acme.com/foo", key = "scott", value = "tiger", `type` = "basic_auth")
     val queryParamIn = InboundExternalHttpCredentialsDef(url = "https://acme.com/bar", key = "authToken", value = "a987bg6", `type` = "query_parameter")
@@ -72,7 +71,7 @@ class JooqDomainCredentialsStoreTest {
   @Test
   def shouldReturnMostSpecificCredentials() {
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     Seq(
       InboundExternalHttpCredentialsDef(url = "https://acme.com:8081/foo/bar", key = "wendy", value = "shell", `type` = "basic_auth"),

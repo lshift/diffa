@@ -87,7 +87,7 @@ class PairActorTest {
 
   expect(domainConfigStore.getPairDef(domainName, pairKey)).andStubReturn(pair)
   expect(domainConfigStore.getPairDef(DiffaPairRef(pairKey, domainName))).andStubReturn(pair)
-  expect(systemConfigStore.listDomains).andStubReturn(Seq(Domain(name = domainName)))
+  expect(systemConfigStore.listDomains).andStubReturn(Seq(domainName))
   expect(systemConfigStore.listPairs).andReturn(Seq())      // Don't return our pair in the list, since we don't want it started immediately
 
 

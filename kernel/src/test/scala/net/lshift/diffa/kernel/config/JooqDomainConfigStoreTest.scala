@@ -102,7 +102,7 @@ class JooqDomainConfigStoreTest {
   val adminUser = User(name = "admin_user", email = "dev_null@lshift.net", passwordEnc = "TEST", superuser = true)
 
   def declareAll() {
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream2)
     domainConfigStore.createOrUpdateEndpoint(domainName, downstream1)
@@ -153,54 +153,54 @@ class JooqDomainConfigStoreTest {
     assertTrue(domainConfigStore.listRepairActions(domainName).isEmpty)
     assertTrue(domainConfigStore.listEscalations(domainName).isEmpty)
 
-    assertTrue(systemConfigStore.listDomains.filter(_.name == domainName).isEmpty)
+    assertTrue(systemConfigStore.listDomains.filter(_ == domainName).isEmpty)
   }
 
 
   @Test
   def escalationsWithSameNameInSeperateDomainsMustHaveSeperateIdentities {
-    val domain2 = domain.copy(name = domain.name + "2")
+    val domain2 = domainName + "2"
 
-    val escalations = Seq(domain, domain2).map { dom =>
+    val escalations = Seq(domainName, domain2).map { dom =>
       systemConfigStore.createOrUpdateDomain(dom)
-      domainConfigStore.createOrUpdateEndpoint(dom.name, upstream1.copy(name = dom.name + "-up"))
-      domainConfigStore.createOrUpdateEndpoint(dom.name, downstream1.copy(name = dom.name + "-down"))
-      domainConfigStore.createOrUpdatePair(dom.name,
-        pairDef.copy(upstreamName = dom.name + "-up", downstreamName = dom.name + "-down"))
+      domainConfigStore.createOrUpdateEndpoint(dom, upstream1.copy(name = dom + "-up"))
+      domainConfigStore.createOrUpdateEndpoint(dom, downstream1.copy(name = dom + "-down"))
+      domainConfigStore.createOrUpdatePair(dom,
+        pairDef.copy(upstreamName = dom + "-up", downstreamName = dom + "-down"))
       val anEscalation = escalation.copy(name = "identicalName", pair = pairDef.key)
       // When the primary key on escalations is over (pair_key, name) then
       // this test will fail with a constraint violation, even though the
       // second escalation is in a different domain.
 
-      domainConfigStore.createOrUpdateEscalation(dom.name, anEscalation)
+      domainConfigStore.createOrUpdateEscalation(dom, anEscalation)
       anEscalation
     }
     // And at this point, we need to ensure that we have successfully inserted two escalations total.
-    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listEscalations(d.name) },
+    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listEscalations(d) },
       is(equalTo(escalations)))
   }
 
   @Test
   def repairActionsWithSameNameInSeperateDomainsMustHaveSeperateIdentities = {
-    val domain2 = domain.copy(name = domain.name + "2")
+    val domain2 = domainName + "2"
 
-    val repairActions = Seq(domain, domain2).map { dom =>
+    val repairActions = Seq(domainName, domain2).map { dom =>
       systemConfigStore.createOrUpdateDomain(dom)
-      domainConfigStore.createOrUpdateEndpoint(dom.name, upstream1.copy(name = dom.name + "-up"))
-      domainConfigStore.createOrUpdateEndpoint(dom.name, downstream1.copy(name = dom.name + "-down"))
-      domainConfigStore.createOrUpdatePair(dom.name,
-        pairDef.copy(upstreamName = dom.name + "-up", downstreamName = dom.name + "-down"))
+      domainConfigStore.createOrUpdateEndpoint(dom, upstream1.copy(name = dom + "-up"))
+      domainConfigStore.createOrUpdateEndpoint(dom, downstream1.copy(name = dom + "-down"))
+      domainConfigStore.createOrUpdatePair(dom,
+        pairDef.copy(upstreamName = dom + "-up", downstreamName = dom + "-down"))
       val aRepairAction = repairAction.copy(name = "identicalName", pair = pairDef.key)
       // When the primary key on repair_actions is over (pair_key, name) then
       // this test will fail with a constraint violation, even though the
       // second repair action is in a different domain.
 
-      domainConfigStore.createOrUpdateRepairAction(dom.name, aRepairAction)
+      domainConfigStore.createOrUpdateRepairAction(dom, aRepairAction)
       aRepairAction
     }
 
     // And at this point, we need to ensure that we have successfully inserted two repair actions total.
-    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listRepairActions(d.name) },
+    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listRepairActions(d) },
       is(equalTo(repairActions)))
 
   }
@@ -209,7 +209,7 @@ class JooqDomainConfigStoreTest {
 @Test
   def testDeclare {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     // Declare endpoints
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
@@ -239,7 +239,7 @@ class JooqDomainConfigStoreTest {
   def removingPairShouldRemoveAnyUserSettingsRelatedToThatPair {
     declareAll()
 
-    systemConfigStore.createUser(user)
+    systemConfigStore.createOrUpdateUser(user)
     domainConfigStore.makeDomainMember(domainName, user.name)
     userPreferencesStore.createFilteredItem(pairRef, user.name, FilteredItemType.SWIM_LANE)
 
@@ -262,7 +262,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def shouldAllowMaxGranularityOverride = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     val categories =
       Map(dateCategoryName ->  new RangeCategoryDescriptor("datetime", dateCategoryLower, dateCategoryUpper, "individual"))
@@ -281,7 +281,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testPairsAreValidatedBeforeUpdate() {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     // Declare endpoints
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     exists(upstream1, 1)
@@ -303,7 +303,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testEndpointsWithSameScanURL {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
 
     upstream2.scanUrl = upstream1.scanUrl
@@ -317,7 +317,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testUpdateEndpoint: Unit = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     // Create endpoint
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1)
     exists(upstream1, 1)
@@ -338,7 +338,7 @@ class JooqDomainConfigStoreTest {
 
   @Test
   def testEndpointCollationIsPersisted = {
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, upstream1.copy(collation = UnicodeCollationOrdering.name))
     val retrieved = domainConfigStore.getEndpointDef(domainName, upstream1.name)
     assertEquals(UnicodeCollationOrdering.name, retrieved.collation)
@@ -432,7 +432,7 @@ class JooqDomainConfigStoreTest {
     // that we can think of. It is in no way systematic or exhaustive.
     // If somebody knew their way around property based testing, then could break a leg here.
 
-    systemConfigStore.createOrUpdateDomain(Domain(name="domain"))
+    systemConfigStore.createOrUpdateDomain("domain")
 
     def verifyEndpoints(endpoints:Seq[EndpointDef]) {
       endpoints.foreach(e => {
@@ -583,7 +583,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testRetrievingConfigOption = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.setConfigOption(domainName, "some.option2", "storedVal")
     assertEquals("storedVal", domainConfigStore.configOptionOrDefault(domainName, "some.option2", "defaultVal"))
     assertEquals(Some("storedVal"), domainConfigStore.maybeConfigOption(domainName, "some.option2"))
@@ -592,7 +592,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testUpdatingConfigOption = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     domainConfigStore.setConfigOption(domainName, "some.option3", "storedVal")
     domainConfigStore.setConfigOption(domainName, "some.option3", "storedVal2")
@@ -603,7 +603,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testRemovingConfigOption = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     domainConfigStore.setConfigOption(domainName, "some.option3", "storedVal")
     domainConfigStore.clearConfigOption(domainName, "some.option3")
@@ -614,7 +614,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testRetrievingAllOptions = {
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     domainConfigStore.setConfigOption(domainName, "some.option3", "storedVal")
     domainConfigStore.setConfigOption(domainName, "some.option4", "storedVal3")
@@ -624,7 +624,7 @@ class JooqDomainConfigStoreTest {
   @Test
   def testRetrievingOptionsIgnoresSystemOptions = {
     // declare the child domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     domainConfigStore.setConfigOption(domainName, "some.option3", "storedVal")
     systemConfigStore.setSystemConfigOption("some.option4", "storedVal3")
@@ -644,7 +644,7 @@ class JooqDomainConfigStoreTest {
       assertEquals(expectation, hasDomainMember)
     }
 
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
     systemConfigStore.createOrUpdateUser(user)
 
     val member = domainConfigStore.makeDomainMember(domain.name, user.name)
@@ -719,7 +719,7 @@ class JooqDomainConfigStoreTest {
   def configChangeShouldUpgradeDomainConfigVersion {
 
     // declare the domain
-    systemConfigStore.createOrUpdateDomain(domain)
+    systemConfigStore.createOrUpdateDomain(domainName)
 
     val up = EndpointDef(name = "some-upstream-endpoint")
     val down = EndpointDef(name = "some-downstream-endpoint")

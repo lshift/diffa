@@ -17,15 +17,12 @@
 package net.lshift.diffa.kernel.config
 
 import org.hibernate.SessionFactory
-import net.lshift.diffa.kernel.util.db.DatabaseFacade
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.kernel.hooks.HookManager
-import net.sf.ehcache.CacheManager
 import org.easymock.EasyMock._
 import org.easymock.classextension.{EasyMock => E4}
 import org.junit.Test
-import org.easymock.EasyMock
-import net.lshift.diffa.kernel.util.cache.{HazelcastCacheProvider, CacheProvider}
+import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 
 class DomainMembershipAwareTest {
 

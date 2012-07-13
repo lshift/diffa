@@ -17,10 +17,8 @@ package net.lshift.diffa.kernel.config
 
 import org.junit.{Before, Test}
 import org.junit.Assert._
-import org.hibernate.SessionFactory
 import org.easymock.EasyMock._
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
-import net.lshift.diffa.kernel.util.db.DatabaseFacade
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 import org.easymock.classextension.{EasyMock => E4}
@@ -36,7 +34,6 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 
 class CachedDomainConfigStoreTest {
 
-  val sf = createStrictMock(classOf[SessionFactory])
   val jooq = E4.createStrictMock(classOf[JooqDatabaseFacade])
   val hm = E4.createNiceMock(classOf[HookManager])
   val ml = createStrictMock(classOf[DomainMembershipAware])
