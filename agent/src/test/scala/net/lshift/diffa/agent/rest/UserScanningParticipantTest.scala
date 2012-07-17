@@ -20,6 +20,7 @@ import java.security.MessageDigest
 import scala.Predef._
 import org.apache.commons.codec.binary.Hex
 import java.nio.charset.Charset
+import net.lshift.diffa.schema.configs.InternalCollation
 
 
 @RunWith(classOf[Theories])
@@ -31,6 +32,7 @@ class UserScanningParticipantTest {
 
   def setup(scenario: Scenario) {
     expect(systemConfig.listFullUsers).andReturn(scenario.userList).once()
+    expect(systemConfig.getSystemConfigOption(InternalCollation)).andReturn("ascii").once()
     replay(systemConfig)
   }
 

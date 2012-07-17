@@ -24,7 +24,7 @@ class UserScanningParticipant (systemConfig: SystemConfiguration)  {
     val scanResults = users.map  { u =>
       ScanResultEntry.forEntity(u.name, generateVersion(u), null, Map("name" -> u.name))
     }
-    ScannableUtils.maybeAggregate(scanResults, aggregation)
+    ScannableUtils.maybeAggregate(scanResults, aggregation, systemConfig)
   }
 
 }

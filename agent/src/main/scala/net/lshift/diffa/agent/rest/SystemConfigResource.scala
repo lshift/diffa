@@ -124,7 +124,7 @@ class SystemConfigResource {
 
     val domains = ScannableUtils.filterByKey[String](systemConfig.listDomains, constraints, x => x)
     val scanResults = domains.map { d => new ScanResultEntry(d, generateVersion(d), null, Map("name" -> d)) }
-    val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations)
+    val aggregated = ScannableUtils.maybeAggregate(scanResults, aggregations, systemConfig)
 
     Response.ok(aggregated).build()
   }

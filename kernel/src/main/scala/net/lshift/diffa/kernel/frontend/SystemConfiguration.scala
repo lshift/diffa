@@ -22,6 +22,7 @@ import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
 import net.lshift.diffa.kernel.config.{User, ServiceLimitsStore}
 import net.lshift.diffa.kernel.config.limits.ValidServiceLimits
+import net.lshift.diffa.schema.configs.SystemConfigOption
 
 
 /**
@@ -79,6 +80,9 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
     listener.configPropertiesUpdated(Seq(key))
   }
   def getSystemConfigOption(key:String) = systemConfigStore.maybeSystemConfigOption(key)
+
+  def getSystemConfigOption(option:SystemConfigOption)
+    = systemConfigStore.systemConfigOptionOrDefault(option.key, option.defaultValue)
 
   def listDomainMemberships(username: String) = systemConfigStore.listDomainMemberships(username)
 

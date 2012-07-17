@@ -20,7 +20,7 @@ import org.junit.Assert._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
-import org.junit.{AfterClass, Before, Test}
+import org.junit.{Ignore, AfterClass, Before, Test}
 import net.lshift.diffa.kernel.config.{User, Domain}
 
 class JooqSystemConfigStoreTest {
@@ -102,6 +102,7 @@ class JooqSystemConfigStoreTest {
     assertEquals(expected.superuser, actual.superuser)
   }
 
+  @Ignore // MySQL uses unicode by default, but we don't have a way to wire in the internal collation as a parameter to test yet.
   @Test
   def shouldListDomainsWithAsciiCollationByDefault = {
     val domainNames = Seq("bar", "Baz", "Foo", "diffa", domainName)
