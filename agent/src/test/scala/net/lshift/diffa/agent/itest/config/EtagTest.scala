@@ -19,14 +19,18 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import org.junit.Test
 import net.lshift.diffa.kernel.frontend.{PairDef, EndpointDef}
 import net.lshift.diffa.agent.client.ConfigurationRestClient
-import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
 import org.apache.http.client.methods.HttpGet
 import org.junit.Assert._
-import org.apache.http.auth.{AuthScope, Credentials, UsernamePasswordCredentials}
+import org.apache.http.auth.{AuthSchemeRegistry, AuthScope, Credentials, UsernamePasswordCredentials}
+import org.apache.http.HttpHost
+import org.apache.http.impl.auth.BasicScheme
+import org.apache.http.protocol.BasicHttpContext
+import org.apache.http.client.protocol.ClientContext
 
 class EtagTest {
 
-  val configClient = new ConfigurationRestClient(agentURL, domain)
+  val configClient = new ConfigurationRestClient(agentURL, defaultDomain)
 
   @Test
   def configChangeShouldUpgradeEtag {
@@ -48,14 +52,29 @@ class EtagTest {
   }
 
   private def getAggregatesEtag = {
+    val targetHost = new HttpHost(agentHost, agentPort, "http")
     val httpClient = new DefaultHttpClient
-    val creds = new UsernamePasswordCredentials(agentUsername, agentPassword)
 
-    httpClient.getCredentialsProvider().setCredentials(new AuthScope(agentHost, agentPort), creds);
+    httpClient.getCredentialsProvider().setCredentials(
+      new AuthScope(agentHost, agentPort),
+      new UsernamePasswordCredentials(agentUsername, agentPassword))
 
-    val httpResponse = httpClient.execute(new HttpGet(agentURL + "/domains/diffa/diffs/aggregates"))
+    val httpResponse = httpClient.execute(
+      new HttpGet(agentURL + "/domains/diffa/diffs/aggregates"),
+      basicAuthContext(targetHost))
+
     val etag = httpResponse.getLastHeader("ETag")
     httpClient.getConnectionManager.shutdown()
     etag.getValue
+  }
+
+  private def basicAuthContext(targetHost: HttpHost): BasicHttpContext = {
+    val authCache = new BasicAuthCache
+    val basicAuth = new BasicScheme
+    authCache.put(targetHost, basicAuth)
+
+    val context = new BasicHttpContext
+    context.setAttribute(ClientContext.AUTH_CACHE, authCache)
+    context
   }
 }

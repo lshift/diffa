@@ -158,7 +158,7 @@ class JooqDomainConfigStoreTest {
 
 
   @Test
-  def escalationsWithSameNameInSeperateDomainsMustHaveSeperateIdentities {
+  def escalationsWithSameNameInSeparateDomainsMustHaveSeparateIdentities {
     val domain2 = domainName + "2"
 
     val escalations = Seq(domainName, domain2).map { dom =>
@@ -181,7 +181,7 @@ class JooqDomainConfigStoreTest {
   }
 
   @Test
-  def repairActionsWithSameNameInSeperateDomainsMustHaveSeperateIdentities = {
+  def repairActionsWithSameNameInSeparateDomainsMustHaveSeparateIdentities = {
     val domain2 = domainName + "2"
 
     val repairActions = Seq(domainName, domain2).map { dom =>

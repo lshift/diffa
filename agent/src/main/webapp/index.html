@@ -25,6 +25,10 @@
   if (domain == null || domain.equals("")) {
     domain = "diffa";
   }
+  String username = (String) session.getAttribute("username");
+  if (username == null || username.equals("")) {
+    username = "";
+  }
 %>
 
 <html>
@@ -46,6 +50,7 @@
         <a class="domain-page" href="status.html">Status</a>
         <a class="domain-page" href="settings.html">Settings</a>
       </div>
+      <div class="user-info">Current user: <%= username %></div>
 
       <div id="heatmap" class="diffa-heatmap" data-domain="<%= domain %>"></div>
 

@@ -47,6 +47,7 @@ abstract class ExternalRestClient(val serverRootUrl:String, val restResourceSubU
   config.getClasses().add(classOf[JacksonJsonProvider]);
   val client = Client.create(config)
   if (params.hasCredentials) {
+    client.removeAllFilters
     client.addFilter(new HTTPBasicAuthFilter(params.username.get, params.password.get))
   }
 

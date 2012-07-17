@@ -17,7 +17,6 @@ package net.lshift.diffa.agent.itest.credentials
 
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.CredentialsRestClient
-import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.kernel.frontend.{OutboundExternalHttpCredentialsDef, InboundExternalHttpCredentialsDef}
 import org.junit.runner.RunWith
@@ -27,6 +26,7 @@ import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
 @RunWith(classOf[Theories])
 class CredentialsConfigTest extends IsolatedDomainTest {
+  import CredentialsConfigTest.Scenario
 
   val client = new CredentialsRestClient(agentURL, isolatedDomain)
 
@@ -41,9 +41,10 @@ class CredentialsConfigTest extends IsolatedDomainTest {
   }
 }
 
-case class Scenario(inbound: InboundExternalHttpCredentialsDef, outbound: OutboundExternalHttpCredentialsDef)
 
 object CredentialsConfigTest {
+  private[CredentialsConfigTest] case class Scenario(inbound: InboundExternalHttpCredentialsDef,
+                                                     outbound: OutboundExternalHttpCredentialsDef)
 
   @DataPoint def basicAuth = Scenario(
     InboundExternalHttpCredentialsDef(url = "https://acme.com", key = "scott", value = "tiger", `type` = ExternalHttpCredentials.BASIC_AUTH),

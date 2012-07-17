@@ -33,7 +33,7 @@ abstract class IsolatedDomainTest {
   protected val systemConfig = new SystemConfigRestClient(agentURL)
 
   @Before
-  def declareDomain {
+  def setup {
     log.info("Creating domain: " + isolatedDomain)
     systemConfig.declareDomain(DomainDef(name = isolatedDomain))
   }

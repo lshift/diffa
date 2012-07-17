@@ -15,37 +15,47 @@
  */
 package net.lshift.diffa.agent.itest.auth
 
-import org.junit.Test
+import org.junit.{After, Before, Test}
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import net.lshift.diffa.kernel.frontend.UserDef
-import net.lshift.diffa.agent.client.{ScanningRestClient, SecurityRestClient}
+import net.lshift.diffa.kernel.frontend.{DomainDef, UserDef}
+import net.lshift.diffa.agent.client.{SystemConfigRestClient, ScanningRestClient, SecurityRestClient}
 import net.lshift.diffa.client.RestClientParams
 import org.junit.Assert._
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Integration test for token based authentication.
  */
 class TokenAuthTest {
   val securityClient = new SecurityRestClient(agentURL)
+  val systemClient = new SystemConfigRestClient(agentURL)
+  val emptyDomain = RandomStringUtils.randomAlphabetic(10)
+
+  @Before
+  def declareUserAndDomain {
+    securityClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
+    systemClient.declareDomain(DomainDef(name = emptyDomain))
+  }
+
+  @After
+  def cleanup {
+    systemClient.removeDomain(emptyDomain)
+  }
 
   @Test
   def shouldAllowUserToLoginWithToken() {
-    securityClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
-
     val token = securityClient.getUserToken("TokenUser")
-    val tokenScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(token = Some(token)))
+    val tokenScanningClient = new ScanningRestClient(agentURL, emptyDomain, RestClientParams(token = Some(token)))
     assertEquals(0, tokenScanningClient.getScanStatus.size)
   }
 
   @Test
   def shouldAllowUserTokenToBeRegenerated() {
-    securityClient.declareUser(UserDef(name = "TokenUser", email = "token@diffa.io", superuser = true, password = "password123"))
-
     val token = securityClient.getUserToken("TokenUser")
     securityClient.clearUserToken("TokenUser")
     val token2 = securityClient.getUserToken("TokenUser")
 
-    val badTokenScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(token = Some(token)))
+    val badTokenScanningClient = new ScanningRestClient(agentURL, emptyDomain, RestClientParams(token = Some(token)))
     try {
       badTokenScanningClient.getScanStatus.size
       fail("Should have thrown exception")
@@ -53,7 +63,7 @@ class TokenAuthTest {
       case ex => assertTrue(ex.getMessage.contains("Unauthorized"))
     }
 
-    val goodTokenScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(token = Some(token2)))
+    val goodTokenScanningClient = new ScanningRestClient(agentURL, emptyDomain, RestClientParams(token = Some(token2)))
     assertEquals(0, goodTokenScanningClient.getScanStatus.size)
   }
 }

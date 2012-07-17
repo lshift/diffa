@@ -16,13 +16,16 @@
 
 package net.lshift.diffa.client
 
-import org.apache.http.client.{HttpResponseException, HttpClient}
-import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.client.HttpResponseException
+import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
 import org.apache.http.client.methods.HttpGet
-import java.net.URI
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
 import org.slf4j.LoggerFactory
+import org.apache.http.HttpHost
+import org.apache.http.protocol.BasicHttpContext
+import org.apache.http.impl.auth.BasicScheme
+import org.apache.http.client.protocol.ClientContext
 
 class ApacheHttpClient(connectionTimeout: Int,
                         socketTimeout: Int) extends DiffaHttpClient {
@@ -36,6 +39,16 @@ class ApacheHttpClient(connectionTimeout: Int,
     new DefaultHttpClient(httpParams)
   }
 
+  private def basicAuthContext(targetHost: HttpHost): BasicHttpContext = {
+    val authCache = new BasicAuthCache
+    val basicAuth = new BasicScheme
+    authCache.put(targetHost, basicAuth)
+
+    val context = new BasicHttpContext
+    context.setAttribute(ClientContext.AUTH_CACHE, authCache)
+    context
+  }
+
   override def get(r : DiffaHttpQuery) = {
     val req = new HttpGet(r.fullUri)
     r.basicAuth.foreach { case (user, pass) =>
@@ -45,9 +58,11 @@ class ApacheHttpClient(connectionTimeout: Int,
       debugLog("Set credentials: %s/%s", user, pass)
     }
 
+    val uri = req.getURI
+    val targetHost = new HttpHost(uri.getHost, uri.getPort, uri.getScheme)
     debugLog("Request: %s", req.getURI)
     try {
-      val resp = client.execute(req)
+      val resp = client.execute(req, basicAuthContext(targetHost))
       debugLog("Statusline for %s: %s ", req.getURI, resp.getStatusLine.getStatusCode.toString)
 
       resp.getStatusLine.getStatusCode match {

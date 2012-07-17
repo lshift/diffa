@@ -22,7 +22,7 @@ import java.io.InputStream
  * 1) We have an easily mockable and relatively stateless interface for
  *   dealing with external HTTP-based services
  * 2) So that we can keep the technical details of dealing with the underlying
- * HTTP Library seperate from the diffa protocol logic.
+ * HTTP Library separate from the diffa protocol logic.
  *
  * This does still leak some of the underlying implementation detail, as
  * reading the InputStream can still throw exceptions, eg: if the stream is

@@ -20,20 +20,23 @@ import org.junit.Assert._
 import org.springframework.security.ldap.server.ApacheDSContainer
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.client.RestClientParams
-import net.lshift.diffa.kernel.frontend.UserDef
+import net.lshift.diffa.kernel.frontend.{DomainDef, UserDef}
 import java.io.File
 import org.apache.commons.io.FileUtils
 import net.lshift.diffa.agent.client.{ScanningRestClient, ConfigurationRestClient, SecurityRestClient, SystemConfigRestClient}
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Test cases for Diffa external authentication support.
  */
 class ExternalAuthTest {
+  val cleanDomain = RandomStringUtils.randomAlphabetic(10)
+
   val configClient = new SystemConfigRestClient(agentURL)
   val securityClient = new SecurityRestClient(agentURL)
   val externalAdminUsersClient = new SecurityRestClient(agentURL, RestClientParams(username = Some("External Admin"), password = Some("admin123")))
-  val externalAdminDomainConfigClient = new ConfigurationRestClient(agentURL, "diffa", RestClientParams(username = Some("External Admin"), password = Some("admin123")))
-  val externalUserScanningClient = new ScanningRestClient(agentURL, "diffa", RestClientParams(username = Some("External User"), password = Some("user123")))
+  val externalAdminDomainConfigClient = new ConfigurationRestClient(agentURL, cleanDomain, RestClientParams(username = Some("External Admin"), password = Some("admin123")))
+  val externalUserScanningClient = new ScanningRestClient(agentURL, cleanDomain, RestClientParams(username = Some("External User"), password = Some("user123")))
 
   // Not yet working, though there are some useful pieces in here.
   // The key thing that needs to be solved to make this work is to get the schema modifications adding the
@@ -86,17 +89,19 @@ class ExternalAuthTest {
     try {
       // Configure Diffa to use the LDAP server
       configClient.setConfigOptions(Map("ldap.url" -> url, "ldap.userdn.pattern" -> "cn={0}"))
+      configClient.declareDomain(DomainDef(cleanDomain))
 
       // Create an external admin
       securityClient.declareUser(UserDef(name = "External Admin", email = "external-admin@diffa.io", superuser = true, external = true))
 
-      // Create an internal user, and make it a member of the Diffa domain. We'll use our new external superuser to do it.
+      // Create an internal user, and make it a member of a domain. We'll use our new external superuser to do it.
       externalAdminUsersClient.declareUser(UserDef(name = "External User", email = "external-user@diffa.io", superuser = false, external = true))
       externalAdminDomainConfigClient.makeDomainMember("External User")
 
       // Try to make a call within the domain for the external user
       assertEquals(0, externalUserScanningClient.getScanStatus.size)
     } finally {
+      configClient.removeDomain(cleanDomain)
       ldapServer.destroy()
     }
   }
