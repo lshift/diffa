@@ -23,11 +23,12 @@ import net.lshift.diffa.kernel.frontend.{OutboundExternalHttpCredentialsDef, Inb
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import net.lshift.diffa.kernel.config.ExternalHttpCredentials
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
 @RunWith(classOf[Theories])
-class CredentialsConfigTest {
+class CredentialsConfigTest extends IsolatedDomainTest {
 
-  val client = new CredentialsRestClient(agentURL, domain)
+  val client = new CredentialsRestClient(agentURL, isolatedDomain)
 
   @Theory
   def credentialsShouldRoundTrip(scenario: Scenario) = {

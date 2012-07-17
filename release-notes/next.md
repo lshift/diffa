@@ -6,7 +6,8 @@
 
 ## New Features
 
-* [219] - The collation of entity and aggregate scan results are validated as part of the scan deserialization pipeline 
+* [226] - The API namespace /domains is deprecated in favor of /spaces. Use server side forwarding to provide short term backwards compatibility.
+* [219] - The collation of entity and aggregate scan results are validated as part of the scan deserialization pipeline
 
 ## General Maintenance
 

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE urlrewrite PUBLIC "-//tuckey.org//DTD UrlRewrite 4.0//EN"
+    "http://www.tuckey.org/res/dtds/urlrewrite4.0.dtd">
+
+<urlrewrite>
+
+  <!--
+
+    Forward deprecated domains nomenclature to current spaces nomenclature.
+    Note that this is a server side forward for now, this should get changed to an HTTP 301 at some stage.
+    In particular the URL(re)encoding that is performed on ingress URLencoded elements is pretty dodgy.
+
+    ([a-z0-9][a-z0-9-_]*) is the (as yet) not enforced standard for a (domain) space name
+
+  -->
+
+  <rule>
+
+    <!-- Make sure that URLs that contain encoded URLs themselves are correctly re-encoded when forwarded -->
+
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/credentials/(http[s]?://.*)</from>
+    <to type="forward" last="true">/spaces/$1/credentials/${escape:utf8:$2}</to>
+
+  </rule>
+
+  <rule>
+
+    <!-- Allow spaces in user names -->
+
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/config/members/(.*)</from>
+    <to type="forward" last="true">/spaces/$1/config/members/${replace:$2: :%20}</to>
+
+  </rule>
+
+  <!-- Allow spaces in repair action and escalation names -->
+
+  <rule>
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/actions/([a-z0-9][a-z0-9-_]*)/(.*)/([a-z0-9][a-z0-9-_]*)</from>
+    <to type="forward" last="true">/spaces/$1/actions/$2/${replace:$3: :%20}/$4</to>
+  </rule>
+
+  <rule>
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/actions/([a-z0-9][a-z0-9-_]*)/(.*)</from>
+    <to type="forward" last="true">/spaces/$1/actions/$2/${replace:$3: :%20}</to>
+  </rule>
+
+  <rule>
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/config/pairs/([a-z0-9][a-z0-9-_]*)/repair-actions/(.*)</from>
+    <to type="forward" last="true">/spaces/$1/config/pairs/$2/repair-actions/${replace:$3: :%20}</to>
+  </rule>
+
+  <rule>
+    <from>^/domains/([a-z0-9][a-z0-9-_]*)/config/pairs/([a-z0-9][a-z0-9-_]*)/escalations/(.*)</from>
+    <to type="forward" last="true">/spaces/$1/config/pairs/$2/escalations/${replace:$3: :%20}</to>
+  </rule>
+
+  <rule>
+
+    <!--
+      Only match on URLs that start with /domains, since other URLs that contain domains
+      are not exposed to non-root clients.
+    -->
+
+    <from>^/domains/</from>
+    <to type="forward">/spaces/</to>
+
+  </rule>
+
+</urlrewrite>

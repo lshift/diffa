@@ -23,6 +23,7 @@ import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
+import net.lshift.diffa.schema.tables.ExternalHttpCredentials.EXTERNAL_HTTP_CREDENTIALS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
@@ -81,6 +82,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
   def deleteDomain(domain:String) = {
 
     jooq.execute(t => {
+      t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.DOMAIN.equal(domain)).execute()
       t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.DOMAIN.equal(domain)).execute()
       t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.DOMAIN.equal(domain)).execute()
       t.delete(SET_CATEGORIES).where(SET_CATEGORIES.DOMAIN.equal(domain)).execute()

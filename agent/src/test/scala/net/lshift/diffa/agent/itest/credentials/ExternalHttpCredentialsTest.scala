@@ -16,8 +16,8 @@
 package net.lshift.diffa.agent.itest.credentials
 
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import org.junit.Test
-import net.lshift.diffa.agent.client.{ConfigurationRestClient, ScanningRestClient, CredentialsRestClient}
+import org.junit.{After, Before, Test}
+import net.lshift.diffa.agent.client.{SystemConfigRestClient, ConfigurationRestClient, ScanningRestClient, CredentialsRestClient}
 import net.lshift.diffa.participants.{BasicAuthenticationMechanism, ParticipantRpcServer}
 import javax.servlet.http.HttpServletRequest
 import com.eaio.uuid.UUID
@@ -26,16 +26,16 @@ import net.lshift.diffa.agent.itest.support.ScanningHelper
 import net.lshift.diffa.kernel.differencing.PairScanState
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.scanning._
-import net.lshift.diffa.kernel.frontend.{InboundExternalHttpCredentialsDef, PairDef, EndpointDef}
+import net.lshift.diffa.kernel.frontend.{DomainDef, InboundExternalHttpCredentialsDef, PairDef, EndpointDef}
 import net.lshift.diffa.kernel.config.ExternalHttpCredentials
+import org.slf4j.LoggerFactory
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
-class ExternalHttpCredentialsTest {
+class ExternalHttpCredentialsTest extends IsolatedDomainTest {
 
-  val credentialsClient = new CredentialsRestClient(agentURL, domain)
-  val scanClient = new ScanningRestClient(agentURL, domain)
-  val configClient = new ConfigurationRestClient(agentURL, domain)
-
-
+  val credentialsClient = new CredentialsRestClient(agentURL, isolatedDomain)
+  val scanClient = new ScanningRestClient(agentURL, isolatedDomain)
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
 
   @Test
   def shouldUseExternalCredentialsForScan = {

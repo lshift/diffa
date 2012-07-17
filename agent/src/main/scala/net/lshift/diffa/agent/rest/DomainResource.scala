@@ -36,7 +36,12 @@ import net.lshift.diffa.kernel.config.{DomainCredentialsManager, User, DomainCon
 import net.lshift.diffa.kernel.config.system.CachedSystemConfigStore
 import net.lshift.diffa.kernel.limiting.DomainRateLimiterFactory
 
-@Path("/domains/{domain}")
+/**
+ * The policy is that we will publish spaces as the replacement term for domains
+ * but to avoid having to refactor a bunch of of code straight away, we'll just change
+ * the path specification from /domains to /spaces and implement a redirect.
+ */
+@Path("/spaces/{domain}")
 @Component
 @PreAuthorize("hasPermission(#domain, 'domain-user')")
 class DomainResource {

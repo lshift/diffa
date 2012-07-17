@@ -107,6 +107,10 @@
       <artifactId>jersey-spring</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.tuckey</groupId>
+      <artifactId>urlrewritefilter</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>stringtemplate</artifactId>
     </dependency>
@@ -462,7 +466,7 @@
       <extension>
         <groupId>org.springframework.build.aws</groupId>
         <artifactId>org.springframework.build.aws.maven</artifactId>
-        <version>3.0.0.RELEASE</version>
+        <version>${spring.version}</version>
       </extension>
     </extensions>
 
