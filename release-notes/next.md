@@ -12,7 +12,8 @@
 
 ## General Maintenance
 
-* [229] - Addressed a regression whereby ignoring a difference in the UI did have immediate effect.
+* [228] - The underlying client used by the Scan Participant REST client was inappropriately re-used, causing all but the first scan to fail.
+* [229] - Addressed a regression whereby ignoring a difference in the UI did not have immediate effect.
 
 ## Library Upgrades
 

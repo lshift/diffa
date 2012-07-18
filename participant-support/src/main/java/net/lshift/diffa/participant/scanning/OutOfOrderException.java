@@ -22,7 +22,7 @@ package net.lshift.diffa.participant.scanning;
  */
 public class OutOfOrderException extends RuntimeException {
 
-  public OutOfOrderException(String previous, String current) {
+  public OutOfOrderException(String current, String previous) {
     super("The id " + current + " was added after " + previous);
   }
 }

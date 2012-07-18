@@ -16,23 +16,25 @@
 
 package net.lshift.diffa.client
 
-import org.apache.http.client.HttpResponseException
 import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
 import org.slf4j.LoggerFactory
-import org.apache.http.HttpHost
+import org.apache.http.{HttpResponse, HttpHost}
 import org.apache.http.protocol.BasicHttpContext
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.client.protocol.ClientContext
+import net.lshift.diffa.kernel.util.AlertCodes._
+import net.lshift.diffa.kernel.util.AlertCodes
+import net.lshift.diffa.kernel.differencing.ScanFailedException
 
 class ApacheHttpClient(connectionTimeout: Int,
                         socketTimeout: Int) extends DiffaHttpClient {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
-  lazy val client = {
+  def newClient = {
     val httpParams = new BasicHttpParams
     HttpConnectionParams.setConnectionTimeout(httpParams,connectionTimeout)
     HttpConnectionParams.setSoTimeout(httpParams, socketTimeout)
@@ -49,38 +51,36 @@ class ApacheHttpClient(connectionTimeout: Int,
     context
   }
 
-  override def get(r : DiffaHttpQuery) = {
+  override def get(r : DiffaHttpQuery, parser: JsonScanResultParser) = {
+    val client = newClient
     val req = new HttpGet(r.fullUri)
     r.basicAuth.foreach { case (user, pass) =>
       client.getCredentialsProvider.setCredentials(
         new AuthScope(r.fullUri.getHost, r.fullUri.getPort),
         new UsernamePasswordCredentials(user, pass))
-      debugLog("Set credentials: %s/%s", user, pass)
     }
 
     val uri = req.getURI
     val targetHost = new HttpHost(uri.getHost, uri.getPort, uri.getScheme)
-    debugLog("Request: %s", req.getURI)
+    var resp: HttpResponse = null
     try {
-      val resp = client.execute(req, basicAuthContext(targetHost))
-      debugLog("Statusline for %s: %s ", req.getURI, resp.getStatusLine.getStatusCode.toString)
+      resp = client.execute(req, basicAuthContext(targetHost))
 
       resp.getStatusLine.getStatusCode match {
-        case code: Int if (200 to 299) contains code => Right(resp.getEntity.getContent)
+        case code: Int if (200 to 299) contains code =>
+          parser.parse(resp.getEntity.getContent)
         case code =>
-          resp.getEntity.getContent.close()
-          logger.warn("Query for URI: %s returned %s", resp.getStatusLine)
-          Left(new HttpResponseException(code, resp.getStatusLine.getReasonPhrase))
+          logger.warn("%s - Query for URI: %s returned %s".format(
+            formatAlertCode(AlertCodes.EXTERNAL_SCAN_ERROR), r.fullUri, resp.getStatusLine))
+          throw new ScanFailedException("%d - %s".format(code, resp.getStatusLine.getReasonPhrase))
       }
-
-    } catch {
-      case e: Throwable => Left(e)
+    } finally {
+      try {
+        resp.getEntity.getContent.close()
+      } catch {
+        case _ =>
+      }
+      client.getConnectionManager.shutdown()
     }
   }
-
-  private def debugLog(format: String, args: AnyRef*) = {
-    if (logger.isDebugEnabled)
-      logger.debug(format, args)
-  }
-
 }

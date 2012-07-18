@@ -25,20 +25,25 @@ import org.hamcrest.Matchers._
 import scala.collection.JavaConversions._
 import java.net.{ConnectException, URI}
 import org.apache.commons.codec.binary.Base64
-import java.io.{IOException, InputStream, InputStreamReader, BufferedReader}
-import org.apache.http.client.HttpResponseException
+import java.io.InputStream
+import net.lshift.diffa.participant.scanning.ScanResultEntry
+import net.lshift.diffa.kernel.differencing.ScanFailedException
 
 class ApacheHttpClientTest {
   import ApacheHttpClientTest._
 
   val client: DiffaHttpClient = new ApacheHttpClient(0, 0)
+  val parserResult = Seq[ScanResultEntry]()
+  val parser = new JsonScanResultParser {
+    def parse(stream: InputStream) = parserResult
+  }
 
   @Before def reset { ApacheHttpClientTest.reset }
 
   @Test
   def makesCorrectRequestToServer {
     val req = DiffaHttpQuery(baseUrl + "foo").withQuery(Map("name" -> List("param")))
-    client.get(req)
+    client.get(req, parser)
 
     assertThat[Option[URI]](
         lastRequest.map(_.fullUri), is(Some(new URI("/foo?name=param")).asInstanceOf[Option[URI]]))
@@ -46,46 +51,42 @@ class ApacheHttpClientTest {
 
   @Test
   def makesCorrectRequestToServerWithQueryParameters {
-    val req = DiffaHttpQuery(baseUrl + "foo?from=baseUri").withQuery(Map("name" -> List("param")))
-    client.get(req)
-    val expected: Option[DiffaHttpQuery] = Some(DiffaHttpQuery("/foo").withQuery(Map("from" -> List("baseUri"), "name" -> List("param"))))
+    val (resource, p1, v1, p2, v2) = ("foo", "from", "baseUri", "name", "param")
+
+    val req = DiffaHttpQuery(baseUrl + "%s?%s=%s".format(resource, p1, v1)).withQuery(Map(p2 -> List(v2)))
+    client.get(req, parser)
+    val expected: Option[DiffaHttpQuery] = Some(DiffaHttpQuery("/%s".format(resource)).withQuery(Map(p1 -> List(v1), p2 -> List(v2)))
+    )
 
     assertThat(lastRequest, is(expected))
   }
 
-
   @Test
   def shouldIncludeBasicAuthWhenSpecified {
     val req = DiffaHttpQuery(baseUrl + "auth").withBasicAuth("user", "password")
-    client.get(req)
+    try {
+      client.get(req, parser)
+    } catch { case _ => }
     val expected: Option[(String, String)] = Some(("user", "password"))
     assertThat(lastRequest.flatMap(_.basicAuth), equalTo(expected))
-
   }
 
-
-  def readLine: InputStream => String = { s =>
-    new BufferedReader(new InputStreamReader(s)).readLine()
-  }
   @Test
-  def shouldReturnInputStreamOfBodyContentOnSuccess {
-
-    val response = client.get(DiffaHttpQuery(baseUrl)).right.map (readLine)
-    val expected: Either[Throwable, String] = Right(responseString)
+  def shouldReturnParsedBodyOnSuccess {
+    val response = client.get(DiffaHttpQuery(baseUrl), parser)
+    val expected = parserResult
     assertThat(response, equalTo(expected))
   }
-  @Test
+
+  @Test(expected = classOf[ConnectException])
   def shouldReturnErrorOnConnectionError {
-    // I'm hoping, at least.
     val queryForNonListeningServer = DiffaHttpQuery("http://127.0.0.1:%d/".format(0xffff))
-    val response = client.get(queryForNonListeningServer)
-    assertThat(response.left.get, instanceOf(classOf[ConnectException]))
+    client.get(queryForNonListeningServer, parser)
   }
 
-  @Test
-  def shouldReturnErrorOn4xxStatus {
-    val response = client.get(DiffaHttpQuery(baseUrl + "400"))
-    assertThat(response.left.get, instanceOf(classOf[HttpResponseException] ) )
+  @Test(expected = classOf[ScanFailedException])
+  def shouldThrowScanFailedOn4xxStatus {
+    client.get(DiffaHttpQuery(baseUrl + "400"), parser)
   }
 }
 
@@ -118,7 +119,7 @@ object ApacheHttpClientTest {
     // also writable as: val query = DiffaHttpQuery(request.getPathInfo).withQuery(queryParams);
     // val queryWithAuth = auth.foldLeft(query) { case (query, (u, p)) => query.withBasicAuth(u, p) }
     val query = (DiffaHttpQuery(request.getPathInfo).withQuery(queryParams) /: auth) {
-      case (query, (u, p)) => query.withBasicAuth(u, p)
+      case (query, (username, password)) => query.withBasicAuth(username, password)
     }
 
     lastRequest = Some(query)

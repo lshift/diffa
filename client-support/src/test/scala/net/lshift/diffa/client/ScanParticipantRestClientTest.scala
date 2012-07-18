@@ -19,7 +19,7 @@ package net.lshift.diffa.client
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.config._
 import org.junit.Test
-import java.io.{InputStream, ByteArrayInputStream}
+import java.io.ByteArrayInputStream
 import org.junit.Assert._
 import org.hamcrest.CoreMatchers._
 import net.lshift.diffa.participant.scanning.{ScanConstraint, StringPrefixConstraint, ScanResultEntry}
@@ -31,62 +31,46 @@ import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.config.QueryParameterCredentials
 import net.lshift.diffa.kernel.config.BasicAuthCredentials
 import net.lshift.diffa.kernel.participants.StringPrefixCategoryFunction
-import org.junit.experimental.theories.{DataPoint, Theories, Theory}
-import org.junit.runner.RunWith
 
 class ScanParticipantRestClientTest {
+  final val JSON = "application/json"
+  final val pair = DiffaPairRef("key", "domain")
+  final val scanUrl = "http://dummy/url"
+
   lazy val httpClient =  createMock(classOf[DiffaHttpClient])
   lazy val credentialsLookup = createMock(classOf[DomainCredentialsLookup])
 
   lazy val parser = createMock(classOf[JsonScanResultParser])
-  val pair = DiffaPairRef("key", "domain")
-  val scanUrl = "http://dummy/url"
+  lazy val nullQuery = Map[String, Seq[String]]()
 
-  val JSON = "application/json"
+  lazy val scanQuery = DiffaHttpQuery(scanUrl).accepting(JSON)
   val nullAggregations: scala.Seq[CategoryFunction] = Seq()
   val nullConstraints: scala.Seq[ScanConstraint] = Seq()
 
-
-
-  lazy val scanningParticipant = {
-    new ScanParticipantRestClient(pair, scanUrl, credentialsLookup, httpClient, parser)
-  }
+  lazy val scanningParticipant = new ScanParticipantRestClient(pair, scanUrl, credentialsLookup, httpClient, parser)
 
   val emptyResponseContent = "[]" + " " * 40
-
   lazy val emptyResponse = new ByteArrayInputStream(emptyResponseContent.getBytes("UTF8"))
-
-
-  lazy val nullQuery = Map[String, Seq[String]]()
-
-  lazy val scanQuery = DiffaHttpQuery(scanUrl).
-    accepting(JSON)
+  val parserResult = Seq[ScanResultEntry]()
 
   lazy val sampleConstraints: Seq[ScanConstraint] = Seq(new StringPrefixConstraint("property", "thePrefix"))
   lazy val sampleAggregations: Seq[CategoryFunction] = Seq(new StringPrefixCategoryFunction("property", 1, 2, 3))
 
-  val nullResponse = Right(emptyResponse): Either[Throwable, InputStream]
-
   @Test
   def participantShouldMakeGetRequestOnScan {
-
-    expect(httpClient.get(scanQuery)).andReturn(nullResponse)
+    expect(httpClient.get(scanQuery, parser)).andReturn(parserResult)
     replay(httpClient)
     expectingNullCredentials()
 
-    scanningParticipant.scan(Seq(), Seq())
+    scanningParticipant.scan(nullConstraints, nullAggregations)
     verify(httpClient)
   }
 
-
   @Test
   def participantShouldMakeGetRequestWithAggregationsOnScan {
-    val nullResponse = Right(emptyResponse): Either[Throwable, InputStream]
-    val query = scanQuery.withAggregations(sampleAggregations).
-      withConstraints(sampleConstraints)
+    val query = scanQuery.withAggregations(sampleAggregations).withConstraints(sampleConstraints)
 
-
-    expect(httpClient.get(query)).andReturn(nullResponse)
+    expect(httpClient.get(query, parser)).andReturn(parserResult)
     replay(httpClient)
     expectingNullCredentials()
 
@@ -95,30 +79,16 @@ class ScanParticipantRestClientTest {
   }
 
   @Test
-  def participantParsesResponse {
-    expect(httpClient.get(scanQuery)).andStubReturn(Right(emptyResponse))
-    expect(parser.parse(emptyResponse)).andReturn(Seq())
-    replay(httpClient, parser)
-    expectingNullCredentials()
-
-    scanningParticipant.scan(nullConstraints, nullAggregations)
-    verify(parser)
-  }
-
-
-  @Test
   def participantReturnsParsedResponse {
     val entities = Seq(ScanResultEntry.forEntity("id", "version", DateTime.now()))
 
-    expect(httpClient.get(scanQuery)).andStubReturn(Right(emptyResponse))
-    expect(parser.parse(emptyResponse)).andReturn(entities)
-    replay(httpClient, parser)
+    expect(httpClient.get(scanQuery, parser)).andStubReturn(entities)
+    replay(httpClient)
     expectingNullCredentials()
 
     assertThat(scanningParticipant.scan(nullConstraints, nullAggregations),
       equalTo(entities))
   }
-
 
   @Test(expected= classOf[ScanFailedException])
   def shouldHandleConnectExceptionsAndRethrow {
@@ -140,38 +110,28 @@ class ScanParticipantRestClientTest {
   def shouldHandleSocketTimeoutExceptionsAndRethrow {
     expectHttpError(new SocketTimeoutException())
     expectingNullCredentials()
+
     scanningParticipant.scan(nullConstraints, nullAggregations)
   }
 
-
-  def expectHttpError(ex: Throwable) {
-    expect(httpClient.get(scanQuery)).andStubReturn(Left(ex))
-    replay(httpClient)
-  }
-
-  def expectingNullCredentials() : Unit = {
-    expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))) andReturn(None)
-    replay(credentialsLookup)
-  }
-
-
   @Test
-  def shouldQueryForAuthMechanism = {
-    expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))) andReturn(None)
-    expect(httpClient.get(anyObject())) andStubReturn(nullResponse)
+  def shouldQueryForAuthMechanism {
+    expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))).andReturn(None)
+    expect(httpClient.get(anyObject(), anyObject())).andStubReturn(parserResult)
 
     replay(credentialsLookup, httpClient)
 
     scanningParticipant.scan(nullConstraints, nullAggregations)
-    verify(credentialsLookup)
+    verify(credentialsLookup, httpClient)
   }
+
   @Test
   def itAddsQueryParameterCredentialsToTheRequest {
     val credentials = QueryParameterCredentials("fred",  "foobar")
     expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))) andReturn(Some(credentials))
 
     val expectedQuery = scanQuery.withQuery(Map(credentials.name -> Seq(credentials.value)))
-    expect(httpClient.get(expectedQuery)) andReturn(nullResponse)
+    expect(httpClient.get(expectedQuery, parser)) andReturn(parserResult)
 
     replay(credentialsLookup, httpClient)
 
@@ -184,10 +144,20 @@ class ScanParticipantRestClientTest {
     expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))) andReturn(Some(credentials))
 
     val expectedQuery = scanQuery.withBasicAuth(credentials.username, credentials.password)
-    expect(httpClient.get(expectedQuery)) andReturn(nullResponse)
+    expect(httpClient.get(expectedQuery, parser)) andReturn(parserResult)
 
     replay(credentialsLookup, httpClient)
 
     scanningParticipant.scan(nullConstraints, nullAggregations)
+  }
+
+  private def expectHttpError(ex: Throwable) {
+    expect(httpClient.get(scanQuery, parser)).andStubThrow(ex)
+    replay(httpClient)
+  }
+
+  private def expectingNullCredentials() {
+    expect(credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))).andReturn(None)
+    replay(credentialsLookup)
   }
 }

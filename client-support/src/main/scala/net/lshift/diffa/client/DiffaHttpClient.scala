@@ -15,7 +15,8 @@
  */
 package net.lshift.diffa.client
 
-import java.io.InputStream
+import java.io.IOException
+import net.lshift.diffa.participant.scanning.ScanResultEntry
 
 /**
  * DiffaHttpClient acts as an anti-corruption-layer so that:
@@ -30,6 +31,7 @@ import java.io.InputStream
  */
 
 trait DiffaHttpClient {
-  def get(query:DiffaHttpQuery) : Either[Throwable, InputStream]
+  @throws(classOf[IOException])
+  def get(query:DiffaHttpQuery, parser: JsonScanResultParser): Seq[ScanResultEntry]
 
 }

@@ -26,9 +26,7 @@ import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.config.QueryParameterCredentials
 import net.lshift.diffa.kernel.config.BasicAuthCredentials
-import scala.Right
 import scala.Some
-import scala.Left
 
 class ScanParticipantRestClient(pair: DiffaPairRef,
                                 scanUrl: String,
@@ -51,9 +49,11 @@ class ScanParticipantRestClient(pair: DiffaPairRef,
       case Some(BasicAuthCredentials(user, password)) => query.withBasicAuth(user, password)
       case Some(QueryParameterCredentials(name, value)) => query.withQuery(Map(name -> Seq(value)))
     }
-    this.httpClient.get(queryWithCredentials) match {
-      case Right(stream) => parser.parse(stream)
-      case Left(ex) => handleHttpError(ex, queryWithCredentials)
+
+    try {
+      this.httpClient.get(queryWithCredentials, parser)
+    } catch {
+      case ex => handleHttpError(ex, queryWithCredentials)
     }
   }
 
