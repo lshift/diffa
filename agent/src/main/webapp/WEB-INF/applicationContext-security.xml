@@ -35,6 +35,15 @@
     <intercept-url pattern="/images/**" access="permitAll" />
     <intercept-url pattern="/assets/**" access="permitAll" />
     <intercept-url pattern="/**/*.html" access="permitAll" />
+    <!-- 
+	As an aside, with the SavedRequestAwareAuthenticationSuccessHandler, the
+	auth/auth system will remember the last URL requested, and redirect back to
+	the remembered URL once the user has successfully authenticated. This
+	includes resources such as stylesheets and favicons too; so without this, the
+	first time a user logs in with a fresh browser session, the user would
+	sometimes be redirected to the favicon.
+    -->
+    <intercept-url pattern="/favicon.ico" access="permitAll" />
 
     <!-- All operations within the interface require a user role -->
     <intercept-url pattern="/**" access="hasRole('user')" />
