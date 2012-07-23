@@ -460,34 +460,42 @@ case class PairActor(pair:DomainPairDef,
 
       diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, infoMsg)
 
-      Future {
-        try {
-          policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
-          self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
-          logger.info(formatAlertCode(pairRef, UPSTREAM_SCAN_COMPLETED_BENCHMARK))
-        }
-        catch {
-          case c:ScanCancelledException => {
-            logger.warn("Upstream scan on pair %s was cancelled".format(pair.identifier))
-            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Cancellation)
+      if (us.supportsScanning) {
+        Future {
+          try {
+            policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
+            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
+            logger.info(formatAlertCode(pairRef, UPSTREAM_SCAN_COMPLETED_BENCHMARK))
           }
-          case x:Exception              => handleScanError(self, createdScan.uuid, Up, x)
+          catch {
+            case c:ScanCancelledException => {
+              logger.warn("Upstream scan on pair %s was cancelled".format(pair.identifier))
+              self ! ChildActorCompletionMessage(createdScan.uuid, Up, Cancellation)
+            }
+            case x:Exception              => handleScanError(self, createdScan.uuid, Up, x)
+          }
         }
+      } else {
+        createdScan.upstreamCompleted = true
       }
 
-      Future {
-        try {
-          policy.scanDownstream(pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
-          self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
-          logger.info(formatAlertCode(pairRef, DOWNSTREAM_SCAN_COMPLETED_BENCHMARK))
-        }
-        catch {
-          case c:ScanCancelledException => {
-            logger.warn("Downstream scan on pair %s was cancelled".format(pair.identifier))
-            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Cancellation)
+      if (ds.supportsScanning) {
+        Future {
+          try {
+            policy.scanDownstream(pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
+            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
+            logger.info(formatAlertCode(pairRef, DOWNSTREAM_SCAN_COMPLETED_BENCHMARK))
           }
-          case x:Exception              => handleScanError(self, createdScan.uuid, Down, x)
+          catch {
+            case c:ScanCancelledException => {
+              logger.warn("Downstream scan on pair %s was cancelled".format(pair.identifier))
+              self ! ChildActorCompletionMessage(createdScan.uuid, Down, Cancellation)
+            }
+            case x:Exception              => handleScanError(self, createdScan.uuid, Down, x)
+          }
         }
+      } else {
+        createdScan.downstreamCompleted = true
       }
 
       // Mark the initiated scan as active and outstanding. We don't record this until the end because something

@@ -174,6 +174,10 @@ case class Endpoint(
     case AsciiCollationOrdering.name => AsciiCollationOrdering
   }
 
+  /**
+   * Inidication of whether scanning is supported by the given endpoint.
+   */
+  def supportsScanning = scanUrl != null && scanUrl.length() > 0
 }
 case class EndpointView(
   @BeanProperty var name:String = null,

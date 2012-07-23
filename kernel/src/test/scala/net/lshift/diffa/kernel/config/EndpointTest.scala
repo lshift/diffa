@@ -81,6 +81,16 @@ class EndpointTest {
     assertEquals(AsciiCollationOrdering, ep.lookupCollation)
 
   }
+
+  @Test def shouldIndicateEndpointWithNoScanUrlDoesNotSupportScanning() {
+    assertFalse(new Endpoint(scanUrl = null).supportsScanning)
+  }
+  @Test def shouldIndicateEndpointWithEmptyScanUrlDoesNotSupportScanning() {
+    assertFalse(new Endpoint(scanUrl = "").supportsScanning)
+  }
+  @Test def shouldIndicateEndpointWithNonEmptyScanUrlSupportsScanning() {
+    assertTrue(new Endpoint(scanUrl = "http://example.com/scan").supportsScanning)
+  }
 }
 
 object EndpointTest {
