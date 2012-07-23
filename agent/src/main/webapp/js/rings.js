@@ -266,8 +266,32 @@ $('.diffa-rings').each(function() {
 
 $('.diffa-ringset').each(function() {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
-
+  var zoomHref = $(this).data('zoom-href');
+  var zoomInLightbox = !!$(this).data('zoom-with-lightbox');
+  
   new Diffa.Views.RingSet({el: $(this), model: domain});
+  if (zoomHref) {
+    $(this).bind('ring-clicked', function(e, details) {
+      var targetUrl = zoomHref + '?domain=' + domain.id + '&pair=' + details.pair;
+      if (details.startTime) {
+        targetUrl += "&startTime=" + Diffa.Helpers.DatesHelper.toISOString(details.startTime);
+      }
+      if (details.endTime) {
+        targetUrl += "&endTime=" + Diffa.Helpers.DatesHelper.toISOString(details.endTime);
+      }
+
+      if (!zoomInLightbox) {
+        window.location = targetUrl;
+      } else {
+        $.colorbox({
+          iframe: true,
+          href: targetUrl,
+          width: '90%',
+          height: '90%'
+        });
+      }
+    });
+  }
   
   domain.loadAll(['pairs'], function() {});
 });

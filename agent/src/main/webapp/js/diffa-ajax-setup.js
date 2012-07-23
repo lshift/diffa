@@ -34,6 +34,10 @@ function addAuthToken(path) {
 
 $.ajaxSetup({
   beforeSend: function(jqXHR, settings) {
-    settings.url = API_BASE + addAuthToken(settings.url);
+    if (settings.url[0] == '/') {
+      settings.url = API_BASE + addAuthToken(settings.url);
+    } else {
+      settings.url = API_BASE + '/' + addAuthToken(settings.url);
+    }
   }
 });

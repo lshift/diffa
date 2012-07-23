@@ -31,7 +31,9 @@ var colours = {
 Diffa.Routers.Blobs = Backbone.Router.extend({
   routes: {
     "":                             "index",     // #
-    "blobs/:pair/:start-:end":      "viewBlob"   // # blobs/WEB-1/20110801134500/3600/5
+    "blobs/:pair/:start-:end":      "viewBlob",  // # blobs/WEB-1/20110801T134500Z-20110801T134500Z
+    "blobs/:pair/-:end":            "viewBlobEnd",  // # blobs/WEB-1/-20110801T134500Z
+    "blobs/:pair/:start-":          "viewBlobStart"  // # blobs/WEB-1/20110801T134500Z-
   },
 
   initialize: function(opts) {
@@ -39,7 +41,7 @@ Diffa.Routers.Blobs = Backbone.Router.extend({
     this.domain = opts.domain;
 
     opts.el.on('blob:selected', function(event, selectedPair, startTime, endTime) {
-      self.navigate("blobs/" + selectedPair + '/' + startTime + '-' + endTime, true);
+      self.navigateBlob(selectedPair, startTime, endTime);
     });
   },
 
@@ -49,6 +51,16 @@ Diffa.Routers.Blobs = Backbone.Router.extend({
   viewBlob: function(pairKey, start, end) {
     // Currently, only the Diff list displays selection. When #320 is done, this will also need to inform the heatmap.
     this.domain.diffs.select(pairKey, start, end);
+  },
+  viewBlobEnd: function(pairKey, end) {
+    this.viewBlob(pairKey, null, end);
+  },
+  viewBlobStart: function(pairKey, start) {
+    this.viewBlob(pairKey, start, null);
+  },
+
+  navigateBlob: function(pair, startTime, endTime) {
+    this.navigate("blobs/" + pair + '/' + startTime + '-' + endTime, true);
   }
 });
 
@@ -138,12 +150,28 @@ Diffa.Models.HeatmapProjection = Backbone.Model.extend(Diffa.Collections.Watchab
   },
 
   getSwimlaneLabels: function() {
-    return this.aggregates.pluck('pair');
+    if (this.aggregates.containsMultiplePairs) {
+      return this.aggregates.pluck('pair');
+    } else {
+      return [this.aggregates.id];
+    }
+  },
+
+  aggregatesForRow: function(row) {
+    if (this.aggregates.containsMultiplePairs && this.aggregates.length > row) {
+      return this.aggregates.at(row);
+    } else if (!this.aggregates.containsMultiplePairs && row == 0) {
+      return this.aggregates;
+    } else {
+      return null;
+    }
   },
 
   getRow: function(row) {
-    if (this.aggregates.length > row) {
-      var pairAggs = this.aggregates.at(row).get('map') || [];
+    var rowAggs = this.aggregatesForRow(row);
+
+    if (rowAggs) {
+      var pairAggs = rowAggs.get('map') || [];
       var bucketCount = this.get('bucketCount');
 
       // Determine how many buckets different the projection is to the currently loaded data
@@ -171,16 +199,20 @@ Diffa.Models.HeatmapProjection = Backbone.Model.extend(Diffa.Collections.Watchab
   },
 
   getLeftCount: function(row) {
-    if (this.aggregates.length > row) {
-      return (this.aggregates.at(row).get('left') || [0])[0];
+    var rowAggs = this.aggregatesForRow(row);
+
+    if (rowAggs) {
+      return (rowAggs.get('left') || [0])[0];
     } else {
       return 0;
     }
   },
 
   getRightCount: function(row) {
-    if (this.aggregates.length > row) {
-      return (this.aggregates.at(row).get('right') || [0])[0];
+    var rowAggs = this.aggregatesForRow(row);
+
+    if (rowAggs) {
+      return (rowAggs.get('right') || [0])[0];
     } else {
       return 0;
     }
@@ -314,11 +346,12 @@ Diffa.Collections.Diffs = Diffa.Collections.CollectionBase.extend({
     if (this.range == null) {
       this.reset([]);
     } else {
-      var url = "/domains/" + self.domain.id + "/diffs?pairKey=" + this.range.pairKey + "&range-start="
-          + this.range.start + "&range-end=" + this.range.end
-          + "&offset=" + (this.page * this.listSize) + "&length=" + this.listSize;
+      var url = "/domains/" + self.domain.id + "/diffs?pairKey=" + this.range.pairKey +
+                  "&offset=" + (this.page * this.listSize) + "&length=" + this.listSize;
+      if (this.range.start && this.range.start.length > 0) url += "&range-start=" + this.range.start;
+      if (this.range.end && this.range.end.length > 0) url += "&range-end=" + this.range.end;
 
-      $.get(url, function(data) {
+    $.get(url, function(data) {
         if (!force && data.seqId == self.lastSeqId) return;
 
         var diffs = _.map(data.diffs, function(diffEl) { diffEl.id = diffEl.seqId; return diffEl; });
@@ -432,7 +465,7 @@ Diffa.Views.Heatmap = Backbone.View.extend(Diffa.Helpers.Viz).extend({
 
   highlighted: null,
 
-  initialize: function() {
+  initialize: function(opts) {
     _.bindAll(this, "render", "update", "pollAndUpdate", "mouseUp", "mouseMove", "mouseDown");
 
     $(document).mouseup(this.mouseUp);
@@ -441,6 +474,10 @@ Diffa.Views.Heatmap = Backbone.View.extend(Diffa.Helpers.Viz).extend({
     this.model.watch($(this.el));
 
     this.model.bind('change:buckets', this.update);
+
+    if (opts.pair) {
+      this.minRows = 1;
+    }
 
     this.render();
     this.zoomControls = new Diffa.Views.ZoomControls({el: this.$('.heatmap-controls'), model: this.model});
@@ -1215,7 +1252,17 @@ function nearestHour() {
 
 $('.diffa-heatmap').each(function() {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
-  new Diffa.Views.Heatmap({el: $(this), model: new Diffa.Models.HeatmapProjection({aggregates: domain.aggregates})});
+  var pair = $(this).data('pair');
+
+  if (pair == null) {
+    new Diffa.Views.Heatmap({el: $(this), model: new Diffa.Models.HeatmapProjection({aggregates: domain.aggregates})});
+  } else {
+    new Diffa.Views.Heatmap({
+      el: $(this),
+      pair: pair,
+      model: new Diffa.Models.HeatmapProjection({aggregates: domain.aggregates.forPair(pair)})
+    });
+  }
 });
 $('.diffa-difflist').each(function() {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
@@ -1232,8 +1279,14 @@ $('.diffa-contentinspector').each(function() {
 
 $('.diffa-heatmap-page').each(function() {
   var domain = Diffa.DomainManager.get($(this).data('domain'));
-
-  new Diffa.Routers.Blobs({domain: domain, el: $(this)});
+  var router = new Diffa.Routers.Blobs({domain: domain, el: $(this)});
   Backbone.history.start();
+
+  var pair = $(this).data('pair');
+  var startTime = $(this).data('start-time');
+  var endTime = $(this).data('end-time');
+  if (startTime || endTime) {
+    router.navigateBlob(pair, startTime || "", endTime || "")
+  }
 });
 });

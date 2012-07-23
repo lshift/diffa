@@ -440,7 +440,9 @@ Diffa.Models.PairAggregates = Backbone.Model.extend(Diffa.Collections.Watchable)
     this.set(result, opts);
     
     this.lastRequests = requestDetails;
-  }
+  },
+
+  containsMultiplePairs: false
 });
 Diffa.Collections.DomainAggregates = Backbone.Collection.extend(Diffa.Models.Aggregator).extend({
   model: Diffa.Models.PairAggregates,
@@ -480,7 +482,9 @@ Diffa.Collections.DomainAggregates = Backbone.Collection.extend(Diffa.Models.Agg
 
   change: function() {
     this.forEach(function(pair) { pair.change(); });
-  }
+  },
+
+  containsMultiplePairs: true
 });
 
 /**
