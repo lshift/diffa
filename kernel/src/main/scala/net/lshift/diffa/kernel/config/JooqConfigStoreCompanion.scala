@@ -17,9 +17,13 @@ package net.lshift.diffa.kernel.config
 
 import org.jooq.impl.Factory
 import net.lshift.diffa.schema.tables.UniqueCategoryNames.UNIQUE_CATEGORY_NAMES
+import net.lshift.diffa.schema.tables.UniqueCategoryViewNames.UNIQUE_CATEGORY_VIEW_NAMES
 import net.lshift.diffa.schema.tables.PrefixCategories.PREFIX_CATEGORIES
+import net.lshift.diffa.schema.tables.PrefixCategoryViews.PREFIX_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.SetCategories.SET_CATEGORIES
+import net.lshift.diffa.schema.tables.SetCategoryViews.SET_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
+import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import scala.collection.JavaConversions._
 import org.jooq.{Record, Result}
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
@@ -39,11 +43,17 @@ import net.lshift.diffa.kernel.frontend.RepairActionDef
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.frontend.PairReportDef
 import collection.mutable
+import org.slf4j.LoggerFactory
+import org.jooq.exception.DataAccessException
+import java.sql.SQLIntegrityConstraintViolationException
+import net.lshift.diffa.kernel.util.AlertCodes._
 
 /**
  * This object is a workaround for the fact that Scala is so slow
  */
 object JooqConfigStoreCompanion {
+
+  val log = LoggerFactory.getLogger(getClass)
 
   /**
    * A UNIQUE_CATEGORY_NAME can either refer to an endpoint or an endpoint view.
@@ -57,18 +67,18 @@ object JooqConfigStoreCompanion {
    * In the top half of the union, this column will be null, since that half only deals with endpoints.
    * In the bottom half of the union, this column will contain the name of the endpoint view.
    */
-  val VIEW_NAME_COLUMN = UNIQUE_CATEGORY_NAMES.VIEW_NAME.getName
+  val VIEW_NAME_COLUMN = UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME.getName
 
   /**
    * Due to the fact that we need to order the grand union rather than just the individual subselects,
    * we need to select from the grand union. When doing so, the column names called NAME will clash,
-   * so we alias the UNIQUE_CATEGORY_NAMES.NAME field to something other than NAME.
+   * so we alias the UNIQUE_CATEGORY_NAMES.NAME and UNIQUE_CATEGORY_VIEW_NAMES.NAME fields to something other than NAME.
    */
-  val UNIQUE_CATEGORY_ALIAS = UNIQUE_CATEGORY_NAMES.NAME.as("unique_category_alias")
+  val UNIQUE_CATEGORY_ALIAS = "unique_category_alias"
 
   def listEndpoints(jooq:DatabaseFacade, domain:Option[String] = None, endpoint:Option[String] = None) : java.util.List[DomainEndpointDef] = {
     jooq.execute(t => {
-      val topHalf =     t.select(UNIQUE_CATEGORY_NAMES.TARGET_TYPE, UNIQUE_CATEGORY_ALIAS).
+      val topHalf =     t.select(UNIQUE_CATEGORY_NAMES.NAME.as(UNIQUE_CATEGORY_ALIAS)).
         select(ENDPOINT.getFields).
         select(Factory.field("null").as(VIEW_NAME_COLUMN)).
         select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
@@ -79,24 +89,20 @@ object JooqConfigStoreCompanion {
         leftOuterJoin(UNIQUE_CATEGORY_NAMES).
           on(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(ENDPOINT.DOMAIN)).
           and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINT.NAME)).
-          and(UNIQUE_CATEGORY_NAMES.TARGET_TYPE.equal(ENDPOINT_TARGET_TYPE)).
 
         leftOuterJoin(RANGE_CATEGORIES).
           on(RANGE_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
           and(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
-          and(RANGE_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
           and(RANGE_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(PREFIX_CATEGORIES).
           on(PREFIX_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
           and(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
-          and(PREFIX_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
           and(PREFIX_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(SET_CATEGORIES).
           on(SET_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
           and(SET_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
-          and(SET_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
           and(SET_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME))
 
       val firstUnionPart = domain match {
@@ -109,41 +115,37 @@ object JooqConfigStoreCompanion {
           }
       }
 
-      val bottomHalf =  t.select(UNIQUE_CATEGORY_NAMES.TARGET_TYPE, UNIQUE_CATEGORY_ALIAS).
+      val bottomHalf =  t.select(UNIQUE_CATEGORY_VIEW_NAMES.NAME.as(UNIQUE_CATEGORY_ALIAS)).
         select(ENDPOINT.getFields).
         select(ENDPOINT_VIEWS.NAME.as(VIEW_NAME_COLUMN)).
-        select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
-        select(PREFIX_CATEGORIES.STEP, PREFIX_CATEGORIES.PREFIX_LENGTH, PREFIX_CATEGORIES.MAX_LENGTH).
-        select(SET_CATEGORIES.VALUE).
+        select(RANGE_CATEGORY_VIEWS.DATA_TYPE, RANGE_CATEGORY_VIEWS.LOWER_BOUND, RANGE_CATEGORY_VIEWS.UPPER_BOUND, RANGE_CATEGORY_VIEWS.MAX_GRANULARITY).
+        select(PREFIX_CATEGORY_VIEWS.STEP, PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, PREFIX_CATEGORY_VIEWS.MAX_LENGTH).
+        select(SET_CATEGORY_VIEWS.VALUE).
         from(ENDPOINT_VIEWS).
 
         join(ENDPOINT).
           on(ENDPOINT.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
           and(ENDPOINT.NAME.equal(ENDPOINT_VIEWS.ENDPOINT)).
 
-        leftOuterJoin(UNIQUE_CATEGORY_NAMES).
-          on(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
-          and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(UNIQUE_CATEGORY_NAMES.VIEW_NAME.equal(ENDPOINT_VIEWS.NAME)).
-          and(UNIQUE_CATEGORY_NAMES.TARGET_TYPE.equal(ENDPOINT_VIEW_TARGET_TYPE)).
+        leftOuterJoin(UNIQUE_CATEGORY_VIEW_NAMES).
+          on(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          and(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME.equal(ENDPOINT_VIEWS.NAME)).
 
-        leftOuterJoin(RANGE_CATEGORIES).
-          on(RANGE_CATEGORIES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
-          and(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(RANGE_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
-          and(RANGE_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
+        leftOuterJoin(RANGE_CATEGORY_VIEWS).
+          on(RANGE_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          and(RANGE_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
 
-        leftOuterJoin(PREFIX_CATEGORIES).
-          on(PREFIX_CATEGORIES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
-          and(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(PREFIX_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
-          and(PREFIX_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
+        leftOuterJoin(PREFIX_CATEGORY_VIEWS).
+          on(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          and(PREFIX_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
 
-        leftOuterJoin(SET_CATEGORIES).
-          on(SET_CATEGORIES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
-          and(SET_CATEGORIES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(SET_CATEGORIES.TARGET_TYPE.equal(UNIQUE_CATEGORY_NAMES.TARGET_TYPE)).
-          and(SET_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME))
+        leftOuterJoin(SET_CATEGORY_VIEWS).
+          on(SET_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          and(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME))
 
       val secondUnionPart = domain match {
         case None    => bottomHalf
@@ -164,7 +166,7 @@ object JooqConfigStoreCompanion {
                       orderBy(
                         grandUnion.getField(ENDPOINT.DOMAIN),
                         grandUnion.getField(ENDPOINT.NAME),
-                        grandUnion.getField(UNIQUE_CATEGORY_ALIAS)
+                        Factory.field(UNIQUE_CATEGORY_ALIAS)
                       ).
                       fetch()
 
@@ -416,163 +418,240 @@ object JooqConfigStoreCompanion {
 
   def insertCategories(t:Factory,
                        domain:String,
-                       endpoint:String,
-                       categories:java.util.Map[String,CategoryDescriptor],
-                       viewName: Option[String] = None) = {
+                       endpoint:EndpointDef) = {
 
-    categories.foreach { case (categoryName, descriptor) => {
-
-      val base = t.insertInto(UNIQUE_CATEGORY_NAMES).
-                   set(UNIQUE_CATEGORY_NAMES.DOMAIN, domain).
-                   set(UNIQUE_CATEGORY_NAMES.ENDPOINT, endpoint).
-                   set(UNIQUE_CATEGORY_NAMES.NAME, categoryName)
-
-      val insert = viewName match {
-
-        case Some(view) =>
-          base.set(UNIQUE_CATEGORY_NAMES.TARGET_TYPE, ENDPOINT_VIEW_TARGET_TYPE).
-            set(UNIQUE_CATEGORY_NAMES.VIEW_NAME, view)
-        case None       =>
-          base.set(UNIQUE_CATEGORY_NAMES.TARGET_TYPE, ENDPOINT_TARGET_TYPE)
-
-      }
+    endpoint.categories.foreach { case (categoryName, descriptor) => {
 
       try {
 
-        insert.execute()
+        t.insertInto(UNIQUE_CATEGORY_NAMES).
+            set(UNIQUE_CATEGORY_NAMES.DOMAIN, domain).
+            set(UNIQUE_CATEGORY_NAMES.ENDPOINT, endpoint.name).
+            set(UNIQUE_CATEGORY_NAMES.NAME, categoryName).
+          execute()
 
         descriptor match {
-          case r:RangeCategoryDescriptor  => insertRangeCategories(t, domain, endpoint, categoryName, r, viewName)
-          case s:SetCategoryDescriptor    => insertSetCategories(t, domain, endpoint, categoryName, s, viewName)
-          case p:PrefixCategoryDescriptor => insertPrefixCategories(t, domain, endpoint, categoryName, p, viewName)
+          case r:RangeCategoryDescriptor  => insertRangeCategory(t, domain, endpoint.name, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategory(t, domain, endpoint.name, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategory(t, domain, endpoint.name, categoryName, p)
         }
       }
-      catch
-        {
-          // TODO Catch the unique constraint exception
-          case x => throw x
-        }
+      catch {
+          case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
+            val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_NAMES: domain = %s; endpoint = %s; categories = %s".
+                      format(domain, endpoint, endpoint.categories)
+            log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
+            log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
+            throw e
+          case x =>
+            log.error("%s Error inserting categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
+            throw x
+      }
     }}
   }
 
-  def insertPrefixCategories(t:Factory,
-                             domain:String,
-                             endpoint:String,
-                             categoryName:String,
-                             descriptor:PrefixCategoryDescriptor,
-                             viewName: Option[String] = None) = {
+  def insertCategoriesForView(t:Factory,
+                              domain:String,
+                              endpoint:String,
+                              view:EndpointViewDef) = {
 
-    val insertBase = t.insertInto(PREFIX_CATEGORIES).
-                       set(PREFIX_CATEGORIES.DOMAIN, domain).
-                       set(PREFIX_CATEGORIES.ENDPOINT, endpoint).
-                       set(PREFIX_CATEGORIES.NAME, categoryName).
-                       set(PREFIX_CATEGORIES.STEP, Integer.valueOf(descriptor.step)).
-                       set(PREFIX_CATEGORIES.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
-                       set(PREFIX_CATEGORIES.PREFIX_LENGTH, Integer.valueOf(descriptor.prefixLength))
+    view.categories.foreach { case (categoryName, descriptor) => {
 
-    val insert = viewName match {
+      try {
 
-      case Some(view) =>
-        insertBase.set(PREFIX_CATEGORIES.TARGET_TYPE, ENDPOINT_VIEW_TARGET_TYPE).
-          set(PREFIX_CATEGORIES.VIEW_NAME, view)
-      case None       =>
-        insertBase.set(PREFIX_CATEGORIES.TARGET_TYPE, ENDPOINT_TARGET_TYPE)
+        t.insertInto(UNIQUE_CATEGORY_VIEW_NAMES).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN, domain).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT, endpoint).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME, view.name).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.NAME, categoryName).
+          execute()
 
-    }
-
-    insert.execute()
+        descriptor match {
+          case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, domain, endpoint, view.name, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategoryView(t, domain, endpoint, view.name, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, domain, endpoint, view.name, categoryName, p)
+        }
+      }
+      catch {
+        case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
+          val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_VIEW_NAMES: domain = %s; endpoint = %s; view = %s".
+            format(domain, endpoint, view)
+          log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
+          log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
+          throw e
+        case x =>
+          log.error("%s Error inserting view categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
+          throw x
+      }
+    }}
   }
 
-  def insertSetCategories(t:Factory,
-                          domain:String,
-                          endpoint:String,
-                          categoryName:String,
-                          descriptor:SetCategoryDescriptor,
-                          viewName: Option[String] = None) = {
+  def insertPrefixCategory(t:Factory,
+                           domain:String,
+                           endpoint:String,
+                           categoryName:String,
+                           descriptor:PrefixCategoryDescriptor) = {
+
+    t.insertInto(PREFIX_CATEGORIES).
+        set(PREFIX_CATEGORIES.DOMAIN, domain).
+        set(PREFIX_CATEGORIES.ENDPOINT, endpoint).
+        set(PREFIX_CATEGORIES.NAME, categoryName).
+        set(PREFIX_CATEGORIES.STEP, Integer.valueOf(descriptor.step)).
+        set(PREFIX_CATEGORIES.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
+        set(PREFIX_CATEGORIES.PREFIX_LENGTH, Integer.valueOf(descriptor.prefixLength)).
+      execute()
+  }
+
+  def insertPrefixCategoryView(t:Factory,
+                               domain:String,
+                               endpoint:String,
+                               view:String,
+                               categoryName:String,
+                               descriptor:PrefixCategoryDescriptor) = {
+
+    t.insertInto(PREFIX_CATEGORY_VIEWS).
+      set(PREFIX_CATEGORY_VIEWS.DOMAIN, domain).
+      set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpoint).
+      set(PREFIX_CATEGORY_VIEWS.VIEW_NAME, view).
+      set(PREFIX_CATEGORY_VIEWS.NAME, categoryName).
+      set(PREFIX_CATEGORY_VIEWS.STEP, Integer.valueOf(descriptor.step)).
+      set(PREFIX_CATEGORY_VIEWS.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
+      set(PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, Integer.valueOf(descriptor.prefixLength)).
+      execute()
+  }
+
+  def insertSetCategory(t:Factory,
+                        domain:String,
+                        endpoint:String,
+                        categoryName:String,
+                        descriptor:SetCategoryDescriptor) = {
 
     // TODO Is there a way to re-use the insert statement with a bind parameter?
 
     descriptor.values.foreach(value => {
-
-      val insertBase = t.insertInto(SET_CATEGORIES).
-                         set(SET_CATEGORIES.DOMAIN, domain).
-                         set(SET_CATEGORIES.ENDPOINT, endpoint).
-                         set(SET_CATEGORIES.NAME, categoryName).
-                         set(SET_CATEGORIES.VALUE, value)
-
-      val insert = viewName match {
-
-        case Some(view) =>
-          insertBase.set(SET_CATEGORIES.TARGET_TYPE, ENDPOINT_VIEW_TARGET_TYPE).
-            set(SET_CATEGORIES.VIEW_NAME, view)
-        case None       =>
-          insertBase.set(SET_CATEGORIES.TARGET_TYPE, ENDPOINT_TARGET_TYPE)
-
-      }
-
-      insert.execute()
-
+      t.insertInto(SET_CATEGORIES).
+        set(SET_CATEGORIES.DOMAIN, domain).
+        set(SET_CATEGORIES.ENDPOINT, endpoint).
+        set(SET_CATEGORIES.NAME, categoryName).
+        set(SET_CATEGORIES.VALUE, value).
+      execute()
     })
-
   }
 
-  def insertRangeCategories(t:Factory,
-                                    domain:String,
-                                    endpoint:String,
-                                    categoryName:String,
-                                    descriptor:RangeCategoryDescriptor,
-                                    viewName: Option[String] = None) = {
-    val insertBase = t.insertInto(RANGE_CATEGORIES).
-      set(RANGE_CATEGORIES.DOMAIN, domain).
-      set(RANGE_CATEGORIES.ENDPOINT, endpoint).
-      set(RANGE_CATEGORIES.NAME, categoryName).
-      set(RANGE_CATEGORIES.DATA_TYPE, descriptor.dataType).
-      set(RANGE_CATEGORIES.LOWER_BOUND, descriptor.lower).
-      set(RANGE_CATEGORIES.UPPER_BOUND, descriptor.upper).
-      set(RANGE_CATEGORIES.MAX_GRANULARITY, descriptor.maxGranularity)
+  def insertSetCategoryView(t:Factory,
+                            domain:String,
+                            endpoint:String,
+                            view:String,
+                            categoryName:String,
+                            descriptor:SetCategoryDescriptor) = {
 
-    val insert = viewName match {
+    // TODO Is there a way to re-use the insert statement with a bind parameter?
 
-      case Some(view) =>
-        insertBase.set(RANGE_CATEGORIES.TARGET_TYPE, ENDPOINT_VIEW_TARGET_TYPE).
-          set(RANGE_CATEGORIES.VIEW_NAME, view)
-      case None       =>
-        insertBase.set(RANGE_CATEGORIES.TARGET_TYPE, ENDPOINT_TARGET_TYPE)
+    descriptor.values.foreach(value => {
+      t.insertInto(SET_CATEGORY_VIEWS).
+        set(SET_CATEGORY_VIEWS.DOMAIN, domain).
+        set(SET_CATEGORY_VIEWS.ENDPOINT, endpoint).
+        set(SET_CATEGORY_VIEWS.VIEW_NAME, view).
+        set(SET_CATEGORY_VIEWS.NAME, categoryName).
+        set(SET_CATEGORY_VIEWS.VALUE, value).
+        execute()
+    })
+  }
 
-    }
+  def insertRangeCategory(t:Factory,
+                          domain:String,
+                          endpoint:String,
+                          categoryName:String,
+                          descriptor:RangeCategoryDescriptor) = {
+    t.insertInto(RANGE_CATEGORIES).
+        set(RANGE_CATEGORIES.DOMAIN, domain).
+        set(RANGE_CATEGORIES.ENDPOINT, endpoint).
+        set(RANGE_CATEGORIES.NAME, categoryName).
+        set(RANGE_CATEGORIES.DATA_TYPE, descriptor.dataType).
+        set(RANGE_CATEGORIES.LOWER_BOUND, descriptor.lower).
+        set(RANGE_CATEGORIES.UPPER_BOUND, descriptor.upper).
+        set(RANGE_CATEGORIES.MAX_GRANULARITY, descriptor.maxGranularity).
+      execute()
+  }
 
-    insert.execute()
+  def insertRangeCategoryView(t:Factory,
+                              domain:String,
+                              endpoint:String,
+                              view:String,
+                              categoryName:String,
+                              descriptor:RangeCategoryDescriptor) = {
+    t.insertInto(RANGE_CATEGORY_VIEWS).
+        set(RANGE_CATEGORY_VIEWS.DOMAIN, domain).
+        set(RANGE_CATEGORY_VIEWS.ENDPOINT, endpoint).
+        set(RANGE_CATEGORY_VIEWS.VIEW_NAME, view).
+        set(RANGE_CATEGORY_VIEWS.NAME, categoryName).
+        set(RANGE_CATEGORY_VIEWS.DATA_TYPE, descriptor.dataType).
+        set(RANGE_CATEGORY_VIEWS.LOWER_BOUND, descriptor.lower).
+        set(RANGE_CATEGORY_VIEWS.UPPER_BOUND, descriptor.upper).
+        set(RANGE_CATEGORY_VIEWS.MAX_GRANULARITY, descriptor.maxGranularity).
+      execute()
   }
 
   def deleteRangeCategories(t:Factory, domain:String, endpoint:String) = {
     t.delete(RANGE_CATEGORIES).
       where(RANGE_CATEGORIES.DOMAIN.equal(domain)).
-      and(RANGE_CATEGORIES.ENDPOINT.equal(endpoint)).
+        and(RANGE_CATEGORIES.ENDPOINT.equal(endpoint)).
+      execute()
+  }
+
+  def deleteRangeCategoryViews(t:Factory, domain:String, endpoint:String) = {
+    t.delete(RANGE_CATEGORY_VIEWS).
+      where(RANGE_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+        and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
   def deleteSetCategories(t:Factory, domain:String, endpoint:String) = {
     t.delete(SET_CATEGORIES).
       where(SET_CATEGORIES.DOMAIN.equal(domain)).
-      and(SET_CATEGORIES.ENDPOINT.equal(endpoint)).
+        and(SET_CATEGORIES.ENDPOINT.equal(endpoint)).
+      execute()
+  }
+
+  def deleteSetCategoryViews(t:Factory, domain:String, endpoint:String) = {
+    t.delete(SET_CATEGORY_VIEWS).
+      where(SET_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+        and(SET_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
   def deletePrefixCategories(t:Factory, domain:String, endpoint:String) = {
     t.delete(PREFIX_CATEGORIES).
       where(PREFIX_CATEGORIES.DOMAIN.equal(domain)).
-      and(PREFIX_CATEGORIES.ENDPOINT.equal(endpoint)).
+        and(PREFIX_CATEGORIES.ENDPOINT.equal(endpoint)).
+      execute()
+  }
+
+  def deletePrefixCategoryViews(t:Factory, domain:String, endpoint:String) = {
+    t.delete(PREFIX_CATEGORY_VIEWS).
+      where(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+        and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
   def deleteCategories(t:Factory, domain:String, endpoint:String) = {
     deletePrefixCategories(t, domain, endpoint)
+    deletePrefixCategoryViews(t, domain, endpoint)
+
     deleteSetCategories(t, domain, endpoint)
+    deleteSetCategoryViews(t, domain, endpoint)
+
     deleteRangeCategories(t, domain, endpoint)
+    deleteRangeCategoryViews(t, domain, endpoint)
 
     t.delete(UNIQUE_CATEGORY_NAMES).
       where(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(domain)).
-      and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
+        and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
+      execute()
+
+    t.delete(UNIQUE_CATEGORY_VIEW_NAMES).
+      where(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(domain)).
+        and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(endpoint)).
       execute()
   }
 

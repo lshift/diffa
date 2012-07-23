@@ -407,7 +407,4 @@ object Step0022 extends VerifiedMigrationStep {
 
     migration
   }
-
-  private def randomString() = RandomStringUtils.randomAlphanumeric(10)
-  private def randomInt() = RandomStringUtils.randomNumeric(7)
 }

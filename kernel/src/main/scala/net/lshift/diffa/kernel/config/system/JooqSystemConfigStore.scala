@@ -30,9 +30,13 @@ import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.Pair.PAIR
 import net.lshift.diffa.schema.tables.PrefixCategories.PREFIX_CATEGORIES
+import net.lshift.diffa.schema.tables.PrefixCategoryViews.PREFIX_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.SetCategories.SET_CATEGORIES
+import net.lshift.diffa.schema.tables.SetCategoryViews.SET_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
+import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.UniqueCategoryNames.UNIQUE_CATEGORY_NAMES
+import net.lshift.diffa.schema.tables.UniqueCategoryViewNames.UNIQUE_CATEGORY_VIEW_NAMES
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
@@ -85,9 +89,13 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.DOMAIN.equal(domain)).execute()
       t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.DOMAIN.equal(domain)).execute()
       t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.DOMAIN.equal(domain)).execute()
+      t.delete(PREFIX_CATEGORY_VIEWS).where(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
       t.delete(SET_CATEGORIES).where(SET_CATEGORIES.DOMAIN.equal(domain)).execute()
+      t.delete(SET_CATEGORY_VIEWS).where(SET_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
       t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.DOMAIN.equal(domain)).execute()
+      t.delete(RANGE_CATEGORY_VIEWS).where(RANGE_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
       t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(domain)).execute()
+      t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(domain)).execute()
       t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).execute()
       t.delete(PAIR_REPORTS).where(PAIR_REPORTS.DOMAIN.equal(domain)).execute()
       t.delete(ESCALATIONS).where(ESCALATIONS.DOMAIN.equal(domain)).execute()

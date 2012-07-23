@@ -17,6 +17,7 @@ package net.lshift.diffa.schema.migrations
 
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Performs a database migration
@@ -47,4 +48,7 @@ trait VerifiedMigrationStep extends MigrationStep {
    * and to provide an existing state for a subsequent migration to use
    */
   def applyVerification(config:Configuration):MigrationBuilder
+
+  def randomString() = RandomStringUtils.randomAlphanumeric(10)
+  def randomInt() = RandomStringUtils.randomNumeric(7)
 }

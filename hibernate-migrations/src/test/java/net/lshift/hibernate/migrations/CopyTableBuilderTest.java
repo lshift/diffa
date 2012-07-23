@@ -47,6 +47,29 @@ public class CopyTableBuilderTest {
   }
 
   @Test
+  public void shouldCopyColumnsWithPredicate() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+
+    Iterable<String> sourceCols = Arrays.asList("foo", "bar", "baz");
+    Iterable<String> destCols = Arrays.asList("foo", "bar2", "baz");
+    Map<String,String> predicates = new HashMap<String,String>();
+    predicates.put("foo", "a");
+    predicates.put("bar", "b");
+
+    mb.copyTableContents("src", "dest", sourceCols, destCols).whereSource(predicates);
+
+    Connection conn = createStrictMock(Connection.class);
+
+    String sql = "insert into dest(foo,bar2,baz) select foo,bar,baz from src where foo = 'a' and bar = 'b'";
+
+    expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatementForUpdate(1));
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
+  @Test
   public void shouldCopyColumnsUsingSingleJoin() throws Exception {
     MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
 

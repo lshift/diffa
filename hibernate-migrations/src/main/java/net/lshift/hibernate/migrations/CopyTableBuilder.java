@@ -194,7 +194,24 @@ public class CopyTableBuilder extends TraceableMigrationElement {
     }
     else {
       String sourceColumnNames = joiner.join(sourceCols);
-      return String.format("select %s from %s", sourceColumnNames, sourceTable);
+
+      if (sourcePredicate != null && !sourcePredicate.isEmpty()) {
+
+        List<String> predicates = new ArrayList<String>();
+
+        for (Map.Entry<String, String> entry : sourcePredicate.entrySet()) {
+          predicates.add(String.format("%s = '%s'", entry.getKey(), entry.getValue()));
+        }
+
+        String predicateClause = Joiner.on(" and ").skipNulls().join(predicates);
+
+        return String.format("select %s from %s where %s", sourceColumnNames, sourceTable, predicateClause);
+
+      } else {
+
+        return String.format("select %s from %s", sourceColumnNames, sourceTable);
+
+      }
 
     }
 

@@ -186,7 +186,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       deleteCategories(t, domain, endpointDef.name)
 
       // Insert categories for the endpoint proper
-      insertCategories(t, domain, endpointDef.name, endpointDef.categories)
+      insertCategories(t, domain, endpointDef)
 
       // Update the view definitions
 
@@ -216,7 +216,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
           execute()
 
           // Insert categories for the endpoint view
-        insertCategories(t, domain, endpointDef.name, v.categories, Some(v.name))
+        insertCategoriesForView(t, domain, endpointDef.name, v)
       })
 
       upgradeConfigVersion(t, domain)
