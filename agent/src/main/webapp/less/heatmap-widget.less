@@ -22,14 +22,26 @@
   width: inherit;
 }
 
+.heatmap-statusbar {
+  .scaled-canvas;
+}
+
 .scale {
   .scaled-canvas;
+  margin-top: 4px;
 }
 
 .underlay {
   .scaled-canvas;
   position: relative;
   background-color: @heatmap-blue;
+}
+
+.pair-filter-chooser {
+  z-index: 8;
+  position: absolute;
+  padding: 0;
+  margin: 0;
 }
 
 .heatmap-controls {
@@ -67,3 +79,4 @@
     border: 1px solid @light-border;
   }
 }
+

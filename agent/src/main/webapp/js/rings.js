@@ -117,16 +117,16 @@ Diffa.Views.Rings = Backbone.View.extend(Diffa.Helpers.Viz).extend({
     this.previousSize = this.transformBucketSize(this.previousHour + this.before, bucketOpts);
     this.beforeSize = this.transformBucketSize(this.before, bucketOpts);
 
-    var maybeHilightCircle = function(size, normalColour, ringName) {
+    var maybeHighlightCircle = function(size, normalColour, ringName) {
       self.drawCircle(size,
         (ringName == self.hoverRing) ?
           {line: normalColour.line, fill: self.colours.hovered.fill} :
           normalColour);
     };
 
-    maybeHilightCircle(this.currentSize.value, this.colours.current, 'currentHour');
-    maybeHilightCircle(this.previousSize.value, this.colours.previous, 'previousHour');
-    maybeHilightCircle(this.beforeSize.value, this.colours.before, 'before');
+    maybeHighlightCircle(this.currentSize.value, this.colours.current, 'currentHour');
+    maybeHighlightCircle(this.previousSize.value, this.colours.previous, 'previousHour');
+    maybeHighlightCircle(this.beforeSize.value, this.colours.before, 'before');
 
     var hasDiffs = (this.currentHour + this.previousHour + this.before) == 0;
     this.$('.no-differences-panel').
@@ -154,7 +154,7 @@ Diffa.Views.Rings = Backbone.View.extend(Diffa.Helpers.Viz).extend({
     this.onMouseMove(e);    // Treat entry and movement as the same event
   },
   onMouseMove: function(e) {
-    var maybePuralDiffs = function(count) {
+    var maybePluralDiffs = function(count) {
       if (count == 1) return count + " difference";
       return count + " differences";
     };
@@ -166,13 +166,13 @@ Diffa.Views.Rings = Backbone.View.extend(Diffa.Helpers.Viz).extend({
     var msg = null;
     var previousHoverRing = this.hoverRing;
     if (this.isInCircle(this.beforeSize.value, widgetPos)) {
-      msg = maybePuralDiffs(this.before) + " more than 2 hours ago";
+      msg = maybePluralDiffs(this.before) + " more than 2 hours ago";
       this.hoverRing = 'before';
     } else if (this.isInCircle(this.previousSize.value, widgetPos)) {
-      msg = maybePuralDiffs(this.previousHour) + " between 1 and 2 hours ago";
+      msg = maybePluralDiffs(this.previousHour) + " between 1 and 2 hours ago";
       this.hoverRing = 'previousHour';
     } else if (this.isInCircle(this.currentSize.value, widgetPos)) {
-      msg = maybePuralDiffs(this.currentHour) + " in the last hour";
+      msg = maybePluralDiffs(this.currentHour) + " in the last hour";
       this.hoverRing = 'currentHour';
     } else {
       this.hoverRing = null;

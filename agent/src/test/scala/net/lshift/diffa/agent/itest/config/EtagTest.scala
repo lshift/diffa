@@ -22,7 +22,7 @@ import net.lshift.diffa.agent.client.ConfigurationRestClient
 import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
 import org.apache.http.client.methods.HttpGet
 import org.junit.Assert._
-import org.apache.http.auth.{AuthSchemeRegistry, AuthScope, Credentials, UsernamePasswordCredentials}
+import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
 import org.apache.http.HttpHost
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.protocol.BasicHttpContext
@@ -60,10 +60,13 @@ class EtagTest {
       new UsernamePasswordCredentials(agentUsername, agentPassword))
 
     val httpResponse = httpClient.execute(
-      new HttpGet(agentURL + "/domains/diffa/diffs/aggregates"),
+      new HttpGet(agentURL + "/%s/diffa/diffs/aggregates".format(domainsLabel)),
       basicAuthContext(targetHost))
 
     val etag = httpResponse.getLastHeader("ETag")
+    httpResponse.getAllHeaders foreach { header =>
+      println("Header [%s]".format(header))
+    }
     httpClient.getConnectionManager.shutdown()
     etag.getValue
   }

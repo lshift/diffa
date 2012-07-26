@@ -18,7 +18,7 @@ $(function() {
 
 Diffa.Views.InventoryUploader = Backbone.View.extend({
   events: {
-    'submit form': 'uploadInventory',
+    'submit form': 'uploadInventory'
   },
   setListColumnThreshold: 10,
   templates: {

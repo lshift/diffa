@@ -28,13 +28,9 @@ class NullIndexRebuilder extends IndexRebuilder {
 
 class OracleIndexRebuilder extends IndexRebuilder {
   val log = LoggerFactory.getLogger(getClass)
-
   val INDEX_NAME = Factory.field("index_name")
 
   def rebuild(t:Factory, tableName:String) {
-
-
-
     val indexNames = t.select(INDEX_NAME).
                        from("user_indexes").
                        where("status = 'UNUSABLE'").
@@ -45,12 +41,12 @@ class OracleIndexRebuilder extends IndexRebuilder {
 
     indexNames.foreach(index => {
       try {
-        t.execute("alter index " + index + " rebuild")
+        t.execute("alter index " + index + " rebuild wait 10")
       }
       catch {
         case ex: Exception =>
           log.error("Failed to rebuild index [%s]".format(index), ex)
-          // TODO not sure whether a rebuild failure show be propgated to the caller or just logged
+          // TODO not sure whether a rebuild failure should be propagated to the caller or just logged
       }
     })
 

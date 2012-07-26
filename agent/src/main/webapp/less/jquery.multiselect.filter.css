@@ -16,21 +16,7 @@
 
 */
 
-/* Styles the content viewer panel */
-
-/* Shave the width of an 9 column wide area that needs to fit the border in */
-@content-viewer-width: 8 * (@column-width + @right-margin) + @column-width - 2 * @border-thickness;
-@content-viewer-height: 150px;
-
-@text-padding: 0 5px;
-
-#contentviewer {
-  .span-9;
-  .last;
-  width: @content-viewer-width;
-}
-
-.contentviewer-visible {
-  border: @dotted-border;
-}
+.ui-multiselect-hasfilter ul { position:relative; top:2px }
+.ui-multiselect-filter { float:left; margin-right:10px; font-size:11px }
+.ui-multiselect-filter input { width:100px; font-size:10px; margin-left:5px; height:15px; padding:2px; border:1px solid #292929; -webkit-appearance:textfield; -webkit-box-sizing:content-box; }
 

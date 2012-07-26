@@ -37,10 +37,11 @@ class JooqUserPreferencesStore(db:DatabaseFacade, cacheProvider:CacheProvider)
   def createFilteredItem(pair:DiffaPairRef, username: String, itemType: FilteredItemType) = {
     db.execute(t => {
       t.insertInto(USER_ITEM_VISIBILITY).
-        set(USER_ITEM_VISIBILITY.DOMAIN, pair.domain).
-        set(USER_ITEM_VISIBILITY.PAIR, pair.key).
-        set(USER_ITEM_VISIBILITY.USERNAME, username).
-        set(USER_ITEM_VISIBILITY.ITEM_TYPE, itemType.toString).
+          set(USER_ITEM_VISIBILITY.DOMAIN, pair.domain).
+          set(USER_ITEM_VISIBILITY.PAIR, pair.key).
+          set(USER_ITEM_VISIBILITY.USERNAME, username).
+          set(USER_ITEM_VISIBILITY.ITEM_TYPE, itemType.toString).
+        onDuplicateKeyIgnore().
         execute()
     })
 

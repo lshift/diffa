@@ -29,6 +29,7 @@
   <logger name="org.hibernate" level="WARN" />
   <logger name="org.exolab" level="WARN" />
   <logger name="org.springframework" level="WARN" />
+  <logger name="org.jooq" level="WARN" />
 
   <!--
     Test cases that valid rejection cause way too much log noise since Hibernate logs and rethrows.

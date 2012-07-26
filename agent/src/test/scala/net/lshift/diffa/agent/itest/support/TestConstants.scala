@@ -34,4 +34,5 @@ object TestConstants {
   val agentURL = "http://" + agentHost + ":"+ agentPort + "/diffa-agent"
   val domain = "domain"
   val defaultDomain = "diffa"
+  val domainsLabel = "domains"
 }
