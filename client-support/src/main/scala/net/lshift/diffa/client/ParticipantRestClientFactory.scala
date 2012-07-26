@@ -38,9 +38,9 @@ class ScanningParticipantRestClientFactory(credentialsLookup:DomainCredentialsLo
     val readTimeout =limits.getEffectiveLimitByNameForPair(pairRef.domain, pairRef.key, ScanReadTimeout)
 
     val client = new ApacheHttpClient(connectTimeout, readTimeout)
-    val validator = new CollationOrderEntityValidator(endpoint.lookupCollation, EntityValidator)
+    val validatorFactory = new CollationOrderEntityValidatorFactory(endpoint.lookupCollation)
 
-    val parser = new ValidatingScanResultParser(validator) with LengthCheckingParser  {
+    val parser = new ValidatingScanResultParser(validatorFactory) with LengthCheckingParser  {
       val serviceLimitsView = limits
       val pair = pairRef
     }

@@ -34,7 +34,10 @@ class ValidatingScanResultParserTest {
   def streamFor(s: String) = new ByteArrayInputStream(s.getBytes("utf-8"))
 
   lazy val validator = createMock(classOf[ScanEntityValidator])
-  lazy val parser = new ValidatingScanResultParser(validator)
+  lazy val validatorFactory = new ScanEntityValidatorFactory {
+    def createValidator = validator
+  }
+  lazy val parser = new ValidatingScanResultParser(validatorFactory)
   lazy val singleEntityStream: ByteArrayInputStream = streamFor("[%s]".format(singleEntityStr))
 
   @Test

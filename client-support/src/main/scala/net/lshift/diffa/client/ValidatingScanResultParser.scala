@@ -1,12 +1,3 @@
-package net.lshift.diffa.client
-
-import java.io.{IOException, InputStream}
-import net.lshift.diffa.participant.common.{ScanEntityValidator, JSONHelper}
-import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
-import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
-import net.lshift.diffa.kernel.config.{PairServiceLimitsView, DiffaPairRef}
-import net.lshift.diffa.participant.scanning.{OutOfOrderException, Collation}
-
 /**
  * Copyright (C) 2010-2012 LShift Ltd.
  *
@@ -22,10 +13,16 @@ import net.lshift.diffa.participant.scanning.{OutOfOrderException, Collation}
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package net.lshift.diffa.client
 
-class ValidatingScanResultParser(validator: ScanEntityValidator) extends JsonScanResultParser {
-  def parse(s: InputStream) = JSONHelper.readQueryResult(s, validator).toSeq
+import java.io.{IOException, InputStream}
+import net.lshift.diffa.participant.common.JSONHelper
+import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
+import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
+import net.lshift.diffa.kernel.config.{PairServiceLimitsView, DiffaPairRef}
 
+class ValidatingScanResultParser(validatorFactory: ScanEntityValidatorFactory) extends JsonScanResultParser {
+  def parse(s: InputStream) = JSONHelper.readQueryResult(s, validatorFactory.createValidator).toSeq
 }
 
 
