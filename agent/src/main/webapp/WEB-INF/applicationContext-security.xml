@@ -34,7 +34,7 @@
     <intercept-url pattern="/js/**" access="permitAll" />
     <intercept-url pattern="/images/**" access="permitAll" />
     <intercept-url pattern="/assets/**" access="permitAll" />
-    <intercept-url pattern="/**/*.html" access="permitAll" />
+    <intercept-url pattern="/login.html" access="permitAll" />
     <!-- 
 	As an aside, with the SavedRequestAwareAuthenticationSuccessHandler, the
 	auth/auth system will remember the last URL requested, and redirect back to
