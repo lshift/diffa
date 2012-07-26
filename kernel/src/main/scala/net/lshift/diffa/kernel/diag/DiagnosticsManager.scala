@@ -16,26 +16,26 @@ trait DiagnosticsManager {
   /**
    * Logs an event relevant to a given pair.
    */
-  def logPairEvent(level:DiagnosticLevel, pair:DiffaPairRef, msg:String)
+  def logPairEvent(scanId:Option[Long] = None, pair:DiffaPairRef, level:DiagnosticLevel, msg:String)
 
   /**
    * Indicates to the diagnostics manager that a significant unit of work has been completed, and that explanation
    * data can be cycled to indicate this.
    */
-  def checkpointExplanations(pair:DiffaPairRef)
+  def checkpointExplanations(scanId:Option[Long] = None, pair:DiffaPairRef)
 
   /**
    * Logs an explanation event for a pair. Explanations are expected to be highly verbose details about system
    * internals, and the diagnostics manager is responsible for aggregating these into sets for later system analysis.
    */
-  def logPairExplanation(pair:DiffaPairRef, source:String, msg:String)
+  def logPairExplanation(scanId:Option[Long] = None, pair:DiffaPairRef, source:String, msg:String)
 
   /**
    * Attaches an 'object' that helps explain Diffa behaviour for a pair. The most common object will be responses from
    * participants. The diagnostics manager will store this object alongside explanation information, using the provided
    * object name as a marker.
    */
-  def writePairExplanationObject(pair:DiffaPairRef, source:String, objName: String, f:OutputStream => Unit)
+  def writePairExplanationObject(scanId:Option[Long] = None, pair:DiffaPairRef, source:String, objName: String, f:OutputStream => Unit)
 
   /**
    * Queries for known events about the given pair.

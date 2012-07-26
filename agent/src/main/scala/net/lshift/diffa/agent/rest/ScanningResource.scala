@@ -54,7 +54,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
 
     log.info(message)
 
-    pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), if (view != null) Some(view) else None)
+    pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), Option(view), Some(currentUser))
     Response.status(Response.Status.ACCEPTED).build
   }
 

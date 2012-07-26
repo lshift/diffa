@@ -114,13 +114,13 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     }
   }
 
-  def storeUpstreamVersion(id:VersionID, attributes:scala.collection.immutable.Map[String,TypedAttribute], lastUpdated: DateTime, vsn: String) = {
+  def storeUpstreamVersion(id:VersionID, attributes:scala.collection.immutable.Map[String,TypedAttribute], lastUpdated: DateTime, vsn: String, scanId:Option[Long]) = {
     log.trace("Indexing upstream " + id + " with attributes: " + attributes + " lastupdated at " + lastUpdated + " with version " + vsn)
 
     def extractKeyFields(doc:Document) = Map("uvsn" -> doc.get("uvsn")) ++ findAttributes(doc, "up.")
     val newFields = Map("uvsn" -> vsn) ++ AttributesUtil.toUntypedMap(attributes)
 
-    doDocUpdate(id, lastUpdated, extractKeyFields, newFields, "upstream", doc => {
+    doDocUpdate(id, scanId, lastUpdated, extractKeyFields, newFields, "upstream", doc => {
       // Update all of the upstream attributes
       applyAttributes(doc, "up.", attributes)
       updateField(doc, boolField(Upstream.presenceIndicator, true))
@@ -128,7 +128,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     })
   }
 
-  def storeDownstreamVersion(id: VersionID, attributes: scala.collection.immutable.Map[String, TypedAttribute], lastUpdated: DateTime, uvsn: String, dvsn: String) = {
+  def storeDownstreamVersion(id: VersionID, attributes: scala.collection.immutable.Map[String, TypedAttribute], lastUpdated: DateTime, uvsn: String, dvsn: String, scanId:Option[Long]) = {
     log.trace("Indexing downstream " + id + " with attributes: " + attributes + " lastupdated at " + lastUpdated + " with up-version " + uvsn + "and down-version " + dvsn)
 
     def extractKeyFields(doc:Document) =
@@ -136,7 +136,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     val newFields = Map("duvsn" -> uvsn, "ddvsn" -> dvsn) ++ AttributesUtil.toUntypedMap(attributes)
 
     log.trace("Indexing downstream " + id + " with attributes: " + attributes)
-    doDocUpdate(id, lastUpdated, extractKeyFields, newFields, "downstream", doc => {
+    doDocUpdate(id, scanId, lastUpdated, extractKeyFields, newFields, "downstream", doc => {
       // Update all of the upstream attributes
       applyAttributes(doc, "down.", attributes)
       updateField(doc, boolField(Downstream.presenceIndicator, true))
@@ -145,8 +145,8 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     })
   }
 
-  def clearUpstreamVersion(id:VersionID) = {
-    doClearAttributes(id, "upstream", doc => {
+  def clearUpstreamVersion(id:VersionID, scanId:Option[Long]) = {
+    doClearAttributes(id, scanId, "upstream", doc => {
       // Remove all the upstream attributes. Convert to list as middle-step to prevent ConcurrentModificationEx - see #177
       doc.getFields.toList.foreach(f => {
         if (f.name.startsWith("up.")) doc.removeField(f.name)
@@ -156,8 +156,8 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     })
   }
 
-  def clearDownstreamVersion(id:VersionID) = {
-    doClearAttributes(id, "downstream", doc => {
+  def clearDownstreamVersion(id:VersionID, scanId:Option[Long]) = {
+    doClearAttributes(id, scanId, "downstream", doc => {
       // Remove all the upstream attributes. Convert to list as middle-step to prevent ConcurrentModificationEx - see #177
       doc.getFields.toList.foreach(f => {
         if (f.name.startsWith("down.")) doc.removeField(f.name)
@@ -215,7 +215,13 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     }
   }
 
-  private def doDocUpdate(id:VersionID, lastUpdatedIn:DateTime, extractFields:Document => Map[String, String], newFields:Map[String, String], sectionName:String, f:Document => Unit) = {
+  private def doDocUpdate(id:VersionID,
+                          scanId:Option[Long],
+                          lastUpdatedIn:DateTime,
+                          extractFields:Document => Map[String, String],
+                          newFields:Map[String, String],
+                          sectionName:String,
+                          f:Document => Unit) = {
     val doc = getCurrentOrNewDoc(id)
 
     val currentFields = extractFields(doc)
@@ -223,7 +229,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
 
     // If any of the key fields have been changed, then we'll apply an update
     if (changedFields.size > 0) {
-      diagnostics.logPairExplanation(id.pair, "Correlation Store", "Updating %s (%s) with changes (%s)".format(id.id, sectionName,
+      diagnostics.logPairExplanation(scanId, id.pair, "Correlation Store", "Updating %s (%s) with changes (%s)".format(id.id, sectionName,
         changedFields.map { case (k, (ov, nv)) => k + ": " + ov + " -> " + nv }.mkString(", ")))
 
       // Increment the version counter and update the entry
@@ -259,7 +265,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
     updateField(doc, longField("store.version", latestVersion))
   }
 
-  private def doClearAttributes(id:VersionID, sectionName:String, f:Document => Unit) = {
+  private def doClearAttributes(id:VersionID, scanId:Option[Long], sectionName:String, f:Document => Unit) = {
     val currentDoc =
       if (updatedDocs.contains(id))
         Some(updatedDocs(id))
@@ -274,7 +280,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
         updateStoreVersion(doc)
         f(doc)
 
-        diagnostics.logPairExplanation(id.pair, "Correlation Store", "Updating %s to remove %s".format(id.id, sectionName))
+        diagnostics.logPairExplanation(scanId, id.pair, "Correlation Store", "Updating %s to remove %s".format(id.id, sectionName))
 
         // Update the match status of the document. A document with neither participant is matched (and will be seen
         // as a tombstone)

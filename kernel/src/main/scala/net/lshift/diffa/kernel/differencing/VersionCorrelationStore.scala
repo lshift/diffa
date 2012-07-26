@@ -121,22 +121,22 @@ trait LimitedVersionCorrelationWriter {
   /**
    *   Stores the details of an upstream version.
    */
-  def storeUpstreamVersion(id:VersionID, attributes:Map[String,TypedAttribute], lastUpdated:DateTime, vsn:String):Correlation
+  def storeUpstreamVersion(id:VersionID, attributes:Map[String,TypedAttribute], lastUpdated:DateTime, vsn:String, scanId:Option[Long]):Correlation
 
   /**
    * Stores the details of a downstream version.
    */
-  def storeDownstreamVersion(id:VersionID, attributes:Map[String,TypedAttribute], lastUpdated:DateTime, uvsn:String, dvsn:String):Correlation
+  def storeDownstreamVersion(id:VersionID, attributes:Map[String,TypedAttribute], lastUpdated:DateTime, uvsn:String, dvsn:String, scanId:Option[Long]):Correlation
 
   /**
    * Clears the upstream version for the given pairKey/id.
    */
-  def clearUpstreamVersion(id:VersionID):Correlation
+  def clearUpstreamVersion(id:VersionID, scanId:Option[Long]):Correlation
 
   /**
    * Clears the downstream version for the given pairKey/id.
    */
-  def clearDownstreamVersion(id:VersionID):Correlation
+  def clearDownstreamVersion(id:VersionID, scanId:Option[Long]):Correlation
 }
 
 /**

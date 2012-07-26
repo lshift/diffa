@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.junit.{Test, After, Before}
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, FrontendConversions}
+import net.lshift.diffa.kernel.scanning.{ScanStatement, ScanActivityStore}
 
 @RunWith(classOf[Theories])
 class PairActorTest {
@@ -65,7 +66,7 @@ class PairActorTest {
   val us = createStrictMock("upstreamParticipant", classOf[UpstreamParticipant])
   val ds = createStrictMock("downstreamParticipant", classOf[DownstreamParticipant])
   val diagnostics = createMock("diagnosticsManager", classOf[DiagnosticsManager])
-  diagnostics.checkpointExplanations(pairRef); expectLastCall().asStub()
+  diagnostics.checkpointExplanations(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef)); expectLastCall().asStub()
 
   val participantFactory = org.easymock.classextension.EasyMock.createStrictMock("participantFactory", classOf[ParticipantFactory])
   expect(participantFactory.createUpstreamParticipant(upstream, pairRef)).andReturn(us)
@@ -122,7 +123,11 @@ class PairActorTest {
 
   val actorSystem = ActorSystem("PairActorSTest%#x".format(hashCode()))
 
-  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, 50, 100, closeInterval, actorSystem)
+  val scanActivityStore = createStrictMock(classOf[ScanActivityStore])
+  expect(scanActivityStore.createOrUpdateStatement(EasyMock.isA(classOf[ScanStatement]))); expectLastCall().atLeastOnce()
+  replay(scanActivityStore)
+
+  val supervisor = new PairActorSupervisor(versionPolicyManager, systemConfigStore, domainConfigStore, differencesManager, scanListener, participantFactory, stores, diagnostics, scanActivityStore, 50, 100, closeInterval, actorSystem)
   supervisor.onAgentAssemblyCompleted
   supervisor.onAgentConfigurationActivated
 
@@ -152,19 +157,20 @@ class PairActorTest {
   }
 
   def expectUpstreamScan() = {
-    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef), EasyMock.eq(upstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
+    expect(versionPolicy.scanUpstream(EasyMock.anyObject[Long](), EasyMock.eq(pairRef), EasyMock.eq(upstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
                                       EasyMock.eq(us), EasyMock.isA(classOf[DifferencingListener]),
                                       EasyMock.isA(classOf[FeedbackHandle])))
   }
   def expectDownstreamScan() = {
-    expect(versionPolicy.scanDownstream(EasyMock.eq(pairRef), EasyMock.eq(downstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
+    expect(versionPolicy.scanDownstream(EasyMock.anyObject[Long](), EasyMock.eq(pairRef), EasyMock.eq(downstream), EasyMock.eq(None), EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
                                         EasyMock.eq(us), EasyMock.eq(ds), EasyMock.isA(classOf[DifferencingListener]),
                                         EasyMock.isA(classOf[FeedbackHandle])))
   }
 
   def expectScanCommencement(times:Int) = {
-    expect(diagnostics.logPairEvent(EasyMock.eq(DiagnosticLevel.INFO),
+    expect(diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](),
                                     EasyMock.eq(pairRef),
+                                    EasyMock.eq(DiagnosticLevel.INFO),
                                     EasyMock.contains("Commencing"))).times(times)
   }
 
@@ -175,7 +181,10 @@ class PairActorTest {
 
   def expectDifferencesReplay(assertFlush:Boolean = true, writerCloseMonitor:Object = null) = {
     if (assertFlush) writer.flush(); expectLastCall.atLeastOnce()
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Calculating differences"); expectLastCall
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](),
+                             EasyMock.eq(pairRef),
+                             EasyMock.eq(DiagnosticLevel.INFO),
+                             EasyMock.eq("Calculating differences")); expectLastCall
     expect(store.unmatchedVersions(anyObject[Seq[ScanConstraint]], anyObject[Seq[ScanConstraint]], EasyMock.eq[Option[Long]](None))).andReturn(Seq())
     expect(store.tombstoneVersions(None)).andReturn(Seq())
     diffWriter.evictTombstones(Seq()); expectLastCall
@@ -216,15 +225,18 @@ class PairActorTest {
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = { monitor.synchronized { monitor.notifyAll } }
     })
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan completed"); expectLastCall
-
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](),
+                             EasyMock.eq(pairRef),
+                             EasyMock.eq(DiagnosticLevel.INFO),
+                             EasyMock.eq("Scan completed")); expectLastCall
+    //diagnostics.logPairEvent(Some(System.currentTimeMillis()), pairRef, DiagnosticLevel.INFO, "Scan completed"); expectLastCall
     val numberOfScans = 1
     expectScanCommencement(numberOfScans)
 
     replay(writer, store, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
     monitor.synchronized {
       monitor.wait(1000)
     }
@@ -279,7 +291,9 @@ class PairActorTest {
     val scanMonitor = new Object
     val diagnosticsMonitor = new Object
 
-    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef),
+    expect(versionPolicy.scanUpstream(
+               EasyMock.anyObject[Long](),
+               EasyMock.eq(pairRef),
                EasyMock.eq(upstream),
                EasyMock.eq(None),
                EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
@@ -298,9 +312,10 @@ class PairActorTest {
     writer.close
     expectLastCall.asStub
 
-    expect(diagnostics.logPairEvent(DiagnosticLevel.INFO,
-                                    pairRef,
-                                    "Ignoring scan request received during current scan")
+    expect(diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](),
+                                    EasyMock.eq(pairRef),
+                                    EasyMock.eq(DiagnosticLevel.INFO),
+                                    EasyMock.eq("Ignoring scan request received during current scan"))
           ).andAnswer(new IAnswer[Unit] {
             def answer = {
               diagnosticsMonitor.synchronized {
@@ -315,7 +330,7 @@ class PairActorTest {
     replay(writer, store, versionPolicy, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pairRef, None)
+    supervisor.scanPair(pairRef, None, None)
 
     scanMonitor.synchronized {
       scanMonitor.wait(timeToWait)
@@ -323,7 +338,7 @@ class PairActorTest {
 
     // Request a second scan that should get ignored by the actor that should be busy handling the first scan
 
-    supervisor.scanPair(pairRef, None)
+    supervisor.scanPair(pairRef, None, None)
 
     verify(writer, store, versionPolicy)
 
@@ -358,7 +373,9 @@ class PairActorTest {
       }
     })
 
-    expect(versionPolicy.scanUpstream(EasyMock.eq(pairRef),
+    expect(versionPolicy.scanUpstream(
+           EasyMock.anyObject[Long](),
+           EasyMock.eq(pairRef),
            EasyMock.eq(upstream),
            EasyMock.eq(None),
            EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
@@ -372,7 +389,9 @@ class PairActorTest {
         Thread.sleep(1000)
       }
     })
-    expect(versionPolicy.scanDownstream(EasyMock.eq(pairRef),
+    expect(versionPolicy.scanDownstream(
+           EasyMock.anyObject[Long](),
+           EasyMock.eq(pairRef),
            EasyMock.eq(downstream),
            EasyMock.eq(None),
            EasyMock.isA(classOf[LimitedVersionCorrelationWriter]),
@@ -386,7 +405,7 @@ class PairActorTest {
     replay(writer, store, diffWriter, versionPolicy, scanListener)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
 
     flushMonitor.synchronized {
       flushMonitor.wait(2000)
@@ -439,7 +458,7 @@ class PairActorTest {
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.CANCELLED); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer = cancelMonitor.synchronized{ cancelMonitor.notifyAll() }
     })
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan cancelled"); expectLastCall
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef), EasyMock.eq(DiagnosticLevel.INFO), EasyMock.eq("Scan cancelled")); expectLastCall
 
     expectScans.andAnswer(new IAnswer[Unit] {
       def answer = {
@@ -461,7 +480,7 @@ class PairActorTest {
     replay(store, writer, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
 
     responseMonitor.synchronized {
       responseMonitor.wait(timeToWait * 2)
@@ -491,7 +510,7 @@ class PairActorTest {
     replay(store, writer, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
     monitor.synchronized {
       monitor.wait(1000)
     }
@@ -504,7 +523,7 @@ class PairActorTest {
 
     expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
       def answer() {
-        val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
+        val feedbackHandle = EasyMock.getCurrentArguments()(8).asInstanceOf[FeedbackHandle]
         println("Marking as cancelled for %s".format(feedbackHandle))
         awaitFeedbackHandleCancellation(feedbackHandle)
         println("Feedbackhandle %s cancelled? %s".format(feedbackHandle, feedbackHandle.isCancelled))
@@ -519,7 +538,7 @@ class PairActorTest {
     replay(writer, store, diffWriter, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
     assertTrue(wasMarkedAsCancelled.get(4000).getOrElse(throw new Exception("Feedback handle check never reached in participant stub")))
     verify(versionPolicy, scanListener, diagnostics)
   }
@@ -530,7 +549,7 @@ class PairActorTest {
 
     expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
       def answer() {
-        val feedbackHandle = EasyMock.getCurrentArguments()(7).asInstanceOf[FeedbackHandle]
+        val feedbackHandle = EasyMock.getCurrentArguments()(8).asInstanceOf[FeedbackHandle]
         println("Awaiting %s;  args:%s".format(feedbackHandle,
           EasyMock.getCurrentArguments().toList))
         awaitFeedbackHandleCancellation(feedbackHandle)
@@ -544,10 +563,10 @@ class PairActorTest {
         // understand the message "clearDownstreamVersion"
         // But only sometimes.Most of the time we get an instance of PairActor$$anon$2 (or something)
 
-        val writer = EasyMock.getCurrentArguments()(3).asInstanceOf[LimitedVersionCorrelationWriter]
+        val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
         println("writer (args(3))#getClass() -> %s".format(writer.getClass()))
         try {
-          writer.clearDownstreamVersion(VersionID(DiffaPairRef("p1","domain"), "abc"))
+          writer.clearDownstreamVersion(EasyMock.eq(VersionID(DiffaPairRef("p1","domain"), "abc")), EasyMock.anyObject[Option[Long]]())
           proxyDidGenerateException.set(false)
         } catch {
           case c:ScanCancelledException => proxyDidGenerateException.set(true)
@@ -562,7 +581,7 @@ class PairActorTest {
     replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None)
+    supervisor.scanPair(pair.asRef, None, None)
 
     assertTrue(proxyDidGenerateException.get(4000).getOrElse(throw new Exception("Exception validation never reached in participant stub")))
     verify(versionPolicy, scanListener, diagnostics)
@@ -588,9 +607,9 @@ class PairActorTest {
       downstreamHandler = new IAnswer[Unit] {
           def answer() {
             if (secondScanIsRunning.get(waitForSecondScanToStartDelay).isDefined) {
-              val writer = EasyMock.getCurrentArguments()(3).asInstanceOf[LimitedVersionCorrelationWriter]
+              val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
               try {
-                writer.clearDownstreamVersion(VersionID(DiffaPairRef("p1","domain"), "abc"))
+                writer.clearDownstreamVersion(EasyMock.eq(VersionID(DiffaPairRef("p1","domain"), "abc")), EasyMock.anyObject[Option[Long]]())
                 proxyDidGenerateException.set(false)
               } catch {
                 case c:ScanCancelledException => proxyDidGenerateException.set(true)
@@ -605,7 +624,7 @@ class PairActorTest {
         },
       failStateHandler = new IAnswer[Unit] {
           def answer {
-            supervisor.scanPair(pair.asRef, None)      // Run a second scan when the first one fails
+            supervisor.scanPair(pair.asRef, None, None)      // Run a second scan when the first one fails
           }
         })
 
@@ -621,7 +640,7 @@ class PairActorTest {
       }
     }).once()
     expectDifferencesReplay(assertFlush = false)
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan completed"); expectLastCall
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef), EasyMock.eq(DiagnosticLevel.INFO), EasyMock.eq("Scan completed")); expectLastCall
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
       def answer {
         completionMonitor.synchronized { completionMonitor.notifyAll() }
@@ -635,7 +654,7 @@ class PairActorTest {
     replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
 
     supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pairRef, None)
+    supervisor.scanPair(pairRef, None, None)
 
     assertTrue(proxyDidGenerateException.get(overallProcessWait).getOrElse(throw new Exception("Exception validation never reached in participant stub")))
     completionMonitor.synchronized { completionMonitor.wait(1000) }   // Wait for the scan to complete too
@@ -762,8 +781,8 @@ class PairActorTest {
     expectDownstreamScan().andAnswer(downstreamHandler).once()
 
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.FAILED); expectLastCall[Unit].andAnswer(failStateHandler).once
-    diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Upstream scan failed: Deliberate runtime exception, this should be handled"); expectLastCall.once
-    diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Scan failed"); expectLastCall.once
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef), EasyMock.eq(DiagnosticLevel.ERROR), EasyMock.eq("Upstream scan failed: Deliberate runtime exception, this should be handled")); expectLastCall.once
+    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef), EasyMock.eq(DiagnosticLevel.ERROR), EasyMock.eq("Scan failed")); expectLastCall.once
   }
 
   def buildUpstreamEvent() = {

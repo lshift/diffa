@@ -235,6 +235,7 @@
     <constructor-arg ref="participantFactory"/>
     <constructor-arg ref="versionCorrelationStoreFactory"/>
     <constructor-arg ref="diagnosticsManager" />
+    <constructor-arg ref="scanActivityStore" />
     <constructor-arg>
       <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="targetObject" ref="systemConfigStore"/>
@@ -428,6 +429,16 @@
   <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.CachedServiceLimitsStore">
     <constructor-arg ref="underlyingServiceLimitsStore" />
     <constructor-arg ref="hazelcastCacheProvider" />
+  </bean>
+
+  <!--
+    ===========
+      Scan Reporting
+    ===========
+  -->
+
+  <bean id="scanActivityStore" class="net.lshift.diffa.kernel.scanning.JooqScanActivityStore">
+    <constructor-arg ref="jooqDatabaseFacade" />
   </bean>
 
   <!--

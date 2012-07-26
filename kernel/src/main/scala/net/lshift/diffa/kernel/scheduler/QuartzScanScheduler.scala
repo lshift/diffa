@@ -62,7 +62,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
 
       if (view == "") {
         try {
-          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), None)
+          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), None, None)
           log.info(formatAlertCode(domain, pairKey, BASIC_SCHEDULED_SCAN_STARTED) + " starting basic scheduled scan")
         } catch {
             // Catch, log, and drop exceptions to prevent the scheduler trying to do any misfire handling
@@ -71,7 +71,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
         }
       } else {
         try {
-          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), Some(view))
+          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), Some(view), None)
           log.info(formatAlertCode(domain, pairKey, VIEW_SCHEDULED_SCAN_STARTED) + " starting scheduled scan for view " + view)
         } catch {
             // Catch, log, and drop exceptions to prevent the scheduler trying to do any misfire handling

@@ -107,16 +107,18 @@ class CorrelatedVersionPolicyTest extends AbstractPolicyTest {
         Down("id4", testData.values(1), "vsn4", downstreamVersionFor("vsn4")),
         Down("id5", testData.values(1), "vsn5", downstreamVersionFor("vsn5"))))
 
+    val scanId = timestamp.getMillis
+
     // We should see id3 re-run through the system, and id4 be removed
     expect(usMock.retrieveContent("id3")).andReturn("content3")
     expect(dsMock.generateVersion("content3")).andReturn(new ProcessingResponse("id3", testData.values(1), "vsn3", downstreamVersionFor("vsn3")))
-    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn3", downstreamVersionFor("vsn3"))).
+    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn3", downstreamVersionFor("vsn3"), Some(scanId))).
       andReturn(new Correlation(null, pair.asRef, "id3", null, toStrMap(testData.downstreamAttributes(1)), JUL_8_2010_1, timestamp, "vsn3", "vsn3", downstreamVersionFor("vsn3"), false))
-    expect(writer.clearDownstreamVersion(VersionID(pair.asRef, "id4"))).
+    expect(writer.clearDownstreamVersion(VersionID(pair.asRef, "id4"), Some(scanId))).
       andReturn(Correlation.asDeleted(pair.asRef, "id4", new DateTime))
     expect(usMock.retrieveContent("id5")).andReturn("content5")
     expect(dsMock.generateVersion("content5")).andReturn(new ProcessingResponse("id5", testData.values(1), "vsn5a", downstreamVersionFor("vsn5a")))
-    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id5"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn5a", downstreamVersionFor("vsn5a"))).
+    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id5"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn5a", downstreamVersionFor("vsn5a"), Some(scanId))).
         andReturn(new Correlation(null, pair.asRef, "id3", null, toStrMap(testData.downstreamAttributes(1)), JUL_8_2010_1, timestamp, "vsn5a", "vsn5a", downstreamVersionFor("vsn5a"), false))
 
     // We should see events indicating that id4 to enter a matched state (since the deletion made the sides line up)
@@ -124,8 +126,8 @@ class CorrelatedVersionPolicyTest extends AbstractPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(pair.asRef, upstream, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(pair.asRef, downstream, None, writer, usMock, dsMock, nullListener, feedbackHandle)
+    policy.scanUpstream(scanId, pair.asRef, upstream, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scanId, pair.asRef, downstream, None, writer, usMock, dsMock, nullListener, feedbackHandle)
 
     verifyAll
   }
@@ -169,14 +171,16 @@ class CorrelatedVersionPolicyTest extends AbstractPolicyTest {
     expect(usMock.retrieveContent("id3")).andReturn("content3a")
     expect(dsMock.generateVersion("content3a")).andReturn(new ProcessingResponse("id3", testData.values(1), "vsn3a", downstreamVersionFor("vsn3a")))
 
+    val scanId = System.currentTimeMillis()
+
     // We should see a replayStoredDifferences being generated
-    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "UNKNOWN", downstreamVersionFor("vsn3"))).
+    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "UNKNOWN", downstreamVersionFor("vsn3"), Some(scanId))).
         andReturn(Correlation(isMatched = false))
 
     replayAll
 
-    policy.scanUpstream(pair.asRef, upstream, None, writer, usMock, listener, feedbackHandle)
-    policy.scanDownstream(pair.asRef, downstream, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scanId, pair.asRef, upstream, None, writer, usMock, listener, feedbackHandle)
+    policy.scanDownstream(scanId, pair.asRef, downstream, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }

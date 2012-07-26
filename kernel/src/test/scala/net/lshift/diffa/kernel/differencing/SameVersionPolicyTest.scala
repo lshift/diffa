@@ -87,10 +87,12 @@ class SameVersionPolicyTest extends AbstractPolicyTest {
         Down("id2", testData.values(1), "vsn2", downstreamVersionFor("vsn2")),
         Down("id4", testData.values(1), "vsn4", downstreamVersionFor("vsn4"))))
 
+    val scanId = timestamp.getMillis
+
     // We should see id3 be updated, and id4 be removed
-    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn3", downstreamVersionFor("vsn3"))).
+    expect(writer.storeDownstreamVersion(VersionID(pair.asRef, "id3"), testData.downstreamAttributes(1), JUL_8_2010_1, "vsn3", downstreamVersionFor("vsn3"), Some(scanId))).
       andReturn(new Correlation(null, pair.asRef, "id3", null, toStrMap(testData.downstreamAttributes(1)), JUL_8_2010_1, timestamp, "vsn3", "vsn3", downstreamVersionFor("vsn3"), false))
-    expect(writer.clearDownstreamVersion(VersionID(pair.asRef, "id4"))).
+    expect(writer.clearDownstreamVersion(VersionID(pair.asRef, "id4"), Some(scanId))).
       andReturn(Correlation.asDeleted(pair.asRef, "id4", new DateTime))
 
     // We should see events indicating that id4 to enter a matched state (since the deletion made the sides line up)
@@ -98,8 +100,8 @@ class SameVersionPolicyTest extends AbstractPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(pair.asRef, upstream, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(pair.asRef, downstream, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scanId, pair.asRef, upstream, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scanId, pair.asRef, downstream, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }

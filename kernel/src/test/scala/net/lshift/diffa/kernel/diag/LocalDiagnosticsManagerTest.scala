@@ -45,7 +45,7 @@ class LocalDiagnosticsManagerTest {
 
     expectEventBufferLimitQuery(domainName, pairKey, 10)
 
-    diagnostics.logPairEvent(DiagnosticLevel.INFO, pair, "Some msg")
+    diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Some msg")
 
     val events = diagnostics.queryEvents(pair, 100)
     assertEquals(1, events.length)
@@ -65,7 +65,7 @@ class LocalDiagnosticsManagerTest {
     val pair = DiffaPairRef(pairKey, domainName)
 
     for (i <- 1 until 1000)
-      diagnostics.logPairEvent(DiagnosticLevel.INFO, pair, "Some msg")
+      diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Some msg")
 
     assertEquals(100, diagnostics.queryEvents(pair, 1000).length)
   }
@@ -116,7 +116,7 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldNotGenerateAnyOutputWhenCheckpointIsCalledOnASilentPair() {
     val key = "quiet"
-    diagnostics.checkpointExplanations(DiffaPairRef(key, domainName))
+    diagnostics.checkpointExplanations(None, DiffaPairRef(key, domainName))
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
     if (pairDir.exists())
@@ -130,8 +130,8 @@ class LocalDiagnosticsManagerTest {
 
     expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
 
-    diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
-    diagnostics.checkpointExplanations(pair)
+    diagnostics.logPairExplanation(None, pair, "Test Case", "Diffa did something")
+    diagnostics.checkpointExplanations(None, pair)
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
     val zips = pairDir.listFiles()
@@ -154,10 +154,10 @@ class LocalDiagnosticsManagerTest {
 
     expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
 
-    diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
+    diagnostics.writePairExplanationObject(None, pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
-    diagnostics.checkpointExplanations(pair)
+    diagnostics.checkpointExplanations(None, pair)
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
     val zips = pairDir.listFiles()
@@ -183,10 +183,10 @@ class LocalDiagnosticsManagerTest {
 
     expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
 
-    diagnostics.writePairExplanationObject(pair, "Test Case", "upstream.123.json", os => {
+    diagnostics.writePairExplanationObject(None, pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
-    diagnostics.checkpointExplanations(pair)
+    diagnostics.checkpointExplanations(None, pair)
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
     val zips = pairDir.listFiles()
@@ -213,11 +213,11 @@ class LocalDiagnosticsManagerTest {
 
     val pair = DiffaPairRef(pairKey, domainName)
 
-    diagnostics.logPairExplanation(pair, "Test Case", "Diffa did something")
-    diagnostics.checkpointExplanations(pair)
+    diagnostics.logPairExplanation(None, pair, "Test Case", "Diffa did something")
+    diagnostics.checkpointExplanations(None, pair)
 
-    diagnostics.logPairExplanation(pair, "Test Case" , "Diffa did something else")
-    diagnostics.checkpointExplanations(pair)
+    diagnostics.logPairExplanation(None, pair, "Test Case" , "Diffa did something else")
+    diagnostics.checkpointExplanations(None, pair)
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
     val zips = pairDir.listFiles()
@@ -235,8 +235,8 @@ class LocalDiagnosticsManagerTest {
     expectMaxExplainFilesLimitQuery(domainName, pairKey, filesToKeep)
 
     for (i <- 1 until generateCount) {
-      diagnostics.logPairExplanation(pair, "Test Case", i.toString)
-      diagnostics.checkpointExplanations(pair)
+      diagnostics.logPairExplanation(None, pair, "Test Case", i.toString)
+      diagnostics.checkpointExplanations(None, pair)
     }
 
     val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))

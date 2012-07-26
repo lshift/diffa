@@ -7,6 +7,7 @@ import hooks.HookManager
 import org.hibernate.dialect.Dialect
 import org.slf4j.LoggerFactory
 import preferences.JooqUserPreferencesStore
+import scanning.JooqScanActivityStore
 import util.cache.HazelcastCacheProvider
 import util.sequence.HazelcastSequenceProvider
 import util.MissingObjectException
@@ -129,12 +130,16 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private lazy val _domainDifferenceStore =
     makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider, hookManager), "DomainDifferenceStore")
 
+  private lazy val _scanActivityStore =
+    makeStore(sf => new JooqScanActivityStore(facade), "scanActivityStore")
+
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: JooqSystemConfigStore = _systemConfigStore
   def domainConfigStore: JooqDomainConfigStore = _domainConfigStore
   def domainCredentialsStore: JooqDomainCredentialsStore = _domainCredentialsStore
   def domainDifferenceStore: JooqDomainDifferenceStore = _domainDifferenceStore
   def userPreferencesStore: JooqUserPreferencesStore = _userPreferencesStore
+  def scanActivityStore: JooqScanActivityStore = _scanActivityStore
 
   def prepareEnvironmentForStores {
     performCleanerAction(cleaner => cleaner.clean)

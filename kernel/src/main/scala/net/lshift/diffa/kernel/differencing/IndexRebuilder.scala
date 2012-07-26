@@ -41,7 +41,7 @@ class OracleIndexRebuilder extends IndexRebuilder {
 
     indexNames.foreach(index => {
       try {
-        t.execute("alter index " + index + " rebuild wait 10")
+        t.execute("alter index " + index + " rebuild")
       }
       catch {
         case ex: Exception =>

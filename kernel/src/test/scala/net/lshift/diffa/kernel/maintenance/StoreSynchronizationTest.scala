@@ -121,8 +121,8 @@ class StoreSynchronizationTest {
     val lastUpdated = new DateTime(2019,5,7,8,12,15,0, DateTimeZone.UTC)
     val id = VersionID(pairRef, "id1")
 
-    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
-    writer.storeDownstreamVersion(id, attributes, lastUpdated.plusMinutes(1), "v2", "v3") // Should produce store version 2
+    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1", None) // Should produce store version 1
+    writer.storeDownstreamVersion(id, attributes, lastUpdated.plusMinutes(1), "v2", "v3", None) // Should produce store version 2
 
     writer.flush()
 
@@ -141,11 +141,11 @@ class StoreSynchronizationTest {
     val lastUpdated = new DateTime(2019,5,7,8,12,15,0, DateTimeZone.UTC)
     val id = VersionID(pairRef, "id1")
 
-    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
-    writer.storeDownstreamVersion(id, attributes, lastUpdated.plusMinutes(1), "v2", "v3") // Should produce store version 2
+    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1", None) // Should produce store version 1
+    writer.storeDownstreamVersion(id, attributes, lastUpdated.plusMinutes(1), "v2", "v3", None) // Should produce store version 2
     writer.flush()
-    writer.clearUpstreamVersion(id) // Should produce store version 3
-    writer.clearDownstreamVersion(id) // Should produce store version 4
+    writer.clearUpstreamVersion(id, None) // Should produce store version 3
+    writer.clearDownstreamVersion(id, None) // Should produce store version 4
 
     writer.flush()
 
@@ -172,7 +172,7 @@ class StoreSynchronizationTest {
     val lastUpdated = new DateTime(2019,5,7,8,12,15,0, DateTimeZone.UTC)
     val id = VersionID(pairRef, "id1")
 
-    firstWriter.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
+    firstWriter.storeUpstreamVersion(id, attributes, lastUpdated, "v1", None) // Should produce store version 1
 
     firstWriter.flush()
     replayCorrelationStore(diffsManager, firstWriter, store, pairRef, u, d, TriggeredByScan)
@@ -194,8 +194,8 @@ class StoreSynchronizationTest {
     val lastUpdated = new DateTime(2019,5,7,8,12,15,0, DateTimeZone.UTC)
     val id = VersionID(pairRef, "id1")
 
-    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1") // Should produce store version 1
-    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v2") // Should produce store version 2
+    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v1", None) // Should produce store version 1
+    writer.storeUpstreamVersion(id, attributes, lastUpdated, "v2", None) // Should produce store version 2
 
     writer.flush()
     replayCorrelationStore(diffsManager, writer, store, pairRef, u, d, TriggeredByScan)

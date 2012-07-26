@@ -18,6 +18,7 @@ package net.lshift.diffa.schema.migrations
 import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import org.apache.commons.lang.RandomStringUtils
+import java.sql.Timestamp
 
 /**
  * Performs a database migration
@@ -51,4 +52,5 @@ trait VerifiedMigrationStep extends MigrationStep {
 
   def randomString() = RandomStringUtils.randomAlphanumeric(10)
   def randomInt() = RandomStringUtils.randomNumeric(7)
+  def randomTimestamp() = new Timestamp(System.currentTimeMillis()).toString
 }

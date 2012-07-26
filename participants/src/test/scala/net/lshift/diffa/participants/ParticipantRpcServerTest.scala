@@ -97,7 +97,7 @@ class ParticipantRpcServerTest {
 
     val httpClient = new DefaultHttpClient
 
-    submitAndVerifyResponse(httpClient, query, 401)
+    submitAndVerifyResponse(httpClient, query, 403)
     httpClient.getConnectionManager.shutdown()
 
     server.stop

@@ -16,18 +16,19 @@
 
 package net.lshift.diffa.client
 
-import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
+import org.apache.http.impl.client.{DefaultHttpRequestRetryHandler, BasicAuthCache, DefaultHttpClient}
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 import org.apache.http.params.{HttpConnectionParams, BasicHttpParams}
 import org.slf4j.LoggerFactory
-import org.apache.http.{HttpResponse, HttpHost}
+import org.apache.http.{NoHttpResponseException, HttpResponse, HttpHost}
 import org.apache.http.protocol.BasicHttpContext
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.client.protocol.ClientContext
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.util.AlertCodes
 import net.lshift.diffa.kernel.differencing.ScanFailedException
+import org.apache.commons.io.IOUtils
 
 class ApacheHttpClient(connectionTimeout: Int,
                         socketTimeout: Int) extends DiffaHttpClient {
@@ -38,7 +39,9 @@ class ApacheHttpClient(connectionTimeout: Int,
     val httpParams = new BasicHttpParams
     HttpConnectionParams.setConnectionTimeout(httpParams,connectionTimeout)
     HttpConnectionParams.setSoTimeout(httpParams, socketTimeout)
-    new DefaultHttpClient(httpParams)
+    val client = new DefaultHttpClient(httpParams)
+    client.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
+    client
   }
 
   private def basicAuthContext(targetHost: HttpHost): BasicHttpContext = {
@@ -74,7 +77,20 @@ class ApacheHttpClient(connectionTimeout: Int,
             formatAlertCode(AlertCodes.EXTERNAL_SCAN_ERROR), r.fullUri, resp.getStatusLine))
           throw new ScanFailedException("%d - %s".format(code, resp.getStatusLine.getReasonPhrase))
       }
-    } finally {
+    } catch {
+      case x:NoHttpResponseException =>
+
+        val content = try {
+          "content received: " + IOUtils.toString(resp.getEntity.getContent)
+        } catch {
+          case _ => "no content received from remote peer"
+        }
+
+        logger.error("%s Non HTTP response from %s; %s".format(NON_HTTP_RESPONSE, uri, content))
+        throw new ScanFailedException("Non HTTP response from " + uri)
+    }
+    // This finally block is very important, so don't nuke it, otherwise the client will leak
+    finally {
       try {
         resp.getEntity.getContent.close()
       } catch {

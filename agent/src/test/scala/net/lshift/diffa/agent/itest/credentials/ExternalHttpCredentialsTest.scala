@@ -34,6 +34,7 @@ import org.junit.experimental.theories.{DataPoints, Theories, Theory}
 import org.junit.runner.RunWith
 import scala.collection.JavaConversions._
 import org.junit.Before
+import org.apache.commons.lang.RandomStringUtils
 
 @RunWith(classOf[Theories])
 class ExternalHttpCredentialsTest extends IsolatedDomainTest {
@@ -55,9 +56,9 @@ class ExternalHttpCredentialsTest extends IsolatedDomainTest {
       case _ => // ignore
     }
 
-    val up = new UUID().toString
-    val down = new UUID().toString
-    pair = new UUID().toString
+    val up = RandomStringUtils.randomAlphanumeric(10)
+    val down = RandomStringUtils.randomAlphanumeric(10)
+    pair = RandomStringUtils.randomAlphanumeric(10)
 
     configClient.declareEndpoint(EndpointDef(name = up, scanUrl = scanUrl))
     configClient.declareEndpoint(EndpointDef(name = down, scanUrl = scanUrl))
@@ -109,9 +110,21 @@ class ExternalHttpCredentialsTest extends IsolatedDomainTest {
   }
 
   private def withRunningServer(server: ParticipantRpcServer, verify: => Unit) {
-    server.start
-    verify
-    server.stop
+    try {
+
+      log.info("Starting participant server on port " + server.port)
+      server.start
+      log.info("Participant server on port " + server.port + " started")
+
+      verify
+    }
+    finally {
+
+      log.info("Stopping participant server on port " + server.port)
+      server.stop
+      log.info("Participant server on port " + server.port + " stopped")
+
+    }
   }
 
   private def newServer(authMechanism: AuthenticationMechanism) = {

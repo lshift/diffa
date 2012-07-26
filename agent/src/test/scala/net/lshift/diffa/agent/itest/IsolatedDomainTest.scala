@@ -21,6 +21,7 @@ import support.TestConstants._
 import org.slf4j.LoggerFactory
 import org.junit.{After, Before}
 import net.lshift.diffa.kernel.frontend.DomainDef
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Common superclass to provide a random domain for isolation purposes during testing.
@@ -29,7 +30,7 @@ abstract class IsolatedDomainTest {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  protected val isolatedDomain = new UUID().toString
+  protected val isolatedDomain = RandomStringUtils.randomAlphanumeric(10)
   protected val systemConfig = new SystemConfigRestClient(agentURL)
 
   @Before

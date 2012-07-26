@@ -56,7 +56,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanUpstream(pairRef:DiffaPairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanUpstream(scanId:Long, pairRef:DiffaPairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter,
                    participant:UpstreamParticipant, listener:DifferencingListener,
                    handle:FeedbackHandle)
 
@@ -65,7 +65,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanDownstream(pairRef:DiffaPairRef, downstream:Endpoint,  view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanDownstream(scanId:Long, pairRef:DiffaPairRef, downstream:Endpoint,  view:Option[String], writer: LimitedVersionCorrelationWriter,
                      us:UpstreamParticipant, ds:DownstreamParticipant,
                      listener:DifferencingListener, handle:FeedbackHandle)
 

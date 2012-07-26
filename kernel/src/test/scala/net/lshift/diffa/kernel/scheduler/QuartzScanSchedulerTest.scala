@@ -342,7 +342,7 @@ class QuartzScanSchedulerTest {
 
   private def createExecuteListenerQueue = {
     val q = new LinkedBlockingQueue[ScanInvocation]
-    expect(pairPolicyClient.scanPair(anyObject.asInstanceOf[DiffaPairRef], anyObject.asInstanceOf[Option[String]])).andAnswer(new IAnswer[Unit] {
+    expect(pairPolicyClient.scanPair(anyObject.asInstanceOf[DiffaPairRef], anyObject.asInstanceOf[Option[String]], anyObject.asInstanceOf[Option[String]])).andAnswer(new IAnswer[Unit] {
       def answer = {
         val pair = getCurrentArguments()(0).asInstanceOf[DiffaPairRef]
         val view = getCurrentArguments()(1).asInstanceOf[Option[String]]

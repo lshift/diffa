@@ -54,13 +54,13 @@ class SameVersionPolicy(stores:VersionCorrelationStoreFactory, listener:Differen
       })
     }
 
-    def handleMismatch(pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
+    def handleMismatch(scanId:Option[Long], pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
       vm match {
         case VersionMismatch(id, categories, lastUpdated, partVsn, _) =>
           if (partVsn != null) {
-            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, partVsn, partVsn))
+            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, partVsn, partVsn, scanId))
           } else {
-            handleUpdatedCorrelation(writer.clearDownstreamVersion(VersionID(pair, id)))
+            handleUpdatedCorrelation(writer.clearDownstreamVersion(VersionID(pair, id), scanId))
           }
       }
     }

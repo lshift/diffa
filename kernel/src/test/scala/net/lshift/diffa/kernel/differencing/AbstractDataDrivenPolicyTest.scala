@@ -100,8 +100,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(0L, scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(0L, scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -115,24 +115,26 @@ abstract class AbstractDataDrivenPolicyTest {
     setupStubs(scenario)
     assumeTrue(scenario.tx.forall(_.isInstanceOf[AggregateTx]))     // Only relevant in scenarios where aggregation occurs
 
+    val scanId = System.currentTimeMillis()
+
     scenario.tx.foreach { case tx:AggregateTx =>
       expectUpstreamAggregateScan(scenario.pair.asRef, tx.bucketing, tx.constraints, tx.respBuckets, Seq())
       tx.respBuckets.foreach(b => {
         expectUpstreamEntityScan(scenario.pair.asRef, b.nextTx.constraints, b.allVsns, Seq())
-        expectUpstreamEntityStore(scenario.pair.asRef, b.allVsns, false)
+        expectUpstreamEntityStore(scenario.pair.asRef, b.allVsns, false, Some(scanId))
       })
 
       expectDownstreamAggregateScan(scenario.pair.asRef, tx.bucketing, tx.constraints, tx.respBuckets, Seq())
       tx.respBuckets.foreach(b => {
         expectDownstreamEntityScan(scenario.pair.asRef, b.nextTx.constraints, b.allVsns, Seq())
-        expectDownstreamEntityStore(scenario.pair.asRef, b.allVsns, false)
+        expectDownstreamEntityStore(scenario.pair.asRef, b.allVsns, false, Some(scanId))
       })
     }
 
     replayAll
 
-    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scanId, scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scanId, scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -144,6 +146,8 @@ abstract class AbstractDataDrivenPolicyTest {
   def shouldCorrectOutOfDateUpstreamEntity(scenario:Scenario) {
     setupStubs(scenario)
 
+    val scanId = System.currentTimeMillis()
+
     scenario.tx.foreach { tx =>
       // Alter the version of the first entity in the upstream tree, then expect traversal to it
       val updated = tx.alterFirstVsn("newVsn1")
@@ -154,7 +158,7 @@ abstract class AbstractDataDrivenPolicyTest {
         case (tx1:EntityTx, tx2:EntityTx) =>
           expectUpstreamEntityScan(scenario.pair.asRef, tx1.constraints, tx1.entities, tx2.entities)
       }
-      expectUpstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
+      expectUpstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true, Some(scanId))
 
       // Expect to see an event about the version being matched (since we told the datastore to report it as matched)
       listener.onMatch(VersionID(scenario.pair.asRef, updated.firstVsn.id), updated.firstVsn.vsn, TriggeredByScan)
@@ -171,8 +175,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scanId, scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scanId, scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -183,6 +187,8 @@ abstract class AbstractDataDrivenPolicyTest {
   @Theory
   def shouldCorrectOutOfDateDownstreamEntity(scenario:Scenario) {
     setupStubs(scenario)
+
+    val scanId = System.currentTimeMillis()
 
     scenario.tx.foreach { tx =>
       tx match {
@@ -203,7 +209,7 @@ abstract class AbstractDataDrivenPolicyTest {
         case (tx1:EntityTx, tx2:EntityTx) =>
           expectDownstreamEntityScan(scenario.pair.asRef, tx1.constraints, tx1.entities, tx2.entities)
       }
-      expectDownstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
+      expectDownstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true, Some(scanId))
 
       // Expect to see an event about the version being matched (since we told the datastore to report it as matched)
       listener.onMatch(VersionID(scenario.pair.asRef, updated.firstVsn.id), updated.firstVsn.vsn, TriggeredByScan)
@@ -211,8 +217,8 @@ abstract class AbstractDataDrivenPolicyTest {
 
     replayAll
 
-    policy.scanUpstream(scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
-    policy.scanDownstream(scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
+    policy.scanUpstream(scanId, scenario.pair.asRef, scenario.upstreamEp, None, writer, usMock, nullListener, feedbackHandle)
+    policy.scanDownstream(scanId, scenario.pair.asRef, scenario.downstreamEp, None, writer, usMock, dsMock, listener, feedbackHandle)
 
     verifyAll
   }
@@ -304,6 +310,8 @@ abstract class AbstractDataDrivenPolicyTest {
   def shouldGenerateRequestsToCorrectOutOfDateEntity(scenario:Scenario) {
     setupStubs(scenario)
 
+    val scanId = System.currentTimeMillis()
+
     scenario.tx.foreach { tx =>
       // Alter the version of the first entity in the upstream tree, then expect traversal to it
       val updated = tx.alterFirstVsn("newVsn1")
@@ -317,8 +325,8 @@ abstract class AbstractDataDrivenPolicyTest {
           expectUpstreamStoreQuery(scenario.pair.asRef, tx2.constraints, tx2.entities)
           expectDownstreamStoreQuery(scenario.pair.asRef, tx2.constraints, tx2.entities)
       }
-      expectUpstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
-      expectDownstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true)
+      expectUpstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true, None)
+      expectDownstreamEntityStore(scenario.pair.asRef, Seq(updated.firstVsn), true, None)
 
       // Expect to see an event about the version being matched (since we told the datastore to report it as matched)
       // We'll see this twice (once for upstream, once for downstream)
@@ -412,19 +420,19 @@ abstract class AbstractDataDrivenPolicyTest {
     expect(store.queryDownstreams(asUnorderedList(constraints))).andReturn(correlations)
   }
 
-  protected def expectUpstreamEntityStore(pair:DiffaPairRef, entities:Seq[Vsn], matched:Boolean) {
+  protected def expectUpstreamEntityStore(pair:DiffaPairRef, entities:Seq[Vsn], matched:Boolean, scanId:Option[Long]) {
     entities.foreach(v => {
       val downstreamVsnToUse = if (matched) { v.vsn } else { null }   // If we're matched, make the vsn match
 
-      expect(writer.storeUpstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn)).
+      expect(writer.storeUpstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn, scanId)).
         andReturn(new Correlation(null, pair, v.id, v.strAttrs, null, v.lastUpdated, now, v.vsn, downstreamVsnToUse, downstreamVsnToUse, matched))
     })
   }
-  protected def expectDownstreamEntityStore(pair:DiffaPairRef, entities:Seq[Vsn], matched:Boolean) {
+  protected def expectDownstreamEntityStore(pair:DiffaPairRef, entities:Seq[Vsn], matched:Boolean, scanId:Option[Long]) {
     entities.foreach(v => {
       val upstreamVsnToUse = if (matched) { v.vsn } else { null }   // If we're matched, make the vsn match
 
-      expect(writer.storeDownstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn, v.vsn)).
+      expect(writer.storeDownstreamVersion(VersionID(pair, v.id), v.typedAttrs, v.lastUpdated, v.vsn, v.vsn, scanId)).
         andReturn(new Correlation(null, pair, v.id, null, v.strAttrs, v.lastUpdated, now, upstreamVsnToUse, v.vsn, v.vsn, matched))
     })
   }

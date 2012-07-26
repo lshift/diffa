@@ -113,6 +113,7 @@ object AlertCodes {
   val CONTENT_RETRIEVAL_FAILED = 613
   val VERSION_GENERATION_FAILED = 614
   val SCAN_SOCKET_TIMEOUT = 615
+  val NON_HTTP_RESPONSE = 616
 
   // 65x Problems with messaging systems
   

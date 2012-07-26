@@ -27,6 +27,7 @@ import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.config.QueryParameterCredentials
 import net.lshift.diffa.kernel.config.BasicAuthCredentials
 import scala.Some
+import org.apache.http.NoHttpResponseException
 
 class ScanParticipantRestClient(pair: DiffaPairRef,
                                 scanUrl: String,

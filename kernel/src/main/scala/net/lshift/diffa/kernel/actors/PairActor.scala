@@ -22,7 +22,7 @@ import java.util.concurrent.ScheduledFuture
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.{VersionID, PairChangeEvent}
 import net.lshift.diffa.kernel.participants.{DownstreamParticipant, UpstreamParticipant}
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, DateTime}
 import net.lshift.diffa.kernel.util.AlertCodes._
 import com.eaio.uuid.UUID
 import akka.actor._
@@ -41,6 +41,7 @@ import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, Scan
 import akka.util.Timeout
 import akka.util.duration._
 import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.scanning.{ScanStatement, ScanActivityStore}
 
 
 /**
@@ -57,6 +58,7 @@ case class PairActor(pair:DomainPairDef,
                      pairScanListener:PairScanListener,
                      diagnostics:DiagnosticsManager,
                      domainConfigStore:DomainConfigStore,
+                     scanActivityStore:ScanActivityStore,
                      changeEventBusyTimeoutMillis: Long,
                      changeEventQuietTimeoutMillis: Long,
                      indexWriterCloseInterval: Int,
@@ -92,12 +94,12 @@ case class PairActor(pair:DomainPairDef,
    * Keep track of scans that are still outstanding. This lets us know whether messages that arrive
    * are entirely spurious, or just jobs cleaning themselves up.
    */
-  private val outstandingScans = collection.mutable.Map[UUID, OutstandingScan]()
+  private val outstandingScans = collection.mutable.Map[Long, OutstandingScan]()
 
   /**
    * This allows tracing of spurious messages, but is only enabled in when the log level is set to TRACE
    */
-  abstract class TraceableCommand(uuid:UUID) {
+  abstract class TraceableCommand(scanId:Long) {
     var exception:Throwable = null
     if (logger.isTraceEnabled) {
       exception = new Exception().fillInStackTrace()
@@ -108,10 +110,13 @@ case class PairActor(pair:DomainPairDef,
    * Describes a message coming from a child actor running as part of a scan
    */
   trait ChildActorScanMessage {
-    def scanUuid:UUID   // The uuid of the scan that this message is coming from
+    def scanId:Long   // The id of the scan that this message is coming from
   }
 
-  private case class OutstandingScan(uuid:UUID) {
+  private case class OutstandingScan(startTime:DateTime, initiatingUser:Option[String]) {
+
+    val id = startTime.getMillis
+
     var upstreamCompleted = false
     var downstreamCompleted = false
 
@@ -121,20 +126,20 @@ case class PairActor(pair:DomainPairDef,
   /**
    * This is the set of commands that the writer proxy understands
    */
-  case class VersionCorrelationWriterCommand(scanUuid:UUID, invokeWriter:(LimitedVersionCorrelationWriter => Correlation))
-      extends TraceableCommand(scanUuid)
+  case class VersionCorrelationWriterCommand(scanId:Long, invokeWriter:(LimitedVersionCorrelationWriter => Correlation))
+      extends TraceableCommand(scanId)
       with ChildActorScanMessage {
-    override def toString = scanUuid.toString
+    override def toString = scanId.toString
   }
 
   /**
    * Marker messages to let the actor know that a portion of the scan has successfully completed.
    */
-  case class ChildActorCompletionMessage(scanUuid:UUID, upOrDown:UpOrDown, result:Result)
+  case class ChildActorCompletionMessage(scanId:Long, upOrDown:UpOrDown, result:Result)
       extends ChildActorScanMessage {
     def logMessage(l:Logger, s:ActorState, code:Int) {
       val formattedCode = formatAlertCode(pairRef, code)
-      l.debug("%s Received %sstream %s in %s state; scan id = %s".format(formattedCode, upOrDown, result, s, scanUuid))
+      l.debug("%s Received %sstream %s in %s state; scan id = %s".format(formattedCode, upOrDown, result, s, scanId))
     }
   }
 
@@ -143,22 +148,22 @@ case class PairActor(pair:DomainPairDef,
    * It wraps the underlying writer instance and forwards all commands via asynchronous messages,
    * thus allowing parallel access to the writer.
    */
-  private def createWriterProxy(scanUuid:UUID) = new LimitedVersionCorrelationWriter() {
+  private def createWriterProxy(scanId:Long) = new LimitedVersionCorrelationWriter() {
 
     // The receive timeout in seconds
     val timeout = domainConfigStore.configOptionOrDefault(
       pairRef.domain, CorrelationWriterProxy.TIMEOUT_KEY,
       CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE).toInt
 
-    def clearUpstreamVersion(id: VersionID) = call( _.clearUpstreamVersion(id) )
-    def clearDownstreamVersion(id: VersionID) = call( _.clearDownstreamVersion(id) )
-    def storeDownstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, uvsn: String, dvsn: String)
-      = call( _.storeDownstreamVersion(id, attributes, lastUpdated, uvsn, dvsn) )
-    def storeUpstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, vsn: String)
-      = call( _.storeUpstreamVersion(id, attributes, lastUpdated, vsn) )
+    def clearUpstreamVersion(id: VersionID, scanId:Option[Long]) = call( _.clearUpstreamVersion(id, scanId) )
+    def clearDownstreamVersion(id: VersionID, scanId:Option[Long]) = call( _.clearDownstreamVersion(id, scanId) )
+    def storeDownstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, uvsn: String, dvsn: String, scanId:Option[Long])
+      = call( _.storeDownstreamVersion(id, attributes, lastUpdated, uvsn, dvsn, scanId) )
+    def storeUpstreamVersion(id: VersionID, attributes: Map[String, TypedAttribute], lastUpdated: DateTime, vsn: String, scanId:Option[Long])
+      = call( _.storeUpstreamVersion(id, attributes, lastUpdated, vsn, scanId) )
     def call(command:(LimitedVersionCorrelationWriter => Correlation)) = {
       implicit val askTimeout : Timeout = timeout seconds
-      val message = VersionCorrelationWriterCommand(scanUuid, command)
+      val message = VersionCorrelationWriterCommand(scanId, command)
       val future = self.ask(message)
       try {
         Await.result(future, askTimeout duration) match {
@@ -214,8 +219,8 @@ case class PairActor(pair:DomainPairDef,
    * and will be re-delivered into this actor's mailbox when the scan state is exited.
    */
   def receive = {
-    case ScanMessage(scanView) => {
-      if (handleScanMessage(scanView)) {
+    case ScanMessage(scanView, initiatingUser) => {
+      if (handleScanMessage(scanView, initiatingUser)) {
         // Go into the scanning state
         context.become(receiveWhilstScanning)
       }
@@ -260,9 +265,9 @@ case class PairActor(pair:DomainPairDef,
         logger.trace("Received writer command (%s) for different scan worker - sending cancellation".format(c), c.exception)
         sender ! CancelMessage
       }
-    case ScanMessage(scanView)              =>
+    case ScanMessage(scanView, _)           =>
       // ignore any scan requests whilst scanning
-      diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Ignoring scan request received during current scan")
+      diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.INFO, "Ignoring scan request received during current scan")
       logger.warn("%s Ignoring scan request; view = %s".format(formatAlertCode(pairRef, SCAN_REQUEST_IGNORED), scanView))
     case d: Deferrable                      => deferred.enqueue(d)
     case a: ChildActorCompletionMessage     if isOwnedByActiveScan(a) => {
@@ -284,7 +289,7 @@ case class PairActor(pair:DomainPairDef,
    * Handles all messages that arrive whilst the actor is cancelling a scan
    */
   def handleCancellation() = {
-    logger.info("%s Scan %s for pair %s was cancelled on request".format(formatAlertCode(pairRef, CANCELLATION_REQUEST_RECEIVED), activeScan.uuid, pair.identifier))
+    logger.info("%s Scan %s for pair %s was cancelled on request".format(formatAlertCode(pairRef, CANCELLATION_REQUEST_RECEIVED), activeScan.id, pair.identifier))
     feedbackHandle.cancel()
 
     // Leave the scanning state as cancelled
@@ -296,13 +301,13 @@ case class PairActor(pair:DomainPairDef,
    */
   def maybeLeaveScanningState = {
     if (activeScan.isCompleted) {
-      logger.trace("Finished scan %s".format(activeScan.uuid))
+      logger.trace("Finished scan %s".format(activeScan.id))
 
       // Notify all interested parties of all of the outstanding mismatches
       writer.flush()
 
       try {
-        diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Calculating differences")
+        diagnostics.logPairEvent(Some(activeScan.id), pairRef, DiagnosticLevel.INFO, "Calculating differences")
         replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByScan)
       } catch {
         case ex =>
@@ -325,11 +330,23 @@ case class PairActor(pair:DomainPairDef,
     }
 
     state match {
-      case PairScanState.FAILED => diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Scan failed")
-      case PairScanState.CANCELLED => diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan cancelled")
-      case PairScanState.UP_TO_DATE => diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Scan completed")
+      case PairScanState.FAILED => diagnostics.logPairEvent(Some(activeScan.id), pairRef, DiagnosticLevel.ERROR, "Scan failed")
+      case PairScanState.CANCELLED => diagnostics.logPairEvent(Some(activeScan.id), pairRef, DiagnosticLevel.INFO, "Scan cancelled")
+      case PairScanState.UP_TO_DATE => diagnostics.logPairEvent(Some(activeScan.id), pairRef, DiagnosticLevel.INFO, "Scan completed")
       case _                        => // Ignore - not a state that we'll see
     }
+
+    val scanStatement = ScanStatement(
+      id = activeScan.id,
+      pair = pairRef.key,
+      domain = pairRef.domain,
+      initiatedBy = activeScan.initiatingUser,
+      startTime = activeScan.startTime,
+      endTime = Some(new DateTime(DateTimeZone.UTC)),
+      state = ScanStatement.resolveScanState(state)
+    )
+
+    scanActivityStore.createOrUpdateStatement(scanStatement)
 
     // Remove the record of the active scan
     activeScan = null
@@ -342,7 +359,7 @@ case class PairActor(pair:DomainPairDef,
 
     // Inform the diagnostics manager that we've completed a major operation, so it should checkpoint the explanation
     // data.
-    diagnostics.checkpointExplanations(pair.asRef)
+    diagnostics.checkpointExplanations(Some(scanStatement.id), pair.asRef)
 
     logger.info(formatAlertCode(pairRef, SCAN_COMPLETED_BENCHMARK))
     cleanupIndexFilesIfCorrelationStoreBackedByLucene
@@ -422,7 +439,7 @@ case class PairActor(pair:DomainPairDef,
       replayCorrelationStore(differencesManager, writer, store, pairRef, us, ds, TriggeredByBoot)
     } catch {
       case ex => {
-        diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to Difference Pair: " + ex.getMessage)
+        diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.ERROR, "Failed to Difference Pair: " + ex.getMessage)
         logger.error(formatAlertCode(pairRef, DIFFERENCING_FAILURE), ex)
       }
     }
@@ -432,8 +449,8 @@ case class PairActor(pair:DomainPairDef,
    * Implements the top half of the request to scan the participants for digests.
    * This actor will still be in the scan state after this callback has returned.
    */
-  def handleScanMessage(scanView:Option[String]) : Boolean = {
-    val createdScan = OutstandingScan(new UUID)
+  def handleScanMessage(scanView:Option[String], initiatingUser:Option[String]) : Boolean = {
+    val createdScan = OutstandingScan(new DateTime(DateTimeZone.UTC), initiatingUser)
     implicit val system = actorSystem
     implicit val executionContext = ExecutionContext.defaultExecutionContext
 
@@ -441,7 +458,7 @@ case class PairActor(pair:DomainPairDef,
     logger.info(formatAlertCode(pairRef, SCAN_STARTED_BENCHMARK))
 
     // allocate a writer proxy
-    val writerProxy = createWriterProxy(createdScan.uuid)
+    val writerProxy = createWriterProxy(createdScan.id)
 
     pairScanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING)
 
@@ -458,21 +475,21 @@ case class PairActor(pair:DomainPairDef,
         case None =>       "Commencing non-filtered scan for pair %s".format(pairRef.key)
       }
 
-      diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, infoMsg)
+      diagnostics.logPairEvent(Some(createdScan.id), pairRef, DiagnosticLevel.INFO, infoMsg)
 
       if (us.supportsScanning) {
         Future {
           try {
-            policy.scanUpstream(pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Up, Success)
+            policy.scanUpstream(createdScan.id, pairRef, us, scanView, writerProxy, usp, bufferingListener, currentFeedbackHandle)
+            self ! ChildActorCompletionMessage(createdScan.id, Up, Success)
             logger.info(formatAlertCode(pairRef, UPSTREAM_SCAN_COMPLETED_BENCHMARK))
           }
           catch {
             case c:ScanCancelledException => {
               logger.warn("Upstream scan on pair %s was cancelled".format(pair.identifier))
-              self ! ChildActorCompletionMessage(createdScan.uuid, Up, Cancellation)
+              self ! ChildActorCompletionMessage(createdScan.id, Up, Cancellation)
             }
-            case x:Exception              => handleScanError(self, createdScan.uuid, Up, x)
+            case x:Exception              => handleScanError(self, createdScan.id, Up, x)
           }
         }
       } else {
@@ -482,16 +499,16 @@ case class PairActor(pair:DomainPairDef,
       if (ds.supportsScanning) {
         Future {
           try {
-            policy.scanDownstream(pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
-            self ! ChildActorCompletionMessage(createdScan.uuid, Down, Success)
+            policy.scanDownstream(createdScan.id, pairRef, ds, scanView, writerProxy, usp, dsp, bufferingListener, currentFeedbackHandle)
+            self ! ChildActorCompletionMessage(createdScan.id, Down, Success)
             logger.info(formatAlertCode(pairRef, DOWNSTREAM_SCAN_COMPLETED_BENCHMARK))
           }
           catch {
             case c:ScanCancelledException => {
               logger.warn("Downstream scan on pair %s was cancelled".format(pair.identifier))
-              self ! ChildActorCompletionMessage(createdScan.uuid, Down, Cancellation)
+              self ! ChildActorCompletionMessage(createdScan.id, Down, Cancellation)
             }
-            case x:Exception              => handleScanError(self, createdScan.uuid, Down, x)
+            case x:Exception              => handleScanError(self, createdScan.id, Down, x)
           }
         }
       } else {
@@ -502,14 +519,14 @@ case class PairActor(pair:DomainPairDef,
       // might go wrong during the setup, and we'd then need to remove it. Only the main actor looks at activeScan,
       // so even though the child actors are running by now, it is safe not to have activeScan set.
       activeScan = createdScan
-      outstandingScans(activeScan.uuid) = activeScan
+      outstandingScans(activeScan.id) = activeScan
 
       true
 
     } catch {
       case x: Exception => {
         logger.error(formatAlertCode(pairRef, SCAN_INITIALIZATION_FAILURE), x)
-        diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Failed to initiate scan for pair: " + x.getMessage)
+        diagnostics.logPairEvent(Some(createdScan.id), pairRef, DiagnosticLevel.ERROR, "Failed to initiate scan for pair: " + x.getMessage)
         processBacklog(PairScanState.FAILED)
         false
       }
@@ -524,7 +541,7 @@ case class PairActor(pair:DomainPairDef,
 
   private def timeSince(pastTime: Long) = System.currentTimeMillis() - pastTime
 
-  private def handleScanError(actor:ActorRef, scanId:UUID, upOrDown:UpOrDown, x:Exception) = {
+  private def handleScanError(actor:ActorRef, scanId:Long, upOrDown:UpOrDown, x:Exception) = {
 
     val (prefix, marker) = upOrDown match {
       case Up   => (formatAlertCode(pairRef, UPSTREAM_SCAN_FAILURE), "Upstream")
@@ -540,16 +557,16 @@ case class PairActor(pair:DomainPairDef,
         logger.error(logTemplate.format(prefix, scanId), e)
     }
 
-    diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "%s scan failed: %s".format(marker, x.getMessage))
+    diagnostics.logPairEvent(Some(scanId), pairRef, DiagnosticLevel.ERROR, "%s scan failed: %s".format(marker, x.getMessage))
     actor ! ChildActorCompletionMessage(scanId, upOrDown, Failure)
   }
 
-  private def isOwnedByActiveScan(msg:ChildActorScanMessage) = activeScan != null && activeScan.uuid == msg.scanUuid
-  private def isOwnedByOutstandingScan(msg:ChildActorScanMessage) = outstandingScans.contains(msg.scanUuid)
+  private def isOwnedByActiveScan(msg:ChildActorScanMessage) = activeScan != null && activeScan.id == msg.scanId
+  private def isOwnedByOutstandingScan(msg:ChildActorScanMessage) = outstandingScans.contains(msg.scanId)
   private def updateOutstandingScans(msg:ChildActorScanMessage) = {
     msg match {
       case completion:ChildActorCompletionMessage =>
-        outstandingScans.get(completion.scanUuid) match {
+        outstandingScans.get(completion.scanId) match {
           case Some(scan) =>
             // Update the completion status flags, and remove it if it has reached a totally completed state
             completion.upOrDown match {
@@ -557,7 +574,7 @@ case class PairActor(pair:DomainPairDef,
               case Down => scan.downstreamCompleted = true
             }
             if (scan.isCompleted) {
-              outstandingScans.remove(scan.uuid)
+              outstandingScans.remove(scan.id)
             }
           case None       => // Doesn't match an outstanding scan. Ignore.
         }
@@ -606,7 +623,7 @@ case object Cancellation extends Result
 abstract class Deferrable
 case class ChangeMessage(event: PairChangeEvent) extends Deferrable
 case object DifferenceMessage extends Deferrable
-case class ScanMessage(scanView:Option[String])
+case class ScanMessage(scanView:Option[String], initiatingUser:Option[String])
 case class StartInventoryMessage(side:EndpointSide, view:Option[String])
 case class InventoryMessage(side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry])
 

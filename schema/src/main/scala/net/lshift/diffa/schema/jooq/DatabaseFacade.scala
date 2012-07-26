@@ -75,9 +75,21 @@ object DatabaseFacade {
 
   private val columnMapper = new TimestampColumnDateTimeMapper()
 
-  def timestampToDateTime(timestamp: Timestamp) =
-    columnMapper.fromNonNullValue(timestamp)
+  def timestampToDateTime(timestamp: Timestamp) = {
+    if (timestamp == null) {
+      null
+    }
+    else {
+      columnMapper.fromNonNullValue(timestamp)
+    }
+  }
 
-  def dateTimeToTimestamp(dateTime: DateTime) =
-    columnMapper.toNonNullValue(dateTime)
+  def dateTimeToTimestamp(dateTime: DateTime) = {
+    if (dateTime == null) {
+      null
+    }
+    else {
+      columnMapper.toNonNullValue(dateTime)
+    }
+  }
 }

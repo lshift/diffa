@@ -26,6 +26,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.security.authentication.BasicAuthenticator
 import org.eclipse.jetty.security.{HashLoginService, ConstraintMapping, ConstraintSecurityHandler}
 import org.eclipse.jetty.http.security.{Credential, Constraint}
+import org.slf4j.LoggerFactory
 
 /**
  * Indicates what sort of authentication strategy the server should implement
@@ -49,7 +50,7 @@ case class BasicAuthenticationMechanism(users:Map[String,String]) extends Authen
 case class QueryParameterAuthenticationMechanism(name:String, value:String) extends AuthenticationMechanism
 
 
-class ParticipantRpcServer(port: Int,
+class ParticipantRpcServer(val port: Int,
                            scanning:ScanningParticipantRequestHandler,
                            content:ContentParticipantHandler,
                            versioning:VersioningParticipantHandler,
@@ -115,9 +116,21 @@ object NoopRequestAuthenticator extends CustomRequestAuthenticator {
 }
 
 class QueryParameterAuthenticator(name:String,value:String) extends CustomRequestAuthenticator {
+
+  val log = LoggerFactory.getLogger(getClass)
+
   def allowRequest(request: HttpServletRequest) = {
     val parameter = request.getParameter(name)
-    (parameter != null && parameter == value)
+    val shouldPass = (parameter != null && parameter == value)
+
+    if (!shouldPass) {
+      val authHeader = request.getHeader("Authorization")
+      if (authHeader != null) {
+        log.warn("Received Authorization Header (%s) when using a query parameter to authenticate, is this potentially a bug?".format(authHeader))
+      }
+    }
+
+    shouldPass
   }
 }
 
@@ -126,25 +139,40 @@ class ParticipantHandler(scanning:ScanningParticipantRequestHandler,
                          versioning:VersioningParticipantHandler,
                          authenticator:CustomRequestAuthenticator) extends AbstractHandler {
 
+  val log = LoggerFactory.getLogger(getClass)
+
   private val contentAdapter = new ContentParticipantDelegator(content)
   private val versioningAdapter = new VersioningParticipantDelegator(versioning)
 
   override def handle(target: String, jettyReq: Request, request: HttpServletRequest, response: HttpServletResponse): Unit = {
 
     if (!authenticator.allowRequest(request)) {
-      jettyReq.setHandled(true)
-      response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+      log.info("Request forbidden [target=%s]".format(target))
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN)
+      ServletHelper.writeResponse(response, "Forbidden")
     }
     else {
       if (target.startsWith("/scan")) {
+
+        log.info("Processing scan request [target=%s]".format(target))
         scanning.handleRequest(request, response)
+
       } else if (target.startsWith("/content")) {
+
+        log.info("Processing content request [target=%s]".format(target))
         contentAdapter.handleRequest(request, response)
+
       } else if (versioning != null && target.startsWith("/corr-version")) {
+
+        log.info("Processing versioning request [target=%s]".format(target))
         versioningAdapter.handleRequest(request, response)
+
       } else {
+
+        log.info("Invalid target: %s".format(target))
         response.setStatus(HttpServletResponse.SC_NOT_FOUND)
         ServletHelper.writeResponse(response, "Unknown path " + target)
+
       }
     }
 

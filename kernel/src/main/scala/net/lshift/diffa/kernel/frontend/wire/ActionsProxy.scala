@@ -67,7 +67,7 @@ class ActionsProxy(val config:DomainConfigStore,
         case RepairAction.ENTITY_SCOPE => "entity " + request.entityId + " of pair " + request.pairKey
         case RepairAction.PAIR_SCOPE => "pair " + request.pairKey
       })
-      diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Initiating action " + actionDescription)
+      diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.INFO, "Initiating action " + actionDescription)
 
 
       val httpClient = createHttpClient()
@@ -77,14 +77,14 @@ class ActionsProxy(val config:DomainConfigStore,
         val httpEntity = EntityUtils.toString(httpResponse.getEntity)
 
         if (httpCode >= 200 && httpCode < 300) {
-          diagnostics.logPairEvent(DiagnosticLevel.INFO, pairRef, "Action " + actionDescription + " succeeded: " + httpEntity)
+          diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.INFO, "Action " + actionDescription + " succeeded: " + httpEntity)
         } else {
-          diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Action " + actionDescription + " failed: " + httpEntity)
+          diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.ERROR, "Action " + actionDescription + " failed: " + httpEntity)
         }
         InvocationResult.received(httpCode, httpEntity)
       } catch {
         case e: Exception =>
-          diagnostics.logPairEvent(DiagnosticLevel.ERROR, pairRef, "Action " + actionDescription + " failed: " + e.getMessage)
+          diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.ERROR, "Action " + actionDescription + " failed: " + e.getMessage)
           InvocationResult.failure(e)
       } finally {
         immediatelyShutDownClient(httpClient, pairRef)

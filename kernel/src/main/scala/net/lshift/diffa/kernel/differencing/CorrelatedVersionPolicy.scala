@@ -57,21 +57,21 @@ class CorrelatedVersionPolicy(stores:VersionCorrelationStoreFactory,
       })
     }
 
-    def handleMismatch(pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
+    def handleMismatch(scanId:Option[Long], pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
       vm match {
         case VersionMismatch(id, categories, _, null, storedVsn) =>
-          handleUpdatedCorrelation(writer.clearDownstreamVersion(VersionID(pair, id)))
+          handleUpdatedCorrelation(writer.clearDownstreamVersion(VersionID(pair, id), scanId))
         case VersionMismatch(id, categories, lastUpdated, partVsn, _) =>
           val content = us.retrieveContent(id)
           val response = ds.generateVersion(content)
 
           if (response.getDvsn == partVsn) {
             // This is the same destination object, so we're safe to store the correlation
-            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, response.getUvsn, response.getDvsn))
+            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, response.getUvsn, response.getDvsn, scanId))
           } else {
             // We don't know of an upstream version, so we'll put in a proxy dummy value.
               // TODO: Is this an appropriate behaviour?
-            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, "UNKNOWN", partVsn))
+            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, "UNKNOWN", partVsn, scanId))
           }
       }
     }

@@ -68,7 +68,7 @@ class Changes(val domainConfig:DomainConfigStore,
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)
-        diagnostics.logPairExplanation(pair.asRef, "Version Policy",
+        diagnostics.logPairExplanation(None, pair.asRef, "Version Policy",
           "The result %s was dropped since it didn't meet the request constraints. Identified issues were (%s)".format(
             pairEvt, issues.map { case (k, v) => k + ": " + v }.mkString(", ")))
       } else {

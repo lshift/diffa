@@ -55,7 +55,7 @@ trait PairPolicyClient {
    * concurrent operations to be submitted safely against the same pair concurrently.
    * @param scanView the view of the participants that should be used when running the scan.
    */
-  def scanPair(pair:DiffaPairRef, scanView:Option[String]) : Unit
+  def scanPair(pair:DiffaPairRef, scanView:Option[String], initiatingUser:Option[String])
 
   /**
    * Cancels any scan operation that may be in process.
