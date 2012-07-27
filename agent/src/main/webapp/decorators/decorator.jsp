@@ -45,6 +45,8 @@
         if (authToken.equals("__token__")) {
           authToken = "";
         }
+
+        String domain = request.getParameter("domain");
       %>
       var API_BASE = "<%= apiRoot %>";
       var USER_AUTH_TOKEN = "<%= authToken %>";
@@ -59,6 +61,7 @@
     <link rel="stylesheet" href="less/jquery.multiselect.filter.css" type="text/css" media="screen, projection">
     <link rel="stylesheet" href="less/jquery.ui.all.css" type="text/css" media="screen, projection">
 
+    <script>var currentDiffaDomain = "<%= domain %>";</script>
     <script type="text/javascript" src="js/thirdparty/jquery-1.7.2.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="js/thirdparty/jquery-ui-1.8.21.custom.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="js/thirdparty/jquery.multiselect-1.12.js" charset="utf-8"></script>
@@ -67,7 +70,6 @@
     <script type="text/javascript" src="js/thirdparty/jquery.cookie.js" charset="utf-8"></script>
     <script type="text/javascript" src="assets/diffa-core.js" charset="utf-8"></script>
 
-    <script src="js/current-domain.js"></script>
     <script src="js/diffa-ajax-setup.js"></script>
 
     <script type="text/javascript" src="assets/widgets.js"></script>

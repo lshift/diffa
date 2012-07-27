@@ -12,7 +12,7 @@
 
 ## General Maintenance
 
-* [??] -
+* [240] - Never default the username to guest and control default domain from one entry point.
 
 ## Library Upgrades
 

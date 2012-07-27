@@ -47,7 +47,7 @@
   <logger name="org.apache" level="ERROR" />
   <logger name="net.lshift" level="INFO" />
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
 
