@@ -24,6 +24,8 @@ import org.apache.commons.io.FileUtils
 import java.io.{FileInputStream, FileWriter, PrintWriter, File}
 import org.apache.http.entity.InputStreamEntity
 import org.joda.time.format.ISODateTimeFormat
+import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.util.MissingObjectException
 
 /**
  * Component responsible for executing reports defined on a pair.
@@ -36,7 +38,8 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
    * @throws MissingObjectException if the requested report doesn't exist.
    */
   def executeReport(pair:DiffaPairRef, name:String) {
-    val reportDef = configStore.getPairReportDef(pair.domain, name, pair.key)
+    val reportDef = configStore.getPairDef(pair.domain, pair.key).reports.
+      find(_.name == name).getOrElse(throw new MissingObjectException("pair report"))
 
     diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Initiating report %s".format(name))
     try {

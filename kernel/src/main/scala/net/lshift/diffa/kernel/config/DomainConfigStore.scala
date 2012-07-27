@@ -45,27 +45,8 @@ trait DomainConfigStore {
   def getPairDef(domain:String, key: String) : DomainPairDef
   def getPairDef(ref:DiffaPairRef) : DomainPairDef = getPairDef(ref.domain, ref.key)
 
-  def createOrUpdateRepairAction(domain:String, action: RepairActionDef)
-  def deleteRepairAction(domain:String, name: String, pairKey: String)
-
-  def listRepairActions(domain:String) : Seq[RepairActionDef]
-  def listRepairActionsForPair(domain:String, key: String) : Seq[RepairActionDef]
-
-  def listEscalations(domain:String) : Seq[EscalationDef]
-  def deleteEscalation(domain:String, s: String, s1: String)
-  def createOrUpdateEscalation(domain:String, escalation : EscalationDef)
-  def listEscalationsForPair(domain:String, key: String) : Seq[EscalationDef]
-
-  def listReports(domain:String) : Seq[PairReportDef]
-  def deleteReport(domain:String, name: String, pairKey: String)
-  def createOrUpdateReport(domain:String, report: PairReportDef)
-  def listReportsForPair(domain:String, key: String) : Seq[PairReportDef]
-
   def getEndpointDef(domain:String, name: String) : EndpointDef
   @Deprecated def getEndpoint(domain:String, name: String) : Endpoint
-
-  def getRepairActionDef(domain:String, name: String, pairKey: String): RepairActionDef
-  def getPairReportDef(domain:String, name:String, pairKey:String):PairReportDef
 
   def getConfigVersion(domain:String) : Int
 

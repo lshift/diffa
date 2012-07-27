@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.client.HttpClient
 import com.sun.xml.internal.ws.Closeable
+import net.lshift.diffa.kernel.util.MissingObjectException
+import scala.collection.JavaConversions._
 
 /**
  * This is a conduit to the actions that are provided by participants
@@ -48,7 +50,7 @@ class ActionsProxy(val config:DomainConfigStore,
 
   def listActions(pair:DiffaPairRef): Seq[Actionable] =
     withValidPair(pair) { p =>
-      config.listRepairActionsForPair(pair.domain, pair.key).map(Actionable.fromRepairAction(pair.domain,_))
+      config.getPairDef(pair.domain, pair.key).repairActions.map(Actionable.fromRepairAction(pair.domain, pair.key, _)).toSeq
     }
 
   def listEntityScopedActions(pair:DiffaPairRef) = listActions(pair).filter(_.scope == RepairAction.ENTITY_SCOPE)
@@ -58,7 +60,8 @@ class ActionsProxy(val config:DomainConfigStore,
   def invoke(request: ActionableRequest): InvocationResult =
     withValidPair(DiffaPairRef(request.pairKey, request.domain)) { pairRef =>
 
-      val repairAction = config.getRepairActionDef(request.domain, request.actionId, request.pairKey)
+      val repairAction = config.getPairDef(request.domain, request.pairKey).repairActions.
+        find(_.name == request.actionId).getOrElse(throw new MissingObjectException("repair action"))
       val url = repairAction.scope match {
         case RepairAction.ENTITY_SCOPE => repairAction.url.replace("{id}", request.entityId)
         case RepairAction.PAIR_SCOPE => repairAction.url

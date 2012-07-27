@@ -44,11 +44,9 @@ class DocExamplesFactory {
 
   val repair = RepairActionDef(name = "resend",
                                url = "http://acme.com/repairs/resend/{id}",
-                               scope = "entity",
-                               pair = "pairKey")
+                               scope = "entity")
 
   val escalation = EscalationDef(name = "some-escalation",
-                                 pair = "pairKey",
                                  action = "resend", actionType = "repair",
                                  event = "downstream-missing", origin = "scan")
 

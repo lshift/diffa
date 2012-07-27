@@ -158,14 +158,15 @@ class ConfigurationTest {
       endpoints = Set(ep1.withoutDomain, ep2.withoutDomain),
       pairs = Set(
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
-          allowManualScans = true, views = List(PairViewDef("v1", "0 * * * * ?", false))),
-        PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?", scanCronEnabled = false)),
-      repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair", "ab")),
-      reports = Set(PairReportDef("Bulk Send Differences", "ab", "differences", "http://location:5432/diffhandler")),
-      escalations = Set(
-        EscalationDef("Resend Missing", "ab", "Resend Sauce", "repair", "downstream-missing", "scan"),
-        EscalationDef("Report Differences", "ab", "Bulk Send Differences", "report", "scan-completed")
-      )
+          allowManualScans = true, views = List(PairViewDef("v1", "0 * * * * ?", false)),
+          repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair")),
+          reports = Set(PairReportDef("Bulk Send Differences", "differences", "http://location:5432/diffhandler")),
+          escalations = Set(
+            EscalationDef("Resend Missing", "Resend Sauce", "repair", "downstream-missing", "scan"),
+            EscalationDef("Report Differences", "Bulk Send Differences", "report", "scan-completed")
+          )
+        ),
+        PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?", scanCronEnabled = false))
     )
 
     val ab = DomainPairDef(key = "ab", domain = "domain", matchingTimeout = 5,
@@ -222,15 +223,15 @@ class ConfigurationTest {
         // gaa is gone, gcc is created, gbb is the same
       pairs = Set(
           // ab has moved from gaa to gcc
-        PairDef("ab", "same", 5, "upstream1", "downstream2", "0 * * * * ?"),
+        PairDef("ab", "same", 5, "upstream1", "downstream2", "0 * * * * ?",
+          repairActions = Set(RepairActionDef("Resend Source", "resend", "pair")),
+          escalations = Set(EscalationDef(name = "Resend Another Missing",
+                                        action = "Resend Source", actionType = "repair",
+                                        event = "downstream-missing", origin = "scan")),
+          reports = Set(PairReportDef("Bulk Send Reports Elsewhere", "differences", "http://location:5431/diffhandler"))
+        ),
           // ac is gone
-        PairDef("ad", "same", 5, "upstream1", "downstream2")),
-      // name of repair action is changed
-      repairActions = Set(RepairActionDef("Resend Source", "resend", "pair", "ab")),
-      escalations = Set(EscalationDef(name = "Resend Another Missing", pair = "ab",
-                                      action = "Resend Source", actionType = "repair",
-                                      event = "downstream-missing", origin = "scan")),
-      reports = Set(PairReportDef("Bulk Send Reports Elsewhere", "ab", "differences", "http://location:5431/diffhandler"))
+        PairDef("ad", "same", 5, "upstream1", "downstream2"))
     )
 
     val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
@@ -269,7 +270,8 @@ class ConfigurationTest {
     assertEquals(config, newConfig)
 
     // check that the action was updated
-    assertEquals(Set(RepairActionDef("Resend Source", "resend", "pair", "ab")), newConfig.repairActions)
+    assertEquals(Set(RepairActionDef("Resend Source", "resend", "pair")),
+      newConfig.pairs.find(_.key == "ab").get.repairActions.toSet)
     verifyAll
   }
 

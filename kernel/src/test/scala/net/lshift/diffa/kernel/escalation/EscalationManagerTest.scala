@@ -25,7 +25,6 @@ import org.junit.runner.RunWith
 import net.lshift.diffa.kernel.config._
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theories, Theory}
 import net.lshift.diffa.kernel.config.DiffaPair
-import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.reporting.ReportManager
 import net.lshift.diffa.kernel.differencing._
 import org.easymock.classextension.{EasyMock => EasyMock4Classes}
@@ -35,6 +34,8 @@ import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import org.easymock.{IAnswer, EasyMock}
 import org.junit.{Ignore, Before, After}
 import akka.actor.ActorSystem
+import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef, EscalationDef}
 
 @RunWith(classOf[Theories])
 class EscalationManagerTest {
@@ -61,8 +62,8 @@ class EscalationManagerTest {
 
   def expectConfigStoreWithRepairs(event:String) {
 
-    expect(configStore.listEscalationsForPair(domain, pairKey)).andReturn(
-      List(EscalationDef("foo", pairKey, "bar", EscalationActionType.REPAIR, event, EscalationOrigin.SCAN))
+    expect(configStore.getPairDef(domain, pairKey)).andReturn(
+      DomainPairDef(escalations = Set(EscalationDef("foo", "bar", EscalationActionType.REPAIR, event, EscalationOrigin.SCAN)))
     ).anyTimes()
 
     replay(configStore)
@@ -70,8 +71,8 @@ class EscalationManagerTest {
 
   def expectConfigStoreWithReports(event:String) {
 
-    expect(configStore.listEscalationsForPair(domain, pairKey)).andReturn(
-      List(EscalationDef("foo", pairKey, "bar", EscalationActionType.REPORT, event))
+    expect(configStore.getPairDef(domain, pairKey)).andReturn(
+      DomainPairDef(escalations = Set(EscalationDef("foo", "bar", EscalationActionType.REPORT, event)))
     ).anyTimes()
 
     replay(configStore)

@@ -8,13 +8,7 @@ import org.junit.Test
 class RepairActionDefValidationTest extends DefValidationTestBase {
   @Test
   def shouldRejectNameThatIsTooLong {
-    validateExceedsMaxKeyLength("config/pair[key=p]/repair-action[name=%s]: name",
-      name => RepairActionDef(name = name, scope = "pair", pair = "p"))
-  }
-
-  @Test
-  def shouldRejectPairKeyThatIsTooLong {
-    validateExceedsMaxKeyLength("config/pair[key=%s]/repair-action[name=a]: pair",
-      key => RepairActionDef(name = "a", scope = "pair", pair = key))
+    validateExceedsMaxKeyLength("config/repair-action[name=%s]: name",
+      name => RepairActionDef(name = name, scope = "pair"))
   }
 }

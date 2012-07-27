@@ -25,7 +25,6 @@ import net.lshift.diffa.schema.tables.SetCategoryViews.SET_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
 import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import scala.collection.JavaConversions._
-import org.jooq.{Record, Result}
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
@@ -47,6 +46,7 @@ import org.slf4j.LoggerFactory
 import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
+import org.jooq.{Field, Record, Result}
 
 /**
  * This object is a workaround for the fact that Scala is so slow
@@ -265,28 +265,57 @@ object JooqConfigStoreCompanion {
   }
 
 
-  def listPairs(jooq:DatabaseFacade, domain:String, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
+  def listPairs(jooq:DatabaseFacade, domain:String, key:Option[String] = None, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
 
     val baseQuery = t.select(PAIR.getFields).
       select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
+      select(REPAIR_ACTIONS.getFields).
+      select(ESCALATIONS.getFields).
+      select(PAIR_REPORTS.getFields).
       from(PAIR).
       leftOuterJoin(PAIR_VIEWS).
-      on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
-      and(PAIR_VIEWS.DOMAIN.equal(PAIR.DOMAIN)).
-      where(PAIR.DOMAIN.equal(domain))
+        on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
+        and(PAIR_VIEWS.DOMAIN.equal(PAIR.DOMAIN)).
+      leftOuterJoin(REPAIR_ACTIONS).
+        on(REPAIR_ACTIONS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
+        and(REPAIR_ACTIONS.DOMAIN.equal(PAIR.DOMAIN)).
+      leftOuterJoin(ESCALATIONS).
+        on(ESCALATIONS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
+        and(ESCALATIONS.DOMAIN.equal(PAIR.DOMAIN)).
+      leftOuterJoin(PAIR_REPORTS).
+        on(PAIR_REPORTS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
+        and(PAIR_REPORTS.DOMAIN.equal(PAIR.DOMAIN)).
+        where(PAIR.DOMAIN.equal(domain))
 
-    val query = endpoint match {
+    val keyedQuery = key match {
       case None       => baseQuery
-      case Some(name) => baseQuery.and(PAIR.UPSTREAM.equal(name).or(PAIR.DOWNSTREAM.equal(name)))
+      case Some(name) => baseQuery.and(PAIR.PAIR_KEY.equal(name))
+    }
+    val query = endpoint match {
+      case None       => keyedQuery
+      case Some(name) => keyedQuery.and(PAIR.UPSTREAM.equal(name).or(PAIR.DOWNSTREAM.equal(name)))
     }
 
     val results = query.fetch()
 
     val compressed = new mutable.HashMap[String, DomainPairDef]()
+    val knownViews = new mutable.HashSet[String]
+    val knownReports = new mutable.HashSet[String]
+    val knownRepairs = new mutable.HashSet[String]
+    val knownEscalations = new mutable.HashSet[String]
 
     def compressionKey(pairKey:String) = domain + "/" + pairKey
+    def onceOnly(record:Record, pairKey:String, field:Field[String], known:mutable.HashSet[String]) = {
+      val key = record.getValue(field)
+      if (key == null || known.contains(pairKey + "/" + key)) {
+        false
+      } else {
+        known.add(pairKey + "/" + key)
+        true
+      }
+    }
 
-    results.iterator().map(record => {
+    results.iterator().foreach(record => {
       val pairKey = record.getValue(PAIR.PAIR_KEY)
       val compressedKey = compressionKey(pairKey)
       val pair = compressed.getOrElseUpdate(compressedKey,
@@ -304,19 +333,29 @@ object JooqConfigStoreCompanion {
         )
       )
 
-      val viewName = record.getValue(PAIR_VIEWS.NAME)
-
-      if (viewName != null) {
+      if (onceOnly(record, compressedKey, PAIR_VIEWS.NAME, knownViews)) {
         pair.views.add(PairViewDef(
-          name = viewName,
+          name = record.getValue(PAIR_VIEWS.NAME),
           scanCronSpec = record.getValue(PAIR_VIEWS.SCAN_CRON_SPEC),
           scanCronEnabled = record.getValue(PAIR_VIEWS.SCAN_CRON_ENABLED)
         ))
       }
 
+      if (onceOnly(record, compressedKey, REPAIR_ACTIONS.NAME, knownRepairs)) {
+        pair.repairActions.add(recordToRepairAction(record))
+      }
+      if (onceOnly(record, compressedKey, ESCALATIONS.NAME, knownEscalations)) {
+        pair.escalations.add(recordToEscalation(record))
+      }
+      if (onceOnly(record, compressedKey, PAIR_REPORTS.NAME, knownReports)) {
+        pair.reports.add(recordToPairReport(record))
+      }
+
       pair
 
-    }).toList
+    })
+
+    compressed.values.toList
   })
 
   def mapResultsToList[T](results:Result[Record], rowMapper:Record => T) = {
@@ -327,7 +366,6 @@ object JooqConfigStoreCompanion {
 
   def recordToEscalation(record:Record) : EscalationDef = {
     EscalationDef(
-      pair = record.getValue(ESCALATIONS.PAIR_KEY),
       name = record.getValue(ESCALATIONS.NAME),
       action = record.getValue(ESCALATIONS.ACTION),
       actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
@@ -337,7 +375,6 @@ object JooqConfigStoreCompanion {
 
   def recordToPairReport(record:Record) : PairReportDef = {
     PairReportDef(
-      pair = record.getValue(PAIR_REPORTS.PAIR_KEY),
       name = record.getValue(PAIR_REPORTS.NAME),
       target = record.getValue(PAIR_REPORTS.TARGET),
       reportType = record.getValue(PAIR_REPORTS.REPORT_TYPE)
@@ -346,7 +383,6 @@ object JooqConfigStoreCompanion {
 
   def recordToRepairAction(record:Record) : RepairActionDef = {
     RepairActionDef(
-      pair = record.getValue(REPAIR_ACTIONS.PAIR_KEY),
       name = record.getValue(REPAIR_ACTIONS.NAME),
       scope = record.getValue(REPAIR_ACTIONS.SCOPE),
       url = record.getValue(REPAIR_ACTIONS.URL)

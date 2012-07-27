@@ -83,8 +83,7 @@ object FrontendConversions {
   def toRepairActionDef(a:RepairAction) = RepairActionDef(
     name = a.name,
     url = a.url,
-    scope = a.scope,
-    pair = a.pair.key
+    scope = a.scope
   )
 
   def fromRepairActionDef(pair:DiffaPair, a:RepairActionDef) = RepairAction(
@@ -96,7 +95,6 @@ object FrontendConversions {
 
   def toEscalationDef(e:Escalation) = EscalationDef(
     name = e.name,
-    pair = e.pair.key,
     action = e.action,
     actionType = e.actionType,
     origin = e.origin,
@@ -114,7 +112,6 @@ object FrontendConversions {
 
   def toPairReportDef(r:PairReport) = PairReportDef(
     name = r.name,
-    pair = r.pair.key,
     reportType = r.reportType,
     target = r.target
   )

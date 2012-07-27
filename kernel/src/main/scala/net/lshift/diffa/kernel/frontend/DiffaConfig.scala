@@ -32,19 +32,13 @@ case class DiffaConfig(
   members:Set[String] = Set(),
   properties:Map[String, String] = Map(),
   endpoints:Set[EndpointDef] = Set(),
-  pairs:Set[PairDef] = Set(),
-  repairActions:Set[RepairActionDef] = Set(),
-  escalations:Set[EscalationDef] = Set(),
-  reports:Set[PairReportDef] = Set()
+  pairs:Set[PairDef] = Set()
 ) {
 
   def validate() {
     val path = "config"
     endpoints.foreach(_.validate(path))
     pairs.foreach(_.validate(path, endpoints))
-    repairActions.foreach(_.validate(path))
-    escalations.foreach(_.validate(path))
-    reports.foreach(_.validate(path))
   }
 }
 
@@ -190,7 +184,11 @@ case class PairDef(
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var scanCronEnabled: Boolean = true,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef]) {
+  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef],
+  @BeanProperty var repairActions:java.util.Set[RepairActionDef] = new java.util.HashSet[RepairActionDef],
+  @BeanProperty var reports:java.util.Set[PairReportDef] = new java.util.HashSet[PairReportDef],
+  @BeanProperty var escalations:java.util.Set[EscalationDef] = new java.util.HashSet[EscalationDef]
+) {
 
   def this() = this(key = null)
 
@@ -264,6 +262,10 @@ case class PairDef(
 
       views.foreach(v => v.validate(this, pairPath, upstreamEp, downstreamEp))
     }
+    
+    repairActions.foreach(_.validate(pairPath))
+    escalations.foreach(_.validate(pairPath))
+    reports.foreach(_.validate(pairPath))
   }
 }
 
@@ -316,7 +318,11 @@ case class DomainPairDef(
   @BeanProperty var scanCronSpec: String = null,
   @BeanProperty var scanCronEnabled: Boolean = true,
   @BeanProperty var allowManualScans: java.lang.Boolean = null,
-  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef]) {
+  @BeanProperty var views:java.util.List[PairViewDef] = new java.util.ArrayList[PairViewDef],
+  @BeanProperty var repairActions:java.util.Set[RepairActionDef] = new java.util.HashSet[RepairActionDef],
+  @BeanProperty var reports:java.util.Set[PairReportDef] = new java.util.HashSet[PairReportDef],
+  @BeanProperty var escalations:java.util.Set[EscalationDef] = new java.util.HashSet[EscalationDef]
+) {
 
   def this() = this(domain = null)
 
@@ -331,7 +337,10 @@ case class DomainPairDef(
     scanCronSpec = scanCronSpec,
     scanCronEnabled = scanCronEnabled,
     allowManualScans = allowManualScans,
-    views = views
+    views = views,
+    repairActions = repairActions,
+    reports = reports,
+    escalations = escalations
   )
 
   def identifier = asRef.identifier
@@ -343,20 +352,16 @@ case class DomainPairDef(
 case class RepairActionDef (
   @BeanProperty var name: String = null,
   @BeanProperty var url: String = null,
-  @BeanProperty var scope: String = null,
-  @BeanProperty var pair: String = null
+  @BeanProperty var scope: String = null
 ) {
   import RepairAction._
 
   def this() = this(name = null)
 
   def validate(path:String = null) {
-    val actionPath = ValidationUtil.buildPath(
-      ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
-      "repair-action", Map("name" -> name))
+    val actionPath = ValidationUtil.buildPath(path, "repair-action", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(actionPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
-    ValidationUtil.ensureLengthLimit(actionPath, "pair", pair, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the scope is supported
     this.scope = scope match {
@@ -364,9 +369,6 @@ case class RepairActionDef (
       case _ => throw new ConfigValidationException(actionPath, "Invalid action scope: "+scope)
     }
   }
-
-  def asRepairAction(domain:String)
-    = RepairAction(name, url, scope, DiffaPair(key=pair,domain=Domain(name=domain)))
 }
 
 /**
@@ -374,7 +376,6 @@ case class RepairActionDef (
  */
 case class EscalationDef (
   @BeanProperty var name: String = null,
-  @BeanProperty var pair: String = null,
   @BeanProperty var action: String = null,
   @BeanProperty var actionType: String = null,
   @BeanProperty var event: String = null,
@@ -387,12 +388,9 @@ case class EscalationDef (
   def this() = this(name = null)
 
   def validate(path:String = null) {
-    val escalationPath = ValidationUtil.buildPath(
-      ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
-      "escalation", Map("name" -> name))
+    val escalationPath = ValidationUtil.buildPath(path, "escalation", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(escalationPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
-    ValidationUtil.ensureLengthLimit(escalationPath, "pair", pair, DefaultLimits.KEY_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(escalationPath, "action", action, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the action type is supported, and validate the parameters that depend on it
@@ -424,14 +422,10 @@ case class EscalationDef (
         throw new ConfigValidationException(escalationPath, "Invalid escalation action type: " + actionType)
     }
   }
-
-  def asEscalation(domain:String)
-    = Escalation(name, DiffaPair(key=pair,domain=Domain(name=domain)), action, actionType, event, origin)
 }
 
 case class PairReportDef(
   @BeanProperty var name:String = null,
-  @BeanProperty var pair: String = null,
   @BeanProperty var reportType:String = null,
   @BeanProperty var target:String = null
 ) {
@@ -440,12 +434,9 @@ case class PairReportDef(
   def this() = this(name = null)
 
   def validate(path:String = null) {
-    val escalationPath = ValidationUtil.buildPath(
-        ValidationUtil.buildPath(path, "pair", Map("key" -> pair)),
-    "report", Map("name" -> name))
+    val escalationPath = ValidationUtil.buildPath(path, "report", Map("name" -> name))
 
     ValidationUtil.ensureLengthLimit(escalationPath, "name", this.name, DefaultLimits.KEY_LENGTH_LIMIT)
-    ValidationUtil.ensureLengthLimit(escalationPath, "pair", this.pair, DefaultLimits.KEY_LENGTH_LIMIT)
 
     reportType match {
       case DIFFERENCES  =>

@@ -39,7 +39,6 @@ class DomainScopedPermissionsTest {
   def configurationResourcesAreAccessibleInDefaultDomain {
     assertEquals(200, statusOf(default.path("config/xml")))
     assertEquals(200, statusOf(default.path("config/endpoints")))
-    assertEquals(200, statusOf(default.path("config/repair-actions")))
     assertEquals(200, statusOf(default.path("config/pairs")))
     assertEquals(200, statusOf(default.path("config/members")))
   }
@@ -48,7 +47,6 @@ class DomainScopedPermissionsTest {
   def configurationResourcesAreNotFoundInNonExistentDomain {
     assertEquals(404, statusOf(nonExistent.path("config/xml")))
     assertEquals(404, statusOf(nonExistent.path("config/endpoints")))
-    assertEquals(404, statusOf(nonExistent.path("config/repair-actions")))
     assertEquals(404, statusOf(nonExistent.path("config/pairs")))
     assertEquals(404, statusOf(nonExistent.path("config/members")))
   }

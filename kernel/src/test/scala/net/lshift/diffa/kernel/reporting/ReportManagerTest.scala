@@ -11,6 +11,7 @@ import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, Before, Test}
 import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
+import scala.collection.JavaConversions._
 
 class ReportManagerTest {
   private val storeReferences = ReportManagerTest.storeReferences
@@ -33,17 +34,16 @@ class ReportManagerTest {
     systemConfigStore.createOrUpdateDomain(domainName)
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e1"))
     domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e2"))
-    domainConfigStore.createOrUpdatePair(domainName,
-      PairDef(pair.key, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2"))
   }
 
   @Test
   def shouldDispatchReport() {
     val reports = new ListBuffer[String]
     ReportListenerUtil.withReportListener(reports, reportListenerUrl => {
-      // Create our report
-      domainConfigStore.createOrUpdateReport(domainName,
-        PairReportDef("send diffs", "p1", "differences", reportListenerUrl))
+      // Create our pair/report
+      domainConfigStore.createOrUpdatePair(domainName,
+        PairDef(pair.key, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2",
+                reports = Set(PairReportDef("send diffs", "differences", reportListenerUrl))))
 
       // Add some differences
       domainDiffStore.addReportableUnmatchedEvent(VersionID(pair, "id1"), new DateTime, "a", "b", new DateTime)

@@ -47,6 +47,7 @@ import net.lshift.diffa.kernel.frontend.PairViewDef
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.frontend.PairReportDef
+import org.jooq.{Record, Field, Condition, Table}
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
                             hookManager:HookManager,
@@ -74,15 +75,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   // Members
   private val cachedMembers = cacheProvider.getCachedMap[String, java.util.List[Member]](USER_DOMAIN_MEMBERS)
 
-  // Escalations
-  private val cachedEscalations = cacheProvider.getCachedMap[DomainPairKey, java.util.List[EscalationDef]](DOMAIN_ESCALATIONS)
-
-  // Repair Actions
-  private val cachedRepairActions = cacheProvider.getCachedMap[DomainPairKey, java.util.List[RepairActionDef]](DOMAIN_REPAIR_ACTIONS)
-
-  // Pair Reports
-  private val cachedPairReports = cacheProvider.getCachedMap[DomainPairKey, java.util.List[PairReportDef]](DOMAIN_PAIR_REPORTS)
-
   def reset {
     cachedConfigVersions.evictAll()
     cachedPairs.evictAll()
@@ -95,24 +87,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     cachedDomainConfigOptions.evictAll()
 
     cachedMembers.evictAll()
-
-    cachedEscalations.evictAll()
-
-    cachedRepairActions.evictAll()
-
-    cachedPairReports.evictAll()
-  }
-
-  private def invalidatePairReportsCache(domain:String) = {
-    cachedPairReports.keySubset(PairByDomainPredicate(domain)).evictAll()
-  }
-
-  private def invalidateEscalationCache(domain:String) = {
-    cachedEscalations.keySubset(PairByDomainPredicate(domain)).evictAll()
-  }
-
-  private def invalidateRepairActionCache(domain:String) = {
-    cachedRepairActions.keySubset(PairByDomainPredicate(domain)).evictAll()
   }
 
   private def invalidateMembershipCache(domain:String) = {
@@ -135,9 +109,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     invalidateConfigCaches(domain)
 
     invalidateMembershipCache(domain)
-    invalidateEscalationCache(domain)
-    invalidateRepairActionCache(domain)
-    invalidatePairReportsCache(domain)
   }
 
   private def invalidateEndpointCachesOnly(domain:String, endpointName: String) = {
@@ -326,37 +297,63 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
           set(PAIR.VERSION_POLICY_NAME, pair.versionPolicyName).
         execute()
 
-      // Update the view definitions
+      type HasName = {def name: String}
+      def clearUnused[R <: Record](t:Factory, table:Table[R], namesSource:Iterable[HasName], pairCondition:Condition, nameField:Field[String]) {
+        val names = namesSource.map(_.name).toSeq
 
-      if (pair.views.isEmpty) {
-
-        t.delete(PAIR_VIEWS).
-          where(PAIR_VIEWS.DOMAIN.equal(domain)).
-            and(PAIR_VIEWS.PAIR.equal(pair.key)).
-          execute()
-
-      } else {
-
-        t.delete(PAIR_VIEWS).
-          where(PAIR_VIEWS.NAME.notIn(pair.views.map(p => p.name))).
-            and(PAIR_VIEWS.DOMAIN.equal(domain)).
-            and(PAIR_VIEWS.PAIR.equal(pair.key)).
+        if (names.length == 0) {
+          t.delete(table).
+            where(pairCondition).
+            execute()
+        } else {
+          t.delete(table).
+            where(nameField.notIn(names)).
+              and(pairCondition).
+            execute()
+        }
+      }
+      def insertOrUpdate[R <: Record](t:Factory, table:Table[R], finders:Map[_ <: Field[_], _], values:Map[_ <: Field[_], _]) {
+        t.insertInto(table).
+            set(finders).
+            set(values).
+          onDuplicateKeyUpdate().
+            set(values).
           execute()
       }
 
-
+      clearUnused(t, PAIR_VIEWS, pair.views,
+        PAIR_VIEWS.DOMAIN.equal(domain).and(PAIR_VIEWS.PAIR.equal(pair.key)),
+        PAIR_VIEWS.NAME)
+      clearUnused(t, ESCALATIONS, pair.escalations,
+        ESCALATIONS.DOMAIN.equal(domain).and(ESCALATIONS.PAIR_KEY.equal(pair.key)),
+        ESCALATIONS.NAME)
+      clearUnused(t, PAIR_REPORTS, pair.reports,
+        PAIR_REPORTS.DOMAIN.equal(domain).and(PAIR_REPORTS.PAIR_KEY.equal(pair.key)),
+        PAIR_REPORTS.NAME)
+      clearUnused(t, REPAIR_ACTIONS, pair.repairActions,
+        REPAIR_ACTIONS.DOMAIN.equal(domain).and(REPAIR_ACTIONS.PAIR_KEY.equal(pair.key)),
+        REPAIR_ACTIONS.NAME)
 
       pair.views.foreach(v => {
-        t.insertInto(PAIR_VIEWS).
-            set(PAIR_VIEWS.DOMAIN, domain).
-            set(PAIR_VIEWS.PAIR, pair.key).
-            set(PAIR_VIEWS.NAME, v.name).
-            set(PAIR_VIEWS.SCAN_CRON_SPEC, v.scanCronSpec).
-            set(PAIR_VIEWS.SCAN_CRON_ENABLED, boolean2Boolean(v.scanCronEnabled)).
-          onDuplicateKeyUpdate().
-            set(PAIR_VIEWS.SCAN_CRON_SPEC, v.scanCronSpec).
-            set(PAIR_VIEWS.SCAN_CRON_ENABLED, boolean2Boolean(v.scanCronEnabled)).
-          execute()
+        insertOrUpdate(t, PAIR_VIEWS,
+          Map(PAIR_VIEWS.DOMAIN -> domain, PAIR_VIEWS.PAIR -> pair.key, PAIR_VIEWS.NAME -> v.name),
+          Map(PAIR_VIEWS.SCAN_CRON_SPEC -> v.scanCronSpec, PAIR_VIEWS.SCAN_CRON_ENABLED -> boolean2Boolean(v.scanCronEnabled)))
+      })
+      pair.repairActions.foreach(a => {
+        insertOrUpdate(t, REPAIR_ACTIONS,
+          Map(REPAIR_ACTIONS.DOMAIN -> domain, REPAIR_ACTIONS.PAIR_KEY -> pair.key, REPAIR_ACTIONS.NAME -> a.name),
+          Map(REPAIR_ACTIONS.URL -> a.url, REPAIR_ACTIONS.SCOPE -> a.scope))
+      })
+      pair.reports.foreach(r => {
+        insertOrUpdate(t, PAIR_REPORTS,
+          Map(PAIR_REPORTS.DOMAIN -> domain, PAIR_REPORTS.PAIR_KEY -> pair.key, PAIR_REPORTS.NAME -> r.name),
+          Map(PAIR_REPORTS.REPORT_TYPE -> r.reportType, PAIR_REPORTS.TARGET -> r.target))
+      })
+      pair.escalations.foreach(e => {
+        insertOrUpdate(t, ESCALATIONS,
+          Map(ESCALATIONS.DOMAIN -> domain, ESCALATIONS.PAIR_KEY -> pair.key, ESCALATIONS.NAME -> e.name),
+          Map(ESCALATIONS.ACTION -> e.action, ESCALATIONS.ACTION_TYPE -> e.actionType,
+            ESCALATIONS.EVENT -> e.event, ESCALATIONS.ORIGIN -> e.origin))
       })
 
       upgradeConfigVersion(t, domain)
@@ -382,206 +379,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   def listPairs(domain:String) = cachedPairs.readThrough(domain, () => JooqConfigStoreCompanion.listPairs(jooq,domain))
 
   def listPairsForEndpoint(domain:String, endpoint:String) =
-    cachedPairsByEndpoint.readThrough(DomainEndpointKey(domain, endpoint), () => JooqConfigStoreCompanion.listPairs(jooq, domain, Some(endpoint)))
-
-  def listEscalationsForPair(domain:String, pairKey: String) : Seq[EscalationDef] = {
-    cachedEscalations.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
-      val results = t.select().
-                      from(ESCALATIONS).
-                      where(ESCALATIONS.DOMAIN.equal(domain)).
-                      and(ESCALATIONS.PAIR_KEY.equal(pairKey)).
-                      fetch()
-
-      mapResultsToList(results, recordToEscalation)
-    }))
-  }
-
-  // TODO Currently this is an uncached call because rather than putting in yet another cache
-  // it would be nice to query cachedEscalations, since that contains the data in any case.
-  // However, to maintain coherency, we would need to lister to evictions from that cache,
-  // so that we can make sure that we're not reading stale data
-  def listEscalations(domain:String) = jooq.execute(t => {
-    val results = t.select().
-                    from(ESCALATIONS).
-                    where(ESCALATIONS.DOMAIN.equal(domain)).
-                    fetch()
-
-    mapResultsToList(results, recordToEscalation)
-  })
-
-  def deleteEscalation(domain:String, name: String, pairKey: String) = {
-
-    jooq.execute(t => {
-      t.delete(ESCALATIONS).
-        where(ESCALATIONS.DOMAIN.equal(domain)).
-        and(ESCALATIONS.PAIR_KEY.equal(pairKey)).
-        and(ESCALATIONS.NAME.equal(name)).
-        execute()
-    })
-
-    invalidateEscalationCache(domain)
-  }
-
-  def createOrUpdateEscalation(domain:String, e: EscalationDef) = {
-
-    jooq.execute(t => {
-      t.insertInto(ESCALATIONS).
-        set(ESCALATIONS.DOMAIN, domain).
-        set(ESCALATIONS.PAIR_KEY, e.pair).
-        set(ESCALATIONS.NAME, e.name).
-        set(ESCALATIONS.ACTION, e.action).
-        set(ESCALATIONS.ACTION_TYPE, e.actionType).
-        set(ESCALATIONS.EVENT, e.event).
-        set(ESCALATIONS.ORIGIN, e.origin).
-        onDuplicateKeyUpdate().
-        set(ESCALATIONS.ACTION, e.action).
-        set(ESCALATIONS.ACTION_TYPE, e.actionType).
-        set(ESCALATIONS.EVENT, e.event).
-        set(ESCALATIONS.ORIGIN, e.origin).
-        execute()
-
-    })
-
-    invalidateEscalationCache(domain)
-  }
-
-  def listReportsForPair(domain:String, pairKey: String) : Seq[PairReportDef] = {
-    cachedPairReports.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
-      val results = t.select().
-        from(PAIR_REPORTS).
-        where(PAIR_REPORTS.DOMAIN.equal(domain)).
-        and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
-        fetch()
-
-      mapResultsToList(results, recordToPairReport)
-    }))
-  }
-
-  // TODO see comment about listEscalations/1
-  def listReports(domain:String) = jooq.execute(t => {
-    val results = t.select().
-      from(PAIR_REPORTS).
-      where(PAIR_REPORTS.DOMAIN.equal(domain)).
-      fetch()
-
-    mapResultsToList(results, recordToPairReport)
-  })
-
-  def deleteReport(domain:String, name: String, pairKey: String) = {
-    jooq.execute(t => {
-      t.delete(PAIR_REPORTS).
-        where(PAIR_REPORTS.DOMAIN.equal(domain)).
-        and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
-        and(PAIR_REPORTS.NAME.equal(name)).
-        execute()
-    })
-
-    invalidatePairReportsCache(domain)
-  }
-
-  def createOrUpdateReport(domain:String, r: PairReportDef) = {
-    jooq.execute(t => {
-      t.insertInto(PAIR_REPORTS).
-          set(PAIR_REPORTS.DOMAIN, domain).
-          set(PAIR_REPORTS.PAIR_KEY, r.pair).
-          set(PAIR_REPORTS.NAME, r.name).
-          set(PAIR_REPORTS.REPORT_TYPE, r.reportType).
-          set(PAIR_REPORTS.TARGET, r.target).
-        onDuplicateKeyUpdate().
-          set(PAIR_REPORTS.REPORT_TYPE, r.reportType).
-          set(PAIR_REPORTS.TARGET, r.target).
-        execute()
-    })
-
-    invalidatePairReportsCache(domain)
-  }
-
-  // TODO Not cached right now
-  def getPairReportDef(domain:String, name: String, pairKey: String) = jooq.execute(t => {
-    val record = t.select().
-                   from(PAIR_REPORTS).
-                   where(PAIR_REPORTS.DOMAIN.equal(domain)).
-                     and(PAIR_REPORTS.PAIR_KEY.equal(pairKey)).
-                     and(PAIR_REPORTS.NAME.equal(name)).
-                   fetchOne()
-
-    if (record == null) {
-      throw new MissingObjectException("pair report")
-    }
-    else {
-      recordToPairReport(record)
-    }
-
-  })
-
-  def createOrUpdateRepairAction(domain:String, a: RepairActionDef) = {
-    jooq.execute(t => {
-      t.insertInto(REPAIR_ACTIONS).
-          set(REPAIR_ACTIONS.DOMAIN, domain).
-          set(REPAIR_ACTIONS.PAIR_KEY, a.pair).
-          set(REPAIR_ACTIONS.NAME, a.name).
-          set(REPAIR_ACTIONS.SCOPE, a.scope).
-          set(REPAIR_ACTIONS.URL, a.url).
-        onDuplicateKeyUpdate().
-          set(REPAIR_ACTIONS.SCOPE, a.scope).
-          set(REPAIR_ACTIONS.URL, a.url).
-        execute()
-    })
-
-    invalidateRepairActionCache(domain)
-  }
-
-
-  def deleteRepairAction(domain:String, name: String, pairKey: String) = {
-    jooq.execute(t => {
-      t.delete(REPAIR_ACTIONS).
-        where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
-          and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
-          and(REPAIR_ACTIONS.NAME.equal(name)).
-        execute()
-    })
-
-    invalidateRepairActionCache(domain)
-  }
-
-  def listRepairActionsForPair(domain:String, pairKey: String) : Seq[RepairActionDef] = {
-    cachedRepairActions.readThrough(DomainPairKey(domain, pairKey), () => jooq.execute(t => {
-      val results = t.select().
-                      from(REPAIR_ACTIONS).
-                      where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
-                        and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
-                      fetch()
-
-      mapResultsToList(results, recordToRepairAction)
-    }))
-  }
-
-  def listRepairActions(domain:String) : Seq[RepairActionDef] = jooq.execute(t => {
-    val results = t.select().
-                    from(REPAIR_ACTIONS).
-                    where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
-                    fetch()
-
-    mapResultsToList(results, recordToRepairAction)
-  })
-
-  // TODO Not cached right now
-  def getRepairActionDef(domain:String, name: String, pairKey: String) = jooq.execute(t => {
-    val record = t.select().
-                   from(REPAIR_ACTIONS).
-                   where(REPAIR_ACTIONS.DOMAIN.equal(domain)).
-                     and(REPAIR_ACTIONS.PAIR_KEY.equal(pairKey)).
-                     and(REPAIR_ACTIONS.NAME.equal(name)).
-                   fetchOne()
-
-    if (record == null) {
-      throw new MissingObjectException("repair action")
-    }
-    else {
-      recordToRepairAction(record)
-    }
-
-  })
+    cachedPairsByEndpoint.readThrough(DomainEndpointKey(domain, endpoint), () => JooqConfigStoreCompanion.listPairs(jooq, domain, endpoint = Some(endpoint)))
 
   @Deprecated def getEndpoint(domain:String, endpoint: String) = {
 
@@ -614,31 +412,10 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
 
   def getPairDef(domain:String, key: String) = cachedPairsByKey.readThrough(DomainPairKey(domain,key), () => jooq.execute { t =>
-
-    val result =
-      t.select(PAIR.getFields).
-        select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
-        from(PAIR).
-          leftOuterJoin(PAIR_VIEWS).
-            on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
-            and(PAIR_VIEWS.DOMAIN.equal(PAIR.DOMAIN)).
-        where(PAIR.DOMAIN.equal(domain).
-          and(PAIR.PAIR_KEY.equal(key)).
-          and(
-            PAIR_VIEWS.DOMAIN.equal(domain).
-            and(PAIR_VIEWS.PAIR.equal(key)).
-            orNotExists(
-              t.selectOne().
-                from(PAIR_VIEWS).
-                where(
-                  PAIR_VIEWS.DOMAIN.equal(domain).
-                  and(PAIR_VIEWS.PAIR.equal(key))
-              )
-            )
-          )
-        ).fetch()
-
-    if (result.size() == 0) {
+    val pairs = JooqConfigStoreCompanion.listPairs(jooq, domain, key = Some(key))
+    if (pairs.length == 1) {
+      pairs(0)
+    } else {
       //throw new MissingObjectException(domain + "/" + key)
 
       // TODO Ideally this code should throw something more descriptive like the above error
@@ -646,10 +423,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
       throw new MissingObjectException("pair")
     }
-    else {
-      ResultMappingUtil.singleParentRecordToDomainPairDef(result)
-    }
-
   })
 
   def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => jooq.execute(t => {

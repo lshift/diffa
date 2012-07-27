@@ -75,24 +75,29 @@ class JooqDomainConfigStoreTest {
                                     versionGenerationUrl = "generateVersionUrl1",
                                     categories = stringPrefixCategoriesMap)
 
+  val repairAction = RepairActionDef(name="REPAIR_ACTION_NAME",
+                                       scope=RepairAction.ENTITY_SCOPE,
+                                       url="resend")
+  val escalation = EscalationDef(name="esc", action = "test_action",
+                                   event = EscalationEvent.UPSTREAM_MISSING,
+                                   actionType = EscalationActionType.REPAIR,
+                                   origin = EscalationOrigin.SCAN)
+  val report = PairReportDef(name = "REPORT_NAME",
+                             reportType = "differences", target = "http://example.com/diff_listener")
+
+
   val versionPolicyName1 = "TEST_VPNAME"
   val matchingTimeout = 120
   val versionPolicyName2 = "TEST_VPNAME_ALT"
   val pairKey = "TEST_PAIR"
   val pairDef = new PairDef(pairKey, versionPolicyName1, matchingTimeout, upstream1.name,
-    downstream1.name, views = Seq(PairViewDef(name = "a-only")))
+    downstream1.name, views = Seq(PairViewDef(name = "a-only")),
+    repairActions = Set(repairAction),
+    escalations = Set(escalation),
+    reports = Set(report))
 
   val pair = DiffaPair(key = pairKey, domain = domain)
   val pairRef = DiffaPairRef(key = pairKey, domain = domainName)
-
-  val repairAction = RepairActionDef(name="REPAIR_ACTION_NAME",
-                                     scope=RepairAction.ENTITY_SCOPE,
-                                     url="resend", pair=pairKey)
-
-  val escalation = EscalationDef(name="esc", action = "test_action", pair = pairKey,
-                                 event = EscalationEvent.UPSTREAM_MISSING,
-                                 actionType = EscalationActionType.REPAIR,
-                                 origin = EscalationOrigin.SCAN)
 
   val configKey = "foo"
   val configValue = "bar"
@@ -111,8 +116,6 @@ class JooqDomainConfigStoreTest {
     domainConfigStore.createOrUpdateEndpoint(domainName, downstream1)
     domainConfigStore.createOrUpdateEndpoint(domainName, downstream2)
     domainConfigStore.createOrUpdatePair(domainName, pairDef)
-    domainConfigStore.createOrUpdateRepairAction(domainName, repairAction)
-    domainConfigStore.createOrUpdateEscalation(domainName, escalation)
     domainConfigStore.setConfigOption(domainName, configKey, configValue)
   }
 
@@ -145,67 +148,50 @@ class JooqDomainConfigStoreTest {
 
     assertFalse(domainConfigStore.listPairs(domainName).isEmpty)
     assertFalse(domainConfigStore.allConfigOptions(domainName).isEmpty)
-    assertFalse(domainConfigStore.listRepairActions(domainName).isEmpty)
-    assertFalse(domainConfigStore.listEscalations(domainName).isEmpty)
 
     systemConfigStore.deleteDomain(domainName)
 
     assertTrue(domainConfigStore.listEndpoints(domainName).isEmpty)
     assertTrue(domainConfigStore.listPairs(domainName).isEmpty)
     assertTrue(domainConfigStore.allConfigOptions(domainName).isEmpty)
-    assertTrue(domainConfigStore.listRepairActions(domainName).isEmpty)
-    assertTrue(domainConfigStore.listEscalations(domainName).isEmpty)
 
     assertTrue(systemConfigStore.listDomains.filter(_ == domainName).isEmpty)
   }
 
 
   @Test
-  def escalationsWithSameNameInSeparateDomainsMustHaveSeparateIdentities {
+  def escalationsRepairsAndReportsShouldBeNamespacedPerPairAndDomain() {
+    declareAll()
+
+    val repairAction2 = repairAction.copy(url = "resend2")
+    val repairAction3 = repairAction.copy(url = "resend3")
+    val escalation2 = escalation.copy(event = EscalationEvent.DOWNSTREAM_MISSING)
+    val escalation3 = escalation.copy(event = EscalationEvent.MISMATCH)
+    val report2 = report.copy(target = "http://example.com/diff_listener2")
+    val report3 = report.copy(target = "http://example.com/diff_listener3")
+
     val domain2 = domainName + "2"
 
-    val escalations = Seq(domainName, domain2).map { dom =>
-      systemConfigStore.createOrUpdateDomain(dom)
-      domainConfigStore.createOrUpdateEndpoint(dom, upstream1.copy(name = dom + "-up"))
-      domainConfigStore.createOrUpdateEndpoint(dom, downstream1.copy(name = dom + "-down"))
-      domainConfigStore.createOrUpdatePair(dom,
-        pairDef.copy(upstreamName = dom + "-up", downstreamName = dom + "-down"))
-      val anEscalation = escalation.copy(name = "identicalName", pair = pairDef.key)
-      // When the primary key on escalations is over (pair_key, name) then
-      // this test will fail with a constraint violation, even though the
-      // second escalation is in a different domain.
+    val pair2 = pairDef.copy(key = pairKey + "2", // Different name, difference associated objects
+        repairActions = Set(repairAction2), escalations = Set(escalation2), reports = Set(report2))
+    var pair3 = pairDef.copy(     // Same name, but different associated objects
+        repairActions = Set(repairAction3), escalations = Set(escalation3), reports = Set(report3))
 
-      domainConfigStore.createOrUpdateEscalation(dom, anEscalation)
-      anEscalation
-    }
-    // And at this point, we need to ensure that we have successfully inserted two escalations total.
-    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listEscalations(d) },
-      is(equalTo(escalations)))
-  }
+    domainConfigStore.createOrUpdatePair(domainName, pair2)
 
-  @Test
-  def repairActionsWithSameNameInSeparateDomainsMustHaveSeparateIdentities = {
-    val domain2 = domainName + "2"
+    systemConfigStore.createOrUpdateDomain(domain2)
+    domainConfigStore.createOrUpdateEndpoint(domain2, upstream1)
+    domainConfigStore.createOrUpdateEndpoint(domain2, downstream1)
+    domainConfigStore.createOrUpdatePair(domain2, pair3)
 
-    val repairActions = Seq(domainName, domain2).map { dom =>
-      systemConfigStore.createOrUpdateDomain(dom)
-      domainConfigStore.createOrUpdateEndpoint(dom, upstream1.copy(name = dom + "-up"))
-      domainConfigStore.createOrUpdateEndpoint(dom, downstream1.copy(name = dom + "-down"))
-      domainConfigStore.createOrUpdatePair(dom,
-        pairDef.copy(upstreamName = dom + "-up", downstreamName = dom + "-down"))
-      val aRepairAction = repairAction.copy(name = "identicalName", pair = pairDef.key)
-      // When the primary key on repair_actions is over (pair_key, name) then
-      // this test will fail with a constraint violation, even though the
-      // second repair action is in a different domain.
+    // Load the created pairs, and ensure the data remains unique
+    val retrievedPair = domainConfigStore.getPairDef(domainName, pairKey).withoutDomain
+    val retrievedPair2 = domainConfigStore.getPairDef(domainName, pairKey + "2").withoutDomain
+    val retrievedPair3 = domainConfigStore.getPairDef(domain2, pairKey).withoutDomain
 
-      domainConfigStore.createOrUpdateRepairAction(dom, aRepairAction)
-      aRepairAction
-    }
-
-    // And at this point, we need to ensure that we have successfully inserted two repair actions total.
-    assertThat(systemConfigStore.listDomains.flatMap { d => domainConfigStore.listRepairActions(d) },
-      is(equalTo(repairActions)))
-
+    assertEquals(pairDef, retrievedPair)
+    assertEquals(pair2, retrievedPair2)
+    assertEquals(pair3, retrievedPair3)
   }
 
 
@@ -230,12 +216,9 @@ class JooqDomainConfigStoreTest {
     assertEquals(downstream1.name, retrPair.downstreamName)
     assertEquals(versionPolicyName1, retrPair.versionPolicyName)
     assertEquals(matchingTimeout, retrPair.matchingTimeout)
-
-    // Declare a repair action
-    domainConfigStore.createOrUpdateRepairAction(domainName, repairAction)
-    val retrActions = domainConfigStore.listRepairActionsForPair(domainName, retrPair.key)
-    assertEquals(1, retrActions.length)
-    assertEquals(Some(pairKey), retrActions.headOption.map(_.pair))
+    assertEquals(Set(repairAction), retrPair.repairActions.toSet)
+    assertEquals(Set(report), retrPair.reports.toSet)
+    assertEquals(Set(escalation), retrPair.escalations.toSet)
   }
 
   @Test
@@ -397,24 +380,21 @@ class JooqDomainConfigStoreTest {
   }
 
   @Test
-  def testDeletePairCascade {
-    declareAll()
-    assertEquals(Some(repairAction.name), domainConfigStore.listRepairActions(domainName).headOption.map(_.name))
-    domainConfigStore.deletePair(domainName, pairKey)
-    expectMissingObject("repair action") {
-      domainConfigStore.getRepairActionDef(domainName, repairAction.name, pairKey)
-    }
-  }
-
-  @Test
-  def testDeleteRepairAction {
+  def testDeleteRepairsReportsAndEscalations {
     declareAll
-    assertEquals(Some(repairAction.name), domainConfigStore.listRepairActions(domainName).headOption.map(_.name))
+    assertEquals(1, domainConfigStore.getPairDef(domainName, pairKey).repairActions.size)
+    assertEquals(1, domainConfigStore.getPairDef(domainName, pairKey).escalations.size)
+    assertEquals(1, domainConfigStore.getPairDef(domainName, pairKey).reports.size)
 
-    domainConfigStore.deleteRepairAction(domainName, repairAction.name, pairKey)
-    expectMissingObject("repair action") {
-      domainConfigStore.getRepairActionDef(domainName, repairAction.name, pairKey)
-    }
+    domainConfigStore.createOrUpdatePair(domainName,
+      pairDef.copy(
+        repairActions = Set[RepairActionDef](),
+        escalations = Set[EscalationDef](),
+        reports = Set[PairReportDef]()))
+
+    assertEquals(0, domainConfigStore.getPairDef(domainName, pairKey).repairActions.size)
+    assertEquals(0, domainConfigStore.getPairDef(domainName, pairKey).escalations.size)
+    assertEquals(0, domainConfigStore.getPairDef(domainName, pairKey).reports.size)
   }
 
   @Test

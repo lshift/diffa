@@ -49,11 +49,6 @@ class ConfigurationResource(val config:Configuration,
   def listEndpoints() = config.listEndpoints(domain).toArray
 
   @GET
-  @Path("/repair-actions")
-  @Produces(Array("application/json"))
-  def listRepairActions: Array[RepairActionDef] = config.listRepairActions(domain).toArray
-
-  @GET
   @Produces(Array("application/json"))
   @Path("/endpoints/{id}")
   def getEndpoint(@PathParam("id") id:String) = config.getEndpointDef(domain, id)
@@ -113,8 +108,8 @@ class ConfigurationResource(val config:Configuration,
   @POST
   @Path("/pairs/{id}/repair-actions")
   @Consumes(Array("application/json"))
-  def createRepairAction(a: RepairActionDef) = {
-    config.createOrUpdateRepairAction(domain, a)
+  def createRepairAction(@PathParam("id") id:String, a: RepairActionDef) = {
+    config.createOrUpdateRepairAction(domain, id, a)
     resourceCreated(a.name, uri)
   }
 
@@ -127,8 +122,8 @@ class ConfigurationResource(val config:Configuration,
   @POST
   @Path("/pairs/{id}/escalations")
   @Consumes(Array("application/json"))
-  def createEscalation(e: EscalationDef) = {
-    config.createOrUpdateEscalation(domain, e)
+  def createEscalation(@PathParam("id") id:String, e: EscalationDef) = {
+    config.createOrUpdateEscalation(domain, id, e)
     resourceCreated(e.name, uri)
   }
 

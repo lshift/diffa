@@ -30,6 +30,7 @@ import net.lshift.diffa.kernel.util.AlertCodes._
 import java.io.Closeable
 import net.lshift.diffa.kernel.actors.AbstractActorSupervisor
 import akka.actor.{ActorSystem, Props, Actor}
+import scala.collection.JavaConversions._
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -123,7 +124,7 @@ class EscalationManager(val config:DomainConfigStore,
   }
 
   def findEscalations(pair: DiffaPairRef, eventType:String, actionTypes:String*) =
-    config.listEscalationsForPair(pair.domain, pair.key).
+    config.getPairDef(pair.domain, pair.key).escalations.
       filter(e => e.event == eventType && actionTypes.contains(e.actionType))
 
 
