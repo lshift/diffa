@@ -1,31 +1,103 @@
 <div class="error"></div>
-<dl>
-  <dt>Key:</dt><dd class="name-container"><input data-key="key" type="text"><span data-bind="key"></span></dd>
-  <dt>Version Policy:</dt><dd>
-    <select data-key="versionPolicyName">
-      <option value="same">Same</option>
-      <option value="correlated">Correlated</option>
-    </select>
-  </dd>
-  <dt>Upstream:</dt><dd><select class="endpoint-selection" data-key="upstreamName"></select></dd>
-  <dt>Downstream:</dt><dd><select class="endpoint-selection" data-key="downstreamName"></select></dd>
-  <dt>Allow Manual Scans:</dt><dd>
-    <input data-key="allowManualScans" type="checkbox" id="allowPairManualScans">
-    <label for="allowPairManualScans">Allow Manual Scans</label>
-  </dd>
-  <dt>Scan Cron Specification:</dt><dd>
-    <input data-key="scanCronSpec" type="text">
-    <input data-key="scanCronEnabled" type="checkbox" checked="checked">
-    <label for="scanCronEnabled">Enabled</label>
-  </dd>
-  <dt>Matching Timeout:</dt><dd><input data-key="matchingTimeout" type="number"></dd>
-  <dt>Views</dt>
-  <dd class="views">
+<div class="unsaved-changes" data-bind-show="pair.dirty">
+  The pair has unsaved changes! <button class="save">Save</button>
+</div>
+<div class="pane" data-pane="root">
+  <dl>
+    <dt>Key:</dt><dd class="name-container"><input data-bind-value="pair.key" type="text"><span data-bind-text="pair.key"></span></dd>
+    <dt>Version Policy:</dt><dd>
+      <select data-bind-value="pair.versionPolicyName">
+        <option value="same">Same</option>
+        <option value="correlated">Correlated</option>
+      </select>
+    </dd>
+    <dt>Upstream:</dt><dd><select class="endpoint-selection" data-bind-value="pair.upstreamName"></select></dd>
+    <dt>Downstream:</dt><dd><select class="endpoint-selection" data-bind-value="pair.downstreamName"></select></dd>
+    <dt>Matching Timeout:</dt><dd><input data-bind-value="pair.matchingTimeout" type="number"></dd>
+  </dl>
+
+  <h4>Features</h4>
+  <table class="feature-table">
+    <tr data-target-pane="scanning"><td class="key">Scanning</td><td class="description" data-bind-text="pair | scanningStatus"></td></tr>
+    <tr data-target-pane="views"><td class="key">Views</td><td class="description" data-bind-text="pair | viewsStatus">No views configured</td></tr>
+    <tr data-target-pane="repairs"><td class="key">Repairs</td><td class="description" data-bind-text="pair | repairActionsStatus">No repair operations defined</td></tr>
+    <tr data-target-pane="reports"><td class="key">Reports</td><td class="description" data-bind-text="pair | reportsStatus">No escalations defined</td></tr>
+    <tr data-target-pane="escalations"><td class="key">Escalations</td><td class="description" data-bind-text="pair | escalationsStatus">No escalations defined</td></tr>
+  </table>
+  <div class="features-not-available">
+    Pair must be saved before features can be enabled.
+  </div>
+</div>
+<div class="pane" data-pane="scanning">
+  <dl>
+    <dt>Allow Manual Scans:</dt><dd>
+      <input data-bind-checked="pair.allowManualScans" type="checkbox" id="allowPairManualScans">
+      <label for="allowPairManualScans">Allow Manual Scans</label>
+    </dd>
+    <dt>Scan Cron Specification:</dt><dd>
+      <input data-bind-value="pair.scanCronSpec" type="text">
+      <input data-bind-checked="pair.scanCronEnabled" type="checkbox" checked="checked">
+      <label for="scanCronEnabled">Enabled</label>
+    </dd>
+  </dl>
+</div>
+<div class="pane" data-pane="views">
+  <div class="description">
+    Pair views match together endpoint views of the same name, enabling a scan to be run on a subset of data across
+    your entire system. Pair views can also be scheduled, to allow for data subsets to be scanned at different times.
+  </div>
+
+  <div class="views">
     <table class="editable-table" data-template="pair-view">
       <thead><tr><td>Name</td><td>View Scan Cron Specification</td><td>Actions</td></tr></thead>
     </table>
     <a class="add-link" href="">Add New</a>
-  </dd>
+  </div>
+</div>
+<div class="pane" data-pane="repairs">
+  <div class="description">
+    A repair action enables Diffa users to attempt a repair of a detected difference right from within Diffa. A repair
+    action describes a URL that can be invoked (along with a pair or entity id) to indicate to your system that some form
+    of action should be taken. Actions might include resending a missing object, or deleting an excess object.
+  </div>
 
-  <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+  <div class="repair-actions">
+    <table class="editable-table" data-template="repair-action">
+      <thead><tr><td>Name</td><td>Url</td><td>Scope</td><td>Actions</td></tr></thead>
+    </table>
+    <a class="add-link" href="">Add New</a>
+  </div>
+</div>
+<div class="pane" data-pane="escalations">
+  <div class="description">
+    Escalations build upon reports and repair actions to enable automated system actions. An escalation is configured
+    to trigger on certain event types (such as a specific type of difference being detected), and then triggers a specified
+    repair action or report. This enables Diffa to attempt to automatically correct system issues.
+  </div>
+
+  <div class="escalations">
+    <table class="editable-table" data-template="escalation">
+      <thead><tr><td>Name</td><td>Type</td><td>Action</td><td>Event</td><td>Origin</td><td>Actions</td></tr></thead>
+    </table>
+    <a class="add-link" href="">Add New</a>
+  </div>
+</div>
+<div class="pane" data-pane="reports">
+  <div class="description">
+    Reports allow for Diffa to generate and publish a report of differences to a HTTP endpoint. This enables a number
+    of opportunities - a custom repair system can do a bulk-repair based upon the entire set of known differences, or
+    a custom reporting system can utilise the current difference status.
+  </div>
+
+  <div class="reports">
+    <table class="editable-table" data-template="report">
+      <thead><tr><td>Name</td><td>Type</td><td>Target</td><td>Actions</td></tr></thead>
+    </table>
+    <a class="add-link" href="">Add New</a>
+  </div>
+</div>
+
+<dl>
+  <dd class="controls root-controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+  <dd class="controls pane-controls"><a href="#" class="return">&lt;&lt; Return to Pair</a></dd>
 </dl>

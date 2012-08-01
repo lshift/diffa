@@ -1,0 +1,27 @@
+<tr>
+  <td><input data-bind-value="escalation.name" type="text"></td>
+  <td>
+    <select data-bind-value="escalation.actionType">
+      <option value="repair">Repair</option>
+      <option value="report">Report</option>
+    </select>
+  </td>
+  <td>
+    <input data-bind-value="escalation.action" type="text">
+  </td>
+  <td>
+    <select data-bind-value="escalation.event">
+      <option value="upstream-missing">Upstream Missing</option>
+      <option value="downstream-missing">Downstream Missing</option>
+      <option value="mismatch">Mismatch</option>
+      <option value="scan-failed">Scan Failed</option>
+      <option value="scan-completed">Scan Completed</option>
+    </select>
+  </td>
+  <td>
+    <select data-bind-value="escalation.origin">
+      <option value="scan">Scan</option>
+    </select>
+  </td>
+  <td><a href="javascript:" class="remove-escalation">Remove</a></td>
+</tr>

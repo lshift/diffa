@@ -19,22 +19,38 @@
 /* Definitions for the settings page */
 
 #settings-page {
+  .diffa-settings-crumbs {
+    .span-10;
+    border: 1px solid black;
+    background-color: #EEEEEE;
+    padding: 6px
+  }
+
+  .unsaved-changes {
+    border-top: 1px solid black;
+    padding: 5px;
+    background-color: #ffffe5;
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    text-align: center;
+  }
+
   #elements {
     .prepend-top;
     .append-bottom;
-    .span-6;
+    .span-24;
 
-    border-top: 1px solid black;
-    border-right: 1px solid black;
+    /*border-top: 1px solid black;*/
+    /*border-right: 1px solid black;*/
     padding: 10px;
     min-height: 500px;
 
-    .element-list-panel {
+    .element-list {
       .append-bottom;
-    }
-
-    #endpoints-list, #pairs-list {
-      .element-list-panel;
+      .span-8;
+      .append-3;
     }
   }
 
@@ -44,10 +60,14 @@
 
   #details {
     .prepend-top;
-    .span-17;
+    .span-24;
     .last;
 
-    border-top: 1px solid black;
+    /*border-top: 1px solid black;*/
+
+    .feature-table {
+      border: 1px solid #DDDDDD;
+    }
   }
 
   .set-categories {

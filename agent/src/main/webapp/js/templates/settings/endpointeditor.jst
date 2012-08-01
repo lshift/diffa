@@ -1,46 +1,118 @@
 <div class="error"></div>
-<dl>
-  <dt>Name:</dt><dd class="name-container"><input data-key="name" type="text"><span data-bind="name"></span></dd>
-  <dt>Scan URL:</dt><dd><input data-key="scanUrl" type="text" size="60"></dd>
-  <dt>Content Retrieval URL:</dt><dd><input data-key="contentRetrievalUrl" type="text" size="60"></dd>
-  <dt>Version Generation URL:</dt><dd><input data-key="versionGenerationUrl" type="text" size="60"></dd>
-  <dt>Inbound URL:</dt><dd><input data-key="inboundUrl" type="text" size="60"></dd>
+<div class="unsaved-changes" data-bind-show="endpoint.dirty">
+  The endpoint has unsaved changes! <button class="save">Save</button>
+</div>
+<div class="pane" data-pane="root">
+  <dl>
+    <dt>Name:</dt><dd class="name-container"><input data-bind-value="endpoint.name" type="text"><span data-bind-text="endpoint.name"></span></dd>
+    <dt>Collation order</dt>
+    <dd class="collation">
+      <input type="radio" data-bind-checked="endpoint.collation" id="collationAscii" name="collation" value="ascii" checked="checked"/>
+        <label for="collationAscii">Ascii</label>
+      <input type="radio" data-bind-checked="endpoint.collation" id="collationUnicode" name="collation" value="unicode" />
+        <label for="collationUnicode" title="Case insensitive">Unicode</label>
+    </dd>
+  </dl>
 
-  <dt>Range Categories</dt>
-  <dd class="range-categories">
-    <table class="editable-table" data-template="range-category">
-      <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
-    </table>
-    <a class="add-link" href="">Add New</a>
-  </dd>
-  <dt>Set Categories</dt>
-  <dd class="set-categories">
-    <table class="editable-table" data-template="set-category">
-      <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
-    </table>
-    <a class="add-link" href="">Add New</a>
-  </dd>
-  <dt>Prefix Categories</dt>
-  <dd class="prefix-categories">
-    <table class="editable-table" data-template="prefix-category">
-      <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
-    </table>
-    <a class="add-link" href="">Add New</a>
-  </dd>
-  <dt>Views</dt>
-  <dd class="views">
+  <h4>Features</h4>
+  <table class="feature-table">
+    <tr data-target-pane="scanning"><td class="key">Scanning</td><td data-bind-text="endpoint | scanningStatus" class="description"></td></tr>
+    <tr data-target-pane="inspection"><td class="key">Content Inspection</td><td data-bind-text="endpoint | inspectionStatus" class="description"></td></tr>
+    <tr data-target-pane="advanced-urls"><td class="key">Advanced Interrogation</td><td class="description" data-bind-text="endpoint | advancedInterrogationStatus"></td></tr>
+    <tr data-target-pane="categories"><td class="key">Data Categorization</td><td class="description" data-bind-text="endpoint | categoriesStatus"></td></tr>
+    <tr data-target-pane="views"><td class="key">Views</td><td class="description" data-bind-text="endpoint | viewsStatus"></td></tr>
+  </table>
+  <div class="features-not-available">
+    Endpoint must be saved before features can be enabled.
+  </div>
+</div>
+<div class="pane" data-pane="scanning">
+  <div class="description">
+    To support scanning on an endpoint, you need to provide a URL that Diffa can connect to in order
+    to query for the current state. This endpoint will need to support the Diffa REST Scanning API.
+  </div>
+
+  <dl>
+    <dt>Scan URL:</dt><dd><input data-bind-value="endpoint.scanUrl" type="text" size="60"></dd>
+  </dl>
+</div>
+<div class="pane" data-pane="inspection">
+  <div class="description">
+    To allow Diffa to provide additional information about entities available in your endpoint, you can
+    provide a URL for Diffa to query to retrieve the content of an item.
+  </div>
+
+  <dl>
+    <dt>Content Retrieval URL:</dt><dd><input data-bind-value="endpoint.contentRetrievalUrl" type="text" size="60"></dd>
+  </dl>
+</div>
+<div class="pane" data-pane="advanced-urls">
+  <div class="description">
+    <p>
+      For systems with more complex requirements, Diffa provides mechanisms for recovering further details from
+      your endpoint. If your endpoint uses a different versioning scheme to a peer endpoint in a pair (ie, it
+      uses the correlated version policy), then you'll need to provide a version generation URL. This allows Diffa
+      to provide you with an entity advertised by a peer endpoint, and retrieve the related version. Note that this
+      feature is only used on a downstream endpoint, and to work requires that the upstream endpoint provide a content
+      retrieval URL (and that the data returned by that endpoint is compatible with the format accepted by the generation
+      URL).
+    </p>
+    <p>
+      If you've installed extensions to Diffa to enable extra ways of receiving change events (such as AMQP support),
+      then the Inbound URL should be configured to advise Diffa how to receive those events.
+    </p>
+  </div>
+
+  <dl>
+    <dt>Version Generation URL:</dt><dd><input data-bind-value="endpoint.versionGenerationUrl" type="text" size="60"></dd>
+    <dt>Inbound URL:</dt><dd><input data-bind-value="endpoint.inboundUrl" type="text" size="60"></dd>
+  </dl>
+</div>
+<div class="pane" data-pane="categories">
+  <div class="description">
+    To make working with your data more manageable, Diffa allows you to define categories. A category describes
+    a logical partitioning of your data. Partitioning your data allows for scans to operate more efficiently, and
+    allows partial inventories to be uploaded. How the data is partitioned is likely specific to your application.
+  </div>
+  <dl>
+    <dt>Range Categories</dt>
+    <dd class="range-categories">
+      <table class="editable-table" data-template="range-category">
+        <thead><tr><td>Name</td><td>Data Type</td><td>Lower</td><td>Upper</td><td>Actions</td></tr></thead>
+      </table>
+      <a class="add-link" href="">Add New</a>
+    </dd>
+    <dt>Set Categories</dt>
+    <dd class="set-categories">
+      <table class="editable-table" data-template="set-category">
+        <thead><tr><td>Name</td><td>Values</td><td>Actions</td></tr></thead>
+      </table>
+      <a class="add-link" href="">Add New</a>
+    </dd>
+    <dt>Prefix Categories</dt>
+    <dd class="prefix-categories">
+      <table class="editable-table" data-template="prefix-category">
+        <thead><tr><td>Name</td><td>Prefix Length</td><td>Max Length</td><td>Step</td><td>Actions</td></tr></thead>
+      </table>
+      <a class="add-link" href="">Add New</a>
+    </dd>
+  </dl>
+</div>
+<div class="pane" data-pane="views">
+  <div class="description">
+    Views build upon categories and scans to allow for only a subsegment of your endpoint to be scanned. This allows
+    you to focus your scanning efforts on data that you believe might have changed.
+  </div>
+
+  <div class="views">
     <table class="editable-table" data-template="endpoint-view">
       <thead><tr><td>Name</td><td>Details</td></tr></thead>
     </table>
     <a class="add-link" href="">Add New</a>
-  </dd>
-  <dt>Collation order</dt>
-  <dd class="collation">
-    <input type="radio" data-key="collation" id="collationAscii" name="collation" value="ascii" checked="checked"/> 
-      <label for="collationAscii">Ascii</label>
-    <input type="radio" data-key="collation" id="collationUnicode" name="collation" value="unicode" />
-      <label for="collationUnicode" title="Case insensitive">Unicode</label>
-  </dd>
+  </div>
+</div>
 
-  <dd class="controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+<dl>
+  <dd class="controls root-controls"><button class="save">Save</button> <button class="delete">Delete</button></dd>
+  <dd class="controls pane-controls"><a href="#" class="return">&lt;&lt; Return to Endpoint</a></dd>
 </dl>
