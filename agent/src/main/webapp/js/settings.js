@@ -630,9 +630,9 @@ Diffa.Helpers.bindEditor = function(el, elementType, collectionName, modelClass,
           model = new modelClass();
           model.domain = domain;
           model.isSaved = false;
-        }
 
-        if (initNewElHelper) initNewElHelper(model, domain);
+          if (initNewElHelper) initNewElHelper(model, domain);
+        }
 
         return new editorClass({
           model: model,
