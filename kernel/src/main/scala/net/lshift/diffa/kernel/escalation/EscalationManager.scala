@@ -31,45 +31,66 @@ import java.io.Closeable
 import net.lshift.diffa.kernel.actors.AbstractActorSupervisor
 import akka.actor.{ActorSystem, Props, Actor}
 import scala.collection.JavaConversions._
+import java.util.{Timer, TimerTask}
+import net.lshift.diffa.kernel.frontend.EscalationDef
+import net.lshift.diffa.kernel.config.system.SystemConfigStore
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
  *
- *
- * TODO Revise this description when the full blown escalation manager lands.
- * ATM the scope of this manager is just to invoke actions that are triggered by mismatches
- * that still exist after a scan.
- *
- * THis means that for now, escalations don't have to be persistent, because the only thing that can
- * can trigger an escalation is a scan and it is assumed that a sane deployment will not have too
- * many scans configured.
- *
- * In future versions, this procedure will make escalations persistent and the process of escalation
- * will not be driven by difference events, rather there will be a poll loop to drive the procedure
- * through configurable steps.
+ * There are two broad types of event that can be escalated. Pair level events, and entity level
+ * event. Pair events are escalated in an event-driven manner - escalation is triggered as they
+ * appear. Entity level escalation is managed in a persistent manner. When a candidate difference
+ * is detected elsewhere in the system (currently the DifferenceManager), initiateEscalation should
+ * be called with the event. Valid escalations will be identified and ordered (based upon their delay),
+ * and then the first escalation will be scheduled for the difference. Periodically, the manager will
+ * identify differences that have a pending escalation, and trigger this. Once an escalation has been
+ * triggered, the difference will be progressed, and have the next escalation scheduled (or none if no
+ * more valid escalations are configured).
  */
 class EscalationManager(val config:DomainConfigStore,
+                        val systemConfig:SystemConfigStore,
+                        val diffs:DomainDifferenceStore,
                         val actionsClient:ActionsClient,
                         val reportManager:ReportManager,
                         val actorSystem: ActorSystem)
     extends AbstractActorSupervisor
-    with DifferencingListener
     with AgentLifecycleAware
     with PairScanListener
-    with Closeable {
+    with Closeable
+    with EscalationHandler {
 
   val log = LoggerFactory.getLogger(getClass)
 
   private class EscalationActor(pair: DiffaPairRef) extends Actor {
     
     def receive = {
-      case (UpstreamMissing, id: VersionID)     => escalateEntityEvent(id, UPSTREAM_MISSING)
-      case (DownstreamMissing, id: VersionID)   => escalateEntityEvent(id, DOWNSTREAM_MISSING)
-      case (ConflictingVersions, id: VersionID) => escalateEntityEvent(id, MISMATCH)
+      case Escalate(d:DifferenceEvent)            =>
+        findEscalation(d.objId.pair, d.nextEscalation).map(e => {
+          val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
+          log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
+        })
+
       case other =>
         log.warn("{} EscalationActor received unexpected message: {}",
           formatAlertCode(pair, SPURIOUS_ACTOR_MESSAGE), other)
     }
+  }
+
+  val timer = new Timer()
+  val escalateTask = new TimerTask { def run() { escalateDiffs() } }
+  val period = 1
+
+  def start() {
+    systemConfig.listPairs.foreach(p => startActor(p.asRef))
+
+    timer.schedule(escalateTask, period * 1000, period * 1000)
+  }
+
+  override def close {
+    timer.cancel()
+
+    super.close
   }
 
   private object EscalationActor {
@@ -79,26 +100,12 @@ class EscalationManager(val config:DomainConfigStore,
   def createPairActor(pair: DiffaPairRef) = Some(actorSystem.actorOf(
    Props(new EscalationActor(pair))))
 
-  /**
-   * Since escalations are currently only driven off mismatches, matches can be safely ignored.
-   */
-  override def onAgentInstantiationCompleted(nc: NotificationCentre) {
-    nc.registerForDifferenceEvents(this, MatcherFiltered)
-    nc.registerForPairScanEvents(this)
+  def initiateEscalation(e: DifferenceEvent) {
+    progressDiff(e)
   }
 
-  def onMatch(id: VersionID, vsn: String, origin: MatchOrigin) = ()
-
-  /**
-   * Asynchronously escalate matches that occur as part of a scan.
-   */
-  def onMismatch(id: VersionID, lastUpdated: DateTime, upstreamVsn: String, downstreamVsn: String,
-                 origin: MatchOrigin, level:DifferenceFilterLevel) = origin match {
-    case TriggeredByScan =>
-      val differenceType = DifferenceUtils.differenceType(upstreamVsn, downstreamVsn)
-      findActor(id) ! (differenceType, id)
-
-    case _               => // ignore this for now
+  override def onAgentInstantiationCompleted(nc: NotificationCentre) {
+    nc.registerForPairScanEvents(this)
   }
 
   def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) {
@@ -109,13 +116,6 @@ class EscalationManager(val config:DomainConfigStore,
     }
   }
 
-  def escalateEntityEvent(id: VersionID, eventType:String) = {
-    findEscalations(id.pair, eventType, REPAIR).foreach(e => {
-      val result = actionsClient.invoke(ActionableRequest(id.pair.key, id.pair.domain, e.action, id.id))
-      log.debug("Escalation result for action [%s] using %s is %s".format(e.name, id, result))
-    })
-  }
-
   def escalatePairEvent(pairRef: DiffaPairRef, eventType:String) = {
     findEscalations(pairRef, eventType, REPORT).foreach(e => {
       log.debug("Escalating pair event as report %s".format(e.name))
@@ -124,8 +124,52 @@ class EscalationManager(val config:DomainConfigStore,
   }
 
   def findEscalations(pair: DiffaPairRef, eventType:String, actionTypes:String*) =
-    config.getPairDef(pair.domain, pair.key).escalations.
-      filter(e => e.event == eventType && actionTypes.contains(e.actionType))
+    config.getPairDef(pair).escalations.
+      filter(e => e.event == eventType && (actionTypes.length == 0 || actionTypes.contains(e.actionType)))
 
+  def findEscalation(pair: DiffaPairRef, name:String) =
+    config.getPairDef(pair).escalations.find(_.name == name)
 
+  def orderEscalations(escalations:Seq[EscalationDef]):Seq[EscalationDef] =
+    escalations.sortBy(e => (e.delay, e.name))
+
+  def escalateDiffs() {
+    diffs.pendingEscalatees(DateTime.now(), diff => {
+      findActor(diff.objId) ! Escalate(diff)
+      progressDiff(diff)
+    })
+  }
+
+  def progressDiff(diff:DifferenceEvent) {
+    val diffType = DifferenceUtils.differenceType(diff.upstreamVsn, diff.downstreamVsn)
+    val escalations = orderEscalations(findEscalations(diff.objId.pair, mapDifferenceType(diffType)).toSeq)
+
+    val selectedEscalation = diff.nextEscalation match {
+      case null     => escalations.headOption
+      case current  => escalations.map(_.name).indexOf(current) match {
+          case -1 => None     // Current escalation doesn't exist. Don't try to apply any more.
+          case i  => if (escalations.length > i+1) Some(escalations(i+1)) else None
+      }
+    }
+
+    selectedEscalation match {
+      case None       => diffs.scheduleEscalation(diff, null, null)
+      case Some(esc)  =>
+          // It is altogether possible that the escalation might already be due. We won't worry about that here, and
+          // just let it be triggered on the next escalation run - otherwise we could end up getting stuck here for
+          // quite a while if a whole bunch of escalations are due for the given difference. Forcing only a single
+          // progression per run ensures that there might be a chance for the escalation to run.
+          // TODO: Do we enforce a minimum time between escalations?
+        val escalateTime = diff.detectedAt.plusSeconds(esc.delay)
+        diffs.scheduleEscalation(diff, esc.name, escalateTime)
+    }
+  }
+
+  def mapDifferenceType(t:DifferenceType) = t match {
+    case UpstreamMissing => UPSTREAM_MISSING
+    case DownstreamMissing => DOWNSTREAM_MISSING
+    case ConflictingVersions => MISMATCH
+  }
 }
+
+case class Escalate(e:DifferenceEvent)

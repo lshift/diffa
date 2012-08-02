@@ -81,7 +81,8 @@ class JooqDomainConfigStoreTest {
   val escalation = EscalationDef(name="esc", action = "test_action",
                                    event = EscalationEvent.UPSTREAM_MISSING,
                                    actionType = EscalationActionType.REPAIR,
-                                   origin = EscalationOrigin.SCAN)
+                                   origin = EscalationOrigin.SCAN,
+                                   delay = 30)
   val report = PairReportDef(name = "REPORT_NAME",
                              reportType = "differences", target = "http://example.com/diff_listener")
 

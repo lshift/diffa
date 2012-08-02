@@ -162,7 +162,7 @@ class ConfigurationTest {
           repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair")),
           reports = Set(PairReportDef("Bulk Send Differences", "differences", "http://location:5432/diffhandler")),
           escalations = Set(
-            EscalationDef("Resend Missing", "Resend Sauce", "repair", "downstream-missing", "scan"),
+            EscalationDef("Resend Missing", "Resend Sauce", "repair", "downstream-missing", "scan", 30),
             EscalationDef("Report Differences", "Bulk Send Differences", "report", "scan-completed")
           )
         ),

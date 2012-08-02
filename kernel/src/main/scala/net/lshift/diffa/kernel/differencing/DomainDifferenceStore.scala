@@ -56,7 +56,7 @@ trait DomainDifferenceStore {
    * Adds a reportable unmatched event for the given version id into the cache. Returns the detail of the event
    * (including a sequence id). Any previous matched event for the same id will be removed.
    */
-  def addReportableUnmatchedEvent(id:VersionID, lastUpdate:DateTime, upstreamVsn:String, downstreamVsn:String, seen:DateTime):DifferenceEvent
+  def addReportableUnmatchedEvent(id:VersionID, lastUpdate:DateTime, upstreamVsn:String, downstreamVsn:String, seen:DateTime):(DifferenceEventStatus,DifferenceEvent)
 
   /**
    * Upgrades the given pending event to a reportable event. Returns the detail of the event (including a sequence id).
@@ -141,6 +141,16 @@ trait DomainDifferenceStore {
    */
   def expireMatches(cutoff:DateTime)
 
+  /**
+   * Retrieves a list of difference events that should be escalated.
+   */
+  def pendingEscalatees(cutoff:DateTime, callback:(DifferenceEvent) => Unit)
+
+  /**
+   * Schedules the given difference event to have the given escalation applied at the given time. Escalation for
+   * the difference can be terminated by providing a null name/time.
+   */
+  def scheduleEscalation(diff:DifferenceEvent, escalationName:String, escalationTime:DateTime)
 }
 
 case class TileGroup(
@@ -165,12 +175,16 @@ case class ReportedDifferenceEvent(
   @BeanProperty var upstreamVsn:String = null,
   @BeanProperty var downstreamVsn:String = null,
   @BeanProperty var lastSeen:DateTime = null,
-  @BeanProperty var ignored:Boolean = false
+  @BeanProperty var ignored:Boolean = false,
+  @BeanProperty var nextEscalation:String = null,
+  @BeanProperty var nextEscalationTime:DateTime = null
 ) {
 
   def this() = this(seqId = null)
 
-  def asDifferenceEvent = DifferenceEvent(seqId.toString, objId, detectedAt, state, upstreamVsn, downstreamVsn, lastSeen)
+  def asDifferenceEvent =
+    DifferenceEvent(seqId.toString, objId, detectedAt, state, upstreamVsn, downstreamVsn, lastSeen,
+      nextEscalation, nextEscalationTime)
   def state = if (isMatch) {
       MatchState.MATCHED
     } else {

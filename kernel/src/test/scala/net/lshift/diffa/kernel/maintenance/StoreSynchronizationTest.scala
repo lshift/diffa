@@ -37,6 +37,7 @@ import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, After, Before, Test}
 import net.lshift.diffa.kernel.config.{Domain, Endpoint, DiffaPair}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
+import net.lshift.diffa.kernel.escalation.EscalationHandler
 
 class StoreSynchronizationTest {
 
@@ -82,11 +83,13 @@ class StoreSynchronizationTest {
   var store:VersionCorrelationStore = null
   var stores:LuceneVersionCorrelationStoreFactory = null
 
+  val escalationHandler = createStrictMock(classOf[EscalationHandler])
+
   // Wire in the diffs manager
 
   val diffsManager = new DefaultDifferencesManager(
     systemConfigStore, domainConfigStore, domainDiffsStore, matchingManager,
-    participantFactory, listener)
+    participantFactory, listener, escalationHandler)
 
   @Before
   def prepareScenario = {

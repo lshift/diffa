@@ -379,7 +379,8 @@ case class EscalationDef (
   @BeanProperty var action: String = null,
   @BeanProperty var actionType: String = null,
   @BeanProperty var event: String = null,
-  @BeanProperty var origin: String = null
+  @BeanProperty var origin: String = null,
+  @BeanProperty var delay: Int = 0
 ) {
   import EscalationEvent._
   import EscalationOrigin._

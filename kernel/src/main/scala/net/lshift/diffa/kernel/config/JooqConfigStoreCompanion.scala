@@ -370,7 +370,8 @@ object JooqConfigStoreCompanion {
       action = record.getValue(ESCALATIONS.ACTION),
       actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
       event = record.getValue(ESCALATIONS.EVENT),
-      origin = record.getValue(ESCALATIONS.ORIGIN))
+      origin = record.getValue(ESCALATIONS.ORIGIN),
+      delay = record.getValue(ESCALATIONS.DELAY))
   }
 
   def recordToPairReport(record:Record) : PairReportDef = {

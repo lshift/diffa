@@ -353,7 +353,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
         insertOrUpdate(t, ESCALATIONS,
           Map(ESCALATIONS.DOMAIN -> domain, ESCALATIONS.PAIR_KEY -> pair.key, ESCALATIONS.NAME -> e.name),
           Map(ESCALATIONS.ACTION -> e.action, ESCALATIONS.ACTION_TYPE -> e.actionType,
-            ESCALATIONS.EVENT -> e.event, ESCALATIONS.ORIGIN -> e.origin))
+            ESCALATIONS.EVENT -> e.event, ESCALATIONS.ORIGIN -> e.origin, ESCALATIONS.DELAY -> e.delay))
       })
 
       upgradeConfigVersion(t, domain)

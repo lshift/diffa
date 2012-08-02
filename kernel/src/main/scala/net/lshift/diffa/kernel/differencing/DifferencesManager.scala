@@ -143,11 +143,21 @@ case class DifferenceEvent(
   @BeanProperty var state:MatchState = null,
   @BeanProperty var upstreamVsn:String = null,
   @BeanProperty var downstreamVsn:String = null,
-  @BeanProperty var lastSeen:DateTime = null) {
+  @BeanProperty var lastSeen:DateTime = null,
+  @BeanProperty var nextEscalation:String = null,
+  @BeanProperty var nextEscalationTime:DateTime = null) {
 
   def this() = this(seqId = null)
 
   def sequenceId = Integer.parseInt(seqId)
     
 }
+
+abstract class DifferenceEventStatus
+case object NewUnmatchedEvent extends DifferenceEventStatus
+case object ReturnedUnmatchedEvent extends DifferenceEventStatus
+case object UpdatedUnmatchedEvent extends DifferenceEventStatus
+case object UnchangedUnmatchedEvent extends DifferenceEventStatus
+case object UpdatedIgnoredEvent extends DifferenceEventStatus
+case object UnchangedIgnoredEvent extends DifferenceEventStatus
 

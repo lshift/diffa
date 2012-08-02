@@ -31,6 +31,8 @@ import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import org.joda.time.{DateTimeZone, DateTime, Duration, Interval}
 import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.escalation.EscalationHandler
+import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
 
 /**
  * Test cases for the participant protocol factory.
@@ -104,9 +106,11 @@ class DefaultDifferencesManagerTest {
 
   val domainDifferenceStore = createStrictMock(classOf[DomainDifferenceStore])
 
+  val escalationHandler = createStrictMock(classOf[EscalationHandler])
+
   val manager = new DefaultDifferencesManager(
     systemConfigStore, domainConfigStore, domainDifferenceStore, matchingManager,
-    participantFactory, listener)
+    participantFactory, listener, escalationHandler)
 
   // The matching manager and config stores will have been called on difference manager startup. Reset them so they
   // can be re-used
@@ -183,8 +187,35 @@ class DefaultDifferencesManagerTest {
   @Test
   def shouldTriggerMismatchEventsWhenIdIsInactive {
     val timestamp = new DateTime()
-    expect(listener.onMismatch(VersionID(DiffaPairRef("pair1", domainName), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, MatcherFiltered))
+    val evt = DifferenceEvent(
+      seqId = "123", objId = VersionID(DiffaPairRef("pair1", domainName), "id2"), detectedAt = timestamp,
+      state = MatchState.UNMATCHED, upstreamVsn = "uvsn", downstreamVsn = "dvsn")
+    expect(listener.onMismatch(evt.objId, evt.detectedAt, evt.upstreamVsn, evt.downstreamVsn, LiveWindow, MatcherFiltered))
+    expect(domainDifferenceStore.addReportableUnmatchedEvent(
+        EasyMock.eq(evt.objId), EasyMock.eq(evt.detectedAt), EasyMock.eq(evt.upstreamVsn), EasyMock.eq(evt.downstreamVsn), anyTimestamp)).
+      andReturn((NewUnmatchedEvent, evt))
+    escalationHandler.initiateEscalation(evt); expectLastCall()
     replayAll
+    replay(domainDifferenceStore, escalationHandler)
+
+    expectDifferenceForPair(pair1, pair2)
+
+    manager.onMismatch(VersionID(DiffaPairRef("pair1", domainName), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, Unfiltered)
+    verifyAll
+  }
+
+    @Test
+  def shouldNotEscalateEventThatHasAlreadyBeenSeen {
+    val timestamp = new DateTime()
+    val evt = DifferenceEvent(
+      seqId = "123", objId = VersionID(DiffaPairRef("pair1", domainName), "id2"), detectedAt = timestamp,
+      state = MatchState.UNMATCHED, upstreamVsn = "uvsn", downstreamVsn = "dvsn")
+    expect(listener.onMismatch(evt.objId, evt.detectedAt, evt.upstreamVsn, evt.downstreamVsn, LiveWindow, MatcherFiltered))
+    expect(domainDifferenceStore.addReportableUnmatchedEvent(
+        EasyMock.eq(evt.objId), EasyMock.eq(evt.detectedAt), EasyMock.eq(evt.upstreamVsn), EasyMock.eq(evt.downstreamVsn), anyTimestamp)).
+      andReturn((UpdatedUnmatchedEvent, evt))
+    replayAll
+    replay(domainDifferenceStore, escalationHandler)
 
     expectDifferenceForPair(pair1, pair2)
 

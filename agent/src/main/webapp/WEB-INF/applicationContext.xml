@@ -104,6 +104,7 @@
     <constructor-arg ref="matchingManager" />
     <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
+    <constructor-arg ref="escalationManager" />
   </bean>
   <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStore" depends-on="diffaSessionFactory">
     <constructor-arg ref="jooqDatabaseFacade" />
@@ -125,8 +126,11 @@
 
   <bean id="escalationManager"
         class="net.lshift.diffa.kernel.escalation.EscalationManager"
+        init-method="start"
         destroy-method="close">
     <constructor-arg ref="domainConfigStore" />
+    <constructor-arg ref="systemConfigStore" />
+    <constructor-arg ref="domainDifferenceStore" />
     <constructor-arg ref="actionsFrontend" />
     <constructor-arg ref="reportManager" />
     <constructor-arg ref="actorSystem" />

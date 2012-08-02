@@ -28,6 +28,7 @@ import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, DiffaPair}
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.escalation.EscalationHandler
 
 /**
  * Standard implementation of the DifferencesManager.
@@ -49,7 +50,8 @@ class DefaultDifferencesManager(
         val domainDifferenceStore:DomainDifferenceStore,
         val matching:MatchingManager,
         val participantFactory:ParticipantFactory,
-        val differenceListener:DifferencingListener)
+        val differenceListener:DifferencingListener,
+        val escalationHandler:EscalationHandler)
     extends DifferencesManager
     with DifferencingListener with MatchingStatusListener with AgentLifecycleAware {
 
@@ -269,8 +271,13 @@ class DefaultDifferencesManager(
 
   def reportUnmatched(id:VersionID, lastUpdate:DateTime, upstreamVsn: String, downstreamVsn: String, origin: MatchOrigin) {
     log.trace("Report unmatched for %s at %s, upstream %s, downstream %s, origin %s".format(id,lastUpdate, upstreamVsn, downstreamVsn, origin))
-    domainDifferenceStore.addReportableUnmatchedEvent(id, lastUpdate, upstreamVsn, downstreamVsn, new DateTime)
+    val (status, event) = domainDifferenceStore.addReportableUnmatchedEvent(id, lastUpdate, upstreamVsn, downstreamVsn, new DateTime)
     differenceListener.onMismatch(id, lastUpdate, upstreamVsn, downstreamVsn, origin, MatcherFiltered)
+
+    status match {
+      case NewUnmatchedEvent | ReturnedUnmatchedEvent => escalationHandler.initiateEscalation(event)
+      case _  => // The event is either unchanged or just updated. Don't start escalation.
+    }
   }
 
   def addMatched(id:VersionID, vsn:String) {
