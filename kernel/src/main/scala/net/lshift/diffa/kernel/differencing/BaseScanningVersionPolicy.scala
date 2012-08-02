@@ -243,9 +243,12 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
           true
         } else {
           log.warn("Dropping invalid scan result entry " + entry + " due to issues " + issues)
-          diagnostics.logPairExplanation(Some(scanId), pair, "Version Policy",
-            "The result %s was dropped since it didn't meet the request constraints. Identified issues were (%s)".format(
+          diagnostics.logPairEvent(Some(scanId), pair, DiagnosticLevel.ERROR,
+            "The result %s was dropped since it didn't meet the request constraints.  Identified issues were (%s)".format(
               entry, issues.map { case (k, v) => k + ": " + v }.mkString(", ")))
+          diagnostics.logPairExplanation(Some(scanId), pair, "Version Policy",
+          "The result %s was dropped since it didn't meet the request constraints. Identified issues were (%s)".format(
+            entry, issues.map { case (k, v) => k + ": " + v }.mkString(", ")))
 
           false
         }
