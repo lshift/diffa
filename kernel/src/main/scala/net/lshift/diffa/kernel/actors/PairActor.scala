@@ -451,6 +451,12 @@ case class PairActor(pair:DomainPairDef,
    * This actor will still be in the scan state after this callback has returned.
    */
   def handleScanMessage(scanView:Option[String], initiatingUser:Option[String]) : Boolean = {
+
+    if (!us.supportsScanning && !ds.supportsScanning) {
+      diagnostics.logPairEvent(None, pairRef, DiagnosticLevel.ERROR, "Neither upstream nor downstream support scanning")
+      logger.error(formatAlertCode(pairRef, NEITHER_ENDPOINT_SUPPORT_SCANNING))
+    }
+
     val createdScan = OutstandingScan(new DateTime(DateTimeZone.UTC), initiatingUser)
     implicit val system = actorSystem
     implicit val executionContext = ExecutionContext.defaultExecutionContext

@@ -45,17 +45,33 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @Path("/pairs/{pairKey}/scan")
   def startScan(@PathParam("pairKey") pairKey:String, @FormParam("view") view:String) = {
 
-    val infoString = formatAlertCode(domain, pairKey, API_SCAN_STARTED) + " scan initiated by " + currentUser
-    val message = if (view != null) {
-      infoString + " for " + view + " view"
-    } else {
-      infoString
+    val ref = DiffaPairRef(pairKey, domain)
+
+    val pair = domainConfigStore.getPairDef(ref)
+    val up = domainConfigStore.getEndpointDef(domain, pair.upstreamName)
+    val down = domainConfigStore.getEndpointDef(domain, pair.downstreamName)
+
+    if (!up.supportsScanning && !down.supportsScanning) {
+
+      val msg = "Neither %s nor %s support scanning".format(pair.upstreamName, pair.downstreamName)
+      Response.status(Response.Status.BAD_REQUEST).entity(msg).`type`("text/plain").build()
+
     }
+    else {
 
-    log.info(message)
+      val infoString = formatAlertCode(domain, pairKey, API_SCAN_STARTED) + " scan initiated by " + currentUser
+      val message = if (view != null) {
+        infoString + " for " + view + " view"
+      } else {
+        infoString
+      }
 
-    pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), Option(view), Some(currentUser))
-    Response.status(Response.Status.ACCEPTED).build
+      log.info(message)
+
+      pairPolicyClient.scanPair(ref, Option(view), Some(currentUser))
+      Response.status(Response.Status.ACCEPTED).build
+
+    }
   }
 
   @DELETE

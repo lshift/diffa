@@ -67,6 +67,11 @@ case class EndpointDef (
 
   val DEFAULT_URL_LENGTH_LIMIT = 1024
 
+  /**
+   * Inidication of whether scanning is supported by the given endpoint.
+   */
+  def supportsScanning = scanUrl != null && scanUrl.length() > 0
+
   def validate(path:String = null) {
     // Nullify any of the URLs that are blank
     scanUrl = ValidationUtil.maybeNullify(scanUrl)

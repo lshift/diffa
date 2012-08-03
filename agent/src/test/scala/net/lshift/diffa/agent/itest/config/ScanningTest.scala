@@ -19,42 +19,60 @@ package net.lshift.diffa.agent.itest.config
 import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import net.lshift.diffa.client.NotFoundException
-import com.eaio.uuid.UUID
+import net.lshift.diffa.client.{BadRequestException, NotFoundException}
 import net.lshift.diffa.agent.client.{ConfigurationRestClient, ScanningRestClient}
-import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Smoke tests for the scan interface.
  */
-class ScanningTest {
+class ScanningTest extends IsolatedDomainTest {
 
-  val scanClient = new ScanningRestClient(agentURL, domain)
-  val configClient = new ConfigurationRestClient(agentURL, domain)
+  val scanClient = new ScanningRestClient(agentURL, isolatedDomain)
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
 
   @Test(expected = classOf[NotFoundException])
   def nonExistentPairShouldGenerateNotFoundError = {
-    scanClient.cancelScanning(new UUID().toString)
+    scanClient.cancelScanning(RandomStringUtils.randomAlphanumeric(10))
     ()
   }
 
-  def existentPairShouldNotGenerateError = {
-    val up = new UUID().toString
-    val down = new UUID().toString
-    val pair = new UUID().toString
+  @Test
+  def existentPairShouldNotGenerateErrorWhenCancellingAScanThatIsNotRunning = {
+    val up = RandomStringUtils.randomAlphanumeric(10)
+    val down = RandomStringUtils.randomAlphanumeric(10)
+    val pair = RandomStringUtils.randomAlphanumeric(10)
 
     val categories = Map("bizDate" -> new RangeCategoryDescriptor("datetime"))
 
     configClient.declareEndpoint(EndpointDef(name = up, scanUrl = "http://upstream.com", categories = categories))
     configClient.declareEndpoint(EndpointDef(name = down, scanUrl = "http://downstream.com", categories = categories))
-    configClient.declarePair(PairDef(pair, "same", 1, up, down, "0 0 0 0 0 0"))
+    configClient.declarePair(PairDef(key = pair, upstreamName = up, downstreamName = down))
 
     // Simple smoke test - you could kick off a scan and verify that it gets interrupted,
     // but this code path is tested in the unit test
 
     assertTrue(scanClient.cancelScanning(pair))
+  }
+
+  @Test(expected = classOf[BadRequestException])
+  def shouldGenerateErrorWhenAScanIsTriggerForAPairWhereNeitherEndpointSupportScanning = {
+
+    val up = RandomStringUtils.randomAlphanumeric(10)
+    val down = RandomStringUtils.randomAlphanumeric(10)
+    val pair = RandomStringUtils.randomAlphanumeric(10)
+
+    // Neither endpoint support scanning
+
+    configClient.declareEndpoint(EndpointDef(name = up))
+    configClient.declareEndpoint(EndpointDef(name = down))
+    configClient.declarePair(PairDef(key = pair, upstreamName = up, downstreamName = down))
+
+    scanClient.startScan(pair)
+
   }
 }

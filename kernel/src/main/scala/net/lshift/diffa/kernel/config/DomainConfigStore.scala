@@ -156,8 +156,9 @@ case class Endpoint(
   }
 
   /**
-   * Inidication of whether scanning is supported by the given endpoint.
+   * Please use the function on EndpointDef instead
    */
+  @Deprecated
   def supportsScanning = scanUrl != null && scanUrl.length() > 0
 }
 case class EndpointView(

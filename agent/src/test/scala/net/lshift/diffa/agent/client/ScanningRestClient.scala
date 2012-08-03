@@ -21,7 +21,7 @@ import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.kernel.differencing.PairScanState
 import scala.collection.JavaConversions._
 import com.sun.jersey.core.util.MultivaluedMapImpl
-import net.lshift.diffa.client.RestClientParams
+import net.lshift.diffa.client.{BadRequestException, RestClientParams}
 
 /**
  * A RESTful client to manage participant scanning.
@@ -41,9 +41,9 @@ class ScanningRestClient(serverRootUrl:String, domain:String, params: RestClient
     val status = response.getClientResponseStatus
     status.getStatusCode match {
       case 202     => // Successfully submitted (202 is "Accepted")
+      case 400     => throw new BadRequestException(status.getReasonPhrase)
       case x:Int   => throw new RuntimeException("HTTP " + x + " : " + status.getReasonPhrase)
     }
-    true
   }
 
   def getScanStatus = {
