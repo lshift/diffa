@@ -105,6 +105,10 @@ class JooqUserPreferencesStore(db:DatabaseFacade, cacheProvider:CacheProvider)
     })
   }.toSet
 
+  def onPairUpdated(pair: DiffaPairRef) {
+    // This is probably too coarse grained, i.e. it invalidates everything
+    invalidCacheForDomain(pair.domain)
+  }
   def onPairDeleted(pair: DiffaPairRef) {
     // This is probably too coarse grained, i.e. it invalidates everything
     invalidCacheForDomain(pair.domain)

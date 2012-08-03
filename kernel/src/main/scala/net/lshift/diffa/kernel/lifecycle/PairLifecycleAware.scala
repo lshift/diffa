@@ -23,6 +23,11 @@ import net.lshift.diffa.kernel.config.DiffaPairRef
 trait PairLifecycleAware {
 
   /**
+   * This event is fired whenever a pair is created or updated
+   */
+  def onPairUpdated(pair:DiffaPairRef)
+
+  /**
    * This event is fired whenever a pair is deleted
    */
   def onPairDeleted(pair:DiffaPairRef)

@@ -363,6 +363,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     invalidatePairCachesOnly(domain)
 
     hook.pairCreated(domain, pair.key)
+    pairEventSubscribers.foreach(_.onPairUpdated(pair.asRef(domain)))
   }
 
   def deletePair(domain:String, key: String) = {

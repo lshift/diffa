@@ -6,7 +6,7 @@
 
 ## New Features
 
-* [196] - Support collapsing of heatmap swim lanes via UI controls
+* [196] - Support collapsing of heatmap swim lanes via UI controls.
 * [234] - Clicking on a ring in the overview page will open up a light box containing a cutdown heatmap for the relevant pair.
 * [233] - Scan summary information will be persisted.
 * [241] - Escalations are now phased rather than running as a batch action on completion of scan.
@@ -15,6 +15,7 @@
 
 * [240] - Never default the username to guest and control default domain from one entry point.
 * [245] - Check that both endpoints of a pair support scanning before initiating a scan.
+* [246] - Notify pair lifecycle aware subscribers that a pair has been updated.
 
 ## Library Upgrades
 
