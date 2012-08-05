@@ -56,6 +56,7 @@ class EscalationManagerTest {
   val actionsClient = createStrictMock(classOf[ActionsClient])
   val reportManager = EasyMock4Classes.createStrictMock(classOf[ReportManager])
   val diffs = createStrictMock(classOf[DomainDifferenceStore])
+  checkOrder(diffs, false)
   val escalationManager = new EscalationManager(configStore, systemConfig, diffs, actionsClient, reportManager, actorSystem)
 
   escalationManager.onAgentInstantiationCompleted(notificationCentre)
@@ -92,6 +93,16 @@ class EscalationManagerTest {
       }
       expect(actionsClient.invoke(EasyMock.isA(classOf[ActionableRequest]))).andAnswer(answer).times(count)
     }
+  }
+
+  def expectIgnore(latch: CountDownLatch) {
+    val answer = new IAnswer[DifferenceEvent] {
+      def answer = {
+        latch.countDown()
+        DifferenceEvent()
+      }
+    }
+    expect(diffs.ignoreEvent("d", "123")).andAnswer(answer).once()
   }
 
   def expectReportManager(count:Int) {
@@ -162,8 +173,14 @@ class EscalationManagerTest {
     })
     expect(configStore.getPairDef(event.objId.pair)).
       andReturn(DomainPairDef(escalations = new java.util.HashSet(
-        s.escalations.map(_.copy(actionType = EscalationActionType.REPAIR, action = "some-action"))))).atLeastOnce()
-    expectActionsClient(1, actionCompletionMonitor)
+        s.escalations.map(e => {
+          if (s.actionType == EscalationActionType.IGNORE)
+            e.copy(actionType = EscalationActionType.IGNORE)
+          else
+            e.copy(actionType = EscalationActionType.REPAIR, action = "some-action")
+        })))).atLeastOnce()
+    if (s.actionType == EscalationActionType.REPAIR) expectActionsClient(1, actionCompletionMonitor)
+    if (s.actionType == EscalationActionType.IGNORE) expectIgnore(actionCompletionMonitor)
     expect(diffs.scheduleEscalation(EasyMock.eq(event), anyString, anyTimestamp)).andAnswer(new IAnswer[Unit] {
       def answer() {
         schedulingCompletionMonitor.countDown()
@@ -214,49 +231,64 @@ case class Selection(name:String, delay:Option[Int])
 abstract class Scenario
 case class EntityScenario(uvsn:String, dvsn: String, event: String, matchOrigin: MatchOrigin, invocations: Int) extends Scenario
 case class PairScenario(state:PairScanState, event: String, invocations: Int) extends Scenario
-case class EscalationSchedulingScenario(uvsn:String, dvsn:String, escalations:Seq[EscalationDef], expectedSelections:Selection*) extends Scenario
+case class EscalationSchedulingScenario(uvsn:String, dvsn:String, actionType:String, escalations:Seq[EscalationDef], expectedSelections:Selection*) extends Scenario
 
 object EscalationManagerTest {
 
   @DataPoint def noEscalationsToSelect =
-    EscalationSchedulingScenario("usvn", "dvsn", Seq())
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq())
 
   @DataPoints def noMatchingEscalations = Array(
-    EscalationSchedulingScenario("usvn", "dvsn", Seq(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.DOWNSTREAM_MISSING)
     )),
-    EscalationSchedulingScenario(null, "dvsn", Seq(
+    EscalationSchedulingScenario(null, "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.MISMATCH),
       EscalationDef(name = "e2", event = EscalationEvent.DOWNSTREAM_MISSING)
     )),
-    EscalationSchedulingScenario("usvn", null, Seq(
+    EscalationSchedulingScenario("usvn", null, EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.MISMATCH)
     ))
   )
 
   @DataPoints def immediateMatchingEscalations = Array(
-    EscalationSchedulingScenario("usvn", "dvsn", Seq(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.MISMATCH)
     ), Selection("e2", Some(0))),
-    EscalationSchedulingScenario(null, "dvsn", Seq(
+    EscalationSchedulingScenario(null, "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.MISMATCH),
       EscalationDef(name = "e2", event = EscalationEvent.UPSTREAM_MISSING)
     ), Selection("e2", Some(0))),
-    EscalationSchedulingScenario("usvn", null, Seq(
+    EscalationSchedulingScenario("usvn", null, EscalationActionType.REPAIR, Seq(
+      EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
+      EscalationDef(name = "e2", event = EscalationEvent.DOWNSTREAM_MISSING)
+    ), Selection("e2", Some(0)))
+  )
+
+  @DataPoints def ignoreEscalations = Array(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.IGNORE, Seq(
+      EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
+      EscalationDef(name = "e2", event = EscalationEvent.MISMATCH)
+    ), Selection("e2", Some(0))),
+    EscalationSchedulingScenario(null, "dvsn", EscalationActionType.IGNORE, Seq(
+      EscalationDef(name = "e1", event = EscalationEvent.MISMATCH),
+      EscalationDef(name = "e2", event = EscalationEvent.UPSTREAM_MISSING)
+    ), Selection("e2", Some(0))),
+    EscalationSchedulingScenario("usvn", null, EscalationActionType.IGNORE, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.DOWNSTREAM_MISSING)
     ), Selection("e2", Some(0)))
   )
 
   @DataPoints def delayedEscalationsProcessedInOrder = Array(
-    EscalationSchedulingScenario("usvn", "dvsn", Seq(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.MISMATCH, delay = 50),
       EscalationDef(name = "e2", event = EscalationEvent.MISMATCH, delay = 10)
     ), Selection("e2", Some(10)), Selection("e1", Some(50))),
-    EscalationSchedulingScenario("usvn", "dvsn", Seq(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.MISMATCH, delay = 50),
       EscalationDef(name = "e2", event = EscalationEvent.UPSTREAM_MISSING, delay = 20),
       EscalationDef(name = "e3", event = EscalationEvent.MISMATCH, delay = 10)
@@ -264,15 +296,15 @@ object EscalationManagerTest {
   )
 
   @DataPoints def noProgressingToInvalidScenarios = Array(
-    EscalationSchedulingScenario("usvn", "dvsn", Seq(
+    EscalationSchedulingScenario("usvn", "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.MISMATCH)
     ), Selection("e2", Some(0))),
-    EscalationSchedulingScenario(null, "dvsn", Seq(
+    EscalationSchedulingScenario(null, "dvsn", EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.MISMATCH),
       EscalationDef(name = "e2", event = EscalationEvent.UPSTREAM_MISSING)
     ), Selection("e2", Some(0))),
-    EscalationSchedulingScenario("usvn", null, Seq(
+    EscalationSchedulingScenario("usvn", null, EscalationActionType.REPAIR, Seq(
       EscalationDef(name = "e1", event = EscalationEvent.UPSTREAM_MISSING),
       EscalationDef(name = "e2", event = EscalationEvent.DOWNSTREAM_MISSING)
     ), Selection("e2", Some(0)))

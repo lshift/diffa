@@ -396,12 +396,14 @@ case class EscalationDef (
   def validate(path:String = null) {
     val escalationPath = ValidationUtil.buildPath(path, "escalation", Map("name" -> name))
 
+    action = ValidationUtil.maybeNullify(action)
+
     ValidationUtil.ensureLengthLimit(escalationPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(escalationPath, "action", action, DefaultLimits.KEY_LENGTH_LIMIT)
 
     // Ensure that the action type is supported, and validate the parameters that depend on it
     actionType match {
-      case REPAIR =>
+      case REPAIR | IGNORE =>
         // Ensure that the origin is supported
         origin match {
           case SCAN =>

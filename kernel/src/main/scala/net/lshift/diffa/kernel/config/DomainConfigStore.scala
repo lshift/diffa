@@ -323,20 +323,6 @@ object RepairAction {
   val ENTITY_SCOPE = "entity"
   val PAIR_SCOPE = "pair"
 }
-/**
- * Defines a step for escalating a detected difference.
- */
-case class Escalation (
-  @BeanProperty var name: String = null,
-  @BeanProperty var pair: DiffaPair = null,
-  @BeanProperty var action: String = null,
-  @BeanProperty var actionType: String = null,
-  @BeanProperty var event: String = null,
-  @BeanProperty var origin: String = null
-) {
-
-  def this() = this(name = null)
-}
 
 /**
  * Enumeration of valid types that an escalating difference should trigger.
@@ -362,6 +348,7 @@ object EscalationOrigin {
 object EscalationActionType {
   val REPAIR = "repair"
   val REPORT = "report"
+  val IGNORE = "ignore"
 }
 
 case class User(@BeanProperty var name: String = null,

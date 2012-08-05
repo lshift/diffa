@@ -93,23 +93,6 @@ object FrontendConversions {
     pair = pair
   )
 
-  def toEscalationDef(e:Escalation) = EscalationDef(
-    name = e.name,
-    action = e.action,
-    actionType = e.actionType,
-    origin = e.origin,
-    event = e.event
-  )
-
-  def fromEscalationDef(pair:DiffaPair,e:EscalationDef) = Escalation(
-    name = e.name,
-    pair = pair,
-    action = e.action,
-    actionType = e.actionType,
-    origin = e.origin,
-    event = e.event
-  )
-
   def toPairReportDef(r:PairReport) = PairReportDef(
     name = r.name,
     reportType = r.reportType,

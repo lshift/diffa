@@ -67,8 +67,13 @@ class EscalationManager(val config:DomainConfigStore,
     def receive = {
       case Escalate(d:DifferenceEvent)            =>
         findEscalation(d.objId.pair, d.nextEscalation).map(e => {
-          val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
-          log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
+          e.actionType match {
+            case REPAIR =>
+              val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
+              log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
+            case IGNORE =>
+              diffs.ignoreEvent(d.objId.pair.domain, d.seqId)
+          }
         })
 
       case other =>
