@@ -314,164 +314,170 @@ Diffa.Views.InventoryUploader = Backbone.View.extend({
   }
 });
 
+Diffa.Views.UploadTargetSelector = Backbone.View.extend({
+  initialize: function(opts) {
+    this.type = opts.type;
 
-(function() {
+    $(this.el).html(window.JST['data/' + this.type + '-select']());
 
-var pairSelectTemplate = _.template('<label>Pair:</label>' +
-  '<select class="pair" data-placeholder="Select pair">' +
-    '<option value="" selected="selected">Select pair</option>' +
-  '<% _.each(pairs.models, function(pair) { %>' +
-    '<option value="<%= pair.get("key") %>"><%= pair.get("key") %></option>' +
-  '<% }); %> ' +
-  '</select>');
+    _.bindAll(this, 'render', 'addOne');
 
-var endpointSelectTemplate = _.template('<label>Endpoint:</label>' +
-  '<select class="endpoint" data-placeholder="Select endpoint">' +
-    '<option value="" selected="selected">Select endpoint</option>' +
-  '<% _.each(endpoints.models, function(endpoint) { %>' +
-    '<option value="<%= endpoint.get("name") %>"><%= endpoint.get("name") %></option>' +
-  '<% }); %>' +
-  '</select>');
+    this.collection.bind('reset', this.render);
+    this.collection.bind('add', this.addOne);
 
-var panel = $('.inventory-panel');
-var domain = Diffa.DomainManager.get(currentDiffaDomain);
+    this.render();
+  },
 
-var emptyAndUnbindUploaders = function() {
-  $(".diffa-inventory-uploader").each(function(i, e) {
-    var v = this.view;
+  render: function() {
+    var self = this;
 
-    // if there's an associated view, make sure we remove
-    // its events so that forms which are used on the same
-    // DOM element don't fire more than one inventory
-    // upload event from the backbone view.
-    if (v) {
-      v.unbind();
-      $(e).unbind();
-    }
+    this.$('option.' + this.type).remove();
+    this.collection.each(function(m) { self.addOne(m); });
 
-    $(e).empty();
-  });
-};
+    // remove the empty-value <option> which is fine without Select2, but
+    // with Select2 it causes problems because it's not a real choice which
+    // should be listed in the Select2 dropdown; Select2 gives us what we need
+    // with a placeholder.
+    var select = this.$('select');
 
-// returns 1 if an endpoint is being displayed, or 2 if a pair is being displayed.
-// returns 0 if nothing is displayed.
-var displayedUploaderCount = function() {
-  if ($("#inventory-uploader-upstream").html().trim().length > 0) { return 2; }
-  if ($("#inventory-uploader").html().trim().length > 0) { return 1; }
+    select.find("option:first-child").replaceWith("<option></option>");
+    select.css("width", "20em");
+    select.select2({ allowClear: true });
+    select.select2("val", ""); // bug fix for firefox
+  },
+  addOne: function(m) {
+    this.$('select').append('<option class="' + this.type + '" value="' + m.id + '">' + m.id + '</option>');
+  }
+});
 
-  return 0;
-};
+Diffa.Views.InventoryPanel = Backbone.View.extend({
+  initialize: function(opts) {
+    var self = this;
 
-var nothingDisplayed = function() {
-  return displayedUploaderCount() == 0;
-};
+    this.domain = opts.domain;
 
-var pairDisplayed = function() {
-  return displayedUploaderCount() == 2;
-};
+    $(this.el).html(window.JST['data/inventory-panel']());
 
-var endpointDisplayed = function() {
-  return displayedUploaderCount() == 1;
-}
+    new Diffa.Views.UploadTargetSelector({el: this.$('.pair-selection'), collection: this.domain.pairs, type: 'pair'});
+    new Diffa.Views.UploadTargetSelector({el: this.$('.endpoint-selection'), collection: this.domain.endpoints, type: 'endpoint'});
 
-// flashes the endpoint names. useful when changing between
-// one endpoint and another endpoint, where nothing much changes.
-var flashEndpointNames = function() {
-  $(".diffa-inventory-uploader .endpoint-heading .endpoint-name").each(function() {
-    var el = $(this);
-    el.stop().css("opacity", "0.0").animate({ opacity: "1.0"}, 300);
-  });
-};
-
-var pairChanged = function(pairName) {
-  panel.find("select.endpoint").val("");
-  panel.find("select.endpoint").select2("val", "");
-
-  var flashNames = false;
-  if (pairDisplayed()) { flashNames = true; }
-
-  emptyAndUnbindUploaders();
-
-  // abort if there's nothing to do
-  if (pairName.length == 0) { return; }
-
-  var pair = domain.pairs.get(pairName);
-  var downstream = domain.endpoints.get(pair.get("downstreamName"));
-  var upstream   = domain.endpoints.get(pair.get("upstreamName"));
-
-  $('#inventory-uploader-upstream, #inventory-uploader-downstream').each(function() {
-    var pairHalf = $(this).data("pair-half");
-
-    if (pairHalf == "upstream") {
-      var m = upstream;
-    } else if (pairHalf == "downstream") {
-      var m = downstream;
-    } else {
-      throw 'Unknown half of pair "' + pairHalf + '", expected either "upstream" or "downstream"';
-    }
-
-    new Diffa.Views.InventoryUploader({
-      el: $(this),
-      model: m
+    this.$("select.pair").change(function() {
+      self.pairChanged(self.$("select.pair option:selected").val());
     });
-  });
-
-  if (flashNames) { flashEndpointNames(); }
-};
-
-var endpointChanged = function(endpointName) {
-  $("select.pair").val("");
-  $("select.pair").select2("val", "");
-
-  var flashNames = false;
-  if (endpointDisplayed()) { flashNames = true; }
-
-  emptyAndUnbindUploaders();
-
-  // abort if there's nothing to do
-  if (endpointName.length == 0) { return; }
-
-  var endpoint = domain.endpoints.get(endpointName);
-
-  $('#inventory-uploader').each(function() {
-    new Diffa.Views.InventoryUploader({
-      el: $(this),
-      model: endpoint
+    this.$("select.endpoint").change(function() {
+      self.endpointChanged(self.$("select.endpoint option:selected").val());
     });
-  });
+  },
 
-  if (flashNames) { flashEndpointNames(); }
-}
+  pairChanged: function(pairName) {
+    this.$("select.endpoint").val("");
+    this.$("select.endpoint").select2("val", "");
 
-if ($(".inventory-panel").length > 0) {
-  panel.html('<h2>Upload an Inventory</h2>' +
-    '<div id="inventory-selection"><p>Select a pair or an individual endpoint.</p></div>' +
-    '<div id="inventory-uploader" class="diffa-inventory-uploader"></div>' +
-    '<div id="inventory-uploader-upstream" class="diffa-inventory-uploader" data-pair-half="upstream"></div>' +
-    '<div id="inventory-uploader-downstream" class="diffa-inventory-uploader" data-pair-half="downstream"></div>');
+    var flashNames = false;
+    if (this.pairDisplayed()) { flashNames = true; }
 
-  domain.loadAll(["endpoints", "pairs"], function() {
-    panel.find("#inventory-selection").append(pairSelectTemplate({pairs: domain.pairs, domain: domain}));
-    panel.find("#inventory-selection").append(endpointSelectTemplate({endpoints: domain.endpoints, domain: domain}));
-    panel.find("select.pair").change(function() { pairChanged(panel.find("select.pair option:selected").val()); });
-    panel.find("select.endpoint").change(function() { endpointChanged(panel.find("select.endpoint option:selected").val()); });
+    this.emptyAndUnbindUploaders();
 
-    $("#inventory-selection select").each(function(i, el) {
-      // remove the empty-value <option> which is fine without Select2, but
-      // with Select2 it causes problems because it's not a real choice which
-      // should be listed in the Select2 dropdown; Select2 gives us what we need
-      // with a placeholder.
-      $(el).find("option:first-child").replaceWith("<option></option>");
-      $(el).css("width", "20em");
-      $(el).select2({
-        allowClear: true
+    // abort if there's nothing to do
+    if (pairName.length == 0) { return; }
+
+    var pair = this.domain.pairs.get(pairName);
+    var downstream = this.domain.endpoints.get(pair.get("downstreamName"));
+    var upstream   = this.domain.endpoints.get(pair.get("upstreamName"));
+
+    $('.diffa-inventory-uploader-pair').each(function() {
+      var pairHalf = $(this).data("pair-half");
+      var m;
+
+      if (pairHalf == "upstream") {
+        m = upstream;
+      } else if (pairHalf == "downstream") {
+        m = downstream;
+      } else {
+        throw 'Unknown half of pair "' + pairHalf + '", expected either "upstream" or "downstream"';
+      }
+
+      new Diffa.Views.InventoryUploader({
+        el: $(this),
+        model: m
       });
-
-      $(el).select2("val", ""); // bug fix for firefox
     });
-  });
-}
 
-})();
+    if (flashNames) { this.flashEndpointNames(); }
+  },
+  endpointChanged: function(endpointName) {
+    this.$("select.pair").val("");
+    this.$("select.pair").select2("val", "");
+
+    var flashNames = false;
+    if (this.endpointDisplayed()) { flashNames = true; }
+
+    this.emptyAndUnbindUploaders();
+
+    // abort if there's nothing to do
+    if (endpointName.length == 0) { return; }
+
+    var endpoint = this.domain.endpoints.get(endpointName);
+
+    this.$('.diffa-inventory-uploader-single').each(function() {
+      new Diffa.Views.InventoryUploader({
+        el: $(this),
+        model: endpoint
+      });
+    });
+
+    if (flashNames) { flashEndpointNames(); }
+  },
+
+  // flashes the endpoint names. useful when changing between
+  // one endpoint and another endpoint, where nothing much changes.
+  flashEndpointNames: function() {
+    this.$(".diffa-inventory-uploader-pair .endpoint-heading .endpoint-name").each(function() {
+      var el = $(this);
+      el.stop().css("opacity", "0.0").animate({ opacity: "1.0"}, 300);
+    });
+  },
+  endpointDisplayed: function() {
+  return this.displayedUploaderCount() == 1;
+},
+  pairDisplayed: function() {
+  return this.displayedUploaderCount() == 2;
+},
+  nothingDisplayed: function() {
+    return this.displayedUploaderCount() == 0;
+  },
+
+  // returns 1 if an endpoint is being displayed, or 2 if a pair is being displayed.
+  // returns 0 if nothing is displayed.
+  displayedUploaderCount: function() {
+    if (this.$(".diffa-inventory-uploader-pair:first").html().trim().length > 0) { return 2; }
+    if (this.$(".diffa-inventory-uploader-single").html().trim().length > 0) { return 1; }
+
+    return 0;
+  },
+  emptyAndUnbindUploaders: function() {
+    this.$(".diffa-inventory-uploader").each(function(i, e) {
+      var v = this.view;
+
+      // if there's an associated view, make sure we remove
+      // its events so that forms which are used on the same
+      // DOM element don't fire more than one inventory
+      // upload event from the backbone view.
+      if (v) {
+        v.unbind();
+        $(e).unbind();
+      }
+
+      $(e).empty();
+    });
+  }
+});
+
+$('.diffa-inventory-panel').each(function() {
+  var domain = Diffa.DomainManager.get($(this).data('domain'));
+  new Diffa.Views.InventoryPanel({el: $(this), domain: domain});
+
+  domain.loadAll(["endpoints", "pairs"], function() {});
+});
 
 });
