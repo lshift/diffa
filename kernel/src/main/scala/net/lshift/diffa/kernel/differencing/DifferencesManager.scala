@@ -150,7 +150,9 @@ case class DifferenceEvent(
   def this() = this(seqId = null)
 
   def sequenceId = Integer.parseInt(seqId)
-    
+
+  /** Proxy to the object id. Added to allow escalation rules like "id LIKE 'id123*'" to be applied. **/
+  def id = objId.id
 }
 
 abstract class DifferenceEventStatus

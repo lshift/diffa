@@ -48,7 +48,7 @@ class DocExamplesFactory {
 
   val escalation = EscalationDef(name = "some-escalation",
                                  action = "resend", actionType = "repair",
-                                 event = "downstream-missing", origin = "scan")
+                                 rule = "downstreamVsn is null", delay = 10)
 
   val actionable = Actionable(name = "resend",
                               scope = "entity",

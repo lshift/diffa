@@ -71,9 +71,9 @@ class DiffaConfigReaderWriterTest {
             PairReportDef(name="Bulk Fix Differences", reportType="differences", target="http://example.com/bulk_diff_handler")
           ),
           escalations = Set(
-            EscalationDef(name="Delete From Upstream", action="Delete Result", actionType="repair", event="upstream-missing", origin="scan"),
-            EscalationDef(name="Resend Missing Downstream", action="Resend Sauce", actionType="repair", event="downstream-missing", origin="scan"),
-            EscalationDef(name="Resend On Mismatch", action="Resend Sauce", actionType="repair", event="mismatch", origin="scan")
+            EscalationDef(name="Delete From Upstream", action="Delete Result", actionType="repair", rule="upstreamVsn is null", delay=20),
+            EscalationDef(name="Resend Missing Downstream", action="Resend Sauce", actionType="repair", rule="downstreamVsn is null", delay=30),
+            EscalationDef(name="Resend On Mismatch", action="Resend Sauce", actionType="repair", rule="upstreamVsn is not null and downstreamVsn is not null and upstreamVsn != downstreamVsn", delay=0)
           )
         ),
         PairDef("ac", "same", 5, "upstream1", "downstream1", allowManualScans = false))
@@ -119,9 +119,9 @@ class DiffaConfigReaderWriterTest {
               scan-schedule="0 0 0 * 0 0" scan-schedule-enabled="false">
           <repair-action url="http://example.com/resend/{id}" name="Resend Sauce" scope="entity" />
           <repair-action url="http://example.com/delete/{id}" name="Delete Result" scope="entity" />
-          <escalation name="Delete From Upstream" action="Delete Result" type="repair" event="upstream-missing" origin="scan" />
-          <escalation name="Resend Missing Downstream" action="Resend Sauce" type="repair" event="downstream-missing" origin="scan" />
-          <escalation name="Resend On Mismatch" action="Resend Sauce" type="repair" event="mismatch" origin="scan" />
+          <escalation name="Delete From Upstream" action="Delete Result" type="repair" rule="upstreamVsn is null" delay="20" />
+          <escalation name="Resend Missing Downstream" action="Resend Sauce" type="repair" rule="downstreamVsn is null" delay="30" />
+          <escalation name="Resend On Mismatch" action="Resend Sauce" type="repair" rule="upstreamVsn is not null and downstreamVsn is not null and upstreamVsn != downstreamVsn" delay="0" />
           <report name="Bulk Fix Differences" report-type="differences" target="http://example.com/bulk_diff_handler" />
           <view name="little-view" scan-schedule="0 0 0 * * 0" />
         </pair>

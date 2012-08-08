@@ -163,6 +163,14 @@
       <artifactId>icu4j</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.gentlyweb</groupId>
+      <artifactId>gentlyweb-utils</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.josql</groupId>
+      <artifactId>josql</artifactId>
+    </dependency>
+    <dependency>
       <groupId>postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>test</scope>

@@ -23,6 +23,7 @@ import java.util.HashMap
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, EndpointSide}
 import net.lshift.diffa.participant.scanning.Collation
+import net.lshift.diffa.kernel.escalation.EscalationManager
 
 /**
  * Describes a complete Diffa configuration in the context of a domain - this means that all of the objects
@@ -383,12 +384,10 @@ case class EscalationDef (
   @BeanProperty var name: String = null,
   @BeanProperty var action: String = null,
   @BeanProperty var actionType: String = null,
-  @BeanProperty var event: String = null,
-  @BeanProperty var origin: String = null,
+  @BeanProperty var rule: String = null,
   @BeanProperty var delay: Int = 0
 ) {
   import EscalationEvent._
-  import EscalationOrigin._
   import EscalationActionType._
 
   def this() = this(name = null)
@@ -397,34 +396,22 @@ case class EscalationDef (
     val escalationPath = ValidationUtil.buildPath(path, "escalation", Map("name" -> name))
 
     action = ValidationUtil.maybeNullify(action)
+    rule = ValidationUtil.maybeNullify(rule)
 
     ValidationUtil.ensureLengthLimit(escalationPath, "name", name, DefaultLimits.KEY_LENGTH_LIMIT)
     ValidationUtil.ensureLengthLimit(escalationPath, "action", action, DefaultLimits.KEY_LENGTH_LIMIT)
+    ValidationUtil.ensureLengthLimit(escalationPath, "rule", rule, DefaultLimits.URL_LENGTH_LIMIT)
 
     // Ensure that the action type is supported, and validate the parameters that depend on it
     actionType match {
       case REPAIR | IGNORE =>
-        // Ensure that the origin is supported
-        origin match {
-          case SCAN =>
-          case _    => throw new ConfigValidationException(escalationPath, "Invalid escalation origin: " + origin)
-        }
-        event match {
-          case UPSTREAM_MISSING | DOWNSTREAM_MISSING | MISMATCH  => event
-          case _ =>
-            throw new ConfigValidationException(escalationPath,
-              "Invalid escalation event source type %s for action type %s".format(event, actionType))
-        }
+        EscalationManager.validateRule(rule, escalationPath)
       case REPORT =>
-        // We don't support origins for reports
-        if (origin != null)
-          throw new ConfigValidationException(escalationPath, "Origin not supported on report escalations.")
-
-        event match {
-          case SCAN_FAILED | SCAN_COMPLETED => event
+        rule match {
+          case SCAN_FAILED | SCAN_COMPLETED => rule
           case _ =>
             throw new ConfigValidationException(escalationPath,
-              "Invalid escalation event source type %s for action type %s".format(event, actionType))
+              "Invalid escalation event source type %s for action type %s".format(rule, actionType))
         }
       case _    =>
         throw new ConfigValidationException(escalationPath, "Invalid escalation action type: " + actionType)

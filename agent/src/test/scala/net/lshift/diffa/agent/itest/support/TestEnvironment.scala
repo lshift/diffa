@@ -155,7 +155,7 @@ class TestEnvironment(val pairKey: String,
   createPair
 
   configurationClient.declareRepairAction(entityScopedActionName, entityScopedActionUrl, RepairAction.ENTITY_SCOPE, pairKey)
-  configurationClient.declareEscalation(escalationName, pairKey, entityScopedActionName, EscalationActionType.REPAIR, EscalationEvent.DOWNSTREAM_MISSING, EscalationOrigin.SCAN)
+  configurationClient.declareEscalation(escalationName, pairKey, entityScopedActionName, EscalationActionType.REPAIR, "downstreamMissing", 0)
 
 
   def createPair = configurationClient.declarePair(PairDef(key = pairKey,

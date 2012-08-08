@@ -61,7 +61,7 @@ class JooqDomainDifferenceStoreTest {
     val pairTemplate = PairDef(upstreamName = us.name, downstreamName = ds.name)
     val pair1 = pairTemplate.copy(key = "pair1",
       repairActions = Set(RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity")),
-      escalations = Set(EscalationDef(name = "esc1", action = "r1", actionType = "repair", event = "upstream-missing", origin = "scan")))
+      escalations = Set(EscalationDef(name = "esc1", action = "r1", actionType = "repair", rule = "upstreamMissing")))
     val pair2 = pairTemplate.copy(key = "pair2")
 
     domainConfigStore.listPairs(domainName).foreach(p => domainConfigStore.deletePair(domainName, p.key))

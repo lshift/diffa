@@ -328,9 +328,6 @@ object RepairAction {
  * Enumeration of valid types that an escalating difference should trigger.
  */
 object EscalationEvent {
-  val UPSTREAM_MISSING = "upstream-missing"
-  val DOWNSTREAM_MISSING = "downstream-missing"
-  val MISMATCH = "mismatch"
   val SCAN_FAILED = "scan-failed"
   val SCAN_COMPLETED = "scan-completed"
 }

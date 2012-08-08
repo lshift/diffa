@@ -369,8 +369,7 @@ object JooqConfigStoreCompanion {
       name = record.getValue(ESCALATIONS.NAME),
       action = record.getValue(ESCALATIONS.ACTION),
       actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
-      event = record.getValue(ESCALATIONS.EVENT),
-      origin = record.getValue(ESCALATIONS.ORIGIN),
+      rule = record.getValue(ESCALATIONS.RULE),
       delay = record.getValue(ESCALATIONS.DELAY))
   }
 

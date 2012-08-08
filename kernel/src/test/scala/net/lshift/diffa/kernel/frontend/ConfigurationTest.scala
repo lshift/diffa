@@ -162,7 +162,7 @@ class ConfigurationTest {
           repairActions = Set(RepairActionDef("Resend Sauce", "resend", "pair")),
           reports = Set(PairReportDef("Bulk Send Differences", "differences", "http://location:5432/diffhandler")),
           escalations = Set(
-            EscalationDef("Resend Missing", "Resend Sauce", "repair", "downstream-missing", "scan", 30),
+            EscalationDef("Resend Missing", "Resend Sauce", "repair", "downstreamMissing", 30),
             EscalationDef("Report Differences", "Bulk Send Differences", "report", "scan-completed")
           )
         ),
@@ -227,7 +227,7 @@ class ConfigurationTest {
           repairActions = Set(RepairActionDef("Resend Source", "resend", "pair")),
           escalations = Set(EscalationDef(name = "Resend Another Missing",
                                         action = "Resend Source", actionType = "repair",
-                                        event = "downstream-missing", origin = "scan")),
+                                        rule = "downstreamMissing", delay = 30)),
           reports = Set(PairReportDef("Bulk Send Reports Elsewhere", "differences", "http://location:5431/diffhandler"))
         ),
           // ac is gone

@@ -24,7 +24,6 @@ import net.lshift.diffa.kernel.client.{ActionableRequest, ActionsClient}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import net.lshift.diffa.kernel.differencing._
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.reporting.ReportManager
 import net.lshift.diffa.kernel.util.AlertCodes._
 import java.io.Closeable
@@ -34,6 +33,9 @@ import scala.collection.JavaConversions._
 import java.util.{Timer, TimerTask}
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
+import org.josql.filters.DefaultObjectFilter
+import net.lshift.diffa.kernel.config.{ConfigValidationException, DiffaPairRef, DomainConfigStore}
+import org.josql.QueryParseException
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -122,15 +124,28 @@ class EscalationManager(val config:DomainConfigStore,
   }
 
   def escalatePairEvent(pairRef: DiffaPairRef, eventType:String) = {
-    findEscalations(pairRef, eventType, REPORT).foreach(e => {
+    findEscalationsForPair(pairRef, eventType).foreach(e => {
       log.debug("Escalating pair event as report %s".format(e.name))
       reportManager.executeReport(pairRef, e.action)
     })
   }
 
-  def findEscalations(pair: DiffaPairRef, eventType:String, actionTypes:String*) =
+  def findEscalations(pair: DiffaPairRef, diff:DifferenceEvent) = {
     config.getPairDef(pair).escalations.
-      filter(e => e.event == eventType && (actionTypes.length == 0 || actionTypes.contains(e.actionType)))
+      filter(e => {
+        if (e.rule == null) {
+          true
+        } else {
+          val filter = new DefaultObjectFilter(e.rule, classOf[DifferenceEventRuleView])
+          filter.accept(DifferenceEventRuleView(diff))
+        }
+    })
+  }
+
+  def findEscalationsForPair(pair: DiffaPairRef, eventType:String) = {
+    config.getPairDef(pair).escalations.
+      filter(e => e.rule == eventType && e.actionType == REPORT)
+  }
 
   def findEscalation(pair: DiffaPairRef, name:String) =
     config.getPairDef(pair).escalations.find(_.name == name)
@@ -147,7 +162,7 @@ class EscalationManager(val config:DomainConfigStore,
 
   def progressDiff(diff:DifferenceEvent) {
     val diffType = DifferenceUtils.differenceType(diff.upstreamVsn, diff.downstreamVsn)
-    val escalations = orderEscalations(findEscalations(diff.objId.pair, mapDifferenceType(diffType)).toSeq)
+    val escalations = orderEscalations(findEscalations(diff.objId.pair, diff).toSeq)
 
     val selectedEscalation = diff.nextEscalation match {
       case null     => escalations.headOption
@@ -169,12 +184,33 @@ class EscalationManager(val config:DomainConfigStore,
         diffs.scheduleEscalation(diff, esc.name, escalateTime)
     }
   }
+}
 
-  def mapDifferenceType(t:DifferenceType) = t match {
-    case UpstreamMissing => UPSTREAM_MISSING
-    case DownstreamMissing => DOWNSTREAM_MISSING
-    case ConflictingVersions => MISMATCH
+object EscalationManager {
+  def validateRule(rule:String, path:String) {
+    if (rule == null) return
+
+    try {
+      new DefaultObjectFilter(rule, classOf[DifferenceEventRuleView])
+    } catch {
+      case e:QueryParseException => throw new ConfigValidationException(path,
+        "invalid rule '%s': %s".format(rule, e.getMessage))
+    }
   }
 }
 
 case class Escalate(e:DifferenceEvent)
+
+case class DifferenceEventRuleView(event:DifferenceEvent) {
+  def getId = event.objId.id
+  def getUpstream = event.upstreamVsn
+  def getDownstream = event.downstreamVsn
+  def getDetectedAt = event.detectedAt
+  def getLastSeen = event.lastSeen
+
+  def getHasUpstream = event.upstreamVsn != null
+  def getUpstreamMissing = !getHasUpstream
+  def getHasDownstream = event.downstreamVsn != null
+  def getDownstreamMissing = !getHasDownstream
+  def isMismatch = getHasUpstream && getHasDownstream && getUpstream != getDownstream
+}

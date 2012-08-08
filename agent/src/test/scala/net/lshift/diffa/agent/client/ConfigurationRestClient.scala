@@ -46,8 +46,8 @@ class ConfigurationRestClient(serverRootUrl:String, domain:String, params: RestC
     delete("/pairs/"+pairKey+"/repair-actions/"+name)
   }
 
-  def declareEscalation(name: String, pairKey: String, action: String, actionType: String, event: String, origin: String) = {
-    val escalation = new EscalationDef(name, action, actionType, event, origin)
+  def declareEscalation(name: String, pairKey: String, action: String, actionType: String, rule: String, delay: Int) = {
+    val escalation = new EscalationDef(name, action, actionType, rule, delay)
     create("/pairs/"+pairKey+"/escalations", escalation)
     escalation
   }
