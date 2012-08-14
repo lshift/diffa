@@ -35,11 +35,12 @@ import org.easymock.{IAnswer, EasyMock}
 import akka.actor.ActorSystem
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef, EscalationDef}
-import org.junit.{Ignore, Before, After}
 import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
 import java.util.concurrent.atomic.AtomicInteger
 import system.SystemConfigStore
 import java.util.concurrent.{TimeUnit, CountDownLatch}
+import org.junit.{Test, Ignore, Before, After}
+import com.typesafe.config.ConfigFactory
 
 @RunWith(classOf[Theories])
 class EscalationManagerTest {
@@ -47,7 +48,12 @@ class EscalationManagerTest {
   val domain = "domain"
   val pairKey = "some pair key"
   val pair = DiffaPair(key = pairKey, domain = Domain(name=domain))
-  val actorSystem = ActorSystem("EscalationManagerTestAt%#x".format(hashCode()))
+  val customConf = ConfigFactory.parseString("""
+    akka.actor.default-dispatcher {
+      type = "akka.testkit.CallingThreadDispatcherConfigurator"
+    }
+    """)
+  val actorSystem = ActorSystem("EscalationManagerTestAt%#x".format(hashCode()), customConf)
   actorSystem.registerOnTermination(println("Per-test actor system shutdown; %s".format(this)))
 
   val notificationCentre = new NotificationCentre
@@ -57,7 +63,8 @@ class EscalationManagerTest {
   val reportManager = EasyMock4Classes.createStrictMock(classOf[ReportManager])
   val diffs = createStrictMock(classOf[DomainDifferenceStore])
   checkOrder(diffs, false)
-  val escalationManager = new EscalationManager(configStore, systemConfig, diffs, actionsClient, reportManager, actorSystem)
+  val breakers = new BreakerHelper(configStore)
+  val escalationManager = new EscalationManager(configStore, systemConfig, diffs, actionsClient, reportManager, actorSystem, breakers)
 
   escalationManager.onAgentInstantiationCompleted(notificationCentre)
 
@@ -158,6 +165,9 @@ class EscalationManagerTest {
     val actionCompletionMonitor = new CountDownLatch(1)
     val schedulingCompletionMonitor = new CountDownLatch(1)
 
+      // Don't let the breakers stop anything
+    expect(configStore.isBreakerTripped(EasyMock.eq("d"), EasyMock.eq("p1"), anyString)).andStubReturn(false)
+
     // Return our pair to have a corresponding actor started
     expect(systemConfig.listPairs).andReturn(
       Seq(DomainPairDef(domain = event.objId.pair.domain, key = event.objId.pair.key)))
@@ -207,6 +217,27 @@ class EscalationManagerTest {
     
     notificationCentre.pairScanStateChanged(pair.asRef, pairScenario.state)
     
+    verifyAll()
+  }
+
+  @Test
+  def applyingBreakerShouldPreventEscalationBeingProcessed() {
+    val event = DifferenceEvent(objId = VersionID(DiffaPairRef(pairKey, domain), "id1"), nextEscalation = "esc1",
+      nextEscalationTime = new DateTime)
+    expect(systemConfig.listPairs).andReturn(
+      Seq(DomainPairDef(domain = event.objId.pair.domain, key = event.objId.pair.key)))
+    expect(diffs.pendingEscalatees(anyTimestamp, anyUnitF1)).asStub()
+    expect(configStore.getPairDef(event.objId.pair)).andReturn(DomainPairDef(escalations =
+      Set(EscalationDef(name = "esc1", action = "a1", actionType = "repair"))))
+    expect(diffs.scheduleEscalation(event, null, null)).once()
+
+    expect(configStore.isBreakerTripped(domain, pairKey, "escalation:*")).andReturn(false)
+    expect(configStore.isBreakerTripped(domain, pairKey, "escalation:esc1")).andReturn(true)
+
+    replayAll()
+
+    escalationManager.start()
+    escalationManager.escalateDiff(event)
     verifyAll()
   }
 

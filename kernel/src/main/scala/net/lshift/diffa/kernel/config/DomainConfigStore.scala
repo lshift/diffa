@@ -91,6 +91,21 @@ trait DomainConfigStore {
    * Lists all of the members of the given domain
    */
   def listDomainMembers(domain:String) : Seq[Member]
+
+  /**
+   * Determines whether a breaker has been tripped (ie, the feature disabled) for the given named item.
+   */
+  def isBreakerTripped(domain:String, pair:String, name:String):Boolean
+
+  /**
+   * Disables the feature controlled by the given breaker.
+   */
+  def tripBreaker(domain:String, pair:String, name:String)
+
+  /**
+   * Enables the feature controlled by the given breaker.
+   */
+  def clearBreaker(domain:String, pair:String, name:String)
 }
 
 case class Endpoint(

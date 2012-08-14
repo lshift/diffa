@@ -56,7 +56,12 @@
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor</artifactId>
     </dependency>
-      <dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-testkit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>

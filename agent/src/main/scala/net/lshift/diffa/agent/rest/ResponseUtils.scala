@@ -30,4 +30,11 @@ object ResponseUtils {
     val uri = uriInfo.getAbsolutePathBuilder().path(id).build()
     Response.created(uri).build()
   }
+
+  /**
+   * Constructs an HTTP 201 response for the given identifier in the given context
+   */
+  def resourceDeleted() = {
+    Response.noContent().build()
+  }
 }

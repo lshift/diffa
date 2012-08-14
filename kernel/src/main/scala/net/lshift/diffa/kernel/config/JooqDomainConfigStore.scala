@@ -29,6 +29,7 @@ import net.lshift.diffa.schema.tables.Pair.PAIR
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
+import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import JooqConfigStoreCompanion._
 import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
@@ -39,6 +40,7 @@ import collection.mutable
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
+import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.frontend.RepairActionDef
@@ -67,6 +69,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   private val cachedEndpoints = cacheProvider.getCachedMap[String, java.util.List[DomainEndpointDef]]("domain.endpoints")
   private val cachedEndpointsByKey = cacheProvider.getCachedMap[DomainEndpointKey, DomainEndpointDef]("domain.endpoints.by.key")
   private val cachedPairsByEndpoint = cacheProvider.getCachedMap[DomainEndpointKey, java.util.List[DomainPairDef]]("domain.pairs.by.endpoint")
+  private val cachedBreakers = cacheProvider.getCachedMap[BreakerKey, Boolean](DOMAIN_PAIR_BREAKERS)
 
   // Config options
   private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
@@ -82,6 +85,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     cachedEndpoints.evictAll()
     cachedEndpointsByKey.evictAll()
     cachedPairsByEndpoint.evictAll()
+    cachedBreakers.evictAll()
 
     cachedDomainConfigOptionsMap.evictAll()
     cachedDomainConfigOptions.evictAll()
@@ -105,6 +109,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(domain)).evictAll()
     cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
     cachedEndpointsByKey.keySubset(EndpointByDomainPredicate(domain)).evictAll()
+    cachedBreakers.keySubset(BreakerByDomainPredicate(domain)).evictAll()
 
     invalidateConfigCaches(domain)
 
@@ -578,6 +583,50 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     })
   }).toSeq
 
+  def isBreakerTripped(domain: String, pair: String, name: String) = {
+    cachedBreakers.readThrough(BreakerKey(domain, pair, name), () => jooq.execute(t => {
+      val c = t.selectCount().
+        from(BREAKERS).
+        where(BREAKERS.DOMAIN.equal(domain)).
+          and(BREAKERS.PAIR_KEY.equal(pair)).
+          and(BREAKERS.NAME.equal(name)).
+        fetchOne().
+        getValue(0).asInstanceOf[java.lang.Number]
+
+      val breakerPresent = (c != null && c.intValue() > 0)
+
+      // We consider a breaker to be tripped (ie, the feature should not be used) when there is a matching row in
+      // the table.
+      breakerPresent
+    }))
+  }
+
+  def tripBreaker(domain: String, pair: String, name: String) {
+    if (!isBreakerTripped(domain, pair, name)) {
+      jooq.execute(t => {
+        t.insertInto(BREAKERS).
+          set(Map(BREAKERS.DOMAIN -> domain, BREAKERS.PAIR_KEY -> pair, BREAKERS.NAME -> name)).
+          onDuplicateKeyIgnore().
+          execute()
+      })
+
+      cachedBreakers.put(BreakerKey(domain, pair, name), true)
+    }
+  }
+
+  def clearBreaker(domain: String, pair: String, name: String) {
+    if (isBreakerTripped(domain, pair, name)) {
+      jooq.execute(t => {
+        t.delete(BREAKERS).
+          where(BREAKERS.DOMAIN.equal(domain)).
+            and(BREAKERS.PAIR_KEY.equal(pair)).
+            and(BREAKERS.NAME.equal(name)).
+          execute()
+      })
+
+      cachedBreakers.put(BreakerKey(domain, pair, name), false)
+    }
+  }
 }
 
 // These key classes need to be serializable .......
@@ -606,6 +655,14 @@ case class DomainConfigKey(
 
 }
 
+case class BreakerKey(
+  @BeanProperty var domain:String = null,
+  @BeanProperty var pair:String = null,
+  @BeanProperty var name:String = null) {
+
+  def this() = this(domain = null)
+}
+
 case class ConfigOptionByDomainPredicate(
   @BeanProperty domain:String = null) extends KeyPredicate[DomainConfigKey] {
   def this() = this(domain = null)
@@ -629,3 +686,14 @@ case class PairByDomainPredicate(@BeanProperty domain:String = null) extends Key
   def constrain(key: DomainPairKey) = key.domain == domain
 }
 
+case class BreakerByDomainPredicate(@BeanProperty domain:String = null) extends KeyPredicate[BreakerKey] {
+  def this() = this(domain = null)
+  def constrain(key: BreakerKey) = key.domain == domain
+}
+case class BreakerByPairAndDomainPredicate(
+    @BeanProperty domain:String = null,
+    @BeanProperty pair:String = null) extends KeyPredicate[BreakerKey] {
+
+  def this() = this(domain = null)
+  def constrain(key: BreakerKey) = key.domain == domain && key.pair == pair
+}

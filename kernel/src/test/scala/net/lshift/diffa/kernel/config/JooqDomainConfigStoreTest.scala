@@ -780,6 +780,51 @@ class JooqDomainConfigStoreTest {
 
   }
 
+  @Test
+  def shouldDefaultToReportingBreakerAsUntripped() {
+    assertFalse(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:*"))
+  }
+
+  @Test
+  def shouldStoreTrippedBreaker() {
+    systemConfigStore.createOrUpdateDomain(domainName)
+
+    val e1 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-upstream-endpoint"))
+    val e2 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-downstream-endpoint"))
+    domainConfigStore.createOrUpdatePair(domainName, PairDef(key = pairKey, upstreamName = e1.name, downstreamName = e2.name))
+
+    domainConfigStore.tripBreaker(domainName, pairKey, "escalations:*")
+    assertTrue(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:*"))
+  }
+
+  @Test
+  def shouldKeepTrippedBreakersIsolated() {
+    systemConfigStore.createOrUpdateDomain(domainName)
+
+    val e1 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-upstream-endpoint"))
+    val e2 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-downstream-endpoint"))
+    domainConfigStore.createOrUpdatePair(domainName, PairDef(key = pairKey, upstreamName = e1.name, downstreamName = e2.name))
+
+    domainConfigStore.tripBreaker(domainName, pairKey, "escalations:*")
+    assertTrue(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:*"))
+    assertFalse(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:other"))
+  }
+
+  @Test
+  def shouldSupportClearingABreaker() {
+    systemConfigStore.createOrUpdateDomain(domainName)
+
+    val e1 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-upstream-endpoint"))
+    val e2 = domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef(name = "some-downstream-endpoint"))
+    domainConfigStore.createOrUpdatePair(domainName, PairDef(key = pairKey, upstreamName = e1.name, downstreamName = e2.name))
+
+    domainConfigStore.tripBreaker(domainName, pairKey, "escalations:*")
+    domainConfigStore.tripBreaker(domainName, pairKey, "escalations:other")
+    domainConfigStore.clearBreaker(domainName, pairKey, "escalations:*")
+    assertFalse(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:*"))
+    assertTrue(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:other"))
+  }
+
   private def verifyDomainConfigVersionWasUpgraded(domain:String, oldVersion:Int) {
     val currentVersion = domainConfigStore.getConfigVersion(domain)
     assertTrue("Current version %s is not greater than old version %s".format(currentVersion,oldVersion), currentVersion > oldVersion)

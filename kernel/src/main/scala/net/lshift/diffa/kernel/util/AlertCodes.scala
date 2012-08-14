@@ -41,6 +41,9 @@ object AlertCodes {
   val UPSTREAM_SCAN_COMPLETED_BENCHMARK = 132
   val DOWNSTREAM_SCAN_COMPLETED_BENCHMARK = 133
 
+  // 14x Informational non-scan events
+  val BREAKER_TRIPPED = 140
+
   // 2xx Successful
 
   // 22x Successful manual scan events

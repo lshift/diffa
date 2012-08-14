@@ -33,6 +33,7 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
+import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.tables.Endpoint._
@@ -396,6 +397,7 @@ object JooqConfigStoreCompanion {
     deletePairViewsByPair(t, pair)
     deleteStoreCheckpointsByPair(t, pair)
     deleteUserItemsByPair(t, pair)
+    deleteBreakersByPair(t, pair)
     deletePairWithoutDependencies(t, pair)
   }
 
@@ -414,6 +416,13 @@ object JooqConfigStoreCompanion {
     t.delete(USER_ITEM_VISIBILITY).
       where(USER_ITEM_VISIBILITY.DOMAIN.equal(pair.domain)).
       and(USER_ITEM_VISIBILITY.PAIR.equal(pair.key)).
+      execute()
+  }
+
+  def deleteBreakersByPair(t:Factory, pair:DiffaPairRef) = {
+    t.delete(BREAKERS).
+      where(BREAKERS.DOMAIN.equal(pair.domain)).
+        and(BREAKERS.PAIR_KEY.equal(pair.key)).
       execute()
   }
 

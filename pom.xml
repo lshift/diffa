@@ -371,6 +371,11 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-testkit</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
       <groupId>net.jcip</groupId>
       <artifactId>jcip-annotations</artifactId>
       <version>1.0</version>

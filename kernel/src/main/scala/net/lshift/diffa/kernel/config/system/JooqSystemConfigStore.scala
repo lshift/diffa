@@ -23,6 +23,7 @@ import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
+import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import net.lshift.diffa.schema.tables.ExternalHttpCredentials.EXTERNAL_HTTP_CREDENTIALS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
@@ -101,6 +102,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       t.delete(ESCALATIONS).where(ESCALATIONS.DOMAIN.equal(domain)).execute()
       t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.DOMAIN.equal(domain)).execute()
       t.delete(PAIR_VIEWS).where(PAIR_VIEWS.DOMAIN.equal(domain)).execute()
+      t.delete(BREAKERS).where(BREAKERS.DOMAIN.equal(domain)).execute()
       t.delete(PAIR).where(PAIR.DOMAIN.equal(domain)).execute()
       t.delete(ENDPOINT).where(ENDPOINT.DOMAIN.equal(domain)).execute()
       t.delete(CONFIG_OPTIONS).where(CONFIG_OPTIONS.DOMAIN.equal(domain)).execute()

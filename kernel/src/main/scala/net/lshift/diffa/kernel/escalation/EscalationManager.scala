@@ -34,8 +34,8 @@ import java.util.{Timer, TimerTask}
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.josql.filters.DefaultObjectFilter
-import net.lshift.diffa.kernel.config.{ConfigValidationException, DiffaPairRef, DomainConfigStore}
 import org.josql.QueryParseException
+import net.lshift.diffa.kernel.config.{BreakerHelper, ConfigValidationException, DiffaPairRef, DomainConfigStore}
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -55,7 +55,8 @@ class EscalationManager(val config:DomainConfigStore,
                         val diffs:DomainDifferenceStore,
                         val actionsClient:ActionsClient,
                         val reportManager:ReportManager,
-                        val actorSystem: ActorSystem)
+                        val actorSystem: ActorSystem,
+                        val breakerHelper: BreakerHelper)
     extends AbstractActorSupervisor
     with AgentLifecycleAware
     with PairScanListener
@@ -68,15 +69,20 @@ class EscalationManager(val config:DomainConfigStore,
     
     def receive = {
       case Escalate(d:DifferenceEvent)            =>
-        findEscalation(d.objId.pair, d.nextEscalation).map(e => {
-          e.actionType match {
-            case REPAIR =>
-              val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
-              log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
-            case IGNORE =>
-              diffs.ignoreEvent(d.objId.pair.domain, d.seqId)
-          }
-        })
+        if (breakerHelper.isEscalationEnabled(pair, d.nextEscalation)) {
+          findEscalation(d.objId.pair, d.nextEscalation).map(e => {
+            e.actionType match {
+              case REPAIR =>
+                val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
+                log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
+              case IGNORE =>
+                diffs.ignoreEvent(d.objId.pair.domain, d.seqId)
+            }
+          })
+        } else {
+          log.debug("{} Not processing escalation on {} as breaker has been tripped",
+            formatAlertCode(pair, BREAKER_TRIPPED), d.objId)
+        }
 
       case other =>
         log.warn("{} EscalationActor received unexpected message: {}",
@@ -154,10 +160,12 @@ class EscalationManager(val config:DomainConfigStore,
     escalations.sortBy(e => (e.delay, e.name))
 
   def escalateDiffs() {
-    diffs.pendingEscalatees(DateTime.now(), diff => {
-      findActor(diff.objId) ! Escalate(diff)
-      progressDiff(diff)
-    })
+    diffs.pendingEscalatees(DateTime.now(), escalateDiff(_))
+  }
+
+  def escalateDiff(diff:DifferenceEvent) {
+    findActor(diff.objId) ! Escalate(diff)
+    progressDiff(diff)
   }
 
   def progressDiff(diff:DifferenceEvent) {
