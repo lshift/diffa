@@ -62,7 +62,9 @@ class JooqDomainDifferenceStoreTest {
     val pair1 = pairTemplate.copy(key = "pair1",
       repairActions = Set(RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity")),
       escalations = Set(EscalationDef(name = "esc1", action = "r1", actionType = "repair", rule = "upstreamMissing")))
-    val pair2 = pairTemplate.copy(key = "pair2")
+    val pair2 = pairTemplate.copy(key = "pair2",
+      repairActions = Set(RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity")),
+      escalations = Set(EscalationDef(name = "esc2", action = "r1", actionType = "repair", rule = "upstreamMissing")))
 
     domainConfigStore.listPairs(domainName).foreach(p => domainConfigStore.deletePair(domainName, p.key))
     domainConfigStore.createOrUpdatePair(domainName, pair1)
@@ -242,6 +244,32 @@ class JooqDomainDifferenceStoreTest {
     val scheduledEvent = domainDiffStore.getEvent("domain", matched.seqId)
     assertNull(scheduledEvent.nextEscalation)
     assertNull(scheduledEvent.nextEscalationTime)
+  }
+
+  @Test
+  def shouldAllowEscalationsToBeClearedForAPair() {
+    val timestamp = new DateTime()
+
+    val (_, event1) = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"), timestamp, "uV1", "dV1", timestamp)
+    domainDiffStore.scheduleEscalation(event1, "esc1", timestamp.plusSeconds(10))
+    val (_, event2) = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id2"), timestamp, "uV1", "dV1", timestamp)
+    domainDiffStore.scheduleEscalation(event2, "esc1", timestamp.plusSeconds(10))
+    val (_, event3) = domainDiffStore.addReportableUnmatchedEvent(VersionID(DiffaPairRef("pair2", "domain"), "id1"), timestamp, "uV1", "dV1", timestamp)
+    domainDiffStore.scheduleEscalation(event3, "esc2", timestamp.plusSeconds(10))
+
+    domainDiffStore.unscheduleEscalations(DiffaPairRef("pair1", "domain"))
+
+    val updatedEvent1 = domainDiffStore.getEvent("domain", event1.seqId)
+    assertNull(updatedEvent1.nextEscalation)
+    assertNull(updatedEvent1.nextEscalationTime)
+    val updatedEvent2 = domainDiffStore.getEvent("domain", event2.seqId)
+    assertNull(updatedEvent2.nextEscalation)
+    assertNull(updatedEvent2.nextEscalationTime)
+    val updatedEvent3 = domainDiffStore.getEvent("domain", event3.seqId)
+    assertEquals("esc2", updatedEvent3.nextEscalation)
+
+    // Shred the milliseconds due to MySQL limitation
+    assertEquals(timestamp.plusSeconds(10).withMillis(0), updatedEvent3.nextEscalationTime.withMillis(0))
   }
 
   @Test

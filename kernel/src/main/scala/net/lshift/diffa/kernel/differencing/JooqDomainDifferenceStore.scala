@@ -406,6 +406,15 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
       execute()
   }
 
+  def unscheduleEscalations(pair:DiffaPairRef) = db.execute { t =>
+    t.update(DIFFS).
+      set(DIFFS.NEXT_ESCALATION, null).
+      set(DIFFS.NEXT_ESCALATION_TIME, null).
+    where(DIFFS.DOMAIN.equal(pair.domain).
+        and(DIFFS.PAIR.equal(pair.key))).
+      execute()
+  }
+
   def clearAllDifferences = db.execute { t =>
     reset
     t.truncate(DIFFS).execute()

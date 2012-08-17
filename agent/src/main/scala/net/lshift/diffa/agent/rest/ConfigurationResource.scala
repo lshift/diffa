@@ -116,6 +116,13 @@ class ConfigurationResource(val config:Configuration,
   }
 
   @DELETE
+  @Path("/pairs/{id}/repair-actions")
+  def clearRepairActions(@PathParam("id") id:String) = {
+    config.clearRepairActions(domain, id)
+    resourceDeleted()
+  }
+
+  @DELETE
   @Path("/pairs/{pairKey}/repair-actions/{name}")
   def deleteRepairAction(@PathParam("name") name: String, @PathParam("pairKey") pairKey: String) {
     config.deleteRepairAction(domain, name, pairKey)
@@ -127,6 +134,13 @@ class ConfigurationResource(val config:Configuration,
   def createEscalation(@PathParam("id") id:String, e: EscalationDef) = {
     config.createOrUpdateEscalation(domain, id, e)
     resourceCreated(e.name, uri)
+  }
+
+  @DELETE
+  @Path("/pairs/{id}/escalations")
+  def clearEscalations(@PathParam("id") id:String) = {
+    config.clearEscalations(domain, id)
+    resourceDeleted()
   }
 
   @DELETE

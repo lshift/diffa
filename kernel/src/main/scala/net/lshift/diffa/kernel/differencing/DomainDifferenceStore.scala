@@ -151,6 +151,11 @@ trait DomainDifferenceStore {
    * the difference can be terminated by providing a null name/time.
    */
   def scheduleEscalation(diff:DifferenceEvent, escalationName:String, escalationTime:DateTime)
+
+  /**
+   * Clears any scheduled escalations for all differences in the given pair.
+   */
+  def unscheduleEscalations(pair:DiffaPairRef)
 }
 
 case class TileGroup(

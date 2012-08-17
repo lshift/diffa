@@ -226,6 +226,10 @@ class Configuration(val configStore: DomainConfigStore,
     updatePair(domain, pairKey, pair => pair.repairActions.retain(_.name != name))
   }
 
+  def clearRepairActions(domain:String, pairKey:String) {
+    updatePair(domain, pairKey, pair => pair.repairActions.clear())
+  }
+
   def listRepairActionsForPair(domain:String, pairKey: String): Seq[RepairActionDef] = {
     configStore.getPairDef(domain, pairKey).repairActions.toSeq
   }
@@ -237,6 +241,10 @@ class Configuration(val configStore: DomainConfigStore,
 
   def deleteEscalation(domain:String, name: String, pairKey: String) {
     updatePair(domain, pairKey, pair => pair.escalations.retain(_.name != name))
+  }
+
+  def clearEscalations(domain:String, pairKey:String) {
+    updatePair(domain, pairKey, pair => pair.escalations.clear())
   }
 
   def listEscalationForPair(domain:String, pairKey: String): Seq[EscalationDef] = {

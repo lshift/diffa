@@ -12,6 +12,7 @@
 * [241] - Escalations are now phased rather than running as a batch action on completion of scan.
 * [248] - Escalations can trigger an ignore.
 * [250] - Escalation rules are now expressed with a SQL-like syntax, as opposed to a set of fixed events.
+* [251] - Escalations for a particular pair can be deleted via the API.
 
 ## General Maintenance
 

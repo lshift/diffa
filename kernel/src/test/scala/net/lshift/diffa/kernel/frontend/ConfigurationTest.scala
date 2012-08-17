@@ -305,6 +305,19 @@ class ConfigurationTest {
     verifyAll
   }
 
+  @Test
+  def shouldSupportClearingOfActionsAndEscalations() {
+    // Apply the configuration used in the empty state test
+    shouldApplyConfigurationToEmptySystem
+    resetAll
+
+    configuration.clearRepairActions("domain", "ab")
+    configuration.clearEscalations("domain", "ab")
+
+    assertEquals(0, configuration.getPairDef("domain", "ab").repairActions.size())
+    assertEquals(0, configuration.getPairDef("domain", "ab").escalations.size())
+  }
+
   private def replayAll = replay(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def verifyAll = verify(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def resetAll = reset(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
