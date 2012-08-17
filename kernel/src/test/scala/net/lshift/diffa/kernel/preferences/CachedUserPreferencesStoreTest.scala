@@ -24,13 +24,14 @@ import org.easymock.EasyMock._
 import org.easymock.classextension.{EasyMock => E4}
 import org.jooq.impl.Factory
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{Space, SpacePathCache, DiffaPairRef}
 
 class CachedUserPreferencesStoreTest {
 
   val cacheProvider = new HazelcastCacheProvider
   val jooq = E4.createStrictMock(classOf[DatabaseFacade])
-  val preferencesStore = new JooqUserPreferencesStore(jooq, cacheProvider)
+  val spacePathCache = E4.createStrictMock(classOf[SpacePathCache])
+  val preferencesStore = new JooqUserPreferencesStore(jooq, cacheProvider, spacePathCache)
 
   @Before
   def clearCache = {
@@ -44,8 +45,9 @@ class CachedUserPreferencesStoreTest {
     pairs.add("pair")
 
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(pairs).once()
+    expect(spacePathCache.resolveSpacePathOrDie("domain")).andReturn(Space(id = 0L)).times(2)
 
-    E4.replay(jooq)
+    E4.replay(jooq, spacePathCache)
 
     val firstCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
     assertEquals(pairs.toList, firstCall.toList)
@@ -53,7 +55,7 @@ class CachedUserPreferencesStoreTest {
     val secondCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
     assertEquals(pairs.toList, secondCall.toList)
 
-    E4.verify(jooq)
+    E4.verify(jooq, spacePathCache)
   }
 
   @Test
@@ -66,6 +68,8 @@ class CachedUserPreferencesStoreTest {
     secondPairSet.add("p1")
     secondPairSet.add("p2")
 
+    expect(spacePathCache.resolveSpacePathOrDie("domain")).andReturn(Space(id = 0L)).times(3)
+
     // First read -> returns Set(p1)
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(firstPairSet).once()
     // Update the set with p2
@@ -74,7 +78,7 @@ class CachedUserPreferencesStoreTest {
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(secondPairSet).once()
 
 
-    E4.replay(jooq)
+    E4.replay(jooq, spacePathCache)
 
     val firstCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
     assertEquals(firstPairSet.toList, firstCall.toList)
@@ -84,6 +88,6 @@ class CachedUserPreferencesStoreTest {
     val secondCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
     assertEquals(secondPairSet.toList, secondCall.toList)
 
-    E4.verify(jooq)
+    E4.verify(jooq, spacePathCache)
   }
 }

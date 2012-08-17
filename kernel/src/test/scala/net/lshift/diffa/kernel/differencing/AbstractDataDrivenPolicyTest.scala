@@ -36,7 +36,6 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.junit.Assume._
 import org.junit.Assert._
 import java.util.HashMap
-import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, NonCancellingFeedbackHandle}
 import org.joda.time.{DateTime, LocalDate}

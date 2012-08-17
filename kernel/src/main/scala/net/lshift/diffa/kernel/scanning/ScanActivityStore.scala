@@ -30,6 +30,7 @@ trait ScanActivityStore {
 }
 
 case class ScanStatement(id:Long = System.currentTimeMillis(),
+                         space:Long,
                          domain:String,
                          pair:String,
                          initiatedBy:Option[String] = None,

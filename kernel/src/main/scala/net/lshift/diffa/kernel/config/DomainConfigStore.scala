@@ -108,6 +108,15 @@ trait DomainConfigStore {
   def clearBreaker(domain:String, pair:String, name:String)
 }
 
+case class Space (
+  @BeanProperty var id: java.lang.Long = null,
+  @BeanProperty var name: String = null,
+  @BeanProperty var configVersion: java.lang.Integer = null) {
+
+  def this() = this(id = null)
+
+}
+
 case class Endpoint(
   @BeanProperty var name: String = null,
   @BeanProperty var domain: Domain = null,
@@ -264,9 +273,17 @@ object PairReportType {
   val DIFFERENCES = "differences"
 }
 
+case class PairRef(@BeanProperty var name: String = null,
+                   @BeanProperty var space: Long = -1L) {
+  def this() = this(name = null)
+
+  def identifier = "%s/%s".format(space,name)
+}
+
 /**
  * This is a light weight pointer to a pair in Diffa.
  */
+@Deprecated
 case class DiffaPairRef(@BeanProperty var key: String = null,
                         @BeanProperty var domain: String = null) {
   def this() = this(key = null)
@@ -405,7 +422,8 @@ object ExternalHttpCredentials {
  * Defines a user's membership to a domain
  */
 case class Member(@BeanProperty var user:String = null,
-                  @BeanProperty var domain:String = null) {
+                  @BeanProperty var space:Long = -1L,
+                  @Deprecated @BeanProperty var domain:String = null) {
 
   def this() = this(user = null)
 

@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.lshift.diffa.schema.migrations.steps
+package net.lshift.diffa.kernel.naming;
 
-import org.hibernate.cfg.Configuration
-import net.lshift.diffa.schema.servicelimits.ChangeEventRate
-import net.lshift.hibernate.migrations.MigrationBuilder
-import net.lshift.diffa.schema.migrations.{MigrationUtil, MigrationStep}
 
-object Step0030 extends MigrationStep {
-  def versionId = 30
-  def name = "Configure system-wide change event rate limit"
-
-  def createMigration(config: Configuration) = {
-    val migration = new MigrationBuilder(config)
-
-    MigrationUtil.insertLimit(migration, ChangeEventRate)
-
-    migration
-  }
+/**
+ * This a is canonical list of names used to identify sequence.
+ */
+public enum SequenceName {
+  SPACES
 }

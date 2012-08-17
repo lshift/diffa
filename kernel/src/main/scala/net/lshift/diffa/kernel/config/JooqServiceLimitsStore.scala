@@ -19,15 +19,16 @@ package net.lshift.diffa.kernel.config
 import net.lshift.diffa.schema.servicelimits._
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.PairLimits.PAIR_LIMITS
-import net.lshift.diffa.schema.tables.DomainLimits.DOMAIN_LIMITS
+import net.lshift.diffa.schema.tables.SpaceLimits.SPACE_LIMITS
 import net.lshift.diffa.schema.tables.SystemLimits.SYSTEM_LIMITS
 import net.lshift.diffa.schema.tables.LimitDefinitions.LIMIT_DEFINITIONS
 import org.jooq.impl.{TableImpl, Factory}
 import org.jooq.{Condition, TableField}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.schema.tables.records.{DomainLimitsRecord, SystemLimitsRecord}
+import net.lshift.diffa.schema.tables.records.{SpaceLimitsRecord, SystemLimitsRecord}
+import java.lang.{Long => LONG}
 
-class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore {
+class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCache) extends ServiceLimitsStore {
 
   private def validate(limitValue: Int) {
     if (limitValue < 0 && limitValue != Unlimited.hardLimit)
@@ -45,38 +46,51 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
 
   def deleteDomainLimits(domain: String) = jooq.execute(t => {
 
-    deletePairLimitsByDomainInternal(t, domain)
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
 
-    t.delete(DOMAIN_LIMITS).
-      where(DOMAIN_LIMITS.DOMAIN.equal(domain)).
+    deletePairLimitsByDomainInternal(t, space.id)
+
+    t.delete(SPACE_LIMITS).
+      where(SPACE_LIMITS.SPACE.equal(space.id)).
       execute()
   })
 
-  def deletePairLimitsByDomain(domain: String) = jooq.execute(deletePairLimitsByDomainInternal(_, domain))
+  def deletePairLimitsByDomain(domain: String) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+    jooq.execute(deletePairLimitsByDomainInternal(_, space.id))
+  }
 
   def setSystemHardLimit(limit: ServiceLimit, limitValue: Int) = jooq.execute(t => {
     validate(limitValue)
 
     setSystemLimit(t, limit, limitValue, SYSTEM_LIMITS.HARD_LIMIT)
-    cascadeToDomainLimits(t, limit, limitValue, DOMAIN_LIMITS.HARD_LIMIT)
+    cascadeToSpaceLimits(t, limit, limitValue, SPACE_LIMITS.HARD_LIMIT)
   })
 
-  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = jooq.execute(t => {
-    validate(limitValue)
-
-    setDomainLimit(t, domainName, limit, limitValue, DOMAIN_LIMITS.HARD_LIMIT)
-  })
+  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+    jooq.execute(t => {
+      validate(limitValue)
+      setDomainLimit(t, space.id, limit, limitValue, SPACE_LIMITS.HARD_LIMIT)
+    })
+  }
 
   def setSystemDefaultLimit(limit: ServiceLimit, limitValue: Int) = jooq.execute(t => {
     setSystemLimit(t, limit, limitValue, SYSTEM_LIMITS.DEFAULT_LIMIT)
   })
 
-  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = jooq.execute(t => {
-    setDomainLimit(t, domainName, limit, limitValue, DOMAIN_LIMITS.DEFAULT_LIMIT)
-  })
+  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+    jooq.execute(t => {
+      setDomainLimit(t, space.id, limit, limitValue, SPACE_LIMITS.DEFAULT_LIMIT)
+    })
+  }
 
-  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) =
-    jooq.execute(setPairLimit(_, domainName, pairKey, limit, limitValue))
+  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+    jooq.execute(setPairLimit(_, space.id, pairKey, limit, limitValue))
+  }
+
 
   def getSystemHardLimitForName(limit: ServiceLimit) =
     getLimit(SYSTEM_LIMITS.HARD_LIMIT, SYSTEM_LIMITS, SYSTEM_LIMITS.NAME.equal(limit.key))
@@ -84,15 +98,21 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
   def getSystemDefaultLimitForName(limit: ServiceLimit) =
     getLimit(SYSTEM_LIMITS.DEFAULT_LIMIT, SYSTEM_LIMITS, SYSTEM_LIMITS.NAME.equal(limit.key))
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
-    getLimit(DOMAIN_LIMITS.HARD_LIMIT, DOMAIN_LIMITS, DOMAIN_LIMITS.NAME.equal(limit.key), DOMAIN_LIMITS.DOMAIN.equal(domainName))
+  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+    getLimit(SPACE_LIMITS.HARD_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space.id))
+  }
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
-    getLimit(DOMAIN_LIMITS.DEFAULT_LIMIT, DOMAIN_LIMITS, DOMAIN_LIMITS.NAME.equal(limit.key), DOMAIN_LIMITS.DOMAIN.equal(domainName))
+  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+    getLimit(SPACE_LIMITS.DEFAULT_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space.id))
+  }
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) =
+  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domainName)
     getLimit(PAIR_LIMITS.LIMIT_VALUE, PAIR_LIMITS,
-             PAIR_LIMITS.NAME.equal(limit.key), PAIR_LIMITS.DOMAIN.equal(domainName), PAIR_LIMITS.PAIR_KEY.equal(pairKey))
+             PAIR_LIMITS.NAME.equal(limit.key), PAIR_LIMITS.SPACE.equal(space.id), PAIR_LIMITS.PAIR.equal(pairKey))
+  }
 
   private def getLimit(limitValue:TableField[_,_], table:TableImpl[_], predicate:Condition*) : Option[Int] = jooq.execute(t => {
 
@@ -106,12 +126,12 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
     }
   })
 
-  private def setPairLimit(t: Factory, domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
+  private def setPairLimit(t: Factory, space: Long, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
     t.insertInto(PAIR_LIMITS).
         set(PAIR_LIMITS.NAME, limit.key).
         set(PAIR_LIMITS.LIMIT_VALUE, int2Integer(limitValue)).
-        set(PAIR_LIMITS.DOMAIN, domainName).
-        set(PAIR_LIMITS.PAIR_KEY, pairKey).
+        set(PAIR_LIMITS.SPACE, space:LONG).
+        set(PAIR_LIMITS.PAIR, pairKey).
       onDuplicateKeyUpdate().
         set(PAIR_LIMITS.LIMIT_VALUE, int2Integer(limitValue)).
       execute()
@@ -136,40 +156,40 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
     verifySystemDefaultLimit(t)
   }
 
-  private def setDomainLimit(t:Factory, domain:String, limit: ServiceLimit, limitValue: java.lang.Integer, fieldToLimit:TableField[DomainLimitsRecord,java.lang.Integer]) = {
-    t.insertInto(DOMAIN_LIMITS).
-        set(DOMAIN_LIMITS.DOMAIN, domain).
-        set(DOMAIN_LIMITS.NAME, limit.key).
-        set(DOMAIN_LIMITS.HARD_LIMIT, limitValue).
-        set(DOMAIN_LIMITS.DEFAULT_LIMIT, limitValue).
+  private def setDomainLimit(t:Factory, space:Long, limit: ServiceLimit, limitValue: java.lang.Integer, fieldToLimit:TableField[SpaceLimitsRecord,java.lang.Integer]) = {
+    t.insertInto(SPACE_LIMITS).
+        set(SPACE_LIMITS.SPACE, space:LONG).
+        set(SPACE_LIMITS.NAME, limit.key).
+        set(SPACE_LIMITS.HARD_LIMIT, limitValue).
+        set(SPACE_LIMITS.DEFAULT_LIMIT, limitValue).
       onDuplicateKeyUpdate().
         set(fieldToLimit, limitValue).
       execute()
 
     verifyDomainDefaultLimit(t)
-    cascadeToPairLimits(t, domain, limit, limitValue)
+    cascadeToPairLimits(t, space, limit, limitValue)
 
   }
 
   /**
    * This will only get called within the scope of setting a system hard limit, so be careful when trying to make it more optimal :-)
    */
-  private def cascadeToDomainLimits(t:Factory, limit: ServiceLimit, limitValue: java.lang.Integer, fieldToLimit:TableField[DomainLimitsRecord,java.lang.Integer]) = {
-    t.update(DOMAIN_LIMITS).
+  private def cascadeToSpaceLimits(t:Factory, limit: ServiceLimit, limitValue: java.lang.Integer, fieldToLimit:TableField[SpaceLimitsRecord,java.lang.Integer]) = {
+    t.update(SPACE_LIMITS).
         set(fieldToLimit, limitValue).
-      where(DOMAIN_LIMITS.NAME.equal(limit.key)).
-        and(DOMAIN_LIMITS.HARD_LIMIT.greaterThan(limitValue)).
+      where(SPACE_LIMITS.NAME.equal(limit.key)).
+        and(SPACE_LIMITS.HARD_LIMIT.greaterThan(limitValue)).
       execute()
 
     verifyDomainDefaultLimit(t)
     verifyPairLimit(t, limit, limitValue)
   }
 
-  private def cascadeToPairLimits(t:Factory, domain:String, limit: ServiceLimit, limitValue: java.lang.Integer) = {
+  private def cascadeToPairLimits(t:Factory, space:Long, limit: ServiceLimit, limitValue: java.lang.Integer) = {
     t.update(PAIR_LIMITS).
         set(PAIR_LIMITS.LIMIT_VALUE, limitValue).
       where(PAIR_LIMITS.NAME.equal(limit.key)).
-        and(PAIR_LIMITS.DOMAIN.equal(domain)).
+        and(PAIR_LIMITS.SPACE.equal(space)).
         and(PAIR_LIMITS.LIMIT_VALUE.greaterThan(limitValue)).
       execute()
   }
@@ -182,9 +202,9 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
   }
 
   private def verifyDomainDefaultLimit(t:Factory) = {
-    t.update(DOMAIN_LIMITS).
-        set(DOMAIN_LIMITS.DEFAULT_LIMIT, DOMAIN_LIMITS.HARD_LIMIT).
-      where(DOMAIN_LIMITS.DEFAULT_LIMIT.greaterThan(DOMAIN_LIMITS.HARD_LIMIT)).
+    t.update(SPACE_LIMITS).
+        set(SPACE_LIMITS.DEFAULT_LIMIT, SPACE_LIMITS.HARD_LIMIT).
+      where(SPACE_LIMITS.DEFAULT_LIMIT.greaterThan(SPACE_LIMITS.HARD_LIMIT)).
       execute()
   }
 
@@ -196,9 +216,9 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore
       execute()
   }
 
-  private def deletePairLimitsByDomainInternal(t:Factory, domain: String) = {
+  private def deletePairLimitsByDomainInternal(t:Factory, space: Long) = {
     t.delete(PAIR_LIMITS).
-      where(PAIR_LIMITS.DOMAIN.equal(domain)).
+      where(PAIR_LIMITS.SPACE.equal(space)).
       execute()
   }
 }

@@ -16,8 +16,14 @@
 package net.lshift.diffa.kernel.util.sequence
 
 import com.hazelcast.core.Hazelcast
+import net.lshift.diffa.kernel.naming.SequenceName
 
 class HazelcastSequenceProvider extends SequenceProvider {
+
+  def nextSequenceValue(name:SequenceName) = nextSequenceValue(name.toString)
+  def currentSequenceValue(name:SequenceName) = currentSequenceValue(name.toString)
+  def upgradeSequenceValue(name:SequenceName, expectation:Long, newValue:Long)
+    = upgradeSequenceValue(name.toString, expectation, newValue)
 
   def nextSequenceValue(name: String) = {
     val atomic = Hazelcast.getAtomicNumber(name)

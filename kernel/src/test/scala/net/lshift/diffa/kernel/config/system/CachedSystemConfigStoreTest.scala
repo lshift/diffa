@@ -132,7 +132,7 @@ object CachedSystemConfigStoreTest {
     token = "6f4g4b3c"
   )
 
-  val members = Seq(Member("username", "domain"))
+  val members = Seq(Member("username", 0L))
 
   @DataPoint def shouldCacheUserToken = SimpleCacheScenario(
     user,

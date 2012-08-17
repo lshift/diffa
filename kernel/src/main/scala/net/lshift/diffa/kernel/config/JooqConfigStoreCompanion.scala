@@ -28,7 +28,8 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
-import net.lshift.diffa.schema.tables.Pair.PAIR
+import net.lshift.diffa.schema.tables.Pairs.PAIRS
+import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
@@ -36,7 +37,6 @@ import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.schema.jooq.DatabaseFacade
-import net.lshift.diffa.schema.tables.Endpoint._
 import net.lshift.diffa.schema.tables.EndpointViews._
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 import net.lshift.diffa.kernel.frontend.RepairActionDef
@@ -48,6 +48,7 @@ import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
 import org.jooq.{Field, Record, Result}
+import java.lang.{Long => LONG}
 
 /**
  * This object is a workaround for the fact that Scala is so slow
@@ -77,81 +78,81 @@ object JooqConfigStoreCompanion {
    */
   val UNIQUE_CATEGORY_ALIAS = "unique_category_alias"
 
-  def listEndpoints(jooq:DatabaseFacade, domain:Option[String] = None, endpoint:Option[String] = None) : java.util.List[DomainEndpointDef] = {
+  def listEndpoints(jooq:DatabaseFacade, space:Option[Long] = None, endpoint:Option[String] = None) : java.util.List[DomainEndpointDef] = {
     jooq.execute(t => {
       val topHalf =     t.select(UNIQUE_CATEGORY_NAMES.NAME.as(UNIQUE_CATEGORY_ALIAS)).
-        select(ENDPOINT.getFields).
+        select(ENDPOINTS.getFields).
         select(Factory.field("null").as(VIEW_NAME_COLUMN)).
         select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
         select(PREFIX_CATEGORIES.STEP, PREFIX_CATEGORIES.PREFIX_LENGTH, PREFIX_CATEGORIES.MAX_LENGTH).
         select(SET_CATEGORIES.VALUE).
-        from(ENDPOINT).
+        from(ENDPOINTS).
 
         leftOuterJoin(UNIQUE_CATEGORY_NAMES).
-          on(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(ENDPOINT.DOMAIN)).
-          and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINT.NAME)).
+          on(UNIQUE_CATEGORY_NAMES.SPACE.equal(ENDPOINTS.SPACE)).
+          and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINTS.NAME)).
 
         leftOuterJoin(RANGE_CATEGORIES).
-          on(RANGE_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
-          and(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
+          on(RANGE_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
+          and(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
           and(RANGE_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(PREFIX_CATEGORIES).
-          on(PREFIX_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
-          and(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
+          on(PREFIX_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
+          and(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
           and(PREFIX_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(SET_CATEGORIES).
-          on(SET_CATEGORIES.DOMAIN.equal(ENDPOINT.DOMAIN)).
-          and(SET_CATEGORIES.ENDPOINT.equal(ENDPOINT.NAME)).
+          on(SET_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
+          and(SET_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
           and(SET_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME))
 
-      val firstUnionPart = domain match {
+      val firstUnionPart = space match {
         case None    => topHalf
-        case Some(d) =>
-          val maybeUnionPart = topHalf.where(ENDPOINT.DOMAIN.equal(d))
+        case Some(s) =>
+          val maybeUnionPart = topHalf.where(ENDPOINTS.SPACE.equal(s))
           endpoint match {
             case None    => maybeUnionPart
-            case Some(e) => maybeUnionPart.and(ENDPOINT.NAME.equal(e))
+            case Some(e) => maybeUnionPart.and(ENDPOINTS.NAME.equal(e))
           }
       }
 
       val bottomHalf =  t.select(UNIQUE_CATEGORY_VIEW_NAMES.NAME.as(UNIQUE_CATEGORY_ALIAS)).
-        select(ENDPOINT.getFields).
+        select(ENDPOINTS.getFields).
         select(ENDPOINT_VIEWS.NAME.as(VIEW_NAME_COLUMN)).
         select(RANGE_CATEGORY_VIEWS.DATA_TYPE, RANGE_CATEGORY_VIEWS.LOWER_BOUND, RANGE_CATEGORY_VIEWS.UPPER_BOUND, RANGE_CATEGORY_VIEWS.MAX_GRANULARITY).
         select(PREFIX_CATEGORY_VIEWS.STEP, PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, PREFIX_CATEGORY_VIEWS.MAX_LENGTH).
         select(SET_CATEGORY_VIEWS.VALUE).
         from(ENDPOINT_VIEWS).
 
-        join(ENDPOINT).
-          on(ENDPOINT.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
-          and(ENDPOINT.NAME.equal(ENDPOINT_VIEWS.ENDPOINT)).
+        join(ENDPOINTS).
+          on(ENDPOINTS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          and(ENDPOINTS.NAME.equal(ENDPOINT_VIEWS.ENDPOINT)).
 
         leftOuterJoin(UNIQUE_CATEGORY_VIEW_NAMES).
-          on(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          on(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
           and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME.equal(ENDPOINT_VIEWS.NAME)).
 
         leftOuterJoin(RANGE_CATEGORY_VIEWS).
-          on(RANGE_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          on(RANGE_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
           and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(RANGE_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
 
         leftOuterJoin(PREFIX_CATEGORY_VIEWS).
-          on(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          on(PREFIX_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
           and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(PREFIX_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
 
         leftOuterJoin(SET_CATEGORY_VIEWS).
-          on(SET_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
+          on(SET_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
           and(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME))
 
-      val secondUnionPart = domain match {
+      val secondUnionPart = space match {
         case None    => bottomHalf
-        case Some(d) =>
-          val maybeUnionPart = bottomHalf.where(ENDPOINT.DOMAIN.equal(d))
+        case Some(s) =>
+          val maybeUnionPart = bottomHalf.where(ENDPOINTS.SPACE.equal(s))
           endpoint match {
             case None    => maybeUnionPart
             case Some(e) => maybeUnionPart.and(ENDPOINT_VIEWS.ENDPOINT.equal(e))
@@ -165,8 +166,8 @@ object JooqConfigStoreCompanion {
       val results = t.select(grandUnion.getFields).
                       from(grandUnion).
                       orderBy(
-                        grandUnion.getField(ENDPOINT.DOMAIN),
-                        grandUnion.getField(ENDPOINT.NAME),
+                        grandUnion.getField(ENDPOINTS.SPACE),
+                        grandUnion.getField(ENDPOINTS.NAME),
                         Factory.field(UNIQUE_CATEGORY_ALIAS)
                       ).
                       fetch()
@@ -176,12 +177,12 @@ object JooqConfigStoreCompanion {
       results.iterator().foreach(record => {
 
         val currentEndpoint = DomainEndpointDef(
-          name = record.getValue(ENDPOINT.NAME),
-          scanUrl = record.getValue(ENDPOINT.SCAN_URL),
-          contentRetrievalUrl = record.getValue(ENDPOINT.CONTENT_RETRIEVAL_URL),
-          versionGenerationUrl = record.getValue(ENDPOINT.VERSION_GENERATION_URL),
-          inboundUrl = record.getValue(ENDPOINT.INBOUND_URL),
-          collation = record.getValue(ENDPOINT.COLLATION_TYPE)
+          name = record.getValue(ENDPOINTS.NAME),
+          scanUrl = record.getValue(ENDPOINTS.SCAN_URL),
+          contentRetrievalUrl = record.getValue(ENDPOINTS.CONTENT_RETRIEVAL_URL),
+          versionGenerationUrl = record.getValue(ENDPOINTS.VERSION_GENERATION_URL),
+          inboundUrl = record.getValue(ENDPOINTS.INBOUND_URL),
+          collation = record.getValue(ENDPOINTS.COLLATION_TYPE)
         )
 
         val compressionKey = currentEndpoint.domain + "/" + currentEndpoint.name
@@ -265,36 +266,41 @@ object JooqConfigStoreCompanion {
     })
   }
 
+  /**
+   * TODO Passing the domain;String parameter should get nuked - it is currently in here for backwards compatibility
+   * when trying to avoid as little structural change as possible
+   */
+  def listPairs(jooq:DatabaseFacade,
+                @Deprecated domain:String,
+                space:Long, key:Option[String] = None, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
 
-  def listPairs(jooq:DatabaseFacade, domain:String, key:Option[String] = None, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
-
-    val baseQuery = t.select(PAIR.getFields).
+    val baseQuery = t.select(PAIRS.getFields).
       select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
       select(REPAIR_ACTIONS.getFields).
       select(ESCALATIONS.getFields).
       select(PAIR_REPORTS.getFields).
-      from(PAIR).
+      from(PAIRS).
       leftOuterJoin(PAIR_VIEWS).
-        on(PAIR_VIEWS.PAIR.equal(PAIR.PAIR_KEY)).
-        and(PAIR_VIEWS.DOMAIN.equal(PAIR.DOMAIN)).
+        on(PAIR_VIEWS.PAIR.equal(PAIRS.NAME)).
+        and(PAIR_VIEWS.SPACE.equal(PAIRS.SPACE)).
       leftOuterJoin(REPAIR_ACTIONS).
-        on(REPAIR_ACTIONS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
-        and(REPAIR_ACTIONS.DOMAIN.equal(PAIR.DOMAIN)).
+        on(REPAIR_ACTIONS.PAIR.equal(PAIRS.NAME)).
+        and(REPAIR_ACTIONS.SPACE.equal(PAIRS.SPACE)).
       leftOuterJoin(ESCALATIONS).
-        on(ESCALATIONS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
-        and(ESCALATIONS.DOMAIN.equal(PAIR.DOMAIN)).
+        on(ESCALATIONS.PAIR.equal(PAIRS.NAME)).
+        and(ESCALATIONS.SPACE.equal(PAIRS.SPACE)).
       leftOuterJoin(PAIR_REPORTS).
-        on(PAIR_REPORTS.PAIR_KEY.equal(PAIR.PAIR_KEY)).
-        and(PAIR_REPORTS.DOMAIN.equal(PAIR.DOMAIN)).
-        where(PAIR.DOMAIN.equal(domain))
+        on(PAIR_REPORTS.PAIR.equal(PAIRS.NAME)).
+        and(PAIR_REPORTS.SPACE.equal(PAIRS.SPACE)).
+        where(PAIRS.SPACE.equal(space))
 
     val keyedQuery = key match {
       case None       => baseQuery
-      case Some(name) => baseQuery.and(PAIR.PAIR_KEY.equal(name))
+      case Some(name) => baseQuery.and(PAIRS.NAME.equal(name))
     }
     val query = endpoint match {
       case None       => keyedQuery
-      case Some(name) => keyedQuery.and(PAIR.UPSTREAM.equal(name).or(PAIR.DOWNSTREAM.equal(name)))
+      case Some(name) => keyedQuery.and(PAIRS.UPSTREAM.equal(name).or(PAIRS.DOWNSTREAM.equal(name)))
     }
 
     val results = query.fetch()
@@ -305,7 +311,7 @@ object JooqConfigStoreCompanion {
     val knownRepairs = new mutable.HashSet[String]
     val knownEscalations = new mutable.HashSet[String]
 
-    def compressionKey(pairKey:String) = domain + "/" + pairKey
+    def compressionKey(pairKey:String) = space + "/" + pairKey
     def onceOnly(record:Record, pairKey:String, field:Field[String], known:mutable.HashSet[String]) = {
       val key = record.getValue(field)
       if (key == null || known.contains(pairKey + "/" + key)) {
@@ -317,19 +323,20 @@ object JooqConfigStoreCompanion {
     }
 
     results.iterator().foreach(record => {
-      val pairKey = record.getValue(PAIR.PAIR_KEY)
+      val pairKey = record.getValue(PAIRS.NAME)
       val compressedKey = compressionKey(pairKey)
       val pair = compressed.getOrElseUpdate(compressedKey,
         DomainPairDef(
-          domain = record.getValue(PAIR.DOMAIN),
-          key = record.getValue(PAIR.PAIR_KEY),
-          upstreamName = record.getValue(PAIR.UPSTREAM),
-          downstreamName = record.getValue(PAIR.DOWNSTREAM),
-          versionPolicyName = record.getValue(PAIR.VERSION_POLICY_NAME),
-          scanCronSpec = record.getValue(PAIR.SCAN_CRON_SPEC),
-          scanCronEnabled = record.getValue(PAIR.SCAN_CRON_ENABLED),
-          matchingTimeout = record.getValue(PAIR.MATCHING_TIMEOUT),
-          allowManualScans = record.getValue(PAIR.ALLOW_MANUAL_SCANS),
+          space = record.getValue(PAIRS.SPACE),
+          domain = domain,
+          key = record.getValue(PAIRS.NAME),
+          upstreamName = record.getValue(PAIRS.UPSTREAM),
+          downstreamName = record.getValue(PAIRS.DOWNSTREAM),
+          versionPolicyName = record.getValue(PAIRS.VERSION_POLICY_NAME),
+          scanCronSpec = record.getValue(PAIRS.SCAN_CRON_SPEC),
+          scanCronEnabled = record.getValue(PAIRS.SCAN_CRON_ENABLED),
+          matchingTimeout = record.getValue(PAIRS.MATCHING_TIMEOUT),
+          allowManualScans = record.getValue(PAIRS.ALLOW_MANUAL_SCANS),
           views = new java.util.ArrayList[PairViewDef]()
         )
       )
@@ -390,7 +397,7 @@ object JooqConfigStoreCompanion {
     )
   }
 
-  def deletePairWithDependencies(t:Factory, pair:DiffaPairRef) = {
+  def deletePairWithDependencies(t:Factory, pair:PairRef) = {
     deleteRepairActionsByPair(t, pair)
     deleteEscalationsByPair(t, pair)
     deleteReportsByPair(t, pair)
@@ -401,10 +408,10 @@ object JooqConfigStoreCompanion {
     deletePairWithoutDependencies(t, pair)
   }
 
-  private def deletePairWithoutDependencies(t:Factory, pair:DiffaPairRef) = {
-    val deleted = t.delete(PAIR).
-      where(PAIR.DOMAIN.equal(pair.domain)).
-      and(PAIR.PAIR_KEY.equal(pair.key)).
+  private def deletePairWithoutDependencies(t:Factory, pair:PairRef) = {
+    val deleted = t.delete(PAIRS).
+      where(PAIRS.SPACE.equal(pair.space)).
+      and(PAIRS.NAME.equal(pair.name)).
       execute()
 
     if (deleted == 0) {
@@ -412,57 +419,59 @@ object JooqConfigStoreCompanion {
     }
   }
 
-  def deleteUserItemsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deleteUserItemsByPair(t:Factory, pair:PairRef) = {
     t.delete(USER_ITEM_VISIBILITY).
-      where(USER_ITEM_VISIBILITY.DOMAIN.equal(pair.domain)).
-      and(USER_ITEM_VISIBILITY.PAIR.equal(pair.key)).
+      where(USER_ITEM_VISIBILITY.SPACE.equal(pair.space)).
+      and(USER_ITEM_VISIBILITY.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deleteBreakersByPair(t:Factory, pair:DiffaPairRef) = {
+
+
+  def deleteBreakersByPair(t:Factory, pair:PairRef) = {
     t.delete(BREAKERS).
-      where(BREAKERS.DOMAIN.equal(pair.domain)).
-        and(BREAKERS.PAIR_KEY.equal(pair.key)).
+      where(BREAKERS.SPACE.equal(pair.space)).
+        and(BREAKERS.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deleteRepairActionsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deleteRepairActionsByPair(t:Factory, pair:PairRef) = {
     t.delete(REPAIR_ACTIONS).
-      where(REPAIR_ACTIONS.DOMAIN.equal(pair.domain)).
-      and(REPAIR_ACTIONS.PAIR_KEY.equal(pair.key)).
+      where(REPAIR_ACTIONS.SPACE.equal(pair.space)).
+      and(REPAIR_ACTIONS.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deleteEscalationsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deleteEscalationsByPair(t:Factory, pair:PairRef) = {
     t.delete(ESCALATIONS).
-      where(ESCALATIONS.DOMAIN.equal(pair.domain)).
-      and(ESCALATIONS.PAIR_KEY.equal(pair.key)).
+      where(ESCALATIONS.SPACE.equal(pair.space)).
+      and(ESCALATIONS.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deleteReportsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deleteReportsByPair(t:Factory, pair:PairRef) = {
     t.delete(PAIR_REPORTS).
-      where(PAIR_REPORTS.DOMAIN.equal(pair.domain)).
-      and(PAIR_REPORTS.PAIR_KEY.equal(pair.key)).
+      where(PAIR_REPORTS.SPACE.equal(pair.space)).
+      and(PAIR_REPORTS.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deletePairViewsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deletePairViewsByPair(t:Factory, pair:PairRef) = {
     t.delete(PAIR_VIEWS).
-      where(PAIR_VIEWS.DOMAIN.equal(pair.domain)).
-      and(PAIR_VIEWS.PAIR.equal(pair.key)).
+      where(PAIR_VIEWS.SPACE.equal(pair.space)).
+      and(PAIR_VIEWS.PAIR.equal(pair.name)).
       execute()
   }
 
-  def deleteStoreCheckpointsByPair(t:Factory, pair:DiffaPairRef) = {
+  def deleteStoreCheckpointsByPair(t:Factory, pair:PairRef) = {
     t.delete(STORE_CHECKPOINTS).
-      where(STORE_CHECKPOINTS.DOMAIN.equal(pair.domain)).
-      and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
+      where(STORE_CHECKPOINTS.SPACE.equal(pair.space)).
+      and(STORE_CHECKPOINTS.PAIR.equal(pair.name)).
       execute()
   }
 
   def insertCategories(t:Factory,
-                       domain:String,
+                       space:java.lang.Long,
                        endpoint:EndpointDef) = {
 
     endpoint.categories.foreach { case (categoryName, descriptor) => {
@@ -470,33 +479,33 @@ object JooqConfigStoreCompanion {
       try {
 
         t.insertInto(UNIQUE_CATEGORY_NAMES).
-            set(UNIQUE_CATEGORY_NAMES.DOMAIN, domain).
+            set(UNIQUE_CATEGORY_NAMES.SPACE, space).
             set(UNIQUE_CATEGORY_NAMES.ENDPOINT, endpoint.name).
             set(UNIQUE_CATEGORY_NAMES.NAME, categoryName).
           execute()
 
         descriptor match {
-          case r:RangeCategoryDescriptor  => insertRangeCategory(t, domain, endpoint.name, categoryName, r)
-          case s:SetCategoryDescriptor    => insertSetCategory(t, domain, endpoint.name, categoryName, s)
-          case p:PrefixCategoryDescriptor => insertPrefixCategory(t, domain, endpoint.name, categoryName, p)
+          case r:RangeCategoryDescriptor  => insertRangeCategory(t, space, endpoint.name, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategory(t, space, endpoint.name, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategory(t, space, endpoint.name, categoryName, p)
         }
       }
       catch {
           case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
             val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_NAMES: domain = %s; endpoint = %s; categories = %s".
-                      format(domain, endpoint, endpoint.categories)
-            log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
-            log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
+                      format(space, endpoint, endpoint.categories)
+            log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), msg))
+            log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
             throw e
           case x =>
-            log.error("%s Error inserting categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
+            log.error("%s Error inserting categories".format(formatAlertCode(space, DB_EXECUTION_ERROR)), x)
             throw x
       }
     }}
   }
 
   def insertCategoriesForView(t:Factory,
-                              domain:String,
+                              space:Long,
                               endpoint:String,
                               view:EndpointViewDef) = {
 
@@ -505,40 +514,40 @@ object JooqConfigStoreCompanion {
       try {
 
         t.insertInto(UNIQUE_CATEGORY_VIEW_NAMES).
-            set(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN, domain).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.SPACE, space:LONG).
             set(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT, endpoint).
             set(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME, view.name).
             set(UNIQUE_CATEGORY_VIEW_NAMES.NAME, categoryName).
           execute()
 
         descriptor match {
-          case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, domain, endpoint, view.name, categoryName, r)
-          case s:SetCategoryDescriptor    => insertSetCategoryView(t, domain, endpoint, view.name, categoryName, s)
-          case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, domain, endpoint, view.name, categoryName, p)
+          case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, space, endpoint, view.name, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategoryView(t, space, endpoint, view.name, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, space, endpoint, view.name, categoryName, p)
         }
       }
       catch {
         case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
           val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_VIEW_NAMES: domain = %s; endpoint = %s; view = %s".
-            format(domain, endpoint, view)
-          log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
-          log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
+            format(space, endpoint, view)
+          log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), msg))
+          log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
           throw e
         case x =>
-          log.error("%s Error inserting view categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
+          log.error("%s Error inserting view categories".format(formatAlertCode(space, DB_EXECUTION_ERROR)), x)
           throw x
       }
     }}
   }
 
   def insertPrefixCategory(t:Factory,
-                           domain:String,
+                           space:Long,
                            endpoint:String,
                            categoryName:String,
                            descriptor:PrefixCategoryDescriptor) = {
 
     t.insertInto(PREFIX_CATEGORIES).
-        set(PREFIX_CATEGORIES.DOMAIN, domain).
+        set(PREFIX_CATEGORIES.SPACE, space:LONG).
         set(PREFIX_CATEGORIES.ENDPOINT, endpoint).
         set(PREFIX_CATEGORIES.NAME, categoryName).
         set(PREFIX_CATEGORIES.STEP, Integer.valueOf(descriptor.step)).
@@ -548,14 +557,14 @@ object JooqConfigStoreCompanion {
   }
 
   def insertPrefixCategoryView(t:Factory,
-                               domain:String,
+                               space:Long,
                                endpoint:String,
                                view:String,
                                categoryName:String,
                                descriptor:PrefixCategoryDescriptor) = {
 
     t.insertInto(PREFIX_CATEGORY_VIEWS).
-      set(PREFIX_CATEGORY_VIEWS.DOMAIN, domain).
+      set(PREFIX_CATEGORY_VIEWS.SPACE, space:LONG).
       set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpoint).
       set(PREFIX_CATEGORY_VIEWS.VIEW_NAME, view).
       set(PREFIX_CATEGORY_VIEWS.NAME, categoryName).
@@ -566,7 +575,7 @@ object JooqConfigStoreCompanion {
   }
 
   def insertSetCategory(t:Factory,
-                        domain:String,
+                        space:Long,
                         endpoint:String,
                         categoryName:String,
                         descriptor:SetCategoryDescriptor) = {
@@ -575,7 +584,7 @@ object JooqConfigStoreCompanion {
 
     descriptor.values.foreach(value => {
       t.insertInto(SET_CATEGORIES).
-        set(SET_CATEGORIES.DOMAIN, domain).
+        set(SET_CATEGORIES.SPACE, space:LONG).
         set(SET_CATEGORIES.ENDPOINT, endpoint).
         set(SET_CATEGORIES.NAME, categoryName).
         set(SET_CATEGORIES.VALUE, value).
@@ -584,7 +593,7 @@ object JooqConfigStoreCompanion {
   }
 
   def insertSetCategoryView(t:Factory,
-                            domain:String,
+                            space:Long,
                             endpoint:String,
                             view:String,
                             categoryName:String,
@@ -594,7 +603,7 @@ object JooqConfigStoreCompanion {
 
     descriptor.values.foreach(value => {
       t.insertInto(SET_CATEGORY_VIEWS).
-        set(SET_CATEGORY_VIEWS.DOMAIN, domain).
+        set(SET_CATEGORY_VIEWS.SPACE, space:LONG).
         set(SET_CATEGORY_VIEWS.ENDPOINT, endpoint).
         set(SET_CATEGORY_VIEWS.VIEW_NAME, view).
         set(SET_CATEGORY_VIEWS.NAME, categoryName).
@@ -604,12 +613,12 @@ object JooqConfigStoreCompanion {
   }
 
   def insertRangeCategory(t:Factory,
-                          domain:String,
+                          space:Long,
                           endpoint:String,
                           categoryName:String,
                           descriptor:RangeCategoryDescriptor) = {
     t.insertInto(RANGE_CATEGORIES).
-        set(RANGE_CATEGORIES.DOMAIN, domain).
+        set(RANGE_CATEGORIES.SPACE, space:LONG).
         set(RANGE_CATEGORIES.ENDPOINT, endpoint).
         set(RANGE_CATEGORIES.NAME, categoryName).
         set(RANGE_CATEGORIES.DATA_TYPE, descriptor.dataType).
@@ -620,13 +629,13 @@ object JooqConfigStoreCompanion {
   }
 
   def insertRangeCategoryView(t:Factory,
-                              domain:String,
+                              space:Long,
                               endpoint:String,
                               view:String,
                               categoryName:String,
                               descriptor:RangeCategoryDescriptor) = {
     t.insertInto(RANGE_CATEGORY_VIEWS).
-        set(RANGE_CATEGORY_VIEWS.DOMAIN, domain).
+        set(RANGE_CATEGORY_VIEWS.SPACE, space:LONG).
         set(RANGE_CATEGORY_VIEWS.ENDPOINT, endpoint).
         set(RANGE_CATEGORY_VIEWS.VIEW_NAME, view).
         set(RANGE_CATEGORY_VIEWS.NAME, categoryName).
@@ -637,65 +646,65 @@ object JooqConfigStoreCompanion {
       execute()
   }
 
-  def deleteRangeCategories(t:Factory, domain:String, endpoint:String) = {
+  def deleteRangeCategories(t:Factory, space:Long, endpoint:String) = {
     t.delete(RANGE_CATEGORIES).
-      where(RANGE_CATEGORIES.DOMAIN.equal(domain)).
+      where(RANGE_CATEGORIES.SPACE.equal(space:LONG)).
         and(RANGE_CATEGORIES.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deleteRangeCategoryViews(t:Factory, domain:String, endpoint:String) = {
+  def deleteRangeCategoryViews(t:Factory, space:Long, endpoint:String) = {
     t.delete(RANGE_CATEGORY_VIEWS).
-      where(RANGE_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+      where(RANGE_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
         and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deleteSetCategories(t:Factory, domain:String, endpoint:String) = {
+  def deleteSetCategories(t:Factory, space:Long, endpoint:String) = {
     t.delete(SET_CATEGORIES).
-      where(SET_CATEGORIES.DOMAIN.equal(domain)).
+      where(SET_CATEGORIES.SPACE.equal(space:LONG)).
         and(SET_CATEGORIES.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deleteSetCategoryViews(t:Factory, domain:String, endpoint:String) = {
+  def deleteSetCategoryViews(t:Factory, space:Long, endpoint:String) = {
     t.delete(SET_CATEGORY_VIEWS).
-      where(SET_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+      where(SET_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
         and(SET_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deletePrefixCategories(t:Factory, domain:String, endpoint:String) = {
+  def deletePrefixCategories(t:Factory, space:Long, endpoint:String) = {
     t.delete(PREFIX_CATEGORIES).
-      where(PREFIX_CATEGORIES.DOMAIN.equal(domain)).
+      where(PREFIX_CATEGORIES.SPACE.equal(space:LONG)).
         and(PREFIX_CATEGORIES.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deletePrefixCategoryViews(t:Factory, domain:String, endpoint:String) = {
+  def deletePrefixCategoryViews(t:Factory, space:Long, endpoint:String) = {
     t.delete(PREFIX_CATEGORY_VIEWS).
-      where(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(domain)).
+      where(PREFIX_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
         and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
       execute()
   }
 
-  def deleteCategories(t:Factory, domain:String, endpoint:String) = {
-    deletePrefixCategories(t, domain, endpoint)
-    deletePrefixCategoryViews(t, domain, endpoint)
+  def deleteCategories(t:Factory, space:Long, endpoint:String) = {
+    deletePrefixCategories(t, space, endpoint)
+    deletePrefixCategoryViews(t, space, endpoint)
 
-    deleteSetCategories(t, domain, endpoint)
-    deleteSetCategoryViews(t, domain, endpoint)
+    deleteSetCategories(t, space, endpoint)
+    deleteSetCategoryViews(t, space, endpoint)
 
-    deleteRangeCategories(t, domain, endpoint)
-    deleteRangeCategoryViews(t, domain, endpoint)
+    deleteRangeCategories(t, space, endpoint)
+    deleteRangeCategoryViews(t, space, endpoint)
 
     t.delete(UNIQUE_CATEGORY_NAMES).
-      where(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(domain)).
+      where(UNIQUE_CATEGORY_NAMES.SPACE.equal(space:LONG)).
         and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
       execute()
 
     t.delete(UNIQUE_CATEGORY_VIEW_NAMES).
-      where(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(domain)).
+      where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(space:LONG)).
         and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(endpoint)).
       execute()
   }

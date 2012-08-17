@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore, DiffaPair}
+import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint, DomainConfigStore}
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.escalation.EscalationHandler

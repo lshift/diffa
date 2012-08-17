@@ -34,7 +34,7 @@ import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import org.easymock.{IAnswer, EasyMock}
 import akka.actor.ActorSystem
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef, EscalationDef}
+import net.lshift.diffa.kernel.frontend.{DomainPairDef, EscalationDef}
 import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
 import java.util.concurrent.atomic.AtomicInteger
 import system.SystemConfigStore

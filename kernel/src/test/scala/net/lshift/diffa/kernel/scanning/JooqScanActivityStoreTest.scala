@@ -28,6 +28,8 @@ class JooqScanActivityStoreTest {
 
   private val storeReferences = JooqScanActivityStoreTest.storeReferences
   private val scanActivityStore = storeReferences.scanActivityStore
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val spacePathCache = storeReferences.spacePathCache
 
   @Test
   def shouldBeAbleToReadInitialStatementAndThenUpdateIt {
@@ -40,7 +42,15 @@ class JooqScanActivityStoreTest {
 
     val ref = DiffaPairRef(key = pair, domain = domain)
 
+    // TODO It not strictly necessary to create this domain since there is no foreign key from the SCAN_STATEMENTS table
+    // to the SPACES table, but generally speaking, we will only create new SCAN_STATEMENTS records when we have a valid
+    // space, hence we do a lookup of the SPACE id when creating the statement record. If we don't create this domain
+    // as part of this test, that lookup will fail and the test will fail.
+    systemConfigStore.createOrUpdateDomain(domain)
+    val space = spacePathCache.resolveSpacePath(domain)
+
     val originalStatement = ScanStatement(
+      space = space.id,
       id = id,
       domain =  domain,
       pair =  pair,

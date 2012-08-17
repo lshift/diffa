@@ -111,6 +111,7 @@
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="hookManager" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <bean id="sweeper" class="net.lshift.diffa.kernel.util.Sweeper" init-method="start" destroy-method="shutdown">
@@ -399,9 +400,16 @@
     ===========
   -->
 
-  <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.JooqSystemConfigStore">
+  <bean id="spacePathCache" class="net.lshift.diffa.kernel.config.SpacePathCache">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
+  </bean>
+
+  <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.JooqSystemConfigStore" depends-on="diffaSessionFactory">
+    <constructor-arg ref="jooqDatabaseFacade" />
+    <constructor-arg ref="hazelcastCacheProvider" />
+    <constructor-arg ref="hazelcastSequenceProvider" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.JooqDomainConfigStore">
@@ -409,6 +417,7 @@
     <constructor-arg ref="hookManager" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="systemConfigStore" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <!-- register domain config store as an event listener of the system config store -->
@@ -429,6 +438,7 @@
 
   <bean id="underlyingServiceLimitsStore" class="net.lshift.diffa.kernel.config.JooqServiceLimitsStore">
     <constructor-arg ref="jooqDatabaseFacade" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <bean id="serviceLimitsStore" class="net.lshift.diffa.kernel.config.CachedServiceLimitsStore">
@@ -448,6 +458,7 @@
 
   <bean id="scanActivityStore" class="net.lshift.diffa.kernel.scanning.JooqScanActivityStore">
     <constructor-arg ref="jooqDatabaseFacade" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <!--
@@ -459,6 +470,7 @@
   <bean id="userPreferencesStore" class="net.lshift.diffa.kernel.preferences.JooqUserPreferencesStore">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <!-- register user preferences store as an event listener of the domain config store -->
@@ -491,6 +503,7 @@
 
   <bean id="domainCredentialsStore" class="net.lshift.diffa.kernel.config.JooqDomainCredentialsStore">
     <constructor-arg ref="jooqDatabaseFacade" />
+    <constructor-arg ref="spacePathCache" />
   </bean>
 
   <!--

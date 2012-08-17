@@ -15,10 +15,15 @@
  */
 package net.lshift.diffa.kernel.util.sequence
 
+import net.lshift.diffa.kernel.naming.SequenceName
+
 trait SequenceProvider {
 
-  def nextSequenceValue(name:String) : Long
-  def currentSequenceValue(name:String) : Long
-  def upgradeSequenceValue(name:String, expectation:Long, newValue:Long) : Boolean
+  def nextSequenceValue(name:SequenceName) : Long
+  def currentSequenceValue(name:SequenceName) : Long
+  def upgradeSequenceValue(name:SequenceName, expectation:Long, newValue:Long) : Boolean
+  @Deprecated def nextSequenceValue(name:String) : Long
+  @Deprecated def currentSequenceValue(name:String) : Long
+  @Deprecated def upgradeSequenceValue(name:String, expectation:Long, newValue:Long) : Boolean
 
 }

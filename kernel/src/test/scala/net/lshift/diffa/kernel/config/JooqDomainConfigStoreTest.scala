@@ -151,6 +151,9 @@ class JooqDomainConfigStoreTest {
 
     systemConfigStore.deleteDomain(domainName)
 
+    // TODO I find this behavior a bit strange - should these methods not be throwing MissingObjectExceptions
+    // for a non-existent space?
+
     assertTrue(domainConfigStore.listEndpoints(domainName).isEmpty)
     assertTrue(domainConfigStore.listPairs(domainName).isEmpty)
     assertTrue(domainConfigStore.allConfigOptions(domainName).isEmpty)
@@ -399,11 +402,18 @@ class JooqDomainConfigStoreTest {
 
   @Test
   def testDeleteMissing {
+
+    systemConfigStore.createOrUpdateDomain(domainName)
+
     expectMissingObject("endpoint") {
       domainConfigStore.deleteEndpoint(domainName, "MISSING_ENDPOINT")
     }
 
-    expectMissingObject("domain/MISSING_PAIR") {
+    // TODO changed the expectation from domain/MISSING_PAIR to just MISSING_PAIR
+    // because what now happens is that the error message contains the surrogate key
+    // of the space, which this version of the test doesn't know anything about.
+    // This needs to get fixed in the long term.
+    expectMissingObject("MISSING_PAIR") {
       domainConfigStore.deletePair(domainName, "MISSING_PAIR")
     }
   }
@@ -782,6 +792,7 @@ class JooqDomainConfigStoreTest {
 
   @Test
   def shouldDefaultToReportingBreakerAsUntripped() {
+    systemConfigStore.createOrUpdateDomain(domainName)
     assertFalse(domainConfigStore.isBreakerTripped(domainName, pairKey, "escalations:*"))
   }
 

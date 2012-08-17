@@ -120,6 +120,7 @@ case class EndpointDef (
  * get replaced with this more useful definition.
  */
 case class DomainEndpointDef(
+  @BeanProperty var space: Long = -1L,
   @BeanProperty var domain: String = null,
   @BeanProperty var name: String = null,
   @BeanProperty var scanUrl: String = null,
@@ -316,6 +317,7 @@ case class PairViewDef(
  */
 case class DomainPairDef(
   @BeanProperty var domain: String = null,
+  @BeanProperty var space: java.lang.Long = null,
   @BeanProperty var key: String = null,
   @BeanProperty var versionPolicyName: String = null,
   @BeanProperty var matchingTimeout: Int = 0,

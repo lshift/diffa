@@ -7,18 +7,18 @@ trait DifferencePartitioningHook {
   /**
    * Informs the hook that a pair has been created. Will be called after the pair creation transaction has completed.
    */
-  def pairCreated(domain:String, key:String)
+  def pairCreated(space:Long, key:String)
 
   /**
    * Informs the hook that a pair has been removed. Will be called after the pair removal transaction has completed.
    */
-  def pairRemoved(domain:String, key:String)
+  def pairRemoved(space:Long, key:String)
 
   /**
    * Requests that the hook provide an optimised method for removing all differences for a pair. The hook should return
    * true to indicate that it was able to assist, or false to indicate that a normal DELETE should be issued.
    */
-  def removeAllPairDifferences(domain:String, key:String):Boolean
+  def removeAllPairDifferences(space:Long, key:String):Boolean
 
   /**
    * Queries whether difference partitioning is generally enabled by the hook. Note that even if this method returns

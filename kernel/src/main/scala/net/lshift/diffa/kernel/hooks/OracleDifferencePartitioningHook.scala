@@ -13,10 +13,10 @@ import org.jooq.impl.Factory
  */
 class OracleDifferencePartitioningHook(jooq:DatabaseFacade) extends DifferencePartitioningHook {
 
-  def pairCreated(domain: String, key: String) {
+  def pairCreated(space:Long, key: String) {
 
-    val escapedVal = StringEscapeUtils.escapeSql(domain + "_" + key)
-    val partitionName = generatePartitionName(domain, key)
+    val escapedVal = StringEscapeUtils.escapeSql(space + "_" + key)
+    val partitionName = generatePartitionName(space, key)
 
     jooq.execute(t => {
 
@@ -31,9 +31,9 @@ class OracleDifferencePartitioningHook(jooq:DatabaseFacade) extends DifferencePa
 
   }
 
-  def pairRemoved(domain: String, key: String) {
+  def pairRemoved(space:Long, key: String) {
 
-    val partitionName = generatePartitionName(domain, key)
+    val partitionName = generatePartitionName(space, key)
 
     // Drop the relevant partition on the diffs table
     jooq.execute(t => {
@@ -50,9 +50,9 @@ class OracleDifferencePartitioningHook(jooq:DatabaseFacade) extends DifferencePa
 
   }
 
-  def removeAllPairDifferences(domain: String, key: String) = {
+  def removeAllPairDifferences(space:Long, key: String) = {
 
-    val partitionName = generatePartitionName(domain, key)
+    val partitionName = generatePartitionName(space, key)
 
     jooq.execute(t => {
 
@@ -74,7 +74,7 @@ class OracleDifferencePartitioningHook(jooq:DatabaseFacade) extends DifferencePa
    * Generates a unique, repeatable partition name based on using the domain and key, preventing SQL-unsafe characters
    * from causing any kind of injection attack.
    */
-  def generatePartitionName(domain:String, key:String) = "p_" + DigestUtils.md5Hex(domain + "_" + key).substring(0, 28)
+  def generatePartitionName(space:Long, key:String) = "p_" + DigestUtils.md5Hex(space + "_" + key).substring(0, 28)
 
   def hasPartition(t:Factory, partition:String) = {
 

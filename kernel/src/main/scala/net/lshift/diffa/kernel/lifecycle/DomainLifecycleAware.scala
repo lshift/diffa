@@ -17,17 +17,19 @@ package net.lshift.diffa.kernel.lifecycle
 
 /**
  * Indicates lifecycle events for domain configuration changes.
+ * TODO Rename me !!!
  */
 trait DomainLifecycleAware {
 
   /**
    * This event is fired whenever a domain is created or updated
    */
-  def onDomainUpdated(domain: String)
+  def onDomainUpdated(space: Long)
+
 
   /**
    * This event is fired whenever a domain is removed
    */
-  def onDomainRemoved(domain: String)
+  def onDomainRemoved(space: Long)
 
 }

@@ -32,7 +32,7 @@ import java.lang.RuntimeException
 import akka.actor._
 import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._

@@ -29,7 +29,7 @@ import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
-import net.lshift.diffa.schema.tables.Pair.PAIR
+import net.lshift.diffa.schema.tables.Pairs.PAIRS
 import net.lshift.diffa.schema.tables.PrefixCategories.PREFIX_CATEGORIES
 import net.lshift.diffa.schema.tables.PrefixCategoryViews.PREFIX_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.SetCategories.SET_CATEGORIES
@@ -39,114 +39,152 @@ import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.UniqueCategoryNames.UNIQUE_CATEGORY_NAMES
 import net.lshift.diffa.schema.tables.UniqueCategoryViewNames.UNIQUE_CATEGORY_VIEW_NAMES
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
-import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
+import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
 import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.Members.MEMBERS
 import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.PendingDiffs.PENDING_DIFFS
 import net.lshift.diffa.schema.tables.Diffs.DIFFS
-import net.lshift.diffa.schema.tables.Domains.DOMAINS
+import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.SystemConfigOptions.SYSTEM_CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.Users.USERS
 import net.lshift.diffa.kernel.lifecycle.DomainLifecycleAware
 import collection.mutable.ListBuffer
 import net.lshift.diffa.kernel.util.cache.CacheProvider
-import net.lshift.diffa.kernel.naming.CacheName._
-import net.lshift.diffa.kernel.frontend.DomainEndpointDef
-import net.lshift.diffa.kernel.config.Member
-import net.lshift.diffa.kernel.config.User
 import org.jooq.{TableField, Record}
 import net.lshift.diffa.schema.tables.records.UsersRecord
+import net.lshift.diffa.kernel.util.sequence.SequenceProvider
+import java.lang.{Long => LONG, Integer => INT}
+import org.jooq.exception.DataAccessException
+import java.sql.SQLIntegrityConstraintViolationException
+import org.jooq.impl.Factory._
+import scala.Some
+import net.lshift.diffa.kernel.config.Member
+import net.lshift.diffa.kernel.config.User
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
+import net.lshift.diffa.kernel.naming.SequenceName
 
 class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
-                            cacheProvider:CacheProvider)
+                            cacheProvider:CacheProvider,
+                            sequenceProvider:SequenceProvider,
+                            spacePathCache:SpacePathCache)
     extends SystemConfigStore {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  private val cachedDomainNames = cacheProvider.getCachedMap[String, java.lang.Long](EXISTING_DOMAIN_NAMES)
+  initializeExistingSequences()
 
   private val domainEventSubscribers = new ListBuffer[DomainLifecycleAware]
 
   def registerDomainEventListener(d:DomainLifecycleAware) = domainEventSubscribers += d
 
-  def createOrUpdateDomain(domain:String) = {
+  registerDomainEventListener(spacePathCache)
+
+  def createOrUpdateDomain(path:String) = {
 
     jooq.execute(t => {
 
-      t.insertInto(DOMAINS).
-        set(DOMAINS.NAME, domain).
-        onDuplicateKeyIgnore().
-        execute()
+      // For now, we're just looking at backward compatibility - later on, we should implement a space update
+
+      val count = t.selectCount().
+                    from(SPACES).
+                    where(SPACES.NAME.equal(path)).
+                    fetchOne().
+                    getValueAsBigInteger(0).longValue()
+
+      // There is small margin for error between the read and the write, but basically we want to prevent unnecessary
+      // sequence churn
+
+      if (count == 0) {
+
+        val sequence = sequenceProvider.nextSequenceValue(SequenceName.SPACES)
+
+        try {
+
+          t.insertInto(SPACES).
+            set(SPACES.ID, sequence:LONG).
+            set(SPACES.NAME, path).
+            set(SPACES.CONFIG_VERSION, 0:INT).
+            execute()
+
+          //cachedSpacePaths.evict(space) - this invalidation is triggered by the onDomainRemoved event
+          domainEventSubscribers.foreach(_.onDomainUpdated(sequence))
+
+        }
+        catch {
+          case u:DataAccessException if u.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
+            logger.warn("Integrity constraint when trying to create space for path " + path)
+            throw u
+          case x => throw x
+        }
+
+      }
+
     })
 
-    cachedDomainNames.evict(domain)
-    domainEventSubscribers.foreach(_.onDomainUpdated(domain))
   }
 
-  def deleteDomain(domain:String) = {
+  def deleteDomain(path:String) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(path)
+    deleteDomain(space.id)
+    domainEventSubscribers.foreach(_.onDomainRemoved(space.id))
+    //cachedSpacePaths.evict(path) - this invalidation is triggered by the onDomainRemoved event
+
+  }
+
+  private def deleteDomain(id:Long) = {
 
     jooq.execute(t => {
-      t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.DOMAIN.equal(domain)).execute()
-      t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.DOMAIN.equal(domain)).execute()
-      t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.DOMAIN.equal(domain)).execute()
-      t.delete(PREFIX_CATEGORY_VIEWS).where(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
-      t.delete(SET_CATEGORIES).where(SET_CATEGORIES.DOMAIN.equal(domain)).execute()
-      t.delete(SET_CATEGORY_VIEWS).where(SET_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
-      t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.DOMAIN.equal(domain)).execute()
-      t.delete(RANGE_CATEGORY_VIEWS).where(RANGE_CATEGORY_VIEWS.DOMAIN.equal(domain)).execute()
-      t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.DOMAIN.equal(domain)).execute()
-      t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.DOMAIN.equal(domain)).execute()
-      t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).execute()
-      t.delete(PAIR_REPORTS).where(PAIR_REPORTS.DOMAIN.equal(domain)).execute()
-      t.delete(ESCALATIONS).where(ESCALATIONS.DOMAIN.equal(domain)).execute()
-      t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.DOMAIN.equal(domain)).execute()
-      t.delete(PAIR_VIEWS).where(PAIR_VIEWS.DOMAIN.equal(domain)).execute()
-      t.delete(BREAKERS).where(BREAKERS.DOMAIN.equal(domain)).execute()
-      t.delete(PAIR).where(PAIR.DOMAIN.equal(domain)).execute()
-      t.delete(ENDPOINT).where(ENDPOINT.DOMAIN.equal(domain)).execute()
-      t.delete(CONFIG_OPTIONS).where(CONFIG_OPTIONS.DOMAIN.equal(domain)).execute()
-      t.delete(MEMBERS).where(MEMBERS.DOMAIN_NAME.equal(domain)).execute()
-      t.delete(STORE_CHECKPOINTS).where(STORE_CHECKPOINTS.DOMAIN.equal(domain)).execute()
-      t.delete(PENDING_DIFFS).where(PENDING_DIFFS.DOMAIN.equal(domain)).execute()
-      t.delete(DIFFS).where(DIFFS.DOMAIN.equal(domain)).execute()
+      t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(id)).execute()
+      t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.SPACE.equal(id)).execute()
+      t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.SPACE.equal(id)).execute()
+      t.delete(PREFIX_CATEGORY_VIEWS).where(PREFIX_CATEGORY_VIEWS.SPACE.equal(id)).execute()
+      t.delete(SET_CATEGORIES).where(SET_CATEGORIES.SPACE.equal(id)).execute()
+      t.delete(SET_CATEGORY_VIEWS).where(SET_CATEGORY_VIEWS.SPACE.equal(id)).execute()
+      t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.SPACE.equal(id)).execute()
+      t.delete(RANGE_CATEGORY_VIEWS).where(RANGE_CATEGORY_VIEWS.SPACE.equal(id)).execute()
+      t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.SPACE.equal(id)).execute()
+      t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(id)).execute()
+      t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.SPACE.equal(id)).execute()
+      t.delete(PAIR_REPORTS).where(PAIR_REPORTS.SPACE.equal(id)).execute()
+      t.delete(ESCALATIONS).where(ESCALATIONS.SPACE.equal(id)).execute()
+      t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.SPACE.equal(id)).execute()
+      t.delete(PAIR_VIEWS).where(PAIR_VIEWS.SPACE.equal(id)).execute()
+      t.delete(BREAKERS).where(BREAKERS.SPACE.equal(id)).execute()
+      t.delete(PAIRS).where(PAIRS.SPACE.equal(id)).execute()
+      t.delete(ENDPOINTS).where(ENDPOINTS.SPACE.equal(id)).execute()
+      t.delete(CONFIG_OPTIONS).where(CONFIG_OPTIONS.SPACE.equal(id)).execute()
+      t.delete(MEMBERS).where(MEMBERS.SPACE.equal(id)).execute()
+      t.delete(STORE_CHECKPOINTS).where(STORE_CHECKPOINTS.SPACE.equal(id)).execute()
+      t.delete(PENDING_DIFFS).where(PENDING_DIFFS.SPACE.equal(id)).execute()
+      t.delete(DIFFS).where(DIFFS.SPACE.equal(id)).execute()
 
-      val deleted = t.delete(DOMAINS).where(DOMAINS.NAME.equal(domain)).execute()
+      val deleted = t.delete(SPACES).where(SPACES.ID.equal(id)).execute()
 
       if (deleted == 0) {
-        logger.error("%s: Attempt to delete non-existent domain: %s".format(AlertCodes.INVALID_DOMAIN, domain))
-        throw new MissingObjectException(domain)
+        logger.error("%s: Attempt to delete non-existent space: %s".format(AlertCodes.INVALID_DOMAIN, id))
+        throw new MissingObjectException(id + "")
       }
     })
-
-    domainEventSubscribers.foreach(_.onDomainRemoved(domain))
-
-    cachedDomainNames.evict(domain)
   }
 
-  def doesDomainExist(domain: String) = {
-    val count = cachedDomainNames.readThrough(domain, () => jooq.execute(t => {
-      t.selectCount().
-        from(DOMAINS).
-        where(DOMAINS.NAME.equal(domain)).
-        fetchOne().
-        getValueAsBigInteger(0).
-        longValue()
-    }))
-
-    count > 0
-  }
+  def doesDomainExist(path: String) = spacePathCache.doesDomainExist(path)
 
   def listDomains = jooq.execute( t => {
-    t.select(DOMAINS.NAME).
-      from(DOMAINS).
-      orderBy(DOMAINS.NAME).
+    t.select(SPACES.NAME).
+      from(SPACES).
+      orderBy(SPACES.NAME).
       fetch().
-      iterator().map(_.getValue(DOMAINS.NAME)).toSeq
+      iterator().map(_.getValue(SPACES.NAME)).toSeq
   })
 
   def listPairs = jooq.execute { t =>
-    t.select().from(PAIR).fetch().map(ResultMappingUtil.recordToDomainPairDef)
+    t.select(PAIRS.getFields).select(SPACES.NAME).
+      from(PAIRS).
+      join(SPACES).on(SPACES.ID.equal(PAIRS.SPACE)).
+      fetch().
+      map(ResultMappingUtil.recordToDomainPairDef)
   }
 
   def listEndpoints : Seq[DomainEndpointDef] = JooqConfigStoreCompanion.listEndpoints(jooq)
@@ -213,11 +251,20 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
   def listDomainMemberships(username: String) : Seq[Member] = {
     jooq.execute(t => {
-      val results = t.select(MEMBERS.DOMAIN_NAME).
+      val results = t.select(MEMBERS.SPACE, SPACES.NAME).
                       from(MEMBERS).
-                      where(MEMBERS.USER_NAME.equal(username)).
+                      join(SPACES).on(SPACES.ID.equal(MEMBERS.SPACE)).
+                      where(MEMBERS.USERNAME.equal(username)).
                       fetch()
-      results.iterator().map(r => Member(username, r.getValue(MEMBERS.DOMAIN_NAME)))
+      results.iterator().map(r => Member(
+        user = username,
+        space = r.getValue(MEMBERS.SPACE),
+        // TODO Ideally we shouldn't need to do this join, since the domain field is deprecated
+        // and consumers of this call should be able to deal with the surrogate space id, but
+        // for now that creates further churn in the patch to land space ids, so we'll just backplane the
+        // the existing behavior
+        domain = r.getValue(SPACES.NAME)
+      ))
     }).toSeq
   }
 
@@ -265,6 +312,24 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       where(SYSTEM_CONFIG_OPTIONS.OPT_KEY.equal(key)).
       execute()
   })
+
+  private def initializeExistingSequences() = {
+    val persistentValue = jooq.execute { t =>
+
+      t.select(max(SPACES.ID).as("max_space_id")).
+        from(SPACES).
+        fetchOne().
+        getValueAsBigInteger("max_space_id").longValue()
+
+    }
+
+    val currentValue = sequenceProvider.currentSequenceValue(SequenceName.SPACES)
+
+    if (persistentValue > currentValue) {
+      sequenceProvider.upgradeSequenceValue(SequenceName.SPACES, currentValue, persistentValue)
+    }
+  }
+
 
   private def getUserByPredicate(predicate: String, fieldToMatch:TableField[UsersRecord, String]) : User = jooq.execute(t => {
     val record =  t.select().

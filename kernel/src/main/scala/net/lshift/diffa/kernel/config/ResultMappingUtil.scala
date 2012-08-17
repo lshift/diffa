@@ -18,7 +18,8 @@ package net.lshift.diffa.kernel.config
 
 import org.jooq.{Result, Record}
 import net.lshift.diffa.kernel.frontend.{PairViewDef, DomainPairDef}
-import net.lshift.diffa.schema.tables.Pair.PAIR
+import net.lshift.diffa.schema.tables.Pairs.PAIRS
+import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.MissingObjectException
@@ -28,14 +29,15 @@ object ResultMappingUtil {
 
   def recordToDomainPairDef(r:Record) : DomainPairDef = {
     DomainPairDef(
-      domain = r.getValue(PAIR.DOMAIN),
-      key = r.getValue(PAIR.PAIR_KEY),
-      upstreamName = r.getValue(PAIR.UPSTREAM),
-      downstreamName = r.getValue(PAIR.DOWNSTREAM),
-      matchingTimeout = r.getValue(PAIR.MATCHING_TIMEOUT),
-      versionPolicyName = r.getValue(PAIR.VERSION_POLICY_NAME),
-      scanCronSpec = r.getValue(PAIR.SCAN_CRON_SPEC),
-      allowManualScans = r.getValue(PAIR.ALLOW_MANUAL_SCANS),
+      space = r.getValue(PAIRS.SPACE),
+      key = r.getValue(PAIRS.NAME),
+      domain = r.getValue(SPACES.NAME),
+      upstreamName = r.getValue(PAIRS.UPSTREAM),
+      downstreamName = r.getValue(PAIRS.DOWNSTREAM),
+      matchingTimeout = r.getValue(PAIRS.MATCHING_TIMEOUT),
+      versionPolicyName = r.getValue(PAIRS.VERSION_POLICY_NAME),
+      scanCronSpec = r.getValue(PAIRS.SCAN_CRON_SPEC),
+      allowManualScans = r.getValue(PAIRS.ALLOW_MANUAL_SCANS),
       views = null // Probably not needed by things that use this query, famous last words.....
     )
   }
@@ -49,15 +51,15 @@ object ResultMappingUtil {
     val record = result.get(0)
 
     val pair = DomainPairDef(
-      domain = record.getValue(PAIR.DOMAIN),
-      key = record.getValue(PAIR.PAIR_KEY),
-      upstreamName = record.getValue(PAIR.UPSTREAM),
-      downstreamName = record.getValue(PAIR.DOWNSTREAM),
-      matchingTimeout = record.getValue(PAIR.MATCHING_TIMEOUT),
-      versionPolicyName = record.getValue(PAIR.VERSION_POLICY_NAME),
-      scanCronSpec = record.getValue(PAIR.SCAN_CRON_SPEC),
-      scanCronEnabled = record.getValue(PAIR.SCAN_CRON_ENABLED),
-      allowManualScans = record.getValue(PAIR.ALLOW_MANUAL_SCANS),
+      space = record.getValue(PAIRS.SPACE),
+      key = record.getValue(PAIRS.NAME),
+      upstreamName = record.getValue(PAIRS.UPSTREAM),
+      downstreamName = record.getValue(PAIRS.DOWNSTREAM),
+      matchingTimeout = record.getValue(PAIRS.MATCHING_TIMEOUT),
+      versionPolicyName = record.getValue(PAIRS.VERSION_POLICY_NAME),
+      scanCronSpec = record.getValue(PAIRS.SCAN_CRON_SPEC),
+      scanCronEnabled = record.getValue(PAIRS.SCAN_CRON_ENABLED),
+      allowManualScans = record.getValue(PAIRS.ALLOW_MANUAL_SCANS),
       views = new util.ArrayList[PairViewDef]()
     )
 

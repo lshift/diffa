@@ -38,9 +38,18 @@ class CachedDomainConfigStoreTest {
   val hm = E4.createNiceMock(classOf[HookManager])
   val ml = createStrictMock(classOf[DomainMembershipAware])
 
+  val sc = E4.createNiceMock(classOf[SpacePathCache])
+
   val cp = new HazelcastCacheProvider
 
-  val domainConfig = new JooqDomainConfigStore(jooq, hm, cp, ml)
+  val spacePathCache = E4.createStrictMock(classOf[SpacePathCache])
+
+  expect(spacePathCache.resolveSpacePathOrDie("domain")).andStubReturn(Space(id = -1))
+  expect(spacePathCache.doesDomainExist("domain")).andStubReturn(true)
+
+  E4.replay(spacePathCache)
+
+  val domainConfig = new JooqDomainConfigStore(jooq, hm, cp, ml, spacePathCache)
 
   @Before
   def resetCaches {

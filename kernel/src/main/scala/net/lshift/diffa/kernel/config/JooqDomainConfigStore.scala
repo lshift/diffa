@@ -19,15 +19,15 @@ package net.lshift.diffa.kernel.config
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
-import net.lshift.diffa.schema.tables.Domains.DOMAINS
 import net.lshift.diffa.schema.tables.Members.MEMBERS
 import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
-import net.lshift.diffa.schema.tables.Pair.PAIR
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
-import net.lshift.diffa.schema.tables.Endpoint.ENDPOINT
+import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
+import net.lshift.diffa.schema.tables.Pairs.PAIRS
+import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import JooqConfigStoreCompanion._
@@ -36,25 +36,22 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
 import net.lshift.diffa.kernel.util.cache.{KeyPredicate, CacheProvider}
 import reflect.BeanProperty
-import collection.mutable
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
 import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 import net.lshift.diffa.kernel.frontend.DomainPairDef
-import net.lshift.diffa.kernel.frontend.RepairActionDef
 import net.lshift.diffa.kernel.frontend.PairDef
-import net.lshift.diffa.kernel.frontend.PairViewDef
 import net.lshift.diffa.kernel.frontend.EndpointDef
-import net.lshift.diffa.kernel.frontend.EscalationDef
-import net.lshift.diffa.kernel.frontend.PairReportDef
 import org.jooq.{Record, Field, Condition, Table}
+import java.lang.{Long => LONG}
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
                             hookManager:HookManager,
                             cacheProvider:CacheProvider,
-                            membershipListener:DomainMembershipAware)
+                            membershipListener:DomainMembershipAware,
+                            spacePathCache:SpacePathCache)
     extends DomainConfigStore
     with DomainLifecycleAware {
 
@@ -63,20 +60,20 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   private val pairEventSubscribers = new ListBuffer[PairLifecycleAware]
   def registerPairEventListener(p:PairLifecycleAware) = pairEventSubscribers += p
 
-  private val cachedConfigVersions = cacheProvider.getCachedMap[String,Int]("domain.config.versions")
-  private val cachedPairs = cacheProvider.getCachedMap[String, java.util.List[DomainPairDef]]("domain.pairs")
+  private val cachedConfigVersions = cacheProvider.getCachedMap[Long,Int]("domain.config.versions")
+  private val cachedPairs = cacheProvider.getCachedMap[Long, java.util.List[DomainPairDef]]("domain.pairs")
   private val cachedPairsByKey = cacheProvider.getCachedMap[DomainPairKey, DomainPairDef]("domain.pairs.by.key")
-  private val cachedEndpoints = cacheProvider.getCachedMap[String, java.util.List[DomainEndpointDef]]("domain.endpoints")
+  private val cachedEndpoints = cacheProvider.getCachedMap[Long, java.util.List[DomainEndpointDef]]("domain.endpoints")
   private val cachedEndpointsByKey = cacheProvider.getCachedMap[DomainEndpointKey, DomainEndpointDef]("domain.endpoints.by.key")
   private val cachedPairsByEndpoint = cacheProvider.getCachedMap[DomainEndpointKey, java.util.List[DomainPairDef]]("domain.pairs.by.endpoint")
   private val cachedBreakers = cacheProvider.getCachedMap[BreakerKey, Boolean](DOMAIN_PAIR_BREAKERS)
 
   // Config options
-  private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[String, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
+  private val cachedDomainConfigOptionsMap = cacheProvider.getCachedMap[Long, java.util.Map[String,String]](DOMAIN_CONFIG_OPTIONS_MAP)
   private val cachedDomainConfigOptions = cacheProvider.getCachedMap[DomainConfigKey, String](DOMAIN_CONFIG_OPTIONS)
 
   // Members
-  private val cachedMembers = cacheProvider.getCachedMap[String, java.util.List[Member]](USER_DOMAIN_MEMBERS)
+  private val cachedMembers = cacheProvider.getCachedMap[Long, java.util.List[Member]](USER_DOMAIN_MEMBERS)
 
   def reset {
     cachedConfigVersions.evictAll()
@@ -93,83 +90,86 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     cachedMembers.evictAll()
   }
 
-  private def invalidateMembershipCache(domain:String) = {
-    cachedMembers.evict(domain)
+  private def invalidateMembershipCache(space:Long) = {
+    cachedMembers.evict(space)
   }
 
-  private def invalidateConfigCaches(domain:String) = {
-    cachedDomainConfigOptionsMap.evict(domain)
-    cachedDomainConfigOptions.keySubset(ConfigOptionByDomainPredicate(domain)).evictAll()
+  private def invalidateConfigCaches(space:Long) = {
+    cachedDomainConfigOptionsMap.evict(space)
+    cachedDomainConfigOptions.keySubset(ConfigOptionByDomainPredicate(space)).evictAll()
   }
 
-  private def invalidateAllCaches(domain:String) = {
-    cachedConfigVersions.evict(domain)
-    cachedEndpoints.evict(domain)
-    cachedPairs.evict(domain)
-    cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(domain)).evictAll()
-    cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
-    cachedEndpointsByKey.keySubset(EndpointByDomainPredicate(domain)).evictAll()
-    cachedBreakers.keySubset(BreakerByDomainPredicate(domain)).evictAll()
+  private def invalidateAllCaches(space:Long) = {
+    cachedConfigVersions.evict(space)
+    cachedEndpoints.evict(space)
+    cachedPairs.evict(space)
+    cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(space)).evictAll()
+    cachedPairsByKey.keySubset(PairByDomainPredicate(space)).evictAll()
+    cachedEndpointsByKey.keySubset(EndpointByDomainPredicate(space)).evictAll()
+    cachedBreakers.keySubset(BreakerByDomainPredicate(space)).evictAll()
 
-    invalidateConfigCaches(domain)
+    invalidateConfigCaches(space)
 
-    invalidateMembershipCache(domain)
+    invalidateMembershipCache(space)
   }
 
-  private def invalidateEndpointCachesOnly(domain:String, endpointName: String) = {
-    cachedEndpoints.evict(domain)
-    cachedPairsByEndpoint.keySubset(PairByDomainAndEndpointPredicate(domain, endpointName)).evictAll()
-    cachedEndpointsByKey.evict(DomainEndpointKey(domain,endpointName))
+  private def invalidateEndpointCachesOnly(space:Long, endpointName: String) = {
+    cachedEndpoints.evict(space)
+    cachedPairsByEndpoint.keySubset(PairByDomainAndEndpointPredicate(space, endpointName)).evictAll()
+    cachedEndpointsByKey.evict(DomainEndpointKey(space,endpointName))
 
     // TODO This is a very coarse grained invalidation of the pair caches - this could be made finer at some stage
-    cachedPairs.evict(domain)
-    cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
+    cachedPairs.evict(space)
+    cachedPairsByKey.keySubset(PairByDomainPredicate(space)).evictAll()
   }
 
-  private def invalidatePairCachesOnly(domain:String) = {
-    cachedPairs.evict(domain)
-    cachedPairsByKey.keySubset(PairByDomainPredicate(domain)).evictAll()
-    cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(domain)).evictAll()
+  private def invalidatePairCachesOnly(space:Long) = {
+    cachedPairs.evict(space)
+    cachedPairsByKey.keySubset(PairByDomainPredicate(space)).evictAll()
+    cachedPairsByEndpoint.keySubset(EndpointByDomainPredicate(space)).evictAll()
   }
 
-  def onDomainUpdated(domain: String) = invalidateAllCaches(domain)
-  def onDomainRemoved(domain: String) = invalidateAllCaches(domain)
+  def onDomainUpdated(space: Long) = invalidateAllCaches(space)
+
+  def onDomainRemoved(space: Long) = invalidateAllCaches(space)
 
   def createOrUpdateEndpoint(domain:String, endpointDef: EndpointDef) : DomainEndpointDef = {
 
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
 
-      t.insertInto(ENDPOINT).
-          set(ENDPOINT.DOMAIN, domain).
-          set(ENDPOINT.NAME, endpointDef.name).
-          set(ENDPOINT.COLLATION_TYPE, endpointDef.collation).
-          set(ENDPOINT.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
-          set(ENDPOINT.SCAN_URL, endpointDef.scanUrl).
-          set(ENDPOINT.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
-          set(ENDPOINT.INBOUND_URL, endpointDef.inboundUrl).
+      t.insertInto(ENDPOINTS).
+          set(ENDPOINTS.SPACE, space.id).
+          set(ENDPOINTS.NAME, endpointDef.name).
+          set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
+          set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+          set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
+          set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+          set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).
         onDuplicateKeyUpdate().
-          set(ENDPOINT.COLLATION_TYPE, endpointDef.collation).
-          set(ENDPOINT.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
-          set(ENDPOINT.SCAN_URL, endpointDef.scanUrl).
-          set(ENDPOINT.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
-          set(ENDPOINT.INBOUND_URL, endpointDef.inboundUrl).
+          set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
+          set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+          set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
+          set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+          set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).
         execute()
 
       // Don't attempt to update to update any rows per se, just delete every associated
       // category and re-insert the new definitions, irrespective of
       // whether they are identical to the previous definitions
 
-      deleteCategories(t, domain, endpointDef.name)
+      deleteCategories(t, space.id, endpointDef.name)
 
       // Insert categories for the endpoint proper
-      insertCategories(t, domain, endpointDef)
+      insertCategories(t, space.id, endpointDef)
 
       // Update the view definitions
 
       if (endpointDef.views.isEmpty) {
 
         t.delete(ENDPOINT_VIEWS).
-          where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+          where(ENDPOINT_VIEWS.SPACE.equal(space.id)).
             and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
           execute()
 
@@ -177,7 +177,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
         t.delete(ENDPOINT_VIEWS).
           where(ENDPOINT_VIEWS.NAME.notIn(endpointDef.views.map(v => v.name))).
-            and(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+            and(ENDPOINT_VIEWS.SPACE.equal(space.id)).
             and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
           execute()
 
@@ -185,24 +185,24 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
       endpointDef.views.foreach(v => {
         t.insertInto(ENDPOINT_VIEWS).
-            set(ENDPOINT_VIEWS.DOMAIN, domain).
+            set(ENDPOINT_VIEWS.SPACE, space.id).
             set(ENDPOINT_VIEWS.ENDPOINT, endpointDef.name).
             set(ENDPOINT_VIEWS.NAME, v.name).
           onDuplicateKeyIgnore().
           execute()
 
           // Insert categories for the endpoint view
-        insertCategoriesForView(t, domain, endpointDef.name, v)
+        insertCategoriesForView(t, space.id, endpointDef.name, v)
       })
 
-      upgradeConfigVersion(t, domain)
+      upgradeConfigVersion(t, space.id)
 
     })
 
-    invalidateEndpointCachesOnly(domain, endpointDef.name)
+    invalidateEndpointCachesOnly(space.id, endpointDef.name)
 
     DomainEndpointDef(
-      domain = domain,
+      space = space.id,
       name = endpointDef.name,
       collation = endpointDef.collation,
       contentRetrievalUrl = endpointDef.contentRetrievalUrl,
@@ -218,50 +218,55 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
   def deleteEndpoint(domain:String, endpoint: String) = {
 
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
 
       // Remove all pairs that reference the endpoint
 
-      val results = t.select(PAIR.DOMAIN, PAIR.PAIR_KEY).
-                      from(PAIR).
-                      where(PAIR.DOMAIN.equal(domain)).
-                        and(PAIR.UPSTREAM.equal(endpoint).
-                            or(PAIR.DOWNSTREAM.equal(endpoint))).fetch()
+      val results = t.select(PAIRS.SPACE, PAIRS.NAME).
+                      from(PAIRS).
+                      where(PAIRS.SPACE.equal(space.id)).
+                        and(PAIRS.UPSTREAM.equal(endpoint).
+                            or(PAIRS.DOWNSTREAM.equal(endpoint))).fetch()
 
       results.iterator().foreach(r => {
-        val ref = DiffaPairRef(r.getValue(PAIR.PAIR_KEY), r.getValue(PAIR.DOMAIN))
+        val ref = PairRef(r.getValue(PAIRS.NAME), r.getValue(PAIRS.SPACE))
         deletePairWithDependencies(t, ref)
       })
 
-      deleteCategories(t, domain, endpoint)
+      deleteCategories(t, space.id, endpoint)
 
       t.delete(ENDPOINT_VIEWS).
-        where(ENDPOINT_VIEWS.DOMAIN.equal(domain)).
+        where(ENDPOINT_VIEWS.SPACE.equal(space.id)).
           and(ENDPOINT_VIEWS.ENDPOINT.equal(endpoint)).
         execute()
 
-      var deleted = t.delete(ENDPOINT).
-                      where(ENDPOINT.DOMAIN.equal(domain)).
-                        and(ENDPOINT.NAME.equal(endpoint)).
+      var deleted = t.delete(ENDPOINTS).
+                      where(ENDPOINTS.SPACE.equal(space.id)).
+                        and(ENDPOINTS.NAME.equal(endpoint)).
                       execute()
 
       if (deleted == 0) {
         throw new MissingObjectException("endpoint")
       }
 
-      upgradeConfigVersion(t, domain)
+      upgradeConfigVersion(t, space.id)
 
     })
 
-    invalidatePairCachesOnly(domain)
-    invalidateEndpointCachesOnly(domain, endpoint)
+    invalidatePairCachesOnly(space.id)
+    invalidateEndpointCachesOnly(space.id, endpoint)
 
   }
 
   def getEndpointDef(domain:String, endpoint: String) = {
-    cachedEndpointsByKey.readThrough(DomainEndpointKey(domain, endpoint), () => {
 
-      val endpoints = JooqConfigStoreCompanion.listEndpoints(jooq, Some(domain), Some(endpoint))
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
+    cachedEndpointsByKey.readThrough(DomainEndpointKey(space.id, endpoint), () => {
+
+      val endpoints = JooqConfigStoreCompanion.listEndpoints(jooq, Some(space.id), Some(endpoint))
 
       if (endpoints.isEmpty) {
         throw new MissingObjectException("endpoint")
@@ -274,32 +279,45 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
 
   def listEndpoints(domain:String): Seq[EndpointDef] = {
-    cachedEndpoints.readThrough(domain, () => JooqConfigStoreCompanion.listEndpoints(jooq, Some(domain)))
-  }.map(_.withoutDomain())
+
+    if (spacePathCache.doesDomainExist(domain)) {
+
+      val space = spacePathCache.resolveSpacePathOrDie(domain)
+      val endpoints = cachedEndpoints.readThrough(space.id, () => JooqConfigStoreCompanion.listEndpoints(jooq, Some(space.id)))
+      endpoints.map(_.withoutDomain())
+
+    } else {
+
+      Seq[EndpointDef]()
+
+    }
+  }
 
   def createOrUpdatePair(domain:String, pair: PairDef) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
 
     pair.validate()
 
     jooq.execute(t => {
-      t.insertInto(PAIR).
-          set(PAIR.DOMAIN, domain).
-          set(PAIR.PAIR_KEY, pair.key).
-          set(PAIR.UPSTREAM, pair.upstreamName).
-          set(PAIR.DOWNSTREAM, pair.downstreamName).
-          set(PAIR.ALLOW_MANUAL_SCANS, pair.allowManualScans).
-          set(PAIR.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
-          set(PAIR.SCAN_CRON_SPEC, pair.scanCronSpec).
-          set(PAIR.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
-          set(PAIR.VERSION_POLICY_NAME, pair.versionPolicyName).
+      t.insertInto(PAIRS).
+          set(PAIRS.SPACE, space.id:LONG).
+          set(PAIRS.NAME, pair.key).
+          set(PAIRS.UPSTREAM, pair.upstreamName).
+          set(PAIRS.DOWNSTREAM, pair.downstreamName).
+          set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+          set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+          set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
+          set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+          set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
         onDuplicateKeyUpdate().
-          set(PAIR.UPSTREAM, pair.upstreamName).
-          set(PAIR.DOWNSTREAM, pair.downstreamName).
-          set(PAIR.ALLOW_MANUAL_SCANS, pair.allowManualScans).
-          set(PAIR.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
-          set(PAIR.SCAN_CRON_SPEC, pair.scanCronSpec).
-          set(PAIR.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
-          set(PAIR.VERSION_POLICY_NAME, pair.versionPolicyName).
+          set(PAIRS.UPSTREAM, pair.upstreamName).
+          set(PAIRS.DOWNSTREAM, pair.downstreamName).
+          set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+          set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+          set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
+          set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+          set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
         execute()
 
       type HasName = {def name: String}
@@ -327,65 +345,78 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       }
 
       clearUnused(t, PAIR_VIEWS, pair.views,
-        PAIR_VIEWS.DOMAIN.equal(domain).and(PAIR_VIEWS.PAIR.equal(pair.key)),
+        PAIR_VIEWS.SPACE.equal(space.id).and(PAIR_VIEWS.PAIR.equal(pair.key)),
         PAIR_VIEWS.NAME)
       clearUnused(t, ESCALATIONS, pair.escalations,
-        ESCALATIONS.DOMAIN.equal(domain).and(ESCALATIONS.PAIR_KEY.equal(pair.key)),
+        ESCALATIONS.SPACE.equal(space.id).and(ESCALATIONS.PAIR.equal(pair.key)),
         ESCALATIONS.NAME)
       clearUnused(t, PAIR_REPORTS, pair.reports,
-        PAIR_REPORTS.DOMAIN.equal(domain).and(PAIR_REPORTS.PAIR_KEY.equal(pair.key)),
+        PAIR_REPORTS.SPACE.equal(space.id).and(PAIR_REPORTS.PAIR.equal(pair.key)),
         PAIR_REPORTS.NAME)
       clearUnused(t, REPAIR_ACTIONS, pair.repairActions,
-        REPAIR_ACTIONS.DOMAIN.equal(domain).and(REPAIR_ACTIONS.PAIR_KEY.equal(pair.key)),
+        REPAIR_ACTIONS.SPACE.equal(space.id).and(REPAIR_ACTIONS.PAIR.equal(pair.key)),
         REPAIR_ACTIONS.NAME)
 
       pair.views.foreach(v => {
         insertOrUpdate(t, PAIR_VIEWS,
-          Map(PAIR_VIEWS.DOMAIN -> domain, PAIR_VIEWS.PAIR -> pair.key, PAIR_VIEWS.NAME -> v.name),
+          Map(PAIR_VIEWS.SPACE -> space.id, PAIR_VIEWS.PAIR -> pair.key, PAIR_VIEWS.NAME -> v.name),
           Map(PAIR_VIEWS.SCAN_CRON_SPEC -> v.scanCronSpec, PAIR_VIEWS.SCAN_CRON_ENABLED -> boolean2Boolean(v.scanCronEnabled)))
       })
       pair.repairActions.foreach(a => {
         insertOrUpdate(t, REPAIR_ACTIONS,
-          Map(REPAIR_ACTIONS.DOMAIN -> domain, REPAIR_ACTIONS.PAIR_KEY -> pair.key, REPAIR_ACTIONS.NAME -> a.name),
+          Map(REPAIR_ACTIONS.SPACE -> space.id, REPAIR_ACTIONS.PAIR -> pair.key, REPAIR_ACTIONS.NAME -> a.name),
           Map(REPAIR_ACTIONS.URL -> a.url, REPAIR_ACTIONS.SCOPE -> a.scope))
       })
       pair.reports.foreach(r => {
         insertOrUpdate(t, PAIR_REPORTS,
-          Map(PAIR_REPORTS.DOMAIN -> domain, PAIR_REPORTS.PAIR_KEY -> pair.key, PAIR_REPORTS.NAME -> r.name),
+          Map(PAIR_REPORTS.SPACE -> space.id, PAIR_REPORTS.PAIR -> pair.key, PAIR_REPORTS.NAME -> r.name),
           Map(PAIR_REPORTS.REPORT_TYPE -> r.reportType, PAIR_REPORTS.TARGET -> r.target))
       })
       pair.escalations.foreach(e => {
         insertOrUpdate(t, ESCALATIONS,
-          Map(ESCALATIONS.DOMAIN -> domain, ESCALATIONS.PAIR_KEY -> pair.key, ESCALATIONS.NAME -> e.name),
+          Map(ESCALATIONS.SPACE -> space.id, ESCALATIONS.PAIR -> pair.key, ESCALATIONS.NAME -> e.name),
           Map(ESCALATIONS.ACTION -> e.action, ESCALATIONS.ACTION_TYPE -> e.actionType,
             ESCALATIONS.RULE -> e.rule, ESCALATIONS.DELAY -> e.delay))
       })
 
-      upgradeConfigVersion(t, domain)
+      upgradeConfigVersion(t, space.id)
 
     })
 
-    invalidatePairCachesOnly(domain)
+    invalidatePairCachesOnly(space.id)
 
-    hook.pairCreated(domain, pair.key)
+    hook.pairCreated(space.id, pair.key)
     pairEventSubscribers.foreach(_.onPairUpdated(pair.asRef(domain)))
   }
 
   def deletePair(domain:String, key: String) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
-      val ref = DiffaPairRef(key,domain)
-      invalidatePairCachesOnly(domain)
+      val ref = PairRef(key, space.id)
+      invalidatePairCachesOnly(space.id)
       deletePairWithDependencies(t, ref)
-      upgradeConfigVersion(t, domain)
-      pairEventSubscribers.foreach(_.onPairDeleted(ref))
-      hook.pairRemoved(domain, key)
+      upgradeConfigVersion(t, space.id)
+      pairEventSubscribers.foreach(_.onPairDeleted(DiffaPairRef(key, domain)))
+      hook.pairRemoved(space.id, key)
     })
   }
 
-  def listPairs(domain:String) = cachedPairs.readThrough(domain, () => JooqConfigStoreCompanion.listPairs(jooq,domain))
+  def listPairs(domain:String) = {
+    if (spacePathCache.doesDomainExist(domain)) {
+      val space = spacePathCache.resolveSpacePathOrDie(domain)
+      cachedPairs.readThrough(space.id, () => JooqConfigStoreCompanion.listPairs(jooq, domain, space.id))
+    } else {
+      Seq[DomainPairDef]()
+    }
+  }
 
-  def listPairsForEndpoint(domain:String, endpoint:String) =
-    cachedPairsByEndpoint.readThrough(DomainEndpointKey(domain, endpoint), () => JooqConfigStoreCompanion.listPairs(jooq, domain, endpoint = Some(endpoint)))
+  def listPairsForEndpoint(domain:String, endpoint:String) = {
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+    cachedPairsByEndpoint.readThrough(DomainEndpointKey(space.id, endpoint), () => JooqConfigStoreCompanion.listPairs(jooq, domain, space.id, endpoint = Some(endpoint)))
+  }
+
 
   @Deprecated def getEndpoint(domain:String, endpoint: String) = {
 
@@ -417,77 +448,102 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   }
 
 
-  def getPairDef(domain:String, key: String) = cachedPairsByKey.readThrough(DomainPairKey(domain,key), () => jooq.execute { t =>
-    val pairs = JooqConfigStoreCompanion.listPairs(jooq, domain, key = Some(key))
-    if (pairs.length == 1) {
-      pairs(0)
-    } else {
-      //throw new MissingObjectException(domain + "/" + key)
+  def getPairDef(domain:String, key: String) = {
 
-      // TODO Ideally this code should throw something more descriptive like the above error
-      // but for now, I'd like to keep this patch small
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
 
-      throw new MissingObjectException("pair")
-    }
-  })
+    cachedPairsByKey.readThrough(DomainPairKey(space.id, key), () => jooq.execute { t =>
+      val pairs = JooqConfigStoreCompanion.listPairs(jooq, domain, space.id, key = Some(key))
+      if (pairs.length == 1) {
+        pairs(0)
+      } else {
+        //throw new MissingObjectException(domain + "/" + key)
 
-  def getConfigVersion(domain:String) = cachedConfigVersions.readThrough(domain, () => jooq.execute(t => {
+        // TODO Ideally this code should throw something more descriptive like the above error
+        // but for now, I'd like to keep this patch small
 
-    val result = t.select(DOMAINS.CONFIG_VERSION).
-                   from(DOMAINS).
-                   where(DOMAINS.NAME.equal(domain)).
-                   fetchOne()
-
-    if (result == null) {
-      throw new MissingObjectException("domain")
-    }
-    else {
-      result.getValue(DOMAINS.CONFIG_VERSION)
-    }
-
-  }))
-
-
-
-  def allConfigOptions(domain:String) = cachedDomainConfigOptionsMap.readThrough(domain, () => jooq.execute( t => {
-    val results = t.select(CONFIG_OPTIONS.OPT_KEY, CONFIG_OPTIONS.OPT_VAL).
-      from(CONFIG_OPTIONS).
-      where(CONFIG_OPTIONS.DOMAIN.equal(domain)).fetch()
-
-    val configs = new java.util.HashMap[String,String]()
-
-    results.iterator().foreach(r => {
-      configs.put(r.getValue(CONFIG_OPTIONS.OPT_KEY), r.getValue(CONFIG_OPTIONS.OPT_VAL))
+        throw new MissingObjectException("pair")
+      }
     })
+  }
 
-    configs
-  })).toMap
+  def getConfigVersion(domain:String) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
+    cachedConfigVersions.readThrough(space.id, () => jooq.execute(t => {
+
+      val result = t.select(SPACES.CONFIG_VERSION).
+        from(SPACES).
+        where(SPACES.ID.equal(space.id)).
+        fetchOne()
+
+      if (result == null) {
+        throw new MissingObjectException("domain")
+      }
+      else {
+        result.getValue(SPACES.CONFIG_VERSION)
+      }
+
+    }))
+  }
+
+
+
+  def allConfigOptions(domain:String) = {
+    if(spacePathCache.doesDomainExist(domain)) {
+      val space = spacePathCache.resolveSpacePathOrDie(domain)
+
+      cachedDomainConfigOptionsMap.readThrough(space.id, () => jooq.execute( t => {
+        val results = t.select(CONFIG_OPTIONS.OPT_KEY, CONFIG_OPTIONS.OPT_VAL).
+          from(CONFIG_OPTIONS).
+          where(CONFIG_OPTIONS.SPACE.equal(space.id)).fetch()
+
+        val configs = new java.util.HashMap[String,String]()
+
+        results.iterator().foreach(r => {
+          configs.put(r.getValue(CONFIG_OPTIONS.OPT_KEY), r.getValue(CONFIG_OPTIONS.OPT_VAL))
+        })
+
+        configs
+      })).toMap
+    } else {
+      Map()
+    }
+  }
 
 
   def maybeConfigOption(domain:String, key:String) = {
 
-    val option = cachedDomainConfigOptions.readThrough(DomainConfigKey(domain,key), () => jooq.execute( t => {
+    if (spacePathCache.doesDomainExist(domain)) {
 
-      val record = t.select(CONFIG_OPTIONS.OPT_VAL).
-                     from(CONFIG_OPTIONS).
-                     where(CONFIG_OPTIONS.DOMAIN.equal(domain)).
-                       and(CONFIG_OPTIONS.OPT_KEY.equal(key)).
-                     fetchOne()
+      val space = spacePathCache.resolveSpacePathOrDie(domain)
 
-      if (record != null) {
-        record.getValue(CONFIG_OPTIONS.OPT_VAL)
+      val option = cachedDomainConfigOptions.readThrough(DomainConfigKey(space.id,key), () => jooq.execute( t => {
+
+        val record = t.select(CONFIG_OPTIONS.OPT_VAL).
+                       from(CONFIG_OPTIONS).
+                       where(CONFIG_OPTIONS.SPACE.equal(space.id)).
+                         and(CONFIG_OPTIONS.OPT_KEY.equal(key)).
+                       fetchOne()
+
+        if (record != null) {
+          record.getValue(CONFIG_OPTIONS.OPT_VAL)
+        }
+        else {
+          // Insert a null byte into as a value for this key in the cache to denote that this key does not
+          // exist and should not get queried for against the the underlying database
+          "\u0000"
+        }
+
+      }))
+
+      option match {
+        case "\u0000"     => None
+        case value        => Some(value)
       }
-      else {
-        // Insert a null byte into as a value for this key in the cache to denote that this key does not
-        // exist and should not get queried for against the the underlying database
-        "\u0000"
-      }
-
-    }))
-
-    option match {
-      case "\u0000"     => None
-      case value        => Some(value)
+    } else {
+      None
     }
   }
 
@@ -498,9 +554,12 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     }
 
   def setConfigOption(domain:String, key:String, value:String) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
       t.insertInto(CONFIG_OPTIONS).
-        set(CONFIG_OPTIONS.DOMAIN, domain).
+        set(CONFIG_OPTIONS.SPACE, space.id).
         set(CONFIG_OPTIONS.OPT_KEY, key).
         set(CONFIG_OPTIONS.OPT_VAL, value).
       onDuplicateKeyUpdate().
@@ -508,87 +567,108 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       execute()
     })
 
-    invalidateConfigCaches(domain)
+    invalidateConfigCaches(space.id)
   }
 
   def clearConfigOption(domain:String, key:String) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
       t.delete(CONFIG_OPTIONS).
-        where(CONFIG_OPTIONS.DOMAIN.equal(domain)).
+        where(CONFIG_OPTIONS.SPACE.equal(space.id)).
         and(CONFIG_OPTIONS.OPT_KEY.equal(key)).
       execute()
     })
 
     // TODO This is a very coarse grained invalidation
-    invalidateConfigCaches(domain)
+    invalidateConfigCaches(space.id)
   }
 
   /**
    * Force the DB to uprev the config version column for this particular domain
    */
-  private def upgradeConfigVersion(t:Factory, domain:String) {
+  private def upgradeConfigVersion(t:Factory, space:Long) {
 
-    cachedConfigVersions.evict(domain)
+    cachedConfigVersions.evict(space)
 
-    t.update(DOMAINS).
-      set(DOMAINS.CONFIG_VERSION, DOMAINS.CONFIG_VERSION.add(1)).
-      where(DOMAINS.NAME.equal(domain)).
+    t.update(SPACES).
+      set(SPACES.CONFIG_VERSION, SPACES.CONFIG_VERSION.add(1)).
+      where(SPACES.ID.equal(space)).
       execute()
   }
 
   def makeDomainMember(domain:String, userName:String) = {
 
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
       t.insertInto(MEMBERS).
-        set(MEMBERS.DOMAIN_NAME, domain).
-        set(MEMBERS.USER_NAME, userName).
+        set(MEMBERS.SPACE, space.id).
+        set(MEMBERS.USERNAME, userName).
         onDuplicateKeyIgnore().
         execute()
     })
 
-    invalidateMembershipCache(domain)
+    invalidateMembershipCache(space.id)
 
-    val member = Member(userName,domain)
+    val member = Member(userName, space.id, domain)
     membershipListener.onMembershipCreated(member)
     member
   }
 
   def removeDomainMembership(domain:String, userName:String) = {
 
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     jooq.execute(t => {
       t.delete(MEMBERS).
-        where(MEMBERS.DOMAIN_NAME.equal(domain)).
-        and(MEMBERS.USER_NAME.equal(userName)).
+        where(MEMBERS.SPACE.equal(space.id)).
+        and(MEMBERS.USERNAME.equal(userName)).
         execute()
     })
 
-    invalidateMembershipCache(domain)
+    invalidateMembershipCache(space.id)
 
-    val member = Member(userName,domain)
+    val member = Member(userName,space.id, domain)
     membershipListener.onMembershipRemoved(member)
   }
 
-  def listDomainMembers(domain:String) = cachedMembers.readThrough(domain, () => {
-    jooq.execute(t => {
+  def listDomainMembers(domain:String) = {
 
-      val results = t.select(MEMBERS.USER_NAME).
-                     from(MEMBERS).
-                     where(MEMBERS.DOMAIN_NAME.equal(domain)).
-                     fetch()
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
 
-      val members = new java.util.ArrayList[Member]()
-      results.iterator().foreach(r => members.add(Member(r.getValue(MEMBERS.USER_NAME), domain)))
-      members
+    cachedMembers.readThrough(space.id, () => {
 
-    })
-  }).toSeq
+      jooq.execute(t => {
+
+        val results = t.select(MEMBERS.USERNAME).
+          from(MEMBERS).
+          where(MEMBERS.SPACE.equal(space.id)).
+          fetch()
+
+        val members = new java.util.ArrayList[Member]()
+        results.iterator().foreach(r => members.add(Member(
+          user = r.getValue(MEMBERS.USERNAME),
+          space = space.id,
+          domain = domain
+        ))
+        )
+        members
+
+      })
+    }).toSeq
+  }
 
   def isBreakerTripped(domain: String, pair: String, name: String) = {
-    cachedBreakers.readThrough(BreakerKey(domain, pair, name), () => jooq.execute(t => {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
+    cachedBreakers.readThrough(BreakerKey(space.id, pair, name), () => jooq.execute(t => {
       val c = t.selectCount().
         from(BREAKERS).
-        where(BREAKERS.DOMAIN.equal(domain)).
-          and(BREAKERS.PAIR_KEY.equal(pair)).
+        where(BREAKERS.SPACE.equal(space.id)).
+          and(BREAKERS.PAIR.equal(pair)).
           and(BREAKERS.NAME.equal(name)).
         fetchOne().
         getValue(0).asInstanceOf[java.lang.Number]
@@ -602,29 +682,37 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   }
 
   def tripBreaker(domain: String, pair: String, name: String) {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     if (!isBreakerTripped(domain, pair, name)) {
       jooq.execute(t => {
         t.insertInto(BREAKERS).
-          set(Map(BREAKERS.DOMAIN -> domain, BREAKERS.PAIR_KEY -> pair, BREAKERS.NAME -> name)).
+            set(BREAKERS.SPACE, space.id).
+            set(BREAKERS.PAIR, pair).
+            set(BREAKERS.NAME, name).
           onDuplicateKeyIgnore().
           execute()
       })
 
-      cachedBreakers.put(BreakerKey(domain, pair, name), true)
+      cachedBreakers.put(BreakerKey(space.id, pair, name), true)
     }
   }
 
   def clearBreaker(domain: String, pair: String, name: String) {
+
+    val space = spacePathCache.resolveSpacePathOrDie(domain)
+
     if (isBreakerTripped(domain, pair, name)) {
       jooq.execute(t => {
         t.delete(BREAKERS).
-          where(BREAKERS.DOMAIN.equal(domain)).
-            and(BREAKERS.PAIR_KEY.equal(pair)).
+          where(BREAKERS.SPACE.equal(space.id)).
+            and(BREAKERS.PAIR.equal(pair)).
             and(BREAKERS.NAME.equal(name)).
           execute()
       })
 
-      cachedBreakers.put(BreakerKey(domain, pair, name), false)
+      cachedBreakers.put(BreakerKey(space.id, pair, name), false)
     }
   }
 }
@@ -632,68 +720,68 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 // These key classes need to be serializable .......
 
 case class DomainEndpointKey(
-  @BeanProperty var domain: String = null,
+  @BeanProperty var space: Long,
   @BeanProperty var endpoint: String = null) {
 
-  def this() = this(domain = null)
+  def this() = this(space = 0)
 
 }
 
 case class DomainPairKey(
-  @BeanProperty var domain: String = null,
+  @BeanProperty var space: Long,
   @BeanProperty var pair: String = null) {
 
-  def this() = this(domain = null)
+  def this() = this(space = 0)
 
 }
 
 case class DomainConfigKey(
-  @BeanProperty var domain: String = null,
+  @BeanProperty var space: Long,
   @BeanProperty var configKey: String = null) {
 
-  def this() = this(domain = null)
+  def this() = this(space = 0)
 
 }
 
 case class BreakerKey(
-  @BeanProperty var domain:String = null,
+  @BeanProperty var space: Long,
   @BeanProperty var pair:String = null,
   @BeanProperty var name:String = null) {
 
-  def this() = this(domain = null)
+  def this() = this(space = 0)
 }
 
 case class ConfigOptionByDomainPredicate(
-  @BeanProperty domain:String = null) extends KeyPredicate[DomainConfigKey] {
-  def this() = this(domain = null)
-  def constrain(key: DomainConfigKey) = key.domain == domain
+  @BeanProperty var space:Long) extends KeyPredicate[DomainConfigKey] {
+  def this() = this(space = 0)
+  def constrain(key: DomainConfigKey) = key.space == space
 }
 
 case class PairByDomainAndEndpointPredicate(
-  @BeanProperty domain:String = null,
+  @BeanProperty var space:Long,
   @BeanProperty endpoint:String = null) extends KeyPredicate[DomainEndpointKey] {
-  def this() = this(domain = null)
-  def constrain(key: DomainEndpointKey) = key.domain == domain && key.endpoint == endpoint
+  def this() = this(space = 0)
+  def constrain(key: DomainEndpointKey) = key.space == space && key.endpoint == endpoint
 }
 
-case class EndpointByDomainPredicate(@BeanProperty domain:String = null) extends KeyPredicate[DomainEndpointKey] {
-  def this() = this(domain = null)
-  def constrain(key: DomainEndpointKey) = key.domain == domain
+case class EndpointByDomainPredicate(@BeanProperty var space:Long) extends KeyPredicate[DomainEndpointKey] {
+  def this() = this(space = 0)
+  def constrain(key: DomainEndpointKey) = key.space == space
 }
 
-case class PairByDomainPredicate(@BeanProperty domain:String = null) extends KeyPredicate[DomainPairKey] {
-  def this() = this(domain = null)
-  def constrain(key: DomainPairKey) = key.domain == domain
+case class PairByDomainPredicate(@BeanProperty var space:Long) extends KeyPredicate[DomainPairKey] {
+  def this() = this(space = 0)
+  def constrain(key: DomainPairKey) = key.space == space
 }
 
-case class BreakerByDomainPredicate(@BeanProperty domain:String = null) extends KeyPredicate[BreakerKey] {
-  def this() = this(domain = null)
-  def constrain(key: BreakerKey) = key.domain == domain
+case class BreakerByDomainPredicate(@BeanProperty var space:Long) extends KeyPredicate[BreakerKey] {
+  def this() = this(space = 0)
+  def constrain(key: BreakerKey) = key.space == space
 }
 case class BreakerByPairAndDomainPredicate(
-    @BeanProperty domain:String = null,
-    @BeanProperty pair:String = null) extends KeyPredicate[BreakerKey] {
+    @BeanProperty var space:Long,
+    @BeanProperty var pair:String = null) extends KeyPredicate[BreakerKey] {
 
-  def this() = this(domain = null)
-  def constrain(key: BreakerKey) = key.domain == domain && key.pair == pair
+  def this() = this(space = 0)
+  def constrain(key: BreakerKey) = key.space == space && key.pair == pair
 }

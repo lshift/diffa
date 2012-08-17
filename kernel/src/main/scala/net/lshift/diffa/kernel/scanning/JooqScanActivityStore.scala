@@ -18,44 +18,55 @@ package net.lshift.diffa.kernel.scanning
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.jooq.DatabaseFacade._
 import net.lshift.diffa.schema.tables.ScanStatements.SCAN_STATEMENTS
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{SpacePathCache, DiffaPairRef}
 import org.jooq.Record
 import scala.collection.JavaConversions._
 
-class JooqScanActivityStore(jooq:DatabaseFacade) extends ScanActivityStore {
+class JooqScanActivityStore(jooq:DatabaseFacade, spacePathCache:SpacePathCache) extends ScanActivityStore {
 
-  def createOrUpdateStatement(s:ScanStatement) = jooq.execute(t => {
-    t.insertInto(SCAN_STATEMENTS).
+  def createOrUpdateStatement(s:ScanStatement) = {
+
+    val space = spacePathCache.resolveSpacePathOrDie(s.domain)
+
+    jooq.execute(t => {
+      t.insertInto(SCAN_STATEMENTS).
         set(SCAN_STATEMENTS.ID, long2Long(s.id)).
-        set(SCAN_STATEMENTS.DOMAIN, s.domain).
+        set(SCAN_STATEMENTS.SPACE, space.id).
         set(SCAN_STATEMENTS.PAIR, s.pair).
-        set(SCAN_STATEMENTS.INTIATED_BY, s.initiatedBy.orNull).
+        set(SCAN_STATEMENTS.INITIATED_BY, s.initiatedBy.orNull).
         set(SCAN_STATEMENTS.START_TIME, dateTimeToTimestamp(s.startTime)).
         set(SCAN_STATEMENTS.END_TIME, dateTimeToTimestamp(s.endTime.orNull)).
         set(SCAN_STATEMENTS.STATE, s.state).
-      onDuplicateKeyUpdate().
-        set(SCAN_STATEMENTS.INTIATED_BY, s.initiatedBy.orNull).
+        onDuplicateKeyUpdate().
+        set(SCAN_STATEMENTS.INITIATED_BY, s.initiatedBy.orNull).
         set(SCAN_STATEMENTS.START_TIME, dateTimeToTimestamp(s.startTime)).
         set(SCAN_STATEMENTS.END_TIME, dateTimeToTimestamp(s.endTime.orNull)).
         set(SCAN_STATEMENTS.STATE, s.state).
-      execute()
-  })
+        execute()
+    })
+  }
 
-  def getStatement(pair:DiffaPairRef, id:Long) : ScanStatement = jooq.execute(t => {
-    val record =  t.select().
-                    from(SCAN_STATEMENTS).
-                    where(SCAN_STATEMENTS.DOMAIN.equal(pair.domain)).
-                      and(SCAN_STATEMENTS.PAIR.equal(pair.key)).
-                      and(SCAN_STATEMENTS.ID.equal(id)).
-                    fetchOne()
-    recordToStatement(record)
-  })
+  def getStatement(pair:DiffaPairRef, id:Long) : ScanStatement = {
 
-  private def recordToStatement(record:Record) = ScanStatement(
+    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+
+    jooq.execute(t => {
+      val record =  t.select().
+        from(SCAN_STATEMENTS).
+        where(SCAN_STATEMENTS.SPACE.equal(space.id)).
+        and(SCAN_STATEMENTS.PAIR.equal(pair.key)).
+        and(SCAN_STATEMENTS.ID.equal(id)).
+        fetchOne()
+      recordToStatement(record, pair.domain)
+    })
+  }
+
+  private def recordToStatement(record:Record, domain:String) = ScanStatement(
     id = record.getValue(SCAN_STATEMENTS.ID),
-    domain =  record.getValue(SCAN_STATEMENTS.DOMAIN),
+    domain = domain,
+    space =  record.getValue(SCAN_STATEMENTS.SPACE),
     pair =  record.getValue(SCAN_STATEMENTS.PAIR),
-    initiatedBy =  Option(record.getValue(SCAN_STATEMENTS.INTIATED_BY)),
+    initiatedBy =  Option(record.getValue(SCAN_STATEMENTS.INITIATED_BY)),
     startTime =  timestampToDateTime(record.getValue(SCAN_STATEMENTS.START_TIME)),
     endTime =  Option(timestampToDateTime(record.getValue(SCAN_STATEMENTS.END_TIME))),
     state = record.getValue(SCAN_STATEMENTS.STATE)
