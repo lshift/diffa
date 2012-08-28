@@ -40,15 +40,15 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
 
   def defineLimit(limit: ServiceLimit) = underlying.defineLimit(limit)
 
-  def deleteDomainLimits(domainName: String) = {
-    underlying.deleteDomainLimits(domainName)
-    evictPairLimitCacheByDomain(domainName)
-    evictDomainLimitCachesByDomain(domainName)
+  def deleteDomainLimits(space:Long) = {
+    underlying.deleteDomainLimits(space)
+    evictPairLimitCacheByDomain(space)
+    evictDomainLimitCachesByDomain(space)
   }
 
-  def deletePairLimitsByDomain(domainName: String) = {
-    underlying.deletePairLimitsByDomain(domainName)
-    evictPairLimitCacheByDomain(domainName)
+  def deletePairLimitsByDomain(space:Long) = {
+    underlying.deletePairLimitsByDomain(space)
+    evictPairLimitCacheByDomain(space)
   }
 
   def setSystemHardLimit(limit: ServiceLimit, limitValue: Int) = {
@@ -61,19 +61,19 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
     systemDefaults.put(limit.key, Some(limitValue))
   }
 
-  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
-    underlying.setDomainHardLimit(domainName, limit, limitValue)
-    domainHardLimits.put(DomainLimitKey(domainName, limit.key), Some(limitValue))
+  def setDomainHardLimit(space:Long, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setDomainHardLimit(space, limit, limitValue)
+    domainHardLimits.put(DomainLimitKey(space, limit.key), Some(limitValue))
   }
 
-  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
-    underlying.setDomainDefaultLimit(domainName, limit, limitValue)
-    domainDefaults.put(DomainLimitKey(domainName, limit.key), Some(limitValue))
+  def setDomainDefaultLimit(space:Long, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setDomainDefaultLimit(space, limit, limitValue)
+    domainDefaults.put(DomainLimitKey(space, limit.key), Some(limitValue))
   }
 
-  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
-    underlying.setPairLimit(domainName, pairKey, limit, limitValue)
-    pairLimits.put(PairLimitKey(domainName, pairKey, limit.key), Some(limitValue))
+  def setPairLimit(space:Long, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
+    underlying.setPairLimit(space, pairKey, limit, limitValue)
+    pairLimits.put(PairLimitKey(space, pairKey, limit.key), Some(limitValue))
   }
 
   def getSystemHardLimitForName(limit: ServiceLimit) =
@@ -84,25 +84,25 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
     systemDefaults.readThrough(limit.key,
       () => underlying.getSystemDefaultLimitForName(limit))
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
-    domainHardLimits.readThrough(DomainLimitKey(domainName, limit.key),
-      () => underlying.getDomainHardLimitForDomainAndName(domainName, limit))
+  def getDomainHardLimitForDomainAndName(space:Long, limit: ServiceLimit) =
+    domainHardLimits.readThrough(DomainLimitKey(space, limit.key),
+      () => underlying.getDomainHardLimitForDomainAndName(space, limit))
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) =
-    domainDefaults.readThrough(DomainLimitKey(domainName, limit.key),
-      () => underlying.getDomainDefaultLimitForDomainAndName(domainName, limit))
+  def getDomainDefaultLimitForDomainAndName(space:Long, limit: ServiceLimit) =
+    domainDefaults.readThrough(DomainLimitKey(space, limit.key),
+      () => underlying.getDomainDefaultLimitForDomainAndName(space, limit))
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) =
-    pairLimits.readThrough(PairLimitKey(domainName, pairKey, limit.key),
-      () => underlying.getPairLimitForPairAndName(domainName, pairKey, limit))
+  def getPairLimitForPairAndName(space:Long, pairKey: String, limit: ServiceLimit) =
+    pairLimits.readThrough(PairLimitKey(space, pairKey, limit.key),
+      () => underlying.getPairLimitForPairAndName(space, pairKey, limit))
 
-  private def evictPairLimitCacheByDomain(domainName:String) = {
-    pairLimits.keySubset(PairLimitByDomainPredicate(domainName)).evictAll
+  private def evictPairLimitCacheByDomain(space:Long) = {
+    pairLimits.keySubset(PairLimitByDomainPredicate(space)).evictAll
   }
 
-  private def evictDomainLimitCachesByDomain(domainName:String) = {
-    domainHardLimits.keySubset(DomainLimitByDomainPredicate(domainName)).evictAll
-    domainDefaults.keySubset(DomainLimitByDomainPredicate(domainName)).evictAll
+  private def evictDomainLimitCachesByDomain(space:Long) = {
+    domainHardLimits.keySubset(DomainLimitByDomainPredicate(space)).evictAll
+    domainDefaults.keySubset(DomainLimitByDomainPredicate(space)).evictAll
   }
 
 }
@@ -110,32 +110,32 @@ class CachedServiceLimitsStore(underlying:ServiceLimitsStore,
 // All of these beans need to be serializable
 
 case class PairLimitKey(
-  @BeanProperty var domainName: String = null,
+  @BeanProperty var space: Long = -1L,
   @BeanProperty var pairKey: String = null,
   @BeanProperty var limitName: String = null) {
 
-  def this() = this(domainName = null)
+  def this() = this(space = -1L)
 
 }
 
 case class DomainLimitKey(
-  @BeanProperty var domainName: String = null,
+  @BeanProperty var space: Long = -1L,
   @BeanProperty var limitName: String = null) {
 
-  def this() = this(domainName = null)
+  def this() = this(space = -1L)
 }
 
 /**
  * Allows the key set to queried by the domain field.
  */
-case class PairLimitByDomainPredicate(@BeanProperty domainName:String) extends KeyPredicate[PairLimitKey] {
-  def this() = this(domainName = null)
-  def constrain(key: PairLimitKey) = key.domainName == domainName
+case class PairLimitByDomainPredicate(@BeanProperty var space: Long) extends KeyPredicate[PairLimitKey] {
+  def this() = this(space = -1L)
+  def constrain(key: PairLimitKey) = key.space == space
 }
 
-case class DomainLimitByDomainPredicate(@BeanProperty domainName:String) extends KeyPredicate[DomainLimitKey] {
-  def this() = this(domainName = null)
-  def constrain(key: DomainLimitKey) = key.domainName == domainName
+case class DomainLimitByDomainPredicate(@BeanProperty var space: Long) extends KeyPredicate[DomainLimitKey] {
+  def this() = this(space = -1L)
+  def constrain(key: DomainLimitKey) = key.space == space
 }
 
 

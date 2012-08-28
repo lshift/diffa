@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.differencing
 
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{Interval, DateTime}
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import reflect.BeanProperty
 
 /**
@@ -29,23 +29,23 @@ trait DomainDifferenceStore {
   /**
    * Indicates that the given domain has been removed, and that any differences stored against it should be removed.
    */
-  def removeDomain(domain: String)
+  def removeDomain(space:Long)
 
   /**
    * Indicates that the given pair has been removed, and that any differences stored against it should be removed.
    */
-  def removePair(pair: DiffaPairRef)
+  def removePair(pair: PairRef)
 
   /**
    * Retrieves the current sequence id of the cache
    */
-  def currentSequenceId(domain:String):String
+  def currentSequenceId(space:Long):String
 
   /**
    * Retrieves the maximum sequence id of all events within the current time range. If no events are available within
    * the given range, 0 is returned.
    */
-  def maxSequenceId(pair: DiffaPairRef, start:DateTime, end:DateTime) : Long
+  def maxSequenceId(pair: PairRef, start:DateTime, end:DateTime) : Long
 
   /**
    * Adds a pending event for the given version id into the cache.
@@ -81,60 +81,60 @@ trait DomainDifferenceStore {
    * Indicates that the given event should be ignored, and not returned in any query. Returns the regenerated object
    * that is marked as ignored.
    */
-  def ignoreEvent(domain:String, seqId:String): DifferenceEvent
+  def ignoreEvent(space:Long, seqId:String): DifferenceEvent
 
   /**
    * Indicates that the given event should no longer be ignored. The event with the given sequence id will be removed,
    * and a new event with the same details generated - this ensures that consumers that are monitoring for updates will
    * see a new sequence id appear.
    */
-  def unignoreEvent(domain:String, seqId:String): DifferenceEvent
+  def unignoreEvent(space:Long, seqId:String): DifferenceEvent
 
   /**
    * Returns the last correlation version that was transferred to the diffs store
    */
-  def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
+  def lastRecordedVersion(pair:PairRef) : Option[Long]
 
   /**
    * Registers the latest correlation store version with the diff store.
    */
-  def recordLatestVersion(pair:DiffaPairRef, version:Long)
+  def recordLatestVersion(pair:PairRef, version:Long)
 
   /**
    * Retrieves all unmatched events in the domain that have been added to the cache where their detection timestamp
    * falls within the specified period
    */
-  def retrieveUnmatchedEvents(domain:String, interval:Interval) : Seq[DifferenceEvent]
+  def retrieveUnmatchedEvents(space:Long, interval:Interval) : Seq[DifferenceEvent]
 
   /**
    * Streams all unmatched events for the given pair to a provided handler.
    */
-  def streamUnmatchedEvents(pairRef:DiffaPairRef, handler:(ReportedDifferenceEvent) => Unit)
+  def streamUnmatchedEvents(pairRef:PairRef, handler:(ReportedDifferenceEvent) => Unit)
 
   /**
    * Retrieves all unmatched events that have been added to the cache that have a detection time within the specified
    * interval. The result return a range of the underlying data set that corresponds to the offset and length
    * supplied.
    */
-  def retrievePagedEvents(pair: DiffaPairRef, interval:Interval, offset:Int, length:Int, options:EventOptions = EventOptions()) : Seq[DifferenceEvent]
+  def retrievePagedEvents(pair: PairRef, interval:Interval, offset:Int, length:Int, options:EventOptions = EventOptions()) : Seq[DifferenceEvent]
 
   /**
    * Count the number of unmatched events for the given pair within the given interval.
    */
-  def countUnmatchedEvents(pair: DiffaPairRef, start:DateTime, end:DateTime) : Int
+  def countUnmatchedEvents(pair: PairRef, start:DateTime, end:DateTime) : Int
 
   /**
    * Retrieves a single event by its id.
    * @param evtSeqId sequence id of the event to be retrieved.
    * @throws InvalidSequenceNumberException if the requested sequence id does not exist or has expired.
    */
-  def getEvent(domain:String, evtSeqId:String) : DifferenceEvent
+  def getEvent(space:Long, evtSeqId:String) : DifferenceEvent
 
   /**
    * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
    * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
    */
-  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile]
+  def retrieveAggregates(pair:PairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile]
 
   /**
    * Indicates that matches older than the given cutoff (based on their seen timestamp) should be removed.
@@ -155,7 +155,7 @@ trait DomainDifferenceStore {
   /**
    * Clears any scheduled escalations for all differences in the given pair.
    */
-  def unscheduleEscalations(pair:DiffaPairRef)
+  def unscheduleEscalations(pair:PairRef)
 }
 
 case class TileGroup(

@@ -17,7 +17,7 @@ package net.lshift.diffa.kernel.indexing
 
 import net.lshift.diffa.kernel.events.VersionID
 import org.apache.lucene.document.Document
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 import net.lshift.diffa.kernel.differencing.Correlation
 import net.lshift.diffa.kernel.differencing.Correlation._
 import collection.mutable.HashMap
@@ -61,12 +61,13 @@ object LuceneVersionCorrelationHandler {
     }
   })
 
-  def docToCorrelation(doc:Document, pair:DiffaPairRef) : Correlation = docToCorrelation(doc,pair.key,pair.domain)
-  def docToCorrelation(doc:Document, id:VersionID) : Correlation = docToCorrelation(doc,id.pair.key,id.pair.domain)
+  def docToCorrelation(doc:Document, pair:PairRef) : Correlation = docToCorrelation(doc, pair.name,pair.space)
+  def docToCorrelation(doc:Document, id:VersionID) : Correlation = docToCorrelation(doc,id.pair.name,id.pair.space)
 
-  def docToCorrelation(doc:Document, pairKey:String, domain:String) = {
+  def docToCorrelation(doc:Document, pairKey:String, space:Long) = {
     Correlation(
-      pairing = pairKey, domain = domain,
+      pairing = pairKey,
+      space = space,
       id = doc.get("id"),
       upstreamAttributes = findAttributes(doc, "up."),
       downstreamAttributes = findAttributes(doc, "down."),

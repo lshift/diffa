@@ -38,7 +38,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity
 /**
  * Abstract super class to create RESTful clients for usage within the agent.
  */
-abstract class InternalRestClient(pair: DiffaPairRef,
+abstract class InternalRestClient(pair: PairRef,
                                   url: String,
                                   serviceLimitsView: PairServiceLimitsView,
                                   credentialsLookup:DomainCredentialsLookup) {
@@ -57,7 +57,7 @@ abstract class InternalRestClient(pair: DiffaPairRef,
   protected def maybeAuthenticate(prepareRequest:Option[QueryParameterCredentials] => HttpUriRequest) = {
     val httpClient = createHttpClient(new BasicHttpParams)
 
-    val request = credentialsLookup.credentialsForUri(pair.domain, uri) match {
+    val request = credentialsLookup.credentialsForUri(pair.space, uri) match {
       case None        => prepareRequest(None)
       case Some(creds) => creds match {
         case query:QueryParameterCredentials  => prepareRequest(Some(query))
@@ -113,7 +113,7 @@ abstract class InternalRestClient(pair: DiffaPairRef,
   }
 
   protected def zeroIfUnlimited(limit: ServiceLimit) = {
-    serviceLimitsView.getEffectiveLimitByNameForPair(pair.domain, pair.key, limit) match {
+    serviceLimitsView.getEffectiveLimitByNameForPair(pair.space, pair.name, limit) match {
       case Unlimited.value => 0
       case timeout         => timeout
     }

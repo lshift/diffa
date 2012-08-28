@@ -28,8 +28,6 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import scala.Some
 import net.lshift.diffa.kernel.frontend.EndpointDef
-import net.lshift.diffa.kernel.frontend.EscalationDef
-import net.lshift.diffa.kernel.frontend.PairReportDef
 import net.lshift.diffa.kernel.util.MissingObjectException
 
 class CachedDomainConfigStoreTest {
@@ -38,18 +36,11 @@ class CachedDomainConfigStoreTest {
   val hm = E4.createNiceMock(classOf[HookManager])
   val ml = createStrictMock(classOf[DomainMembershipAware])
 
-  val sc = E4.createNiceMock(classOf[SpacePathCache])
-
   val cp = new HazelcastCacheProvider
 
-  val spacePathCache = E4.createStrictMock(classOf[SpacePathCache])
-
-  expect(spacePathCache.resolveSpacePathOrDie("domain")).andStubReturn(Space(id = -1))
-  expect(spacePathCache.doesDomainExist("domain")).andStubReturn(true)
-
-  E4.replay(spacePathCache)
-
-  val domainConfig = new JooqDomainConfigStore(jooq, hm, cp, ml, spacePathCache)
+  val domainConfig = new JooqDomainConfigStore(jooq, hm, cp, ml)
+  
+  val spaceId = System.currentTimeMillis()
 
   @Before
   def resetCaches {
@@ -69,10 +60,10 @@ class CachedDomainConfigStoreTest {
 
     // The first call to get maybeConfigOption should propagate against the DB, but the second call will be cached
 
-    val firstCall = domainConfig.listDomainMembers("domain")
+    val firstCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, firstCall)
 
-    val secondCall = domainConfig.listDomainMembers("domain")
+    val secondCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, secondCall)
 
     E4.verify(jooq)
@@ -86,13 +77,14 @@ class CachedDomainConfigStoreTest {
 
     members.remove("m1")
     expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("domain").once() // resolveSpaceName is deprecated, BTW
     expect(jooq.execute(anyObject[Function1[Factory,java.util.List[String]]]())).andReturn(members).once()
 
     E4.replay(jooq)
 
-    domainConfig.removeDomainMembership("domain", "m1")
+    domainConfig.removeDomainMembership(spaceId, "m1")
 
-    val thirdCall = domainConfig.listDomainMembers("domain")
+    val thirdCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, thirdCall)
 
     E4.verify(jooq)
@@ -106,13 +98,14 @@ class CachedDomainConfigStoreTest {
 
     members.remove("m3")
     expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
+    expect(jooq.execute(anyObject[Function1[Factory,String]]())).andReturn("domain").once() // resolveSpaceName is deprecated, BTW
     expect(jooq.execute(anyObject[Function1[Factory,java.util.List[String]]]())).andReturn(members).once()
 
     E4.replay(jooq)
 
-    domainConfig.makeDomainMember("domain", "m3")
+    domainConfig.makeDomainMember(spaceId, "m3")
 
-    val fourthCall = domainConfig.listDomainMembers("domain")
+    val fourthCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, fourthCall)
 
     E4.verify(jooq)
@@ -127,10 +120,10 @@ class CachedDomainConfigStoreTest {
 
     // The first call to get maybeConfigOption should propagate against the DB, but the second call will be cached
 
-    val firstCall = domainConfig.maybeConfigOption("domain", "key")
+    val firstCall = domainConfig.maybeConfigOption(spaceId, "key")
     assertEquals(Some("firstValue"), firstCall)
 
-    val secondCall = domainConfig.maybeConfigOption("domain", "key")
+    val secondCall = domainConfig.maybeConfigOption(spaceId, "key")
     assertEquals(Some("firstValue"), secondCall)
 
     E4.verify(jooq)
@@ -148,9 +141,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.clearConfigOption("domain", "key")
+    domainConfig.clearConfigOption(spaceId, "key")
 
-    val thirdCall = domainConfig.maybeConfigOption("domain", "key")
+    val thirdCall = domainConfig.maybeConfigOption(spaceId, "key")
     assertEquals(None, thirdCall)
 
     E4.verify(jooq)
@@ -167,9 +160,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.setConfigOption("domain", "key", "secondValue")
+    domainConfig.setConfigOption(spaceId, "key", "secondValue")
 
-    val fourthCall = domainConfig.maybeConfigOption("domain", "key")
+    val fourthCall = domainConfig.maybeConfigOption(spaceId, "key")
     assertEquals(Some("secondValue"), fourthCall)
 
     E4.verify(jooq)
@@ -189,10 +182,10 @@ class CachedDomainConfigStoreTest {
 
     // The first call to get allConfigOptions should propagate against the DB, but the second call will be cached
 
-    val firstCall = domainConfig.allConfigOptions("domain")
+    val firstCall = domainConfig.allConfigOptions(spaceId)
     assertEquals(opts.toMap, firstCall)
 
-    val secondCall = domainConfig.allConfigOptions("domain")
+    val secondCall = domainConfig.allConfigOptions(spaceId)
     assertEquals(opts.toMap, secondCall)
 
     E4.verify(jooq)
@@ -210,9 +203,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.clearConfigOption("domain", "k1")
+    domainConfig.clearConfigOption(spaceId, "k1")
 
-    val thirdCall = domainConfig.allConfigOptions("domain")
+    val thirdCall = domainConfig.allConfigOptions(spaceId)
     assertEquals(opts.toMap, thirdCall)
 
     E4.verify(jooq)
@@ -230,9 +223,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.setConfigOption("domain", "k3", "v3")
+    domainConfig.setConfigOption(spaceId, "k3", "v3")
 
-    val fourthCall = domainConfig.allConfigOptions("domain")
+    val fourthCall = domainConfig.allConfigOptions(spaceId)
     assertEquals(opts.toMap, fourthCall)
 
     E4.verify(jooq)
@@ -252,10 +245,10 @@ class CachedDomainConfigStoreTest {
 
     // The first call to get getEndpointDef should propagate against the DB, but the second call will be cached
 
-    val firstCall = domainConfig.getEndpointDef("domain", "a")
+    val firstCall = domainConfig.getEndpointDef(spaceId, "a")
     assertEquals(originalEndpoint.withoutDomain(), firstCall)
 
-    val secondCall = domainConfig.getEndpointDef("domain", "a")
+    val secondCall = domainConfig.getEndpointDef(spaceId, "a")
     assertEquals(originalEndpoint.withoutDomain(), secondCall)
 
     E4.verify(jooq)
@@ -273,10 +266,10 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.deleteEndpoint("domain", "a")
+    domainConfig.deleteEndpoint(spaceId, "a")
 
     try {
-      domainConfig.getEndpointDef("domain", "a")
+      domainConfig.getEndpointDef(spaceId, "a")
       fail("Should have thrown a MissingObjectException")
     }
     catch {
@@ -302,9 +295,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.createOrUpdateEndpoint("domain", modifiedEndpoint.withoutDomain())
+    domainConfig.createOrUpdateEndpoint(spaceId, modifiedEndpoint.withoutDomain())
 
-    val fourthCall = domainConfig.getEndpointDef("domain", "a")
+    val fourthCall = domainConfig.getEndpointDef(spaceId, "a")
     assertEquals(modifiedEndpoint.withoutDomain(), fourthCall)
 
     E4.verify(jooq)
@@ -323,10 +316,10 @@ class CachedDomainConfigStoreTest {
 
     // The first call to get listEndpoints should propagate against the DB, but the second call will be cached
 
-    val firstCall = domainConfig.listEndpoints("domain")
+    val firstCall = domainConfig.listEndpoints(spaceId)
     assertEquals(endpoints.map(_.withoutDomain()), firstCall)
 
-    val secondCall = domainConfig.listEndpoints("domain")
+    val secondCall = domainConfig.listEndpoints(spaceId)
     assertEquals(endpoints.map(_.withoutDomain()), secondCall)
 
     E4.verify(jooq)
@@ -345,9 +338,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.deleteEndpoint("domain", "a")
+    domainConfig.deleteEndpoint(spaceId, "a")
 
-    val thirdCall = domainConfig.listEndpoints("domain")
+    val thirdCall = domainConfig.listEndpoints(spaceId)
     assertEquals(endpoints.map(_.withoutDomain()), thirdCall)
 
     E4.verify(jooq)
@@ -366,9 +359,9 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.createOrUpdateEndpoint("domain", EndpointDef(name = "c"))
+    domainConfig.createOrUpdateEndpoint(spaceId, EndpointDef(name = "c"))
 
-    val fourthCall = domainConfig.listEndpoints("domain")
+    val fourthCall = domainConfig.listEndpoints(spaceId)
     assertEquals(endpoints.map(_.withoutDomain()), fourthCall)
 
     E4.verify(jooq)
@@ -378,7 +371,7 @@ class CachedDomainConfigStoreTest {
   @Test
   def shouldCacheIndividualPairDefs {
 
-    val pair = DomainPairDef(key = "pair", domain = "domain")
+    val pair = DomainPairDef(key = "pair", space = spaceId)
     expect(jooq.execute(anyObject[Function1[Factory,DomainPairDef]]())).andReturn(pair).once()
 
     E4.replay(jooq)
@@ -395,16 +388,16 @@ class CachedDomainConfigStoreTest {
   @Test
   def shouldCacheListingPairDefs = {
 
-    val pair1 = DomainPairDef(key = "pair1", domain = "domain")
-    val pair2 = DomainPairDef(key = "pair2", domain = "domain")
+    val pair1 = DomainPairDef(key = "pair1", space = spaceId)
+    val pair2 = DomainPairDef(key = "pair2", space = spaceId)
     expect(jooq.execute(anyObject[Function1[Factory,Seq[DomainPairDef]]]())).andReturn(Seq(pair1, pair2)).once()
 
     E4.replay(jooq)
 
-    val firstCall = domainConfig.listPairs("domain")
+    val firstCall = domainConfig.listPairs(spaceId)
     assertEquals(Seq(pair1, pair2), firstCall)
 
-    val secondCall = domainConfig.listPairs("domain")
+    val secondCall = domainConfig.listPairs(spaceId)
     assertEquals(Seq(pair1, pair2), secondCall)
 
     E4.verify(jooq)
@@ -413,16 +406,16 @@ class CachedDomainConfigStoreTest {
   @Test
   def shouldCacheListingPairDefsByEndpoint = {
 
-    val pair1 = DomainPairDef(key = "pair1", domain = "domain")
-    val pair2 = DomainPairDef(key = "pair2", domain = "domain")
+    val pair1 = DomainPairDef(key = "pair1", space = spaceId)
+    val pair2 = DomainPairDef(key = "pair2", space = spaceId)
     expect(jooq.execute(anyObject[Function1[Factory,Seq[DomainPairDef]]]())).andReturn(Seq(pair1, pair2)).once()
 
     E4.replay(jooq)
 
-    val firstCall = domainConfig.listPairsForEndpoint("domain", "endpoint")
+    val firstCall = domainConfig.listPairsForEndpoint(spaceId, "endpoint")
     assertEquals(Seq(pair1, pair2), firstCall)
 
-    val secondCall = domainConfig.listPairsForEndpoint("domain", "endpoint")
+    val secondCall = domainConfig.listPairsForEndpoint(spaceId, "endpoint")
     assertEquals(Seq(pair1, pair2), secondCall)
 
     E4.verify(jooq)

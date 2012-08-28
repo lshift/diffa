@@ -49,17 +49,6 @@ object FrontendConversions {
 
   def toEndpointViewDef(v:EndpointView) = EndpointViewDef(name = v.name, categories = v.categories)
 
-  @Deprecated def toPairDef(p:DiffaPair) = PairDef(
-    key = p.key,
-    versionPolicyName = p.versionPolicyName,
-    matchingTimeout = p.matchingTimeout,
-    upstreamName = p.upstream,
-    downstreamName = p.downstream,
-    scanCronSpec = p.scanCronSpec,
-    scanCronEnabled = p.scanCronEnabled,
-    allowManualScans = p.allowManualScans,
-    views = p.views.map(v => toPairViewDef(v)).toList)
-
   def toPairDef(p:DomainPairDef) = PairDef(
     key = p.key,
     versionPolicyName = p.versionPolicyName,
@@ -74,7 +63,7 @@ object FrontendConversions {
   @Deprecated
   def toPairViewDef(v:PairView) = PairViewDef(name = v.name, scanCronSpec = v.scanCronSpec, scanCronEnabled = v.scanCronEnabled)
 
-  def fromPairViewDef(p:DiffaPair, v:PairViewDef) = {
+  def fromPairViewDef(p:PairRef, v:PairViewDef) = {
     val result = PairView(name = v.name, scanCronSpec = v.scanCronSpec, scanCronEnabled = v.scanCronEnabled)
     result.pair = p
     result
@@ -86,7 +75,7 @@ object FrontendConversions {
     scope = a.scope
   )
 
-  def fromRepairActionDef(pair:DiffaPair, a:RepairActionDef) = RepairAction(
+  def fromRepairActionDef(pair:PairRef, a:RepairActionDef) = RepairAction(
     name = a.name,
     url = a.url,
     scope = a.scope,
@@ -99,7 +88,7 @@ object FrontendConversions {
     target = r.target
   )
 
-  def fromPairReportDef(pair:DiffaPair,r:PairReportDef) = PairReport(
+  def fromPairReportDef(pair:PairRef,r:PairReportDef) = PairReport(
     name = r.name,
     pair = pair,
     reportType = r.reportType,

@@ -21,7 +21,7 @@ import javax.ws.rs.core.Response
 import net.lshift.diffa.kernel.frontend.Configuration
 import javax.ws.rs._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.util.AlertCodes._
 
@@ -29,7 +29,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
                        val config:Configuration,
                        val domainConfigStore:DomainConfigStore,
                        val diagnostics:DiagnosticsManager,
-                       val domain:String,
+                       val space:Long,
                        val currentUser:String) {
 
   private val log: Logger = LoggerFactory.getLogger(getClass)
@@ -37,7 +37,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @GET
   @Path("/states")
   def getAllPairStates = {
-    val states = diagnostics.retrievePairScanStatesForDomain(domain)
+    val states = diagnostics.retrievePairScanStatesForDomain(space)
     Response.ok(scala.collection.JavaConversions.mapAsJavaMap(states)).build
   }
 
@@ -45,11 +45,11 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @Path("/pairs/{pairKey}/scan")
   def startScan(@PathParam("pairKey") pairKey:String, @FormParam("view") view:String) = {
 
-    val ref = DiffaPairRef(pairKey, domain)
+    val ref = PairRef(pairKey, space)
 
     val pair = domainConfigStore.getPairDef(ref)
-    val up = domainConfigStore.getEndpointDef(domain, pair.upstreamName)
-    val down = domainConfigStore.getEndpointDef(domain, pair.downstreamName)
+    val up = domainConfigStore.getEndpointDef(space, pair.upstreamName)
+    val down = domainConfigStore.getEndpointDef(space, pair.downstreamName)
 
     if (!up.supportsScanning && !down.supportsScanning) {
 
@@ -59,7 +59,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
     }
     else {
 
-      val infoString = formatAlertCode(domain, pairKey, API_SCAN_STARTED) + " scan initiated by " + currentUser
+      val infoString = formatAlertCode(space, pairKey, API_SCAN_STARTED) + " scan initiated by " + currentUser
       val message = if (view != null) {
         infoString + " for " + view + " view"
       } else {
@@ -77,7 +77,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @DELETE
   @Path("/pairs/{pairKey}/scan")
   def cancelScanning(@PathParam("pairKey") pairKey:String) = {
-    pairPolicyClient.cancelScans(DiffaPairRef(pairKey, domain))
+    pairPolicyClient.cancelScans(PairRef(pairKey, space))
     Response.status(Response.Status.OK).build
   }
 

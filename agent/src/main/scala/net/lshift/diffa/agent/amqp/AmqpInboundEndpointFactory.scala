@@ -33,11 +33,11 @@ class AmqpInboundEndpointFactory(changes: Changes)
       ConnectionKey(host = url.host, port = url.port, username = url.username, password = url.password, vHost = url.vHost)
   }
 
-  case class ReceiverKey(domain: String, endpoint: String)
+  case class ReceiverKey(space: Long, endpoint: String)
 
   object ReceiverKey {
     def fromEndpoint(e: DomainEndpointDef) =
-      ReceiverKey(domain = e.domain, endpoint = e.name)
+      ReceiverKey(space = e.space, endpoint = e.name)
   }
 
   class Receivers(val connection: AccentConnection,
@@ -62,8 +62,8 @@ class AmqpInboundEndpointFactory(changes: Changes)
                         createReceiver(receiversForUrl.connection, amqpUrl.queue, receiverKey))
   }
 
-  def endpointGone(domain: String, endpoint: String) {
-    val key = ReceiverKey(domain, endpoint)
+  def endpointGone(space:Long, endpoint: String) {
+    val key = ReceiverKey(space, endpoint)
     
     getReceiversByKey(key) match {
       case None =>
@@ -110,7 +110,7 @@ class AmqpInboundEndpointFactory(changes: Changes)
     val params = new ReceiverParameters(queue)
     new AccentReceiver(connection,
                        params,
-                       key.domain,
+                       key.space,
                        key.endpoint,
                        changes)
   }

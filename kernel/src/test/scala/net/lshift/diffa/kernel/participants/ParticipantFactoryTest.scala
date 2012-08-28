@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.correlation.ProcessingResponse
 import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
+import net.lshift.diffa.kernel.config.{PairRef, Endpoint}
 
 /**
  * Test cases for the participant factory.
@@ -34,7 +34,7 @@ import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
 class ParticipantFactoryTest {
   import ParticipantFactoryTest._
 
-  val pair = DiffaPairRef("foo","bar")
+  val pair = PairRef("foo", System.currentTimeMillis())
 
   private val scanning1 = createStrictMock("scanning1", classOf[ScanningParticipantFactory])
   private val scanning2 = createStrictMock("scanning2", classOf[ScanningParticipantFactory])

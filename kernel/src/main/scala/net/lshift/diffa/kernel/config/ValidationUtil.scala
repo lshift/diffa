@@ -101,6 +101,24 @@ object ValidationUtil {
   }
 
   /**
+   * Validates that the given (REST) path segment has the correct format.
+   *
+   * Returns true if the domain name contains alphanumeric, _ or - only,
+   * and starts and ends with an alphanumeric.
+   *
+   * Throws ConfigValidationException otherwise.
+   */
+  def ensurePathSegmentFormat(path: String,  segment: String): Boolean = {
+    requiredAndNotEmpty(path, "Path segment", segment)
+    ensureLengthLimit(path, "Path segment", segment, 50)
+    if (!segment.matches("(?i)[a-z0-9]([a-z0-9_-]*[a-z0-9])?")) {
+      throw new ConfigValidationException(path, "Path segment %s is invalid, must begin and end with an alphanumeric and contain alphanumeric, _ or -".format(segment))
+    }
+
+    return true
+  }
+
+  /**
    * Turns an empty string into a null string. This prevents issues whereby empty strings provided by the web
    * interface look like incorrect values instead of missing ones.
    */

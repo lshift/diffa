@@ -32,7 +32,7 @@ import net.lshift.diffa.kernel.config._
 /**
  * JSON/REST versioning participant client.
  */
-class VersioningParticipantRestClient(pair: DiffaPairRef,
+class VersioningParticipantRestClient(pair: PairRef,
                                       scanUrl: String,
                                       serviceLimitsView: PairServiceLimitsView,
                                       credentialsLookup:DomainCredentialsLookup)

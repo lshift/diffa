@@ -27,23 +27,23 @@ import net.lshift.diffa.kernel.differencing.EntityValidator
 /**
  * Resource allowing participants to provide details of changes that have occurred.
  */
-class ChangesResource(changes:Changes, domain:String, rateLimiterFactory: DomainRateLimiterFactory,
+class ChangesResource(changes:Changes, space:Long, rateLimiterFactory: DomainRateLimiterFactory,
                       validator: ScanEntityValidator) {
 
-  def this(changes:Changes, domain:String, rateLimiterFactory: DomainRateLimiterFactory) =
-    this(changes, domain, rateLimiterFactory, EntityValidator)
+  def this(changes:Changes, space:Long, rateLimiterFactory: DomainRateLimiterFactory) =
+    this(changes, space, rateLimiterFactory, EntityValidator)
   @POST
   @Path("/{endpoint}")
   @Consumes(Array("application/json"))
   def submitChange(@PathParam("endpoint") endpoint: String, e:ChangeEvent) = {
     val limiter = ServiceLimiterRegistry.get(
-      ServiceLimiterKey(ChangeEventRate, Some(domain), None),
-      () => rateLimiterFactory.createRateLimiter(domain))
+      ServiceLimiterKey(ChangeEventRate, Some(space), None),
+      () => rateLimiterFactory.createRateLimiter(space))
 
     val responseBuilder = if (limiter.accept()) {
       try {
         validator.process(e)
-        changes.onChange(domain, endpoint, e)
+        changes.onChange(space, endpoint, e)
         Response.status(Response.Status.ACCEPTED)
       } catch {
         case e: InvalidEntityException => Response.status(400).entity(e.getMessage + "\n")

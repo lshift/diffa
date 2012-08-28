@@ -20,30 +20,27 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.{SecurityRestClient, SystemConfigRestClient, ConfigurationRestClient, UsersRestClient}
 import org.junit.{Before, Test}
 import org.junit.Assert._
-import com.eaio.uuid.UUID
 import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
-import net.lshift.diffa.kernel.config.DiffaPairRef
 import net.lshift.diffa.kernel.frontend.{DomainPairDef,UserDef,EndpointDef,DomainDef}
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import org.apache.commons.lang3.RandomStringUtils
 
-class UserPreferencesTest {
-  val domain = new UUID().toString
-
+class UserPreferencesTest extends IsolatedDomainTest {
+  
   val rootUserPreferencesClient = new UsersRestClient(agentURL, agentUsername)
-  val systemConfigClient = new SystemConfigRestClient(agentURL)
-  val defaultDomainConfigClient = new ConfigurationRestClient(agentURL, defaultDomain)
-  val configClient = new ConfigurationRestClient(agentURL, domain)
-
+  val defaultDomainConfigClient = new ConfigurationRestClient(agentURL, isolatedDomain)
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
   val securityClient = new SecurityRestClient(agentURL)
-  val upstream = EndpointDef(name = new UUID().toString)
-  val downstream = EndpointDef(name = new UUID().toString)
 
-  val pair = DomainPairDef(key = new UUID().toString,
-                           domain = domain,
+  val upstream = EndpointDef(name = RandomStringUtils.randomAlphanumeric(10))
+  val downstream = EndpointDef(name = RandomStringUtils.randomAlphanumeric(10))
+
+  val pair = DomainPairDef(key = RandomStringUtils.randomAlphanumeric(10),
+                           domain = isolatedDomain,
                            upstreamName = upstream.name,
                            downstreamName = downstream.name)
   @Before
   def createTestData {
-    systemConfigClient.declareDomain(DomainDef(name = domain))
 
     configClient.declareEndpoint(upstream)
     configClient.declareEndpoint(downstream)
@@ -53,7 +50,7 @@ class UserPreferencesTest {
   @Test
   def nonRootUserShouldBeAbleToModifyOwnDomainSettingsWhenMemberOfADomain {
 
-    val nonRootUser = UserDef(name = new UUID().toString,superuser = false, external = true)
+    val nonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10),superuser = false, external = true)
     securityClient.declareUser(nonRootUser)
     configClient.makeDomainMember(nonRootUser.name)
 
@@ -63,13 +60,13 @@ class UserPreferencesTest {
     // This attempts to access a particular user's settings when authenticated as that particular user
 
     val nonRootUserPreferencesClient = new UsersRestClient(agentURL, nonRootUser.name, invokingCreds)
-    nonRootUserPreferencesClient.createFilter(pair.asRef, FilteredItemType.SWIM_LANE)
+    nonRootUserPreferencesClient.createFilter(pair.domain, pair.key, FilteredItemType.SWIM_LANE)
   }
 
   @Test(expected = classOf[AccessDeniedException])
   def nonRootUserShouldNotBeAbleToModifyOwnUserSettingsWhenNotMemberOfADomain {
 
-    val nonRootUser = UserDef(name = new UUID().toString,superuser = false, external = true)
+    val nonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10),superuser = false, external = true)
     securityClient.declareUser(nonRootUser)
 
     val token = securityClient.getUserToken(nonRootUser.name)
@@ -79,15 +76,15 @@ class UserPreferencesTest {
     // but they are not a member of the target domain
 
     val nonRootUserPreferencesClient = new UsersRestClient(agentURL, nonRootUser.name, invokingCreds)
-    nonRootUserPreferencesClient.createFilter(pair.asRef, FilteredItemType.SWIM_LANE)
+    nonRootUserPreferencesClient.createFilter(pair.domain, pair.key, FilteredItemType.SWIM_LANE)
   }
 
 
   @Test(expected = classOf[AccessDeniedException])
   def nonRootUserShouldNotBeAbleToModifyOtherUsersDomainSettingsWhenMemberOfSameDomain {
 
-    val nonRootUser = UserDef(name = new UUID().toString, superuser = false, external = true)
-    val otherNonRootUser = UserDef(name = new UUID().toString, superuser = false, external = true)
+    val nonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10), superuser = false, external = true)
+    val otherNonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10), superuser = false, external = true)
 
     securityClient.declareUser(nonRootUser)
     securityClient.declareUser(otherNonRootUser)
@@ -101,25 +98,24 @@ class UserPreferencesTest {
     // who is a member of the same domain
 
     val nonRootUserPreferencesClient = new UsersRestClient(agentURL, otherNonRootUser.name, invokingCreds)
-    nonRootUserPreferencesClient.createFilter(pair.asRef, FilteredItemType.SWIM_LANE)
+    nonRootUserPreferencesClient.createFilter(pair.domain, pair.key, FilteredItemType.SWIM_LANE)
   }
 
   @Test
   def whenDefaultSystemUserAddsAnItemFilterToPairInDefaultDomainTheFilterShouldExist {
-    // Given
-    val pairInDefaultDomain = DiffaPairRef(domain = defaultDomain, key = pair.getKey)
 
     defaultDomainConfigClient.declareEndpoint(upstream)
     defaultDomainConfigClient.declareEndpoint(downstream)
     defaultDomainConfigClient.declarePair(pair.withoutDomain)
 
     // When
-    rootUserPreferencesClient.createFilter(pairInDefaultDomain, FilteredItemType.SWIM_LANE)
+    configClient.makeDomainMember("guest") // Even the system user must be an explicit member of a space
+    rootUserPreferencesClient.createFilter(isolatedDomain, pair.getKey(), FilteredItemType.SWIM_LANE)
 
     // Then (assumes that no other filter items have been configured for the default system user.
-    assertEquals(pair.getKey(), rootUserPreferencesClient.getFilteredItems(defaultDomain, FilteredItemType.SWIM_LANE).head)
+    assertEquals(pair.getKey(), rootUserPreferencesClient.getFilteredItems(isolatedDomain, FilteredItemType.SWIM_LANE).head)
 
     // Test-specific cleanup
-    rootUserPreferencesClient.removeFilter(pairInDefaultDomain, FilteredItemType.SWIM_LANE)
+    rootUserPreferencesClient.removeFilter(isolatedDomain, pair.getKey(), FilteredItemType.SWIM_LANE)
   }
 }

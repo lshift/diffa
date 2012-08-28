@@ -24,21 +24,22 @@ import net.lshift.diffa.agent.client.{ConfigurationRestClient, SecurityRestClien
 import net.lshift.diffa.kernel.frontend.{UserDef, DomainDef}
 import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
 import com.sun.jersey.api.client.UniformInterfaceException
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import org.apache.commons.lang3.RandomStringUtils
 
 /**
  * Tests whether domain membership admin is accessible via the REST API
  */
-class MembershipTest {
+class MembershipTest extends IsolatedDomainTest {
 
-  val username = new UUID().toString
+  val username = RandomStringUtils.randomAlphabetic(10)
   val email = username + "@test.diffa.io"
-  val domain = DomainDef(name = new UUID().toString)
   val password = "foo"
 
   val systemConfigClient = new SystemConfigRestClient(agentURL)
   val securityClient = new SecurityRestClient(agentURL)
-  val configClient = new ConfigurationRestClient(agentURL, domain.name)
-  val userConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some(password)))
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
+  val userConfigClient = new ConfigurationRestClient(agentURL, isolatedDomain, RestClientParams(username = Some(username), password = Some(password)))
 
   @Test
   def shouldBeAbleToManageDomainMembership = {
@@ -48,7 +49,7 @@ class MembershipTest {
       val isMember = members.toSeq.find(m => m == username).isDefined
       assertEquals(expectation, isMember)
     }
-    systemConfigClient.declareDomain(domain)
+
     securityClient.declareUser(UserDef(username,email,false,password))
 
     configClient.makeDomainMember(username)
@@ -61,11 +62,11 @@ class MembershipTest {
 
   @Test
   def shouldBeAbleToListDomainsUserIsAMemberOf() = {
-    systemConfigClient.declareDomain(domain)
+
     securityClient.declareUser(UserDef(username, email, false, password))
     configClient.makeDomainMember(username)
 
-    assertEquals(List(domain), securityClient.getMembershipDomains(username).toList)
+    assertEquals(List(isolatedDomain), securityClient.getMembershipDomains(username).map(d => d.name).toList)
 
     configClient.removeDomainMembership(username)
 
@@ -74,7 +75,7 @@ class MembershipTest {
 
   @Test(expected = classOf[AccessDeniedException])
   def shouldNotBeAbleToAccessDomainConfigurationWhenNotADomainMember() {
-    systemConfigClient.declareDomain(domain)
+
     securityClient.declareUser(UserDef(username,email,false,password))
     configClient.removeDomainMembership(username)   // Ensure the user isn't a domain member
     userConfigClient.listDomainMembers
@@ -82,7 +83,7 @@ class MembershipTest {
 
   @Test
   def shouldBeAbleToAccessDomainConfigurationWhenDomainMember() {
-    systemConfigClient.declareDomain(domain)
+
     securityClient.declareUser(UserDef(username,email,false,password))
     configClient.makeDomainMember(username)
     userConfigClient.listDomainMembers
@@ -97,7 +98,7 @@ class MembershipTest {
   def shouldNotBeAbleToAuthenticateWithExternalUser() {
     securityClient.declareUser(UserDef(name = username, email = email, external = true))
 
-    val noPasswordConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some("")))
+    val noPasswordConfigClient = new ConfigurationRestClient(agentURL, isolatedDomain, RestClientParams(username = Some(username), password = Some("")))
     try {
       noPasswordConfigClient.listDomainMembers
       fail("Should have thrown 401")
@@ -105,9 +106,9 @@ class MembershipTest {
       case ex:UniformInterfaceException => assertEquals(401, ex.getResponse.getStatus)
     }
 
-    val dummyPasswordConfigClient = new ConfigurationRestClient(agentURL, domain.name, RestClientParams(username = Some(username), password = Some("abcdef")))
+    val dummyPasswordConfigClient = new ConfigurationRestClient(agentURL, isolatedDomain, RestClientParams(username = Some(username), password = Some("abcdef")))
     try {
-      noPasswordConfigClient.listDomainMembers
+      dummyPasswordConfigClient.listDomainMembers
       fail("Should have thrown 401")
     } catch {
       case ex:UniformInterfaceException => assertEquals(401, ex.getResponse.getStatus)

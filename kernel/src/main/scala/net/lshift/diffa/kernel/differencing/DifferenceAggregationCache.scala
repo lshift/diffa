@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.differencing
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import scala.collection.mutable.{Map => MutableMap}
 import org.joda.time.{DateTimeZone, Minutes, DateTime}
 import net.lshift.diffa.kernel.util.DateUtils
@@ -39,13 +39,13 @@ class DifferenceAggregationCache(diffStore:DomainDifferenceStore, cacheProvider:
   val sequenceCache = cacheProvider.getCachedMap[SequenceCacheKey, SequenceCacheValue]("difference.aggregation.sequences")
   val aggregateCache = cacheProvider.getCachedMap[AggregateCacheKey, AggregateCacheValue]("difference.aggregation.values")
 
-  def onStoreUpdate(pair:DiffaPairRef, detectionTime:DateTime) = {
+  def onStoreUpdate(pair:PairRef, detectionTime:DateTime) = {
     // Remove the stored sequence cache value for the given key
     val k = DifferenceAggregationCachePolicy.sequenceKeyForDetectionTime(pair, now, detectionTime)
     sequenceCache.evict(k)
   }
 
-  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] = {
+  def retrieveAggregates(pair:PairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] = {
     if (!DateUtils.safeIsBefore(start, end)) {
       throw new InvalidAggregateRequestException("start time must be before end time")
     }
@@ -67,7 +67,7 @@ class DifferenceAggregationCache(diffStore:DomainDifferenceStore, cacheProvider:
     aggregateCache.evictAll()
   }
 
-  def retrieveAggregate(pair:DiffaPairRef, start:DateTime, end:DateTime, session:MutableMap[SequenceCacheKey, SequenceCacheValue] = MutableMap()) = {
+  def retrieveAggregate(pair:PairRef, start:DateTime, end:DateTime, session:MutableMap[SequenceCacheKey, SequenceCacheValue] = MutableMap()) = {
     if (!DateUtils.safeIsBefore(start, end)) {
       throw new InvalidAggregateRequestException("start time must be before end time")
     }
@@ -121,7 +121,7 @@ class DifferenceAggregationCache(diffStore:DomainDifferenceStore, cacheProvider:
       map(d => (startTime.plusMinutes(d * aggregateMinutes), startTime.plusMinutes((d + 1) * aggregateMinutes)))
   }
 
-  private def retrieveSequenceCacheValue(pair:DiffaPairRef, start:DateTime, end:DateTime):SequenceCacheValue = {
+  private def retrieveSequenceCacheValue(pair:PairRef, start:DateTime, end:DateTime):SequenceCacheValue = {
     SequenceCacheValue(diffStore.maxSequenceId(pair, start, end), diffStore.countUnmatchedEvents(pair, start, end))
   }
 }
@@ -134,7 +134,7 @@ class InvalidAggregateRequestException(msg:String) extends RuntimeException(msg)
 /**
  * Key into the sequence cache for a time range on a given pair.
  */
-case class SequenceCacheKey(pair:DiffaPairRef, start:DateTime, end:DateTime)
+case class SequenceCacheKey(pair:PairRef, start:DateTime, end:DateTime)
 
 /**
  * Value stored in the sequence cache, representing the max sequence id found in the region along with the total
@@ -151,7 +151,7 @@ object SequenceCacheValue {
 /**
  * Key into the aggregate cache for a time range on a given pair.
  */
-case class AggregateCacheKey(pair:DiffaPairRef, start:DateTime, end:DateTime)
+case class AggregateCacheKey(pair:PairRef, start:DateTime, end:DateTime)
 
 /**
  * Value stored in the aggregate cache.

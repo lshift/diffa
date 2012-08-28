@@ -19,14 +19,14 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import javax.ws.rs.core.Response
 import javax.ws.rs._
 import net.lshift.diffa.kernel.frontend.Configuration
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
 /**
  * Resource providing REST-based access to diagnostic data.
  */
 class DiagnosticsResource(val diagnostics: DiagnosticsManager,
                           val config: Configuration,
-                          val domain:String) {
+                          val space:Long) {
 
 
   @GET
@@ -34,7 +34,7 @@ class DiagnosticsResource(val diagnostics: DiagnosticsManager,
   @Produces(Array("application/json"))
   def getPairStates(@PathParam("pairKey") pairKey: String, @QueryParam("maxItems") maxItems:java.lang.Integer): Response = {
     val actualMaxItems = if (maxItems == null) 20 else maxItems.intValue()
-    val pair = DiffaPairRef(pairKey,domain)
+    val pair = PairRef(pairKey,space)
     val events = diagnostics.queryEvents(pair, actualMaxItems)
     Response.ok(scala.collection.JavaConversions.seqAsJavaList(events)).build
   }

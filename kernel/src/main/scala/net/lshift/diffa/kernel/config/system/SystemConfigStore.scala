@@ -1,15 +1,5 @@
-package net.lshift.diffa.kernel.config.system
-
-import reflect.BeanProperty
-import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.frontend.{DomainEndpointDef, DomainPairDef, PairDef}
-import net.lshift.diffa.kernel.frontend.DomainEndpointDef
-import net.lshift.diffa.kernel.frontend.DomainPairDef
-import net.lshift.diffa.kernel.config.User
-import net.lshift.diffa.kernel.config.Member
-
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +14,56 @@ import net.lshift.diffa.kernel.config.Member
  * limitations under the License.
  */
 
+package net.lshift.diffa.kernel.config.system
+
+import net.lshift.diffa.kernel.config._
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
+import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.config.User
+import net.lshift.diffa.kernel.config.Member
+import net.lshift.diffa.kernel.util.MissingObjectException
+
+
 /**
  * This provides configuration options for the entire system and hence should only be
  * accessible to internally trusted components or external users with elevated privileges
  */
 trait SystemConfigStore {
 
-  def createOrUpdateDomain(domain: String)
-  def deleteDomain(name: String)
+  /**
+   * This creates a new space with the given path, delimited by forward slashes.
+   *
+   * If the path foo/bar/baz is requested, it will be assumed that the parent path foo/bar already exists.
+   *
+   * Note also that each path segment will be validated to make sure that it doesn't contain any illegal characters.
+   *
+   * @see ValidationUtil#ensurePathSegmentFormat
+   * @throws MissingObjectException If the parent space does not exist.
+   * @throws ConfigValidationException If any path segment contains invalid characters
+   */
+  def createOrUpdateSpace(path: String) : Space
+
+  /**
+   * Returns the complete subspace closure for a given parent space, including the parent. This returns a flat
+   * list of a subspace hierarchy that where the elements are ordered by descending tree depth.
+   *
+   * This allows callers to apply functions to an entire subspace tree recursively.
+   */
+  def listSubspaces(parent:Long) : Seq[Space]
+
+  @Deprecated def createOrUpdateDomain(domain: String)
+
+  //def deleteDomain(name: String)
+  def deleteSpace(id: Long)
   def doesDomainExist(name: String): Boolean
-  def listDomains : Seq[String]
-  
+
+  def doesSpaceExist(space: Long): Boolean
+
+  def lookupSpaceByPath(path: String) : Space
+
+  @Deprecated  def listDomains : Seq[String]
+  def listSpaces : Seq[Space]
+
   /**
    * Sets the given configuration option to the given value.
    * This option is marked as internal will not be returned by the allConfigOptions method. This allows

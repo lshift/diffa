@@ -24,14 +24,13 @@ import org.easymock.EasyMock._
 import org.easymock.classextension.{EasyMock => E4}
 import org.jooq.impl.Factory
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{Space, SpacePathCache, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{Space, PairRef}
 
 class CachedUserPreferencesStoreTest {
 
   val cacheProvider = new HazelcastCacheProvider
   val jooq = E4.createStrictMock(classOf[DatabaseFacade])
-  val spacePathCache = E4.createStrictMock(classOf[SpacePathCache])
-  val preferencesStore = new JooqUserPreferencesStore(jooq, cacheProvider, spacePathCache)
+  val preferencesStore = new JooqUserPreferencesStore(jooq, cacheProvider)
 
   @Before
   def clearCache = {
@@ -45,17 +44,16 @@ class CachedUserPreferencesStoreTest {
     pairs.add("pair")
 
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(pairs).once()
-    expect(spacePathCache.resolveSpacePathOrDie("domain")).andReturn(Space(id = 0L)).times(2)
 
-    E4.replay(jooq, spacePathCache)
+    E4.replay(jooq)
 
-    val firstCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val firstCall = preferencesStore.listFilteredItems(100L, "user", FilteredItemType.SWIM_LANE)
     assertEquals(pairs.toList, firstCall.toList)
 
-    val secondCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val secondCall = preferencesStore.listFilteredItems(100L, "user", FilteredItemType.SWIM_LANE)
     assertEquals(pairs.toList, secondCall.toList)
 
-    E4.verify(jooq, spacePathCache)
+    E4.verify(jooq)
   }
 
   @Test
@@ -68,8 +66,6 @@ class CachedUserPreferencesStoreTest {
     secondPairSet.add("p1")
     secondPairSet.add("p2")
 
-    expect(spacePathCache.resolveSpacePathOrDie("domain")).andReturn(Space(id = 0L)).times(3)
-
     // First read -> returns Set(p1)
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(firstPairSet).once()
     // Update the set with p2
@@ -78,16 +74,16 @@ class CachedUserPreferencesStoreTest {
     expect(jooq.execute(anyObject[Function1[Factory, java.util.Set[String]]]())).andReturn(secondPairSet).once()
 
 
-    E4.replay(jooq, spacePathCache)
+    E4.replay(jooq)
 
-    val firstCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val firstCall = preferencesStore.listFilteredItems(100L, "user", FilteredItemType.SWIM_LANE)
     assertEquals(firstPairSet.toList, firstCall.toList)
 
-    preferencesStore.createFilteredItem(DiffaPairRef("p2","domain"), "user", FilteredItemType.SWIM_LANE)
+    preferencesStore.createFilteredItem(PairRef("p2",100L), "user", FilteredItemType.SWIM_LANE)
 
-    val secondCall = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val secondCall = preferencesStore.listFilteredItems(100L, "user", FilteredItemType.SWIM_LANE)
     assertEquals(secondPairSet.toList, secondCall.toList)
 
-    E4.verify(jooq, spacePathCache)
+    E4.verify(jooq)
   }
 }

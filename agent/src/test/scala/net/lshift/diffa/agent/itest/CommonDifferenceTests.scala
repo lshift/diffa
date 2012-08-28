@@ -34,7 +34,8 @@ import java.util.{UUID, Properties}
 import org.joda.time.{DateTimeZone, DateTime}
 import net.lshift.diffa.kernel.differencing.ZoomLevels._
 import net.lshift.diffa.agent.rest.AggregateRequest
-import net.lshift.diffa.kernel.differencing.{InvalidAggregateRequestException, ZoomLevels, PairScanState, DifferenceEvent}
+import net.lshift.diffa.kernel.differencing._
+import scala.Some
 
 /**
  * Tests that can be applied to an environment to validate that differencing functionality works appropriately.
@@ -60,7 +61,7 @@ trait CommonDifferenceTests {
     }
   }
 
-  def getReport(from:DateTime, until:DateTime) : Array[DifferenceEvent]= {
+  def getReport(from:DateTime, until:DateTime) : Array[ExternalDifferenceEvent]= {
     runScanAndWaitForCompletion(yearAgo, today)
     env.diffClient.getEvents(env.pairKey, from, until, 0, 100)
   }
@@ -243,7 +244,7 @@ trait CommonDifferenceTests {
 
     val events = env.differencesHelper.pollForAllDifferences(yearAgo, nextYear)
     assertEquals(1, events.length)
-    assertEquals("def", events(0).objId.id)
+    assertEquals("def", events(0).entityId)
   }
 
   @Test

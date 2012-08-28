@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.actors
 
 import net.jcip.annotations.ThreadSafe
 import net.lshift.diffa.kernel.events.PairChangeEvent
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 import net.lshift.diffa.kernel.util.EndpointSide
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 
@@ -36,18 +36,18 @@ trait PairPolicyClient {
    * Requests that an inventory be initiated, to return the details of what operations need to be performed
    * to begin an inventory on this node.
    */
-  def startInventory(pair: DiffaPairRef, side: EndpointSide, view:Option[String]): Seq[ScanRequest]
+  def startInventory(pair: PairRef, side: EndpointSide, view:Option[String]): Seq[ScanRequest]
 
   /**
    * Submits an inventory of upstream entries for the given constrained space.
    */
-  def submitInventory(pair:DiffaPairRef, side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]): Seq[ScanRequest]
+  def submitInventory(pair:PairRef, side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]): Seq[ScanRequest]
 
   /**
    * Runs a replayUnmatchedDifferences report based on stored data for the given pair. Does not scan with the participants
    * beforehand - use <code>scanPair</code> to do the scan first.
    */
-  def difference(pairRef:DiffaPairRef)
+  def difference(pairRef:PairRef)
 
   /**
    * Scans the participants belonging to the given pair, then generates a different report.
@@ -55,11 +55,11 @@ trait PairPolicyClient {
    * concurrent operations to be submitted safely against the same pair concurrently.
    * @param scanView the view of the participants that should be used when running the scan.
    */
-  def scanPair(pair:DiffaPairRef, scanView:Option[String], initiatingUser:Option[String])
+  def scanPair(pair:PairRef, scanView:Option[String], initiatingUser:Option[String])
 
   /**
    * Cancels any scan operation that may be in process.
    * This is a blocking call, so it will only return after all current and pending scans have been cancelled.
    */
-  def cancelScans(pair:DiffaPairRef) : Boolean
+  def cancelScans(pair:PairRef) : Boolean
 }

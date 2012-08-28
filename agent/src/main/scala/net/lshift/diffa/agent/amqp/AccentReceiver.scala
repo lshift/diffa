@@ -34,7 +34,7 @@ import net.lshift.diffa.kernel.differencing.EntityValidator
  */
 class AccentReceiver(con: AccentConnection,
                      params:ReceiverParameters,
-                     domain:String,
+                     space:Long,
                      endpoint:String,
                      changes: Changes)
   extends AccentAwareComponent(con) with Consumer {
@@ -69,7 +69,7 @@ class AccentReceiver(con: AccentConnection,
           try {
 
             JSONHelper.readChangeEvents(new ByteArrayInputStream(body), EntityValidator).foreach(
-              changes.onChange(domain, endpoint, _)
+              changes.onChange(space, endpoint, _)
             )
 
             consumer.reliableAck(header.getDeliveryTag, false)

@@ -20,9 +20,8 @@ import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.config.Domain
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.frontend.SystemConfigListener
 
@@ -43,17 +42,17 @@ class NotificationCentreTest {
     nc.registerForDifferenceEvents(l2, Unfiltered)
     nc.registerForDifferenceEvents(l3, MatcherFiltered)
 
-    l1.onMatch(VersionID(DiffaPairRef("p","d"), "e"), "v", TriggeredByScan)
-    l2.onMatch(VersionID(DiffaPairRef("p","d"), "e"), "v", TriggeredByScan)
-    l3.onMatch(VersionID(DiffaPairRef("p","d"), "e"), "v", TriggeredByScan)
-    l1.onMismatch(VersionID(DiffaPairRef("p","d"), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
-    l2.onMismatch(VersionID(DiffaPairRef("p","d"), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
-    l3.onMismatch(VersionID(DiffaPairRef("p2","d2"), "e2"), now, "uv2", "dv2", TriggeredByScan, MatcherFiltered)
+    l1.onMatch(VersionID(PairRef("p",10L), "e"), "v", TriggeredByScan)
+    l2.onMatch(VersionID(PairRef("p",10L), "e"), "v", TriggeredByScan)
+    l3.onMatch(VersionID(PairRef("p",10L), "e"), "v", TriggeredByScan)
+    l1.onMismatch(VersionID(PairRef("p",10L), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
+    l2.onMismatch(VersionID(PairRef("p",10L), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
+    l3.onMismatch(VersionID(PairRef("p2",20L), "e2"), now, "uv2", "dv2", TriggeredByScan, MatcherFiltered)
     replay(l1, l2)
 
-    nc.onMatch(VersionID(DiffaPairRef("p","d"), "e"), "v", TriggeredByScan)
-    nc.onMismatch(VersionID(DiffaPairRef("p","d"), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
-    nc.onMismatch(VersionID(DiffaPairRef("p2","d2"), "e2"), now, "uv2", "dv2", TriggeredByScan, MatcherFiltered)
+    nc.onMatch(VersionID(PairRef("p",10L), "e"), "v", TriggeredByScan)
+    nc.onMismatch(VersionID(PairRef("p",10L), "e"), now, "uv", "dv", TriggeredByScan, Unfiltered)
+    nc.onMismatch(VersionID(PairRef("p2",20L), "e2"), now, "uv2", "dv2", TriggeredByScan, MatcherFiltered)
     verify(l1, l2)
   }
 
@@ -65,13 +64,13 @@ class NotificationCentreTest {
     nc.registerForPairScanEvents(l1)
     nc.registerForPairScanEvents(l2)
 
-    val pair = DiffaPair(key = "p", domain = Domain(name="domain"))
+    val pair = PairRef(name = "p", space = 101L)
 
-    l1.pairScanStateChanged(pair.asRef, PairScanState.SCANNING)
-    l2.pairScanStateChanged(pair.asRef, PairScanState.SCANNING)
+    l1.pairScanStateChanged(pair, PairScanState.SCANNING)
+    l2.pairScanStateChanged(pair, PairScanState.SCANNING)
     replay(l1, l2)
 
-    nc.pairScanStateChanged(pair.asRef, PairScanState.SCANNING)
+    nc.pairScanStateChanged(pair, PairScanState.SCANNING)
     verify(l1, l2)
   }
 

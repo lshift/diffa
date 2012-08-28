@@ -48,9 +48,9 @@ class AmqpProducerConsumerTest {
 
     val expectedEvent = ChangeEvent.forChange("id", "version", new DateTime().withZone(DateTimeZone.UTC))
 
-    new AccentReceiver(con, params, "domain", "endpoint", new Changes(null,null,null,null) {
+    new AccentReceiver(con, params, 1L, "endpoint", new Changes(null,null,null,null) {
 
-      override def onChange(domain:String, endpoint:String, evt:ChangeEvent) {
+      override def onChange(space:Long, endpoint:String, evt:ChangeEvent) {
         assertEquals(expectedEvent, evt)
         messageProcessed = true
         monitor.synchronized {
@@ -82,9 +82,9 @@ class AmqpProducerConsumerTest {
     }
 
 
-    val receiver = new AccentReceiver(con, params, "domain", "endpoint", new Changes(null,null,null,null) {
+    val receiver = new AccentReceiver(con, params, 2L, "endpoint", new Changes(null,null,null,null) {
 
-      override def onChange(domain:String, endpoint:String, evt:ChangeEvent) {
+      override def onChange(space:Long, endpoint:String, evt:ChangeEvent) {
         monitor.synchronized {
           monitor.notifyAll()
         }

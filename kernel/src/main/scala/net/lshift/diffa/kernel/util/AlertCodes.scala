@@ -16,16 +16,18 @@
 
 package net.lshift.diffa.kernel.util
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 
 /**
  * A dictionary of alert codes that can be used to classify errors in log files quicker
  */
 object AlertCodes {
 
-  def formatAlertCode(pair:DiffaPairRef, code:Int) = "%s [%s/%s]".format(code, pair.domain, pair.key)
-  def formatAlertCode(domain:String, pair:String, code:Int) = "%s [%s/%s]".format(code, domain, pair)
-  def formatAlertCode(domain:String, code:Int) = "%s [%s]".format(code, domain)
+  @Deprecated def formatAlertCode(pair:DiffaPairRef, code:Int) = "%s [%s/%s]".format(code, pair.domain, pair.key)
+  def formatAlertCode(pair:PairRef, code:Int) = "%s [%s/%s]".format(code, pair.space, pair.name)
+  @Deprecated def formatAlertCode(domain:String, pair:String, code:Int) = "%s [%s/%s]".format(code, domain, pair)
+  @Deprecated def formatAlertCode(domain:String, code:Int) = "%s [%s]".format(code, domain)
+  def formatAlertCode(space:Long, pair:String, code:Int) = "%s [%s/%s]".format(code, space, pair)
   def formatAlertCode(space:Long, code:Int) = "%s [%s]".format(code, space)
   def formatAlertCode(code: Int) = "%d".format(code)
 

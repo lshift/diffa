@@ -28,7 +28,7 @@ import org.codehaus.jackson.node.ObjectNode
 import java.util.ArrayList
 import net.lshift.diffa.client.{RestClientParams, NotFoundException}
 import net.lshift.diffa.agent.rest.AggregateRequest
-import net.lshift.diffa.kernel.differencing.{InvalidAggregateRequestException, InvalidSequenceNumberException, PairScanState, DifferenceEvent}
+import net.lshift.diffa.kernel.differencing._
 
 /**
  * A RESTful client to poll for difference events on a domain.
@@ -92,7 +92,7 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
         val diffs = responseMap.get("diffs")
         val objMapper = new ObjectMapper()
 
-        objMapper.readValue(diffs, classOf[Array[DifferenceEvent]])
+        objMapper.readValue(diffs, classOf[Array[ExternalDifferenceEvent]])
       }
       case x:Int   => throw new RuntimeException("HTTP " + x + " : " + status.getReasonPhrase)
     }
@@ -114,7 +114,7 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
   def ignore(seqId: String) = {
     val response = delete("events/" + seqId)
 
-    response.getEntity(classOf[DifferenceEvent])
+    response.getEntity(classOf[ExternalDifferenceEvent])
   }
 
   def unignore(seqId: String) = {
@@ -123,7 +123,7 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
     val response = media.put(classOf[ClientResponse])
     val status = response.getClientResponseStatus
     status.getStatusCode match {
-      case 200    => response.getEntity(classOf[DifferenceEvent])
+      case 200    => response.getEntity(classOf[ExternalDifferenceEvent])
       case 400    => throw new InvalidSequenceNumberException(seqId)
       case 404    => throw new NotFoundException(domain)
       case x:Int  => handleHTTPError(x, path, status)
@@ -135,19 +135,6 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
       case null => ""
       case _    => d.toString()
     }    
-  }
-
-  private def pollInternal(p:WebResource) : Array[DifferenceEvent] = {
-    val media = p.accept(MediaType.APPLICATION_JSON_TYPE)
-    val response = media.get(classOf[ClientResponse])
-
-    val status = response.getClientResponseStatus
-
-    status.getStatusCode match {
-      case 200   => response.getEntity(classOf[Array[DifferenceEvent]])
-      case x:Int   => throw new RuntimeException("HTTP " + x + " : " + status.getReasonPhrase)
-    }
-
   }
 
   private def aggregateRequestsToParams(requests:Map[String, AggregateRequest]) = {

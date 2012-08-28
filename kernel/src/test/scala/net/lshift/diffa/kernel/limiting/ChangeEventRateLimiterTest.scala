@@ -33,14 +33,14 @@ class ChangeEventRateLimiterTest {
   val rateLimitView = createMock("rateLimitView", classOf[DomainServiceLimitsView])
   var limiter: RateLimiter = _
   val event = ChangeEvent.forChange("id", "aaa111bbb222ffff", yesterday)
-  val dummyDomain = "dummy"
+  val space = System.currentTimeMillis()
 
   @Before
   def setup() {
     setClock(0L)
     setRateLimit(1)
     limiter = new RateLimiter(
-      () => rateLimitView.getEffectiveLimitByNameForDomain(dummyDomain, ChangeEventRate),
+      () => rateLimitView.getEffectiveLimitByNameForDomain(space, ChangeEventRate),
       rateClock)
   }
 
@@ -140,7 +140,7 @@ class ChangeEventRateLimiterTest {
 
   private def setRateLimit(eventsPerSecond: Int) {
     reset(rateLimitView)
-    expect(rateLimitView.getEffectiveLimitByNameForDomain(dummyDomain, ChangeEventRate)).
+    expect(rateLimitView.getEffectiveLimitByNameForDomain(space, ChangeEventRate)).
       andReturn(eventsPerSecond).anyTimes()
     replay(rateLimitView)
   }

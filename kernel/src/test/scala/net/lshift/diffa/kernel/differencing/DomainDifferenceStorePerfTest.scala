@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils
 import java.io.File
 import org.joda.time.{Interval, DateTime}
 import org.junit.{Ignore, Test}
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer
 
@@ -23,7 +23,7 @@ class DomainDifferenceStorePerfTest {
 
   @Test
   def differenceInsertionShouldBeConstantTime() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
+    val pair = PairRef(name = "pair", space = System.currentTimeMillis())
 
     runPerformanceTest(4) { count =>
       linearCost(count)(() => {
@@ -36,7 +36,7 @@ class DomainDifferenceStorePerfTest {
 
   @Test
   def differenceUpgradingShouldBeConstantTime() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
+    val pair = PairRef(name = "pair",space = System.currentTimeMillis())
 
     runPerformanceTest(4) { count =>
       linearCost(count)(() => {
@@ -52,7 +52,7 @@ class DomainDifferenceStorePerfTest {
 
   @Test
   def matchInsertionShouldBeConstantTime() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
+    val pair = PairRef(name = "pair", space = System.currentTimeMillis())
 
     runPerformanceTest(4) { count =>
       for (j <- 0L until count) {
@@ -68,8 +68,8 @@ class DomainDifferenceStorePerfTest {
 
   @Test
   def differenceQueryShouldGrowLinearlyAsDifferencesIncrease() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
-    val pair2 = DiffaPairRef(key = "pair2", domain = "domain")
+    val pair = PairRef(name = "pair", space = System.currentTimeMillis())
+    val pair2 = PairRef(name = "pair2", space = System.currentTimeMillis())
 
     runPerformanceTest(4) { count =>
       for (j <- 0L until count) {
@@ -86,8 +86,8 @@ class DomainDifferenceStorePerfTest {
   @Test
   @Ignore("detectedAt index doesn't appear to be correcting this")
   def differenceQueryShouldRemainConstantForSameNumberOfDifferences() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
-    val pair2 = DiffaPairRef(key = "pair2", domain = "domain")
+    val pair = PairRef(name = "pair", space = System.currentTimeMillis())
+    val pair2 = PairRef(name = "pair2", space = System.currentTimeMillis())
 
     runPerformanceTest(4, offset = 3) { count =>
       val now = new DateTime()
@@ -114,8 +114,8 @@ class DomainDifferenceStorePerfTest {
 
   @Test
   def oldMismatchesShouldBeAbleToBeExpiredInConstantTime() {
-    val pair = DiffaPairRef(key = "pair", domain = "domain")
-    val pair2 = DiffaPairRef(key = "pair2", domain = "domain")
+    val pair = PairRef(name = "pair", space = System.currentTimeMillis())
+    val pair2 = PairRef(name = "pair2", space = System.currentTimeMillis())
 
     runPerformanceTest(4) { count =>
       val now = new DateTime()

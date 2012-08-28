@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.preferences
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
 /**
  * Provides a mechanism for users to persist their display preferences.
@@ -25,17 +25,17 @@ trait UserPreferencesStore {
   /**
    * Creates a new item that the user has chosen to filter out.
    */
-  def createFilteredItem(pair:DiffaPairRef, username: String, itemType: FilteredItemType)
+  def createFilteredItem(pair:PairRef, username: String, itemType: FilteredItemType)
 
   /**
    * Deletes item that the user has chosen to filter out.
    */
-  def removeFilteredItem(pair:DiffaPairRef, username: String, itemType: FilteredItemType)
+  def removeFilteredItem(pair:PairRef, username: String, itemType: FilteredItemType)
 
   /**
    * Deletes all items that the given user has configured for the current domain.
    */
-  def removeAllFilteredItemsForDomain(domain:String, username: String)
+  def removeAllFilteredItemsForDomain(space:Long, username: String)
 
   /**
    * Deletes all items that the given user has configured for themselves.
@@ -45,7 +45,7 @@ trait UserPreferencesStore {
   /**
    * Returns a list of all of the items that the user has elected to filter out.
    */
-  def listFilteredItems(domain:String, username:String, itemType:FilteredItemType) : Set[String]
+  def listFilteredItems(space:Long, username:String, itemType:FilteredItemType) : Set[String]
 
 
 }

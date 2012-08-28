@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.lifecycle
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
 /**
  * Indicates lifecycle events for pair configuration changes.
@@ -25,10 +25,10 @@ trait PairLifecycleAware {
   /**
    * This event is fired whenever a pair is created or updated
    */
-  def onPairUpdated(pair:DiffaPairRef)
+  def onPairUpdated(pair:PairRef)
 
   /**
    * This event is fired whenever a pair is deleted
    */
-  def onPairDeleted(pair:DiffaPairRef)
+  def onPairDeleted(pair:PairRef)
 }

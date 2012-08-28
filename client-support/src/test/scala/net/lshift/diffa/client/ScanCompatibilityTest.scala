@@ -257,17 +257,17 @@ object ScanCompatibilityTest {
   @DataPoint def completelyUnboundedInteger = new IntegerRangeConstraint("someInt", null.asInstanceOf[Integer], null)
 
   val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
+    def getEffectiveLimitByNameForPair(space: Long, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
   }
 
   val serverPort = 41255
 
   val scanningParticipant = createStrictMock(classOf[ScanningParticipantHandler])
 
-  val pair = new DiffaPairRef("some-domain", "some-pair")
+  val pair = new PairRef("some-domain", 600L)
 
 
-  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, None)
+  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.space, None)
   lazy val endpoint = Endpoint(name = "scanEndpoint", scanUrl = "http://localhost:" + serverPort + "/scan")
 
   lazy val server = new ParticipantServer(serverPort, scanningParticipant)

@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.differencing
 import net.lshift.diffa.kernel.events.PairChangeEvent
 import net.jcip.annotations.NotThreadSafe
 import net.lshift.diffa.kernel.participants.{UpstreamParticipant, DownstreamParticipant}
-import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{PairRef, Endpoint, DiffaPairRef}
 import net.lshift.diffa.kernel.util.EndpointSide
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 
@@ -43,12 +43,12 @@ trait VersionPolicy {
   /**
    * Requests that the policy return details of how to start an inventory.
    */
-  def startInventory(pairRef:DiffaPairRef, endpoint:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter, side:EndpointSide):Seq[ScanRequest]
+  def startInventory(pairRef:PairRef, endpoint:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter, side:EndpointSide):Seq[ScanRequest]
 
   /**
    * Requests that the policy process an inventory of changes.
    */
-  def processInventory(pairRef:DiffaPairRef, endpoint:Endpoint, writer: LimitedVersionCorrelationWriter, side:EndpointSide,
+  def processInventory(pairRef:PairRef, endpoint:Endpoint, writer: LimitedVersionCorrelationWriter, side:EndpointSide,
                        constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]):Seq[ScanRequest]
 
   /**
@@ -56,7 +56,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanUpstream(scanId:Long, pairRef:DiffaPairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanUpstream(scanId:Long, pairRef:PairRef, upstream:Endpoint, view:Option[String], writer: LimitedVersionCorrelationWriter,
                    participant:UpstreamParticipant, listener:DifferencingListener,
                    handle:FeedbackHandle)
 
@@ -65,7 +65,7 @@ trait VersionPolicy {
    * detected will be reported to the listener provided.
    * @throws If the shouldRun variable is set to false, this will throw a ScanCancelledException
    */
-  def scanDownstream(scanId:Long, pairRef:DiffaPairRef, downstream:Endpoint,  view:Option[String], writer: LimitedVersionCorrelationWriter,
+  def scanDownstream(scanId:Long, pairRef:PairRef, downstream:Endpoint,  view:Option[String], writer: LimitedVersionCorrelationWriter,
                      us:UpstreamParticipant, ds:DownstreamParticipant,
                      listener:DifferencingListener, handle:FeedbackHandle)
 
@@ -90,7 +90,7 @@ trait FeedbackHandle {
 /**
  * Thrown when a scan has been cancelled.
  */
-class ScanCancelledException(pair:DiffaPairRef) extends Exception(pair.identifier)
+class ScanCancelledException(pair:PairRef) extends Exception(pair.identifier)
 
 /**
  * Thrown when a participant driver encounters an issue that it can't solve, but is well known, so it uses this

@@ -58,7 +58,7 @@ class EventNotifier(val differencesManager:DifferencesManager,
       log.trace("About to notify users, the received event was " + id + " at " + lastUpdated)
       nextRun = now.plus(quietTime)
       val e = new NotificationEvent(id, lastUpdated, upstreamVsn, downstreamVsn)      
-      domainConfigStore.listDomainMembers(id.pair.domain).foreach(m => providers.foreach( p => p.notify(e,m.user)))
+      domainConfigStore.listDomainMembers(id.pair.space).foreach(m => providers.foreach( p => p.notify(e,m.user)))
     }
     
   }

@@ -22,22 +22,22 @@ class BreakerHelper(val config:DomainConfigStore) {
   def nameForEscalationBreaker(escalationName:String) = "escalation:" + escalationName
   val nameForAllEscalationsBreaker = nameForEscalationBreaker("*")
 
-  def isEscalationEnabled(pair:DiffaPairRef, name:String) = {
-    !config.isBreakerTripped(pair.domain, pair.key, nameForAllEscalationsBreaker) &&
-      !config.isBreakerTripped(pair.domain, pair.key, nameForEscalationBreaker(name))
+  def isEscalationEnabled(pair:PairRef, name:String) = {
+    !config.isBreakerTripped(pair.space, pair.name, nameForAllEscalationsBreaker) &&
+      !config.isBreakerTripped(pair.space, pair.name, nameForEscalationBreaker(name))
   }
 
-  def tripAllEscalations(pair:DiffaPairRef) {
-    config.tripBreaker(pair.domain, pair.key, nameForAllEscalationsBreaker)
+  def tripAllEscalations(pair:PairRef) {
+    config.tripBreaker(pair.space, pair.name, nameForAllEscalationsBreaker)
   }
-  def clearAllEscalations(pair:DiffaPairRef) {
-    config.clearBreaker(pair.domain, pair.key, nameForAllEscalationsBreaker)
+  def clearAllEscalations(pair:PairRef) {
+    config.clearBreaker(pair.space, pair.name, nameForAllEscalationsBreaker)
   }
 
-  def tripEscalation(pair:DiffaPairRef, name:String) {
-    config.tripBreaker(pair.domain, pair.key, nameForEscalationBreaker(name))
+  def tripEscalation(pair:PairRef, name:String) {
+    config.tripBreaker(pair.space, pair.name, nameForEscalationBreaker(name))
   }
-  def clearEscalation(pair:DiffaPairRef,  name:String) {
-    config.clearBreaker(pair.domain, pair.key, nameForEscalationBreaker(name))
+  def clearEscalation(pair:PairRef,  name:String) {
+    config.clearBreaker(pair.space, pair.name, nameForEscalationBreaker(name))
   }
 }

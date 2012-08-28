@@ -16,7 +16,7 @@ package net.lshift.diffa.agent.client
  * limitations under the License.
  */
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.frontend.PairReportDef
 import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.client.{RestClientParams, BadRequestException}
@@ -24,12 +24,12 @@ import net.lshift.diffa.client.{RestClientParams, BadRequestException}
 class ReportsRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
   extends DomainAwareRestClient(serverRootUrl, domain, "domains/{domain}/actions/", params) {
 
-  def listReports(pair:DiffaPairRef): Seq[PairReportDef] = {
+  def listReports(pair:String): Seq[PairReportDef] = {
     val t = classOf[Array[PairReportDef]]
-    rpc(pair.key, t)
+    rpc(pair, t)
   }
   
-  def executeReport(pair:DiffaPairRef,  name:String) {
+  def executeReport(pair:PairRef,  name:String) {
     val p = resource.path(name)
     val response = p.post(classOf[ClientResponse])
 

@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.scanning
 
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.differencing.PairScanState
 
 /**
@@ -25,13 +25,12 @@ import net.lshift.diffa.kernel.differencing.PairScanState
 trait ScanActivityStore {
 
   def createOrUpdateStatement(s:ScanStatement)
-  def getStatement(pair:DiffaPairRef, id:Long) : ScanStatement
+  def getStatement(pair:PairRef, id:Long) : ScanStatement
 
 }
 
 case class ScanStatement(id:Long = System.currentTimeMillis(),
                          space:Long,
-                         domain:String,
                          pair:String,
                          initiatedBy:Option[String] = None,
                          startTime:DateTime = new DateTime(),

@@ -21,6 +21,7 @@ import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, EndpointDef}
 import net.lshift.diffa.kernel.config.{User, Domain}
+import org.apache.commons.lang.RandomStringUtils
 
 class JooqUserPreferencesStoreTest {
 
@@ -30,28 +31,29 @@ class JooqUserPreferencesStoreTest {
   val domainConfigStore = storeReferences.domainConfigStore
   val systemConfigStore = storeReferences.systemConfigStore
 
+  val domain = RandomStringUtils.randomAlphanumeric(10)
+  val space = systemConfigStore.createOrUpdateSpace(domain)
+
   val upstream = EndpointDef(name = "up")
   val downstream = EndpointDef(name = "down")
-  val pair1 = DomainPairDef(key = "p1", domain = "domain", upstreamName = "up", downstreamName = "down")
-  val pair2 = DomainPairDef(key = "p2", domain = "domain", upstreamName = "up", downstreamName = "down")
-  val pair3 = DomainPairDef(key = "p3", domain = "domain", upstreamName = "up", downstreamName = "down")
+  val pair1 = DomainPairDef(key = "p1", space = space.id, upstreamName = "up", downstreamName = "down")
+  val pair2 = DomainPairDef(key = "p2", space = space.id, upstreamName = "up", downstreamName = "down")
+  val pair3 = DomainPairDef(key = "p3", space = space.id, upstreamName = "up", downstreamName = "down")
 
   @Before
   def createTestData {
 
     preferencesStore.reset
 
-    systemConfigStore.createOrUpdateDomain("domain")
-    systemConfigStore.createOrUpdateDomain("domain")
     systemConfigStore.createOrUpdateUser(User(name = "user", email = "", passwordEnc = ""))
 
-    domainConfigStore.makeDomainMember("domain", "user")
+    domainConfigStore.makeDomainMember(space.id, "user")
 
-    domainConfigStore.createOrUpdateEndpoint("domain", upstream)
-    domainConfigStore.createOrUpdateEndpoint("domain", downstream)
-    domainConfigStore.createOrUpdatePair("domain", pair1.withoutDomain)
-    domainConfigStore.createOrUpdatePair("domain", pair2.withoutDomain)
-    domainConfigStore.createOrUpdatePair("domain", pair3.withoutDomain)
+    domainConfigStore.createOrUpdateEndpoint(space.id, upstream)
+    domainConfigStore.createOrUpdateEndpoint(space.id, downstream)
+    domainConfigStore.createOrUpdatePair(space.id, pair1.withoutDomain)
+    domainConfigStore.createOrUpdatePair(space.id, pair2.withoutDomain)
+    domainConfigStore.createOrUpdatePair(space.id, pair3.withoutDomain)
 
     preferencesStore.createFilteredItem(pair1.asRef, "user", FilteredItemType.SWIM_LANE)
     preferencesStore.createFilteredItem(pair2.asRef, "user", FilteredItemType.SWIM_LANE)
@@ -65,28 +67,28 @@ class JooqUserPreferencesStoreTest {
 
   @Test
   def shouldReturnFilteredItems {
-    val filteredItems = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val filteredItems = preferencesStore.listFilteredItems(space.id, "user", FilteredItemType.SWIM_LANE)
     assertEquals(Set(pair1.key, pair2.key, pair3.key), filteredItems)
   }
 
   @Test
   def shouldBeAbleToRemoveSingleFilteredItem {
     preferencesStore.removeFilteredItem(pair3.asRef, "user", FilteredItemType.SWIM_LANE)
-    val filteredItems = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val filteredItems = preferencesStore.listFilteredItems(space.id, "user", FilteredItemType.SWIM_LANE)
     assertEquals(Set(pair1.key, pair2.key), filteredItems)
   }
 
   @Test
   def shouldBeAbleToRemoveItemsInDomainForUser {
-    preferencesStore.removeAllFilteredItemsForDomain("domain", "user")
-    val filteredItems = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    preferencesStore.removeAllFilteredItemsForDomain(space.id, "user")
+    val filteredItems = preferencesStore.listFilteredItems(space.id, "user", FilteredItemType.SWIM_LANE)
     assertTrue(filteredItems.isEmpty)
   }
 
   @Test
   def shouldBeAbleToRemoveItemsForUser {
     preferencesStore.removeAllFilteredItemsForUser("user")
-    val filteredItems = preferencesStore.listFilteredItems("domain", "user", FilteredItemType.SWIM_LANE)
+    val filteredItems = preferencesStore.listFilteredItems(space.id, "user", FilteredItemType.SWIM_LANE)
     assertTrue(filteredItems.isEmpty)
   }
 }

@@ -26,8 +26,9 @@ import org.joda.time.DateTime
 import net.lshift.diffa.kernel.events.{DownstreamPairChangeEvent, VersionID, UpstreamPairChangeEvent, PairChangeEvent}
 import net.lshift.diffa.kernel.differencing.StringAttribute
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.{SetCategoryDescriptor, Domain, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{Space, SetCategoryDescriptor, Domain, PairRef}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
+import org.apache.commons.lang.RandomStringUtils
 
 class ChangesTest {
   private val storeReferences = ChangesTest.storeReferences
@@ -37,16 +38,18 @@ class ChangesTest {
   val diagnosticsManager = createMock("diagnosticsManager", classOf[DiagnosticsManager])
   val changes = new Changes(storeReferences.domainConfigStore, changeEventClient, matchingManager, diagnosticsManager)
 
-  val pairRef = DiffaPairRef(domain = "d1", key = "p1")
   val now = new DateTime
+
+  var space:Space = ChangesTest.space
+  var pairRef:PairRef = ChangesTest.pairRef
 
   @Test
   def shouldAcceptChangeWithoutAttributes() {
     changeEventClient.propagateChangeEvent(UpstreamPairChangeEvent(VersionID(pairRef, "id1"), Map(), now, "v1")); expectLastCall
-    expect(matchingManager.getMatcher(anyObject[DiffaPairRef])).andStubReturn(None)
+    expect(matchingManager.getMatcher(anyObject[PairRef])).andStubReturn(None)
     replay(changeEventClient, matchingManager)
 
-    changes.onChange("d1", "e1", ChangeEvent.forChange("id1", "v1", now))
+    changes.onChange(space.id, "e1", ChangeEvent.forChange("id1", "v1", now))
     verify(changeEventClient, matchingManager)
   }
 
@@ -54,10 +57,10 @@ class ChangesTest {
   def shouldAcceptChangeWithValidAttributes() {
     changeEventClient.propagateChangeEvent(
       DownstreamPairChangeEvent(VersionID(pairRef, "id1"), Map("s" -> StringAttribute("a")), now, "v1")); expectLastCall
-    expect(matchingManager.getMatcher(anyObject[DiffaPairRef])).andStubReturn(None)
+    expect(matchingManager.getMatcher(anyObject[PairRef])).andStubReturn(None)
     replay(changeEventClient, matchingManager)
 
-    changes.onChange("d1", "e2", ChangeEvent.forChange("id1", "v1", now, Map("s" -> "a")))
+    changes.onChange(space.id, "e2", ChangeEvent.forChange("id1", "v1", now, Map("s" -> "a")))
     verify(changeEventClient, matchingManager)
   }
 
@@ -65,14 +68,18 @@ class ChangesTest {
   def shouldDropChangeWithInvalidAttributes() {
     replay(changeEventClient, matchingManager)
 
-    changes.onChange("d1", "e2", ChangeEvent.forChange("id1", "v1", now, Map("s" -> "c")))
-    changes.onChange("d1", "e2", ChangeEvent.forChange("id1", "v1", now, Map("t" -> "123")))
-    changes.onChange("d1", "e2", ChangeEvent.forChange("id1", "v1", now))
+    changes.onChange(space.id, "e2", ChangeEvent.forChange("id1", "v1", now, Map("s" -> "c")))
+    changes.onChange(space.id, "e2", ChangeEvent.forChange("id1", "v1", now, Map("t" -> "123")))
+    changes.onChange(space.id, "e2", ChangeEvent.forChange("id1", "v1", now))
     verify(changeEventClient, matchingManager)
   }
 }
 
 object ChangesTest {
+
+  var space:Space = null
+  var pairRef:PairRef = null
+
   private[ChangesTest] val env = TestDatabaseEnvironments.uniqueEnvironment("target/changesTest")
 
   private[ChangesTest] val storeReferences =
@@ -80,11 +87,14 @@ object ChangesTest {
 
   @BeforeClass
   def setupEnv() {
-    storeReferences.systemConfigStore.createOrUpdateDomain("d1")
-    storeReferences.domainConfigStore.createOrUpdateEndpoint("d1", EndpointDef(name = "e1"))
-    storeReferences.domainConfigStore.createOrUpdateEndpoint("d1",
+    space = storeReferences.systemConfigStore.createOrUpdateSpace(RandomStringUtils.randomAlphanumeric(10))
+
+    pairRef = PairRef(space = space.id , name = "p1")
+
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(space.id, EndpointDef(name = "e1"))
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(space.id,
       EndpointDef(name = "e2", categories = Map("s" -> new SetCategoryDescriptor(Set("a", "b")))))
-    storeReferences.domainConfigStore.createOrUpdatePair("d1", PairDef(key = "p1", upstreamName = "e1", downstreamName = "e2"))
+    storeReferences.domainConfigStore.createOrUpdatePair(space.id, PairDef(key = "p1", upstreamName = "e1", downstreamName = "e2"))
   }
 
   @AfterClass

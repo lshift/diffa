@@ -606,7 +606,7 @@ class LuceneVersionCorrelationStoreTest {
     } catch {
       case e:IncompatibleCategoryChangeException =>
         assertEquals(
-          "Change to category newSet is not allowed: Cannot add a category as existing data is stored for pair DiffaPairRef(pair,domain)",
+          "Change to category newSet is not allowed: Cannot add a category as existing data is stored for pair PairRef(%s,%s)".format(pair.name, pair.space),
           e.getMessage)
     }
   }
@@ -638,7 +638,7 @@ class LuceneVersionCorrelationStoreTest {
     } catch {
       case e:IncompatibleCategoryChangeException =>
         assertEquals(
-          "Change to category someSet is not allowed: Updated category bounds do not cover all stored values for pair DiffaPairRef(pair,domain)",
+          "Change to category someSet is not allowed: Updated category bounds do not cover all stored values for pair PairRef(%s,%s)".format(pair.name, pair.space),
           e.getMessage)
     }
   }
@@ -678,7 +678,7 @@ class LuceneVersionCorrelationStoreTest {
     } catch {
       case e:IncompatibleCategoryChangeException =>
         assertEquals(
-          "Change to category someSet is not allowed: Cannot change category type as existing data is stored for pair DiffaPairRef(pair,domain)",
+          "Change to category someSet is not allowed: Cannot change category type as existing data is stored for pair PairRef(%s,%s)".format(pair.name, pair.space),
           e.getMessage)
     }
   }
@@ -699,7 +699,7 @@ class LuceneVersionCorrelationStoreTest {
     } catch {
       case e:IncompatibleCategoryChangeException =>
         assertEquals(
-          "Change to category someDate is not allowed: Cannot change category type as existing data is stored for pair DiffaPairRef(pair,domain)",
+          "Change to category someDate is not allowed: Cannot change category type as existing data is stored for pair PairRef(%s,%s)".format(pair.name, pair.space),
           e.getMessage)
     }
   }
@@ -738,10 +738,10 @@ class Collector {
 
 object LuceneVersionCorrelationStoreTest {
 
-  val domainName = "domain"
-  val pair = DiffaPairRef(key="pair",domain=domainName)
-  val otherPair = DiffaPairRef(key="other-pair",domain=domainName)
-  val pairWithUnicodeOrder = DiffaPairRef(key="pair-with-unicode-ordering",domain=domainName)
+  val space = System.currentTimeMillis()
+  val pair = PairRef(name="pair", space = space)
+  val otherPair = PairRef(name="other-pair",space = space)
+  val pairWithUnicodeOrder = PairRef(name="pair-with-unicode-ordering",space = space)
 
   val dummyConfigStore = EasyMock.createMock(classOf[SystemConfigStore])
 
@@ -758,13 +758,13 @@ object LuceneVersionCorrelationStoreTest {
     EasyMock.expect(dummyDomainConfigStore.getPairDef(pair)
     ).andStubReturn(
       DomainPairDef(
-        key = pair.key,
-        domain = domainName,
-        upstreamName = "%s-dummyUpstream".format(pair.key),
-        downstreamName = "%s-dummyDownstream".format(pair.key))
+        key = pair.name,
+        space = space,
+        upstreamName = "%s-dummyUpstream".format(pair.name),
+        downstreamName = "%s-dummyDownstream".format(pair.name))
     )
     Seq( "dummyUpstream", "dummyDownstream").foreach { sideName: String =>
-      EasyMock.expect(dummyDomainConfigStore.getEndpoint(domainName, "%s-%s".format(pair.key, sideName))
+      EasyMock.expect(dummyDomainConfigStore.getEndpoint(space, "%s-%s".format(pair.name, sideName))
       ).andStubReturn(Endpoint(collation=collation))
     }
   }

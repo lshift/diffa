@@ -21,7 +21,7 @@ import reflect.BeanProperty
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.hooks.HookManager
-import net.lshift.diffa.kernel.config.{SpacePathCache, JooqConfigStoreCompanion, DiffaPairRef, DiffaPair}
+import net.lshift.diffa.kernel.config.{JooqConfigStoreCompanion, PairRef}
 import net.lshift.diffa.kernel.util.cache.{CachedMap, CacheProvider}
 import net.lshift.diffa.kernel.util.sequence.SequenceProvider
 import net.lshift.diffa.kernel.util.AlertCodes._
@@ -35,6 +35,7 @@ import org.jooq.impl.Factory
 import org.slf4j.LoggerFactory
 import org.jooq.{Field, ResultQuery, Record}
 import java.lang.{Long => LONG}
+import java.sql.Timestamp
 
 /**
  * Hibernate backed Domain Cache provider.
@@ -42,8 +43,7 @@ import java.lang.{Long => LONG}
 class JooqDomainDifferenceStore(db: DatabaseFacade,
                                 cacheProvider:CacheProvider,
                                 sequenceProvider:SequenceProvider,
-                                val hookManager:HookManager,
-                                spacePathCache:SpacePathCache)
+                                val hookManager:HookManager)
     extends DomainDifferenceStore {
 
   val logger = LoggerFactory.getLogger(getClass)
@@ -77,58 +77,52 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     aggregationCache.clear()
   }
 
-  def removeDomain(domain:String) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def removeDomain(space:Long) = {
 
     // If difference partitioning is enabled, ask the hook to clean up each pair. Note that we'll end up running a
     // delete over all pair differences later anyway, so we won't record the result of the removal operation.
     if (hook.isDifferencePartitioningEnabled) {
 
-      JooqConfigStoreCompanion.listPairs(db, domain, space.id).foreach(p => {
-        hook.removeAllPairDifferences(space.id, p.key)
+      JooqConfigStoreCompanion.listPairs(db, space).foreach(p => {
+        hook.removeAllPairDifferences(space, p.key)
         removeLatestRecordedVersion(p.asRef)
       })
 
     }
 
-    removeDomainDifferences(space.id)
-    preenPendingEventsCache("objId.pair.domain", domain)
+    removeDomainDifferences(space)
+    preenPendingEventsCache("objId.pair.space", space.toString)
   }
 
-  def removePair(pair: DiffaPairRef) = {
+  def removePair(pair: PairRef) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
-
-    val hookHelped = hook.removeAllPairDifferences(space.id, pair.key)
+    val hookHelped = hook.removeAllPairDifferences(pair.space, pair.name)
 
     db.execute { t =>
       if (!hookHelped) {
-        t.delete(DIFFS).where(DIFFS.PAIR.equal(pair.key)).and(DIFFS.SPACE.equal(space.id)).execute()
+        t.delete(DIFFS).
+          where(DIFFS.PAIR.equal(pair.name)).
+            and(DIFFS.SPACE.equal(pair.space)).execute()
       }
-      t.delete(PENDING_DIFFS).where(PENDING_DIFFS.PAIR.equal(pair.key)).and(PENDING_DIFFS.SPACE.equal(space.id)).execute()
+      t.delete(PENDING_DIFFS).
+        where(PENDING_DIFFS.PAIR.equal(pair.name)).
+          and(PENDING_DIFFS.SPACE.equal(pair.space)).
+        execute()
       removeLatestRecordedVersion(pair)
     }
 
-    preenPendingEventsCache("objId.pair.key", pair.key)
+    preenPendingEventsCache("objId.pair.name", pair.name)
   }
   
   def currentSequenceId(space:Long) = sequenceProvider.currentSequenceValue(eventSequenceKey(space)).toString
 
-  def currentSequenceId(path:String) = {
-    val space = spacePathCache.resolveSpacePathOrDie(path)
-    currentSequenceId(space.id)
-  }
-
-  def maxSequenceId(pair: DiffaPairRef, start:DateTime, end:DateTime) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def maxSequenceId(pair: PairRef, start:DateTime, end:DateTime) = {
 
     db.execute { t =>
       var query = t.select(max(DIFFS.SEQ_ID)).
         from(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(pair.key))
+        where(DIFFS.SPACE.equal(pair.space)).
+          and(DIFFS.PAIR.equal(pair.name))
 
       if (start != null)
         query = query.and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(start)))
@@ -168,9 +162,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
 
   def upgradePendingUnmatchedEvent(id: VersionID) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(id.pair.domain)
-
+    
     val pending = getPendingEvent(id)
 
     if (pending.exists()) {
@@ -179,7 +171,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
       try {
         db.execute { t =>
           removePendingEvent(t, pending)
-          createReportedEvent(t, pending.convertToUnmatched, nextEventSequenceValue(space.id))
+          createReportedEvent(t, pending.convertToUnmatched, nextEventSequenceValue(id.pair.space))
         }
       } catch {
         case e: Exception =>
@@ -241,18 +233,18 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   }
 
-  def ignoreEvent(domain:String, seqId:String) = {
+  def ignoreEvent(space:Long, seqId:String) = {
 
     db.execute { t=>
       val evt = db.getById(t, DIFFS, DIFFS.SEQ_ID, new java.lang.Long(seqId), recordToReportedDifferenceEvent).getOrElse {
         throw new MissingObjectException("No diff found with seqId: " + seqId)
       }
-      if (evt.objId.pair.domain != domain) {
-        throw new IllegalArgumentException("Invalid domain %s for sequence id %s (expected %s)".format(domain, seqId, evt.objId.pair.domain))
+      if (evt.objId.pair.space != space) {
+        throw new IllegalArgumentException("Invalid domain %s for sequence id %s (expected %s)".format(space, seqId, evt.objId.pair.space))
       }
 
       if (evt.isMatch) {
-        throw new IllegalArgumentException("Cannot ignore a match for %s (in domain %s)".format(seqId, domain))
+        throw new IllegalArgumentException("Cannot ignore a match for %s (in domain %s)".format(seqId, space))
       }
       if (!evt.ignored) {
         // Remove this event, and replace it with a new event. We do this to ensure that consumers watching the updates
@@ -269,22 +261,20 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     }
   }
 
-  def unignoreEvent(domain:String, seqId:String) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def unignoreEvent(space:Long, seqId:String) = {
 
     db.execute { t =>
       val evt = db.getById(t, DIFFS, DIFFS.SEQ_ID, new java.lang.Long(seqId), recordToReportedDifferenceEvent).getOrElse {
         throw new MissingObjectException("No diff found with seqId: " + seqId)
       }
-      if (evt.objId.pair.domain != domain) {
-        throw new IllegalArgumentException("Invalid domain %s for sequence id %s (expected %s)".format(domain, seqId, evt.objId.pair.domain))
+      if (evt.objId.pair.space != space) {
+        throw new IllegalArgumentException("Invalid domain %s for sequence id %s (expected %s)".format(space, seqId, evt.objId.pair.space))
       }
       if (evt.isMatch) {
-        throw new IllegalArgumentException("Cannot unignore a match for %s (in domain %s)".format(seqId, domain))
+        throw new IllegalArgumentException("Cannot unignore a match for %s (in domain %s)".format(seqId, space))
       }
       if (!evt.ignored) {
-        throw new IllegalArgumentException("Cannot unignore an event that isn't ignored - %s (in domain %s)".format(seqId, domain))
+        throw new IllegalArgumentException("Cannot unignore an event that isn't ignored - %s (in domain %s)".format(seqId, space))
       }
 
       // Generate a new event with the same details but the ignored flag cleared. This will ensure consumers
@@ -296,16 +286,14 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     }
   }
 
-  def lastRecordedVersion(pair:DiffaPairRef) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def lastRecordedVersion(pair:PairRef) = {
 
     db.execute(t => {
       val record =  t.select(STORE_CHECKPOINTS.LATEST_VERSION).
-        from(STORE_CHECKPOINTS).
-        where(STORE_CHECKPOINTS.SPACE.equal(space.id)).
-        and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
-        fetchOne()
+                      from(STORE_CHECKPOINTS).
+                      where(STORE_CHECKPOINTS.SPACE.equal(pair.space)).
+                        and(STORE_CHECKPOINTS.PAIR.equal(pair.name)).
+                      fetchOne()
 
       if (record == null) {
         None
@@ -316,65 +304,57 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     })
   }
 
-  def recordLatestVersion(pairRef:DiffaPairRef, version:Long) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pairRef.domain)
+  def recordLatestVersion(pairRef:PairRef, version:Long) = {
 
     db.execute { t =>
       t.insertInto(STORE_CHECKPOINTS).
-        set(STORE_CHECKPOINTS.SPACE, space.id).
-        set(STORE_CHECKPOINTS.PAIR, pairRef.key).
-        set(STORE_CHECKPOINTS.LATEST_VERSION, java.lang.Long.valueOf(version)).
+          set(STORE_CHECKPOINTS.SPACE, pairRef.space:LONG).
+          set(STORE_CHECKPOINTS.PAIR, pairRef.name).
+          set(STORE_CHECKPOINTS.LATEST_VERSION, java.lang.Long.valueOf(version)).
         onDuplicateKeyUpdate().
-        set(STORE_CHECKPOINTS.LATEST_VERSION, java.lang.Long.valueOf(version)).
+          set(STORE_CHECKPOINTS.LATEST_VERSION, java.lang.Long.valueOf(version)).
         execute()
     }
   }
 
-  def retrieveUnmatchedEvents(domain:String, interval: Interval) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def retrieveUnmatchedEvents(space:Long, interval: Interval) = {
 
     db.execute { t =>
       t.selectFrom(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(interval.getStart))).
-        and(DIFFS.DETECTED_AT.lessThan(dateTimeToTimestamp(interval.getEnd))).
-        and(DIFFS.IS_MATCH.equal(false)).
-        and(DIFFS.IGNORED.equal(false)).
+        where(DIFFS.SPACE.equal(space)).
+          and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(interval.getStart))).
+          and(DIFFS.DETECTED_AT.lessThan(dateTimeToTimestamp(interval.getEnd))).
+          and(DIFFS.IS_MATCH.equal(false)).
+          and(DIFFS.IGNORED.equal(false)).
         fetch().
         toSeq.
         map(recordToReportedDifferenceEventAsDifferenceEvent)
     }
   }
 
-  def streamUnmatchedEvents(pairRef:DiffaPairRef, handler:(ReportedDifferenceEvent) => Unit) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pairRef.domain)
+  def streamUnmatchedEvents(pairRef:PairRef, handler:(ReportedDifferenceEvent) => Unit) = {
 
     db.execute { t =>
       val cursor = t.selectFrom(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(pairRef.key)).
-        and(DIFFS.IS_MATCH.equal(false)).
-        and(DIFFS.IGNORED.equal(false)).
+        where(DIFFS.SPACE.equal(pairRef.space)).
+          and(DIFFS.PAIR.equal(pairRef.name)).
+          and(DIFFS.IS_MATCH.equal(false)).
+          and(DIFFS.IGNORED.equal(false)).
         fetchLazy()
 
       db.processAsStream(cursor, recordToReportedDifferenceEvent.andThen(handler))
     }
   }
 
-  def retrievePagedEvents(pair: DiffaPairRef, interval: Interval, offset: Int, length: Int, options:EventOptions = EventOptions()) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def retrievePagedEvents(pair: PairRef, interval: Interval, offset: Int, length: Int, options:EventOptions = EventOptions()) = {
 
     db.execute { t =>
       val query = t.selectFrom(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(pair.key)).
-        and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(interval.getStart))).
-        and(DIFFS.DETECTED_AT.lessThan(dateTimeToTimestamp(interval.getEnd))).
-        and(DIFFS.IS_MATCH.equal(false))
+        where(DIFFS.SPACE.equal(pair.space)).
+          and(DIFFS.PAIR.equal(pair.name)).
+          and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(interval.getStart))).
+          and(DIFFS.DETECTED_AT.lessThan(dateTimeToTimestamp(interval.getEnd))).
+          and(DIFFS.IS_MATCH.equal(false))
 
       val results =
         if (! options.includeIgnored)
@@ -387,16 +367,14 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     }
   }
 
-  def countUnmatchedEvents(pair: DiffaPairRef, start:DateTime, end:DateTime):Int = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def countUnmatchedEvents(pair: PairRef, start:DateTime, end:DateTime):Int = {
 
     db.execute { t =>
       var query = t.select(count(DIFFS.SEQ_ID)).from(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(pair.key)).
-        and(DIFFS.IS_MATCH.equal(false)).
-        and(DIFFS.IGNORED.equal(false))
+        where(DIFFS.SPACE.equal(pair.space)).
+          and(DIFFS.PAIR.equal(pair.name)).
+          and(DIFFS.IS_MATCH.equal(false)).
+          and(DIFFS.IGNORED.equal(false))
 
       if (start != null)
         query = query.and(DIFFS.DETECTED_AT.greaterOrEqual(dateTimeToTimestamp(start)))
@@ -408,16 +386,14 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     }
   }
 
-  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] =
+  def retrieveAggregates(pair:PairRef, start:DateTime, end:DateTime, aggregateMinutes:Option[Int]):Seq[AggregateTile] =
     aggregationCache.retrieveAggregates(pair, start, end, aggregateMinutes)
 
-  def getEvent(domain:String, evtSeqId: String) = db.execute { t =>
+  def getEvent(space:Long, evtSeqId: String) = db.execute { t =>
 
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-
-    Option(t.selectFrom(DIFFS).
-      where(DIFFS.SPACE.equal(space.id)).
-      and(DIFFS.SEQ_ID.equal(java.lang.Long.parseLong(evtSeqId))).
+    Option( t.selectFrom(DIFFS).
+              where(DIFFS.SPACE.equal(space)).
+                and(DIFFS.SEQ_ID.equal(java.lang.Long.parseLong(evtSeqId))).
       fetchOne()).
     map(recordToReportedDifferenceEventAsDifferenceEvent).getOrElse {
       throw new InvalidSequenceNumberException(evtSeqId)
@@ -460,28 +436,25 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   def scheduleEscalation(diff: DifferenceEvent, escalationName: String, escalationTime: DateTime) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(diff.objId.pair.domain)
-
     db.execute { t =>
       t.update(DIFFS).
-        set(DIFFS.NEXT_ESCALATION, escalationName).
-        set(DIFFS.NEXT_ESCALATION_TIME, dateTimeToTimestamp(escalationTime)).
-        where(DIFFS.SPACE.equal(space.id).
-        and(DIFFS.PAIR.equal(diff.objId.pair.key)).and(DIFFS.ENTITY_ID.equal(diff.objId.id))).
+          set(DIFFS.NEXT_ESCALATION, escalationName).
+          set(DIFFS.NEXT_ESCALATION_TIME, dateTimeToTimestamp(escalationTime)).
+        where(DIFFS.SPACE.equal(diff.objId.pair.space).
+          and(DIFFS.PAIR.equal(diff.objId.pair.name)).
+          and(DIFFS.ENTITY_ID.equal(diff.objId.id))).
         execute()
     }
   }
 
-  def unscheduleEscalations(pair:DiffaPairRef) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def unscheduleEscalations(pair:PairRef) = {
 
     db.execute { t =>
       t.update(DIFFS).
-          set(DIFFS.NEXT_ESCALATION, null).
-          set(DIFFS.NEXT_ESCALATION_TIME, null).
-        where(DIFFS.SPACE.equal(space.id).
-          and(DIFFS.PAIR.equal(pair.key))).
+          set(DIFFS.NEXT_ESCALATION, null:String).
+          set(DIFFS.NEXT_ESCALATION_TIME, null:Timestamp).
+        where(DIFFS.SPACE.equal(pair.space).
+          and(DIFFS.PAIR.equal(pair.name))).
         execute()
     }
   }
@@ -527,27 +500,24 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   private def getPendingEvent(id: VersionID) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(id.pair.domain)
-
     val query = (f: Factory) =>
       f.selectFrom(PENDING_DIFFS).
-        where(PENDING_DIFFS.SPACE.equal(space.id)).
-        and(PENDING_DIFFS.PAIR.equal(id.pair.key)).
-        and(PENDING_DIFFS.ENTITY_ID.equal(id.id))
+        where(PENDING_DIFFS.SPACE.equal(id.pair.space)).
+          and(PENDING_DIFFS.PAIR.equal(id.pair.name)).
+          and(PENDING_DIFFS.ENTITY_ID.equal(id.id))
 
     getEventInternal(id, pendingEvents, query, recordToPendingDifferenceEvent, PendingDifferenceEvent.nonExistent)
   }
 
   private def createPendingEvent(pending:PendingDifferenceEvent) = db.execute { t =>
 
-    val domain = pending.objId.pair.domain
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-    val pair = pending.objId.pair.key
-    val nextSeqId: java.lang.Long = nextPendingEventSequenceValue(space.id)
+    val space = pending.objId.pair.space
+    val pair = pending.objId.pair.name
+    val nextSeqId: java.lang.Long = nextPendingEventSequenceValue(space)
 
     t.insertInto(PENDING_DIFFS).
       set(PENDING_DIFFS.SEQ_ID, nextSeqId).
-      set(PENDING_DIFFS.SPACE, space.id).
+      set(PENDING_DIFFS.SPACE, space:LONG).
       set(PENDING_DIFFS.PAIR, pair).
       set(PENDING_DIFFS.ENTITY_ID, pending.objId.id).
       set(PENDING_DIFFS.DETECTED_AT, dateTimeToTimestamp(pending.detectedAt)).
@@ -601,12 +571,10 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   private def getEventById(id: VersionID) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(id.pair.domain)
-
     val query = (f: Factory) =>
       f.selectFrom(DIFFS).
-        where(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(id.pair.key)).
+        where(DIFFS.SPACE.equal(id.pair.space)).
+        and(DIFFS.PAIR.equal(id.pair.name)).
         and(DIFFS.ENTITY_ID.equal(id.id))
 
     getEventInternal(id, reportedEvents, query, recordToReportedDifferenceEvent, nonExistentReportedEvent)
@@ -660,15 +628,15 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
       }
     }
     else {
-      val domain = reportableUnmatched.objId.pair.domain
-      val space = spacePathCache.resolveSpacePathOrDie(domain)
-      val nextSeqId = nextEventSequenceValue(space.id)
+
+      val nextSeqId = nextEventSequenceValue(reportableUnmatched.objId.pair.space)
+
       try {
         db.execute(t => (NewUnmatchedEvent, createReportedEvent(t, reportableUnmatched, nextSeqId)))
       } catch {
         case x: Exception =>
-          val pair = reportableUnmatched.objId.pair.key
-          val alert = formatAlertCode(domain, pair, INCONSISTENT_DIFF_STORE)
+          val pair = reportableUnmatched.objId.pair.name
+          val alert = formatAlertCode(reportableUnmatched.objId.pair.space, pair, INCONSISTENT_DIFF_STORE)
           val msg = " %s Could not insert event %s, next sequence id was %s".format(alert, reportableUnmatched, nextSeqId)
           logger.error(msg)
 
@@ -699,14 +667,12 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
    */
   private def updateTimestampForPreviouslyReportedEvent(event:ReportedDifferenceEvent, lastSeen:DateTime) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(event.objId.pair.domain)
-
     db.execute { t =>
       t.update(DIFFS).
         set(DIFFS.LAST_SEEN,dateTimeToTimestamp(lastSeen)).
         where(DIFFS.SEQ_ID.equal(event.seqId)).
-        and(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(event.objId.pair.key)).
+          and(DIFFS.SPACE.equal(event.objId.pair.space)).
+          and(DIFFS.PAIR.equal(event.objId.pair.name)).
         execute()
     }
 
@@ -722,10 +688,9 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
    */
   private def upgradePreviouslyReportedEvent(reportableUnmatched:ReportedDifferenceEvent) = {
 
-    val domain = reportableUnmatched.objId.pair.domain
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-    val pair = reportableUnmatched.objId.pair.key
-    val nextSeqId: java.lang.Long = nextEventSequenceValue(space.id)
+    val pair = reportableUnmatched.objId.pair.name
+    val space = reportableUnmatched.objId.pair.space
+    val nextSeqId: java.lang.Long = nextEventSequenceValue(space)
 
     val rows = db.execute { t =>
       val escalationChanges:Map[Field[_], _] = if (reportableUnmatched.isMatch)
@@ -734,26 +699,26 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
           Map()
 
       t.update(DIFFS).
-        set(DIFFS.SEQ_ID, nextSeqId).
-        set(DIFFS.SPACE, space.id).
-        set(DIFFS.PAIR, pair).
-        set(DIFFS.ENTITY_ID, reportableUnmatched.objId.id).
-        set(DIFFS.IS_MATCH, java.lang.Boolean.valueOf(reportableUnmatched.isMatch)).
-        set(DIFFS.DETECTED_AT, dateTimeToTimestamp(reportableUnmatched.detectedAt)).
-        set(DIFFS.LAST_SEEN, dateTimeToTimestamp(reportableUnmatched.lastSeen)).
-        set(DIFFS.UPSTREAM_VSN, reportableUnmatched.upstreamVsn).
-        set(DIFFS.DOWNSTREAM_VSN, reportableUnmatched.downstreamVsn).
-        set(DIFFS.IGNORED, java.lang.Boolean.valueOf(reportableUnmatched.ignored)).
-        set(escalationChanges).
+          set(DIFFS.SEQ_ID, nextSeqId).
+          set(DIFFS.SPACE, space:LONG).
+          set(DIFFS.PAIR, pair).
+          set(DIFFS.ENTITY_ID, reportableUnmatched.objId.id).
+          set(DIFFS.IS_MATCH, java.lang.Boolean.valueOf(reportableUnmatched.isMatch)).
+          set(DIFFS.DETECTED_AT, dateTimeToTimestamp(reportableUnmatched.detectedAt)).
+          set(DIFFS.LAST_SEEN, dateTimeToTimestamp(reportableUnmatched.lastSeen)).
+          set(DIFFS.UPSTREAM_VSN, reportableUnmatched.upstreamVsn).
+          set(DIFFS.DOWNSTREAM_VSN, reportableUnmatched.downstreamVsn).
+          set(DIFFS.IGNORED, java.lang.Boolean.valueOf(reportableUnmatched.ignored)).
+          set(escalationChanges).
         where(DIFFS.SEQ_ID.equal(reportableUnmatched.seqId)).
-        and(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(pair)).
+          and(DIFFS.SPACE.equal(space)).
+          and(DIFFS.PAIR.equal(pair)).
         execute()
     }
 
     // TODO Theoretically this should never happen ....
     if (rows == 0) {
-      val alert = formatAlertCode(domain, pair, INCONSISTENT_DIFF_STORE)
+      val alert = formatAlertCode(space, pair, INCONSISTENT_DIFF_STORE)
       val msg = " %s No rows updated for previously reported diff %s, next sequence id was %s".format(alert, reportableUnmatched, nextSeqId)
       logger.error(msg, new Exception().fillInStackTrace())
     }
@@ -772,18 +737,18 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
    */
   private def ignorePreviouslyReportedEvent(event:ReportedDifferenceEvent) = {
 
-    val domain = event.objId.pair.domain
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-    val nextSeqId: java.lang.Long = nextEventSequenceValue(space.id)
+    val space = event.objId.pair.space    
+    val pair = event.objId.pair.name    
+    val nextSeqId: java.lang.Long = nextEventSequenceValue(space)
 
     db.execute { t =>
       t.update(DIFFS).
-        set(DIFFS.LAST_SEEN, dateTimeToTimestamp(event.lastSeen)).
-        set(DIFFS.IGNORED, java.lang.Boolean.TRUE).
-        set(DIFFS.SEQ_ID, nextSeqId).
+          set(DIFFS.LAST_SEEN, dateTimeToTimestamp(event.lastSeen)).
+          set(DIFFS.IGNORED, java.lang.Boolean.TRUE).
+          set(DIFFS.SEQ_ID, nextSeqId).
         where(DIFFS.SEQ_ID.equal(event.seqId)).
-        and(DIFFS.SPACE.equal(space.id)).
-        and(DIFFS.PAIR.equal(event.objId.pair.key)).
+          and(DIFFS.SPACE.equal(space)).
+          and(DIFFS.PAIR.equal(pair)).
         execute()
     }
 
@@ -795,39 +760,35 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   private def createReportedEvent(f: Factory, evt:ReportedDifferenceEvent, nextSeqId: Long) = {
 
-    val domain = evt.objId.pair.domain
-    val pair = evt.objId.pair.key
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+    val space = evt.objId.pair.space
+    val pair = evt.objId.pair.name
 
     f.insertInto(DIFFS).
-      set(DIFFS.SEQ_ID, java.lang.Long.valueOf(nextSeqId)).
-      set(DIFFS.SPACE, space.id).
-      set(DIFFS.PAIR, pair).
-      set(DIFFS.ENTITY_ID, evt.objId.id).
-      set(DIFFS.IS_MATCH, java.lang.Boolean.valueOf(evt.isMatch)).
-      set(DIFFS.DETECTED_AT, dateTimeToTimestamp(evt.detectedAt)).
-      set(DIFFS.LAST_SEEN, dateTimeToTimestamp(evt.lastSeen)).
-      set(DIFFS.UPSTREAM_VSN, evt.upstreamVsn).
-      set(DIFFS.DOWNSTREAM_VSN, evt.downstreamVsn).
-      set(DIFFS.IGNORED, java.lang.Boolean.valueOf(evt.ignored)).
+        set(DIFFS.SEQ_ID, java.lang.Long.valueOf(nextSeqId)).
+        set(DIFFS.SPACE, space:LONG).
+        set(DIFFS.PAIR, pair).
+        set(DIFFS.ENTITY_ID, evt.objId.id).
+        set(DIFFS.IS_MATCH, java.lang.Boolean.valueOf(evt.isMatch)).
+        set(DIFFS.DETECTED_AT, dateTimeToTimestamp(evt.detectedAt)).
+        set(DIFFS.LAST_SEEN, dateTimeToTimestamp(evt.lastSeen)).
+        set(DIFFS.UPSTREAM_VSN, evt.upstreamVsn).
+        set(DIFFS.DOWNSTREAM_VSN, evt.downstreamVsn).
+        set(DIFFS.IGNORED, java.lang.Boolean.valueOf(evt.ignored)).
       execute()
 
     updateAggregateCache(evt.objId.pair, evt.detectedAt)
     updateSequenceValueAndCache(evt, nextSeqId)
   }
 
-  private def updateAggregateCache(pair:DiffaPairRef, detectedAt:DateTime) =
+  private def updateAggregateCache(pair:PairRef, detectedAt:DateTime) =
     aggregationCache.onStoreUpdate(pair, detectedAt)
 
-  private def removeLatestRecordedVersion(pair: DiffaPairRef) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  private def removeLatestRecordedVersion(pair: PairRef) = {
 
     db.execute { t =>
       t.delete(STORE_CHECKPOINTS).
-        where(STORE_CHECKPOINTS.SPACE.equal(space.id)).
-        and(STORE_CHECKPOINTS.PAIR.equal(pair.key)).
+        where(STORE_CHECKPOINTS.SPACE.equal(pair.space)).
+          and(STORE_CHECKPOINTS.PAIR.equal(pair.name)).
         execute()
     }
   }
@@ -849,12 +810,10 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   private val recordToReportedDifferenceEvent = (r: DiffsRecord) => {
 
-    // This could query the DB if there is nothing in the cache
-    val space = spacePathCache.lookupSpace(r.getValue(DIFFS.SPACE))
-
     ReportedDifferenceEvent(seqId = r.getValue(DIFFS.SEQ_ID),
-      objId = VersionID(pair = DiffaPairRef(domain = space.name,
-        key = r.getValue(DIFFS.PAIR)),
+      objId = VersionID(pair = PairRef(
+        space = r.getValue(DIFFS.SPACE),
+        name = r.getValue(DIFFS.PAIR)),
         id = r.getValue(DIFFS.ENTITY_ID)),
       isMatch = r.getValue(DIFFS.IS_MATCH),
       detectedAt = timestampToDateTime(r.getValue(DIFFS.DETECTED_AT)),
@@ -870,13 +829,10 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     recordToReportedDifferenceEvent.andThen(_.asDifferenceEvent)
 
   private val recordToPendingDifferenceEvent = (r: PendingDiffsRecord) => {
-
-    // This could query the DB if there is nothing in the cache
-    val space = spacePathCache.lookupSpace(r.getValue(PENDING_DIFFS.SPACE))
-
     PendingDifferenceEvent(oid = r.getValue(PENDING_DIFFS.SEQ_ID),
-      objId = VersionID(pair = DiffaPairRef(domain = space.name,
-        key = r.getValue(PENDING_DIFFS.PAIR)),
+      objId = VersionID(pair = PairRef(
+        space = r.getValue(PENDING_DIFFS.SPACE),
+        name = r.getValue(PENDING_DIFFS.PAIR)),
         id = r.getValue(PENDING_DIFFS.ENTITY_ID)),
       detectedAt = timestampToDateTime(r.getValue(PENDING_DIFFS.DETECTED_AT)),
       lastSeen = timestampToDateTime(r.getValue(PENDING_DIFFS.LAST_SEEN)),
@@ -917,7 +873,7 @@ object PendingDifferenceEvent {
 }
 
 case class StoreCheckpoint(
-  @BeanProperty var pair:DiffaPair,
+  @BeanProperty var pair:PairRef,
   @BeanProperty var latestVersion:java.lang.Long = null
 ) {
   def this() = this(pair = null)
@@ -927,7 +883,7 @@ case class StoreCheckpoint(
  * Convenience wrapper for a compound primary key
  */
 case class DomainNameScopedKey(@BeanProperty var pair:String = null,
-                               @BeanProperty var domain:String = null) extends java.io.Serializable
+                               @BeanProperty var space:Long = -1L) extends java.io.Serializable
 {
   def this() = this(pair = null)
 }

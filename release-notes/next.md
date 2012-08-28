@@ -6,7 +6,7 @@
 
 ## New Features
 
-* [??] -
+* [255] - Introduce sub spaces.
 
 ## General Maintenance
 
@@ -15,7 +15,8 @@
 ## Library Upgrades
 
 * Upgraded to Hazelcast 2.2
+* Upgraded to Spring Security 3.1.2
 
 ## Upgrading
 
-Diffa will automatically upgrade itself to this version from release 1.4 onwards.
+Please note that Diffa will not automatically upgrade itself to this version from release 1.4.

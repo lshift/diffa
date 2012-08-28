@@ -29,7 +29,7 @@ import net.lshift.diffa.kernel.config._
 /**
  * JSON/REST content participant client.
  */
-class ContentParticipantRestClient(pair: DiffaPairRef,
+class ContentParticipantRestClient(pair: PairRef,
                                    scanUrl: String,
                                    serviceLimitsView: PairServiceLimitsView,
                                    credentialsLookup:DomainCredentialsLookup)

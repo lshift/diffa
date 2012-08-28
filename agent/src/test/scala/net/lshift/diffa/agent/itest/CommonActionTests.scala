@@ -22,7 +22,7 @@ import net.lshift.diffa.kernel.client.ActionableRequest
 import net.lshift.diffa.client.BadRequestException
 import org.junit._
 import net.lshift.diffa.kernel.util.AlertCodes
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
 trait CommonActionTests {
 
@@ -30,8 +30,7 @@ trait CommonActionTests {
 
   @Test
   def shouldListEntityScopedActions {
-    val pairRef = DiffaPairRef(env.pairKey,env.domain.name)
-    val actions = env.actionsClient.listEntityScopedActions(pairRef)
+    val actions = env.actionsClient.listEntityScopedActions(env.pairKey)
     assertNotNull(actions)
     assertEquals(1, actions.size)
     assertEquals("Resend Source", actions(0).name)
@@ -40,8 +39,7 @@ trait CommonActionTests {
   @Test
   def invokeEntityScopedAction {
     env.withActionsServer {
-      val request = ActionableRequest(env.pairKey, env.domain.name, env.entityScopedActionName, "abc")
-      val response = env.actionsClient.invoke(request)
+      val response = env.actionsClient.invoke(env.pairKey, env.entityScopedActionName, "abc")
       assertNotNull(response)
       assertEquals("200", response.code)
       assertEquals("resending entity", response.output)
@@ -51,16 +49,14 @@ trait CommonActionTests {
   @Test
   def invokeInvalidAction {
     // Note: Actions test server should NOT be running for this test
-    val request = ActionableRequest(env.pairKey, env.domain.name, env.entityScopedActionName, "abc")
-    val response = env.actionsClient.invoke(request)
+    val response = env.actionsClient.invoke(env.pairKey, env.entityScopedActionName, "abc")
     assertEquals(AlertCodes.ACTION_ENDPOINT_FAILURE.toString, response.code)
   }
 
   @Test
   def shouldListPairScopedActions {
     env.createPairScopedAction
-    val pairRef = DiffaPairRef(env.pairKey,env.domain.name)
-    val actions = env.actionsClient.listPairScopedActions(pairRef)
+    val actions = env.actionsClient.listPairScopedActions(env.pairKey)
     assertNotNull(actions)
     assertEquals(Some(env.pairScopedActionName), actions.headOption.map(_.name))
   }
@@ -69,8 +65,7 @@ trait CommonActionTests {
   def invokePairScopedAction {
     env.withActionsServer {
       env.createPairScopedAction
-      val request = ActionableRequest(env.pairKey, env.domain.name, env.pairScopedActionName, null)
-      val response = env.actionsClient.invoke(request)
+      val response = env.actionsClient.invoke(env.pairKey, env.pairScopedActionName, null)
       assertNotNull(response)
       assertEquals("200", response.code)
       assertEquals("resending all", response.output)
@@ -79,8 +74,7 @@ trait CommonActionTests {
 
   @Test
   def canDeleteAction {
-    val pairRef = DiffaPairRef(env.pairKey,env.domain.name)
-    def actionName = env.actionsClient.listEntityScopedActions(pairRef).headOption.map(_.name)
+    def actionName = env.actionsClient.listEntityScopedActions(env.pairKey).headOption.map(_.name)
     assertEquals(Some(env.entityScopedActionName), actionName)
     env.configurationClient.removeRepairAction(env.entityScopedActionName, env.pairKey)
     assertEquals(None, actionName)

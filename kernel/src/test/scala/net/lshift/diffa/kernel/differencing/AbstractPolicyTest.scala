@@ -61,9 +61,9 @@ abstract class AbstractPolicyTest {
   val store = createMock("versionStore", classOf[VersionCorrelationStore])
 
   val stores = new VersionCorrelationStoreFactory {
-    def apply(pairKey: DiffaPairRef) = store
-    def remove(pairKey: DiffaPairRef) {}
-    def close(pairKey: DiffaPairRef) {}
+    def apply(pairKey: PairRef) = store
+    def remove(pairKey: PairRef) {}
+    def close(pairKey: PairRef) {}
     def close {}
   }
 
@@ -74,8 +74,8 @@ abstract class AbstractPolicyTest {
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
   val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
-  val domainName = "domain"
-  val domain = Domain(name=domainName)
+
+  val space = System.currentTimeMillis()
   val pairKey = "A-B"
 
   val emptyAttributes:Map[String,TypedAttribute] = Map()
@@ -86,9 +86,9 @@ abstract class AbstractPolicyTest {
 
   val upstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
   val downstream = new Endpoint(categories=Map("bizDate" -> dateCategoryDescriptor))
-  val pair = new DomainPairDef(key=pairKey, domain=domainName, upstreamName=upstream.name, downstreamName=downstream.name)
+  val pair = new DomainPairDef(key=pairKey, space=space, upstreamName=upstream.name, downstreamName=downstream.name)
 
-  expect(domainConfigStore.getPairDef(domainName,pairKey)).andReturn(pair).anyTimes
+  expect(domainConfigStore.getPairDef(space, pairKey)).andReturn(pair).anyTimes
   replay(systemConfigStore)
 
   protected def replayAll = replay(usMock, dsMock, store, writer, listener, diffWriter)

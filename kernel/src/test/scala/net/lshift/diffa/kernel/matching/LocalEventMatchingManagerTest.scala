@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.matching
 import org.junit.Test
 import org.junit.Assert._
 import org.easymock.EasyMock.{createStrictMock, expect, replay, reset}
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPair}
+import net.lshift.diffa.kernel.config.DomainConfigStore
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.config.Domain
 import net.lshift.diffa.kernel.frontend.DomainPairDef
@@ -29,20 +29,19 @@ import net.lshift.diffa.kernel.frontend.DomainPairDef
  */
 class LocalEventMatchingManagerTest {
 
-  val domainName = "domain"
-  val domain = Domain(name=domainName)
+  val spaceId = System.currentTimeMillis()
 
-  val pair1 = new DomainPairDef(key = "pair1", domain = domainName, matchingTimeout = 10)
-  val pair2 = new DomainPairDef(key = "pair2", domain = domainName, matchingTimeout = 5)
-  val pair3 = new DomainPairDef(key = "pair3", domain = domainName, matchingTimeout = 2)
+  val pair1 = new DomainPairDef(key = "pair1", space = spaceId, matchingTimeout = 10)
+  val pair2 = new DomainPairDef(key = "pair2", space = spaceId, matchingTimeout = 5)
+  val pair3 = new DomainPairDef(key = "pair3", space = spaceId, matchingTimeout = 2)
 
-  val invalid = new DiffaPair(key = "invalid", domain = domain, matchingTimeout = 5)
+  val invalid = new DomainPairDef(key = "invalid", space = spaceId, matchingTimeout = 5)
 
   val domainConfigStore = createStrictMock(classOf[DomainConfigStore])
   val systemConfigStore = createStrictMock(classOf[SystemConfigStore])
 
-  expect(domainConfigStore.getPairDef(domainName, "pair1")).andStubReturn(pair1)
-  expect(domainConfigStore.getPairDef(domainName, "pair2")).andStubReturn(pair2)
+  expect(domainConfigStore.getPairDef(spaceId, "pair1")).andStubReturn(pair1)
+  expect(domainConfigStore.getPairDef(spaceId, "pair2")).andStubReturn(pair2)
   expect(systemConfigStore.listPairs).andStubReturn(Seq(pair1,pair2))
   replay(systemConfigStore, domainConfigStore)
 

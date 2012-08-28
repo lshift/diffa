@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.maintenance
 
 import org.easymock.EasyMock._
-import net.lshift.diffa.kernel.config.DiffaPairRef._
+import net.lshift.diffa.kernel.config.PairRef._
 import net.lshift.diffa.kernel.indexing.LuceneVersionCorrelationStoreFactory
 import net.lshift.diffa.kernel.events.VersionID._
 import net.lshift.diffa.kernel.events.VersionID
@@ -35,21 +35,33 @@ import org.apache.commons.io.FileUtils
 import net.lshift.diffa.kernel.matching.{MatchingStatusListener, MatchingManager, EventMatcher}
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import org.junit.{AfterClass, After, Before, Test}
-import net.lshift.diffa.kernel.config.{Domain, Endpoint, DiffaPair}
+import net.lshift.diffa.kernel.config.{Space, Domain, Endpoint}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.escalation.EscalationHandler
+import net.lshift.diffa.kernel.frontend.{PairDef, DomainPairDef}
+import org.apache.commons.lang.RandomStringUtils
 
 class StoreSynchronizationTest {
 
+  // Real Wiring
+  private val storeReferences = StoreSynchronizationTest.storeReferences
+
+  private val systemConfigStore = storeReferences.systemConfigStore
+  private val domainConfigStore = storeReferences.domainConfigStore
+  private val domainDiffsStore = storeReferences.domainDifferenceStore
+  private val serviceLimitsStore = storeReferences.serviceLimitsStore
+
   // Data
 
-  val domainName = "domain"
-  val domain = Domain(name=domainName)
+  val domainName = RandomStringUtils.randomAlphabetic(10)
+  val space = systemConfigStore.createOrUpdateSpace(domainName)
+
+  //val domain = Domain(name=domainName)
 
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
-  val pair = DiffaPair(key = "pair", domain = domain, versionPolicyName = "policy", upstream = u.name, downstream = d.name)
+  val pair = DomainPairDef(key = "pair", space = space.id, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
   val pairRef = pair.asRef
 
   // Stub Wiring
@@ -69,13 +81,7 @@ class StoreSynchronizationTest {
   val pairPolicyClient = createStrictMock("pairPolicyClient", classOf[PairPolicyClient])
   checkOrder(pairPolicyClient, false)
 
-  // Real Wiring
-  private val storeReferences = StoreSynchronizationTest.storeReferences
 
-  private val systemConfigStore = storeReferences.systemConfigStore
-  private val domainConfigStore = storeReferences.domainConfigStore
-  private val domainDiffsStore = storeReferences.domainDifferenceStore
-  private val serviceLimitsStore = storeReferences.serviceLimitsStore
 
   val diagnosticsManager: DiagnosticsManager =
     new LocalDiagnosticsManager(systemConfigStore, domainConfigStore, serviceLimitsStore, StoreSynchronizationTest.explainDir)
@@ -101,12 +107,11 @@ class StoreSynchronizationTest {
       StoreSynchronizationTest.indexDir, systemConfigStore, domainConfigStore, diagnosticsManager)
     store = stores(pairRef)
 
-    systemConfigStore.createOrUpdateDomain(domainName)
-    domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(u))
-    domainConfigStore.createOrUpdateEndpoint(domainName, toEndpointDef(d))
-    domainConfigStore.createOrUpdatePair(domainName, toPairDef(pair))
+    domainConfigStore.createOrUpdateEndpoint(space.id, toEndpointDef(u))
+    domainConfigStore.createOrUpdateEndpoint(space.id, toEndpointDef(d))
+    domainConfigStore.createOrUpdatePair(space.id, pair.withoutDomain)
 
-    domainDiffsStore.removeDomain(domainName)
+    domainDiffsStore.removeDomain(space.id)
     domainDiffsStore.reset
 
     assertEquals(None, diffsManager.lastRecordedVersion(pairRef))

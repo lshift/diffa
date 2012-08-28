@@ -32,7 +32,7 @@ import java.lang.RuntimeException
 import akka.actor._
 import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Endpoint}
+import net.lshift.diffa.kernel.config.{Space, DomainConfigStore, PairRef, Endpoint}
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
@@ -48,7 +48,10 @@ import net.lshift.diffa.kernel.scanning.{ScanStatement, ScanActivityStore}
 class PairActorTest {
   import PairActorTest._
 
-  val domainName = "some-domain"
+  val spaceId = System.currentTimeMillis()
+
+  val space = Space(id = spaceId)
+
   val pairKey = nextPairId
   val policyName = ""
   val upstream = Endpoint(name = "up", scanUrl = "up")
@@ -56,7 +59,7 @@ class PairActorTest {
 
   val pair = new DomainPairDef()
   pair.key = pairKey
-  pair.domain = domainName
+  pair.space = spaceId
   pair.versionPolicyName = policyName
   pair.upstreamName = upstream.name
   pair.downstreamName = downstream.name
@@ -86,17 +89,17 @@ class PairActorTest {
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
   val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
 
-  expect(domainConfigStore.getPairDef(domainName, pairKey)).andStubReturn(pair)
-  expect(domainConfigStore.getPairDef(DiffaPairRef(pairKey, domainName))).andStubReturn(pair)
-  expect(systemConfigStore.listDomains).andStubReturn(Seq(domainName))
+  expect(domainConfigStore.getPairDef(spaceId, pairKey)).andStubReturn(pair)
+  expect(domainConfigStore.getPairDef(PairRef(pairKey, spaceId))).andStubReturn(pair)
+  expect(systemConfigStore.listSpaces).andStubReturn(Seq(space))
   expect(systemConfigStore.listPairs).andReturn(Seq())      // Don't return our pair in the list, since we don't want it started immediately
 
 
-  expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(pair))
-  expect(domainConfigStore.getEndpoint(domainName, upstream.name)).andStubReturn(upstream)
-  expect(domainConfigStore.getEndpoint(domainName, downstream.name)).andStubReturn(downstream)
+  expect(domainConfigStore.listPairs(spaceId)).andStubReturn(Seq(pair))
+  expect(domainConfigStore.getEndpoint(spaceId, upstream.name)).andStubReturn(upstream)
+  expect(domainConfigStore.getEndpoint(spaceId, downstream.name)).andStubReturn(downstream)
 
-  expect(domainConfigStore.configOptionOrDefault(domainName,
+  expect(domainConfigStore.configOptionOrDefault(spaceId,
                                                  CorrelationWriterProxy.TIMEOUT_KEY,
                                                  CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)).
     andStubReturn(CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE)
@@ -117,7 +120,7 @@ class PairActorTest {
 
   val differencesManager = createStrictMock(classOf[DifferencesManager])
   val diffWriter = createStrictMock("differenceWriter", classOf[DifferenceWriter])
-  expect(differencesManager.createDifferenceWriter(domainName, pairKey, overwrite = true)).andStubReturn(diffWriter)
+  expect(differencesManager.createDifferenceWriter(spaceId, pairKey, overwrite = true)).andStubReturn(diffWriter)
   expect(differencesManager.lastRecordedVersion(pairRef)).andStubReturn(None)
   replay(differencesManager)
 
@@ -566,7 +569,7 @@ class PairActorTest {
         val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
         println("writer (args(3))#getClass() -> %s".format(writer.getClass()))
         try {
-          writer.clearDownstreamVersion(EasyMock.eq(VersionID(DiffaPairRef("p1","domain"), "abc")), EasyMock.anyObject[Option[Long]]())
+          writer.clearDownstreamVersion(EasyMock.eq(VersionID(PairRef("p1", System.currentTimeMillis()), "abc")), EasyMock.anyObject[Option[Long]]())
           proxyDidGenerateException.set(false)
         } catch {
           case c:ScanCancelledException => proxyDidGenerateException.set(true)
@@ -609,7 +612,7 @@ class PairActorTest {
             if (secondScanIsRunning.get(waitForSecondScanToStartDelay).isDefined) {
               val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
               try {
-                writer.clearDownstreamVersion(EasyMock.eq(VersionID(DiffaPairRef("p1","domain"), "abc")), EasyMock.anyObject[Option[Long]]())
+                writer.clearDownstreamVersion(EasyMock.eq(VersionID(PairRef("p1",System.currentTimeMillis()), "abc")), EasyMock.anyObject[Option[Long]]())
                 proxyDidGenerateException.set(false)
               } catch {
                 case c:ScanCancelledException => proxyDidGenerateException.set(true)
@@ -786,7 +789,7 @@ class PairActorTest {
   }
 
   def buildUpstreamEvent() = {
-    val id = VersionID(DiffaPairRef(pairKey, domainName), "foo")
+    val id = VersionID(PairRef(pairKey, spaceId), "foo")
     val lastUpdate = new DateTime
     val vsn = "foobar"
     UpstreamPairChangeEvent(id, Map(), lastUpdate, vsn)

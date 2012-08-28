@@ -30,5 +30,5 @@ trait EndpointLifecycleListener {
   /**
    * Indicates that the endpoint with the given domain and name is no longer available within the system.
    */
-  def onEndpointRemoved(domain: String, endpoint: String)
+  def onEndpointRemoved(space: Long, endpoint: String)
 }

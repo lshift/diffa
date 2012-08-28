@@ -17,10 +17,10 @@
 package net.lshift.diffa.kernel.frontend.wire
 
 import net.lshift.diffa.kernel.participants.ParticipantFactory
-import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest, ActionsClient}
+import net.lshift.diffa.kernel.client.{Actionable, ActionsClient}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction, DiffaPair, DomainConfigStore}
+import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.util.AlertCodes._
 import org.apache.http.util.EntityUtils
 import org.apache.http.impl.client.DefaultHttpClient
@@ -31,6 +31,7 @@ import org.apache.http.client.HttpClient
 import com.sun.xml.internal.ws.Closeable
 import net.lshift.diffa.kernel.util.MissingObjectException
 import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.client.ActionableRequest
 
 /**
  * This is a conduit to the actions that are provided by participants
@@ -48,19 +49,19 @@ class ActionsProxy(val config:DomainConfigStore,
   val connectionTimeoutMillis = fiveMinutesinMillis
   val socketTimeoutMillis = fiveMinutesinMillis
 
-  def listActions(pair:DiffaPairRef): Seq[Actionable] =
+  def listActions(pair:PairRef): Seq[Actionable] =
     withValidPair(pair) { p =>
-      config.getPairDef(pair.domain, pair.key).repairActions.map(Actionable.fromRepairAction(pair.domain, pair.key, _)).toSeq
+      config.getPairDef(pair).repairActions.map(Actionable.fromRepairAction(pair.space, pair.name, _)).toSeq
     }
 
-  def listEntityScopedActions(pair:DiffaPairRef) = listActions(pair).filter(_.scope == RepairAction.ENTITY_SCOPE)
+  def listEntityScopedActions(pair:PairRef) = listActions(pair).filter(_.scope == RepairAction.ENTITY_SCOPE)
 
-  def listPairScopedActions(pair:DiffaPairRef) = listActions(pair).filter(_.scope == RepairAction.PAIR_SCOPE)
+  def listPairScopedActions(pair:PairRef) = listActions(pair).filter(_.scope == RepairAction.PAIR_SCOPE)
 
   def invoke(request: ActionableRequest): InvocationResult =
-    withValidPair(DiffaPairRef(request.pairKey, request.domain)) { pairRef =>
+    withValidPair(PairRef(request.pairKey, request.space)) { pairRef =>
 
-      val repairAction = config.getPairDef(request.domain, request.pairKey).repairActions.
+      val repairAction = config.getPairDef(request.space, request.pairKey).repairActions.
         find(_.name == request.actionId).getOrElse(throw new MissingObjectException("repair action"))
       val url = repairAction.scope match {
         case RepairAction.ENTITY_SCOPE => repairAction.url.replace("{id}", request.entityId)
@@ -94,8 +95,8 @@ class ActionsProxy(val config:DomainConfigStore,
       }
     }
 
-  def withValidPair[T](pair:DiffaPairRef)(f: DiffaPairRef => T) : T = {
-    config.getPairDef(pair.domain, pair.key)
+  def withValidPair[T](pair:PairRef)(f: PairRef => T) : T = {
+    config.getPairDef(pair)
     // Continue if the pair exists
     f(pair)
   }
@@ -107,7 +108,7 @@ class ActionsProxy(val config:DomainConfigStore,
     new DefaultHttpClient(params)
   }
 
-  private def immediatelyShutDownClient(client: HttpClient, pair: DiffaPairRef) =
+  private def immediatelyShutDownClient(client: HttpClient, pair: PairRef) =
     try {
       client.getConnectionManager.shutdown()
     } catch {

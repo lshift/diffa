@@ -20,8 +20,10 @@ import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants.{agentURL, defaultDomain}
 import com.sun.jersey.api.client.{WebResource, ClientResponse, Client}
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import org.apache.commons.lang3.RandomStringUtils
 
-class DomainScopedPermissionsTest {
+class DomainScopedPermissionsTest extends IsolatedDomainTest {
 
   val client = Client.create()
   client.addFilter(new HTTPBasicAuthFilter("guest", "guest"))
@@ -32,15 +34,15 @@ class DomainScopedPermissionsTest {
   def statusOf(resource: WebResource) =
     resource.get(classOf[ClientResponse]).getStatus
 
-  val default = domainScopedResource(defaultDomain)
-  val nonExistent = domainScopedResource("nonexistentdomain")
+  val existing = domainScopedResource(isolatedDomain)
+  val nonExistent = domainScopedResource(RandomStringUtils.randomAlphanumeric(10))
 
   @Test
   def configurationResourcesAreAccessibleInDefaultDomain {
-    assertEquals(200, statusOf(default.path("config/xml")))
-    assertEquals(200, statusOf(default.path("config/endpoints")))
-    assertEquals(200, statusOf(default.path("config/pairs")))
-    assertEquals(200, statusOf(default.path("config/members")))
+    assertEquals(200, statusOf(existing.path("config/xml")))
+    assertEquals(200, statusOf(existing.path("config/endpoints")))
+    assertEquals(200, statusOf(existing.path("config/pairs")))
+    assertEquals(200, statusOf(existing.path("config/members")))
   }
 
   @Test

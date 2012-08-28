@@ -8,10 +8,11 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
 import org.junit.Assert._
 import net.lshift.diffa.kernel.StoreReferenceContainer
-import org.junit.{AfterClass, Before, Test}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain}
+import org.junit.{After, AfterClass, Before, Test}
+import net.lshift.diffa.kernel.config.{Space, PairRef, Domain}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import scala.collection.JavaConversions._
+import org.apache.commons.lang.RandomStringUtils
 
 class ReportManagerTest {
   private val storeReferences = ReportManagerTest.storeReferences
@@ -21,19 +22,29 @@ class ReportManagerTest {
   private val domainDiffStore = storeReferences.domainDifferenceStore
 
   val domainName = "reportingDomain"
-  val pair = DiffaPairRef(key = "p1", domain = domainName)
+
+  var space:Space = null
+
+  var pair:PairRef = null
   val diagnostics = createNiceMock(classOf[DiagnosticsManager])
 
   val reportManager = new ReportManager(domainConfigStore, domainDiffStore, diagnostics)
 
   @Before
   def prepareEnvironment() {
-    storeReferences.clearConfiguration(domainName)
+    space = systemConfigStore.createOrUpdateSpace(domainName)
+    pair = PairRef(name = "p1", space = space.id)
+
+
     domainDiffStore.clearAllDifferences
 
-    systemConfigStore.createOrUpdateDomain(domainName)
-    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e1"))
-    domainConfigStore.createOrUpdateEndpoint(domainName, EndpointDef("e2"))
+    domainConfigStore.createOrUpdateEndpoint(space.id, EndpointDef("e1"))
+    domainConfigStore.createOrUpdateEndpoint(space.id, EndpointDef("e2"))
+  }
+
+  @After
+  def clearUp {
+    storeReferences.clearConfiguration(space.id)
   }
 
   @Test
@@ -41,8 +52,8 @@ class ReportManagerTest {
     val reports = new ListBuffer[String]
     ReportListenerUtil.withReportListener(reports, reportListenerUrl => {
       // Create our pair/report
-      domainConfigStore.createOrUpdatePair(domainName,
-        PairDef(pair.key, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2",
+      domainConfigStore.createOrUpdatePair(space.id,
+        PairDef(pair.name, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2",
                 reports = Set(PairReportDef("send diffs", "differences", reportListenerUrl))))
 
       // Add some differences

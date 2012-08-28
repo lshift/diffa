@@ -3,20 +3,21 @@ package net.lshift.diffa.kernel.config
 import net.lshift.diffa.schema.servicelimits.{ServiceLimit, Unlimited}
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import net.lshift.diffa.kernel.StoreReferenceContainer
-import org.junit.{AfterClass, Before, Test}
-
+import org.junit._
 import org.junit.Assert.assertEquals
-import org.junit.Assert
-import net.lshift.diffa.kernel.frontend.{PairDef, EndpointDef}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory, DataPoints}
+import org.apache.commons.lang.RandomStringUtils
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.frontend.PairDef
 
 /**
  */
 @RunWith(classOf[Theories])
 class JooqServiceLimitsStoreTest {
-  private val testDomain = "diffa-test-domain"
-  private val testPair = DiffaPair(key = "diffa-test-pair", domain = Domain(name = testDomain))
+  
+  var space:Space = null
+  var pairRef:PairRef = null 
 
   val testLimit = new ServiceLimit {
     def key = "dummyLimit"
@@ -27,22 +28,29 @@ class JooqServiceLimitsStoreTest {
 
   private val storeReferences = JooqServiceLimitsStoreTest.storeReferences
   private val serviceLimitsStore = storeReferences.serviceLimitsStore
+  private val systemConfigStore = storeReferences.systemConfigStore
 
   @Before
   def prepareStores {
+    space = systemConfigStore.createOrUpdateSpace(RandomStringUtils.randomAlphanumeric(10))
+    pairRef = PairRef(name = "diffa-test-pair", space = space.id)
+    
     val upstream = EndpointDef(name = "upstream")
     val downstream = EndpointDef(name = "downstream")
-    val pair = PairDef(key = testPair.key, versionPolicyName = "same",
+    val pair = PairDef(
+      key = pairRef.name,
+      versionPolicyName = "same",
       upstreamName = upstream.name,
       downstreamName = downstream.name)
-
-    storeReferences.clearConfiguration(testDomain)
-    storeReferences.systemConfigStore.createOrUpdateDomain(testDomain)
-    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain, upstream)
-    storeReferences.domainConfigStore.createOrUpdateEndpoint(testDomain, downstream)
-    storeReferences.domainConfigStore.createOrUpdatePair(testDomain, pair)
+    
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(space.id, upstream)
+    storeReferences.domainConfigStore.createOrUpdateEndpoint(space.id, downstream)
+    storeReferences.domainConfigStore.createOrUpdatePair(space.id, pair)
     serviceLimitsStore.defineLimit(testLimit)
   }
+
+  @After
+  def clearUp { storeReferences.clearConfiguration(space.id) }
 
   @Test
   def givenExistingDependentsWhenSystemHardLimitConfiguredToValidValueNotLessThanDependentLimitsThenLimitShouldBeAppliedAndNoDependentLimitsChanged {
@@ -55,7 +63,7 @@ class JooqServiceLimitsStoreTest {
 
     // Then
     val (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limit)
+      limitValuesForPairByName(pairRef, limit)
 
     assertEquals(newLimitValue, systemHardLimit)
     assertEquals(depLimit, systemDefaultLimit)
@@ -75,7 +83,7 @@ class JooqServiceLimitsStoreTest {
 
     // Then
     val (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limit)
+      limitValuesForPairByName(pairRef, limit)
 
     assertEquals(newLimitValue, systemHardLimit)
     assertEquals(newLimitValue, systemDefaultLimit)
@@ -104,20 +112,20 @@ class JooqServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueNotLessThanDependentLimitsThenLimitShouldBeAppliedAndNoDependentLimitsChanged {
-    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain, testLimit, 11, 10, 10)
+    val (spaceId, limit, initialLimit, newLimitValue, depLimit) = (space.id, testLimit, 11, 10, 10)
     // Given
     serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
     serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
-    serviceLimitsStore.setDomainHardLimit(domainName, limit, initialLimit)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, depLimit)
-    serviceLimitsStore.setPairLimit(domainName, testPair.key, limit, depLimit)
+    serviceLimitsStore.setDomainHardLimit(spaceId, limit, initialLimit)
+    serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, depLimit)
+    serviceLimitsStore.setPairLimit(spaceId, pairRef.name, limit, depLimit)
 
     // When
-    serviceLimitsStore.setDomainHardLimit(domainName, limit, newLimitValue)
+    serviceLimitsStore.setDomainHardLimit(spaceId, limit, newLimitValue)
 
     // Then
     val (_, _, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limit)
+      limitValuesForPairByName(pairRef, limit)
 
     assertEquals(newLimitValue, domainHardLimit)
     assertEquals(depLimit, domainDefaultLimit)
@@ -126,20 +134,20 @@ class JooqServiceLimitsStoreTest {
 
   @Test
   def givenExistingDependentsWhenDomainScopedHardLimitConfiguredToValidValueLessThanDependentLimitsThenLimitShouldBeAppliedAndDependentLimitsLowered {
-    val (domainName, limit, initialLimit, newLimitValue, depLimit) = (testDomain, testLimit, 11, 9, 10)
+    val (spaceId, limit, initialLimit, newLimitValue, depLimit) = (space.id, testLimit, 11, 9, 10)
     // Given
     serviceLimitsStore.setSystemHardLimit(limit, initialLimit)
     serviceLimitsStore.setSystemDefaultLimit(limit, initialLimit)
-    serviceLimitsStore.setDomainHardLimit(domainName, limit, initialLimit)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, depLimit)
-    serviceLimitsStore.setPairLimit(domainName, testPair.key, limit, depLimit)
+    serviceLimitsStore.setDomainHardLimit(spaceId, limit, initialLimit)
+    serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, depLimit)
+    serviceLimitsStore.setPairLimit(spaceId, pairRef.name, limit, depLimit)
 
     // When
-    serviceLimitsStore.setDomainHardLimit(domainName, limit, newLimitValue)
+    serviceLimitsStore.setDomainHardLimit(spaceId, limit, newLimitValue)
 
     // Then
     val (_, _, domainHardLimit, domainDefaultLimit, pairLimit) =
-      limitValuesForPairByName(testPair, limit)
+      limitValuesForPairByName(pairRef, limit)
 
     assertEquals(newLimitValue, domainHardLimit)
     assertEquals(newLimitValue, domainDefaultLimit)
@@ -149,16 +157,16 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[Exception])
   def whenDomainHardLimitConfiguredToInvalidValueThenExceptionThrownVerifyNoLimitChange {
     // Given
-    val (domainName, limit, oldLimit) = (testDomain, testLimit, 10)
-    serviceLimitsStore.setDomainHardLimit(domainName, limit, oldLimit)
+    val (spaceId, limit, oldLimit) = (space.id, testLimit, 10)
+    serviceLimitsStore.setDomainHardLimit(spaceId, limit, oldLimit)
 
     // When
     try {
-      serviceLimitsStore.setDomainHardLimit(domainName, limit, Unlimited.value - 1)
+      serviceLimitsStore.setDomainHardLimit(spaceId, limit, Unlimited.value - 1)
     } catch {
       case ex =>
         // Verify
-        assertEquals(oldLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limit).get)
+        assertEquals(oldLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(spaceId, limit).get)
         // Then
         throw ex
     }
@@ -167,11 +175,11 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndNoDomainScopedLimitAndNoPairScopedLimitWhenPairScopedActionExceedsSystemDefaultThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limit, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    val (pairKey, spaceId, limit, limitValue) = (pairRef.name, pairRef.space, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limit, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limit,
-      (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limit))
+    val limiter = getTestLimiter(spaceId, pairKey, limit,
+      (id, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(id, pKey, limit))
 
     // When
     limiter.actionPerformed
@@ -181,11 +189,11 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndNoDomainDefaultLimitAndPairScopedLimitWhenPairScopedActionExceedsPairScopedLimitThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    val (pairKey, spaceId, limitName, limitValue) = (pairRef.name, pairRef.space, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
-    serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
+    serviceLimitsStore.setPairLimit(spaceId, pairKey, limitName, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limitName,
+    val limiter = getTestLimiter(spaceId, pairKey, limitName,
       (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
@@ -196,11 +204,11 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndDomainDefaultLimitAndNoPairScopedLimitWhenPairScopedActionExceedsDomainDefaultThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limit, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    val (pairKey, spaceId, limit, limitValue) = (pairRef.name, pairRef.space, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limit, limitValue + 1)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limit, limitValue)
+    serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limit,
+    val limiter = getTestLimiter(spaceId, pairKey, limit,
       (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
@@ -211,12 +219,12 @@ class JooqServiceLimitsStoreTest {
   @Test(expected = classOf[ServiceLimitExceededException])
   def givenSystemDefaultLimitAndDomainDefaultLimitAndPairScopedLimitWhenPairScopedActionExceedsPairLimitThenActionFailsDueToThrottling {
     // Given
-    val (pairKey, domainName, limitName, limitValue) = (testPair.key, testPair.domain.name, testLimit, 0)
+    val (pairKey, spaceId, limitName, limitValue) = (pairRef.name, pairRef.space, testLimit, 0)
     serviceLimitsStore.setSystemDefaultLimit(limitName, limitValue + 1)
-    serviceLimitsStore.setDomainDefaultLimit(domainName, limitName, limitValue - 1)
-    serviceLimitsStore.setPairLimit(domainName, pairKey, limitName, limitValue)
+    serviceLimitsStore.setDomainDefaultLimit(spaceId, limitName, limitValue - 1)
+    serviceLimitsStore.setPairLimit(spaceId, pairKey, limitName, limitValue)
 
-    val limiter = getTestLimiter(domainName, pairKey, limitName,
+    val limiter = getTestLimiter(spaceId, pairKey, limitName,
       (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
     // When
@@ -226,18 +234,18 @@ class JooqServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionSuccess(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
+    val (limit, spaceId, pairKey) = (testLimit, space.id, pairRef.name)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
         if usage <= expectedLimit =>
 
-        serviceLimitsStore.deleteDomainLimits(domainName)
+        serviceLimitsStore.deleteDomainLimits(spaceId)
         systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limit, lim))
-        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
-        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
+        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, lim))
+        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(spaceId, pairKey, limit, lim))
 
-        val limiter = getTestLimiter(domainName, pairKey, limit,
+        val limiter = getTestLimiter(spaceId, pairKey, limit,
           (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to usage).foreach(_ => limiter.actionPerformed)
@@ -247,18 +255,18 @@ class JooqServiceLimitsStoreTest {
 
   @Theory
   def verifyPairScopedActionFailures(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
+    val (limit, spaceId, pairKey) = (testLimit, space.id, pairRef.name)
 
     scenario match {
       case LimitEnforcementScenario(systemDefault, domainDefault, pairLimit, expectedLimit, usage)
         if usage > expectedLimit =>
 
-        serviceLimitsStore.deleteDomainLimits(domainName)
+        serviceLimitsStore.deleteDomainLimits(spaceId)
         systemDefault.foreach(lim => serviceLimitsStore.setSystemDefaultLimit(limit, lim))
-        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
-        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
+        domainDefault.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, lim))
+        pairLimit.foreach(lim => serviceLimitsStore.setPairLimit(spaceId, pairKey, limit, lim))
 
-        val limiter = getTestLimiter(domainName, pairKey, limit,
+        val limiter = getTestLimiter(spaceId, pairKey, limit,
           (domName, pKey, limName) => serviceLimitsStore.getEffectiveLimitByNameForPair(domName, pKey, limName))
 
         (1 to expectedLimit).foreach(_ => limiter.actionPerformed)
@@ -276,43 +284,43 @@ class JooqServiceLimitsStoreTest {
   
   @Theory
   def verifyLimitCascadingRules(scenario: Scenario) {
-    val (limit, domainName, pairKey) = (testLimit, testDomain, testPair.key)
+    val (limit, spaceId, pairKey) = (testLimit, space.id, pairRef.name)
     
     scenario match {
       case CascadingLimitScenario(shl, sdl, dhl, ddl, pl) =>
         // Given
         serviceLimitsStore.setSystemHardLimit(limit, shl._1)
         serviceLimitsStore.setSystemDefaultLimit(limit, sdl._1)
-        dhl._1.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limit, lim))
-        ddl._1.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(domainName, limit, lim))
-        pl._1.foreach(lim => serviceLimitsStore.setPairLimit(domainName, pairKey, limit, lim))
+        dhl._1.foreach(lim => serviceLimitsStore.setDomainHardLimit(spaceId, limit, lim))
+        ddl._1.foreach(lim => serviceLimitsStore.setDomainDefaultLimit(spaceId, limit, lim))
+        pl._1.foreach(lim => serviceLimitsStore.setPairLimit(spaceId, pairKey, limit, lim))
         
         // When
         shl._2.foreach(lim => serviceLimitsStore.setSystemHardLimit(limit, lim))
-        dhl._2.foreach(lim => serviceLimitsStore.setDomainHardLimit(domainName, limit, lim))
+        dhl._2.foreach(lim => serviceLimitsStore.setDomainHardLimit(spaceId, limit, lim))
         
         // Then
         assertEquals(shl._3, serviceLimitsStore.getSystemHardLimitForName(limit).get)
         assertEquals(sdl._3, serviceLimitsStore.getSystemDefaultLimitForName(limit).get)
-        dhl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(domainName, limit).get))
-        ddl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainDefaultLimitForDomainAndName(domainName, limit).get))
-        pl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getPairLimitForPairAndName(domainName, pairKey, limit).get))
+        dhl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(spaceId, limit).get))
+        ddl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getDomainDefaultLimitForDomainAndName(spaceId, limit).get))
+        pl._3.foreach(expectedLimit => assertEquals(expectedLimit, serviceLimitsStore.getPairLimitForPairAndName(spaceId, pairKey, limit).get))
       case _ =>
     }
   }
 
-  private def getTestLimiter(domainName: String, pairKey: String, limit: ServiceLimit,
-                             effectiveLimitFn: (String, String, ServiceLimit) => Int) = {
+  private def getTestLimiter(spaceId: Long, pairKey: String, limit: ServiceLimit,
+                             effectiveLimitFn: (Long, String, ServiceLimit) => Int) = {
     new TestLimiter {
       private var actionCount = 0
-      private val effectiveLimit = effectiveLimitFn(domainName, pairKey, limit)
+      private val effectiveLimit = effectiveLimitFn(spaceId, pairKey, limit)
 
       def actionPerformed {
         actionCount += 1
 
         if (actionCount > effectiveLimit) {
           throw new ServiceLimitExceededException("limit name: %s, effective limit: %d, pair: %s, domain: %s".format(
-            limit.key, effectiveLimit, pairKey, domainName))
+            limit.key, effectiveLimit, pairKey, spaceId))
         }
       }
     }
@@ -321,17 +329,17 @@ class JooqServiceLimitsStoreTest {
   private def setAllLimits(limit: ServiceLimit, sysHardLimitValue: Int, otherLimitsValue: Int) {
     serviceLimitsStore.setSystemHardLimit(limit, sysHardLimitValue)
     serviceLimitsStore.setSystemDefaultLimit(limit, otherLimitsValue)
-    serviceLimitsStore.setDomainHardLimit(testDomain, limit, otherLimitsValue)
-    serviceLimitsStore.setDomainDefaultLimit(testDomain, limit, otherLimitsValue)
-    serviceLimitsStore.setPairLimit(testDomain, testPair.key, limit, otherLimitsValue)
+    serviceLimitsStore.setDomainHardLimit(space.id, limit, otherLimitsValue)
+    serviceLimitsStore.setDomainDefaultLimit(space.id, limit, otherLimitsValue)
+    serviceLimitsStore.setPairLimit(space.id, pairRef.name, limit, otherLimitsValue)
   }
 
-  private def limitValuesForPairByName(pair: DiffaPair, limit: ServiceLimit) = {
+  private def limitValuesForPairByName(pair:PairRef, limit: ServiceLimit) = {
     val systemHardLimit = serviceLimitsStore.getSystemHardLimitForName(limit).get
     val systemDefaultLimit = serviceLimitsStore.getSystemDefaultLimitForName(limit).get
-    val domainHardLimit = serviceLimitsStore.getDomainHardLimitForDomainAndName(pair.domain.name, limit).get
-    val domainDefaultLimit = serviceLimitsStore.getDomainDefaultLimitForDomainAndName(pair.domain.name, limit).get
-    val pairLimit = serviceLimitsStore.getPairLimitForPairAndName(pair.domain.name, pair.key, limit).get
+    val domainHardLimit = serviceLimitsStore.getDomainHardLimitForDomainAndName(pair.space, limit).get
+    val domainDefaultLimit = serviceLimitsStore.getDomainDefaultLimitForDomainAndName(pair.space, limit).get
+    val pairLimit = serviceLimitsStore.getPairLimitForPairAndName(pair.space, pair.name, limit).get
 
     (systemHardLimit, systemDefaultLimit, domainHardLimit, domainDefaultLimit, pairLimit)
   }

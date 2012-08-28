@@ -28,17 +28,17 @@ trait DomainCredentialsManager {
   /**
    * Adds a new set of external HTTP credentials for the given domain.
    */
-  def addExternalHttpCredentials(domain:String, creds:InboundExternalHttpCredentialsDef)
+  def addExternalHttpCredentials(space:Long, creds:InboundExternalHttpCredentialsDef)
 
   /**
    * Removes the external HTTP credentials for the given domain and url
    */
-  def deleteExternalHttpCredentials(domain:String, url:String)
+  def deleteExternalHttpCredentials(space:Long, url:String)
 
   /**
    * Lists all credentials in the current domain.
    */
-  def listCredentials(domain:String) : Seq[OutboundExternalHttpCredentialsDef]
+  def listCredentials(space:Long) : Seq[OutboundExternalHttpCredentialsDef]
 }
 
 /**
@@ -50,12 +50,12 @@ trait DomainCredentialsLookup {
   /**
    * Returns the most specific credentials that matches the given URL
    */
-  def credentialsForUrl(domain:String, url:String) : Option[HttpCredentials]
+  def credentialsForUrl(space:Long, url:String) : Option[HttpCredentials]
 
   /**
    * Returns the most specific credentials that matches the given URI
    */
-  def credentialsForUri(domain:String, uri:URI) : Option[HttpCredentials]
+  def credentialsForUri(space:Long, uri:URI) : Option[HttpCredentials]
 }
 
 trait HttpCredentials
@@ -66,16 +66,16 @@ case class QueryParameterCredentials(name:String, value:String) extends HttpCred
  * Stubbed out provider of the DomainCredentialsLookup interface that always responds with the same
  * credentials. This is used for testing purposes.
  */
-class FixedDomainCredentialsLookup(domain:String, credentials:Option[HttpCredentials]) extends DomainCredentialsLookup {
+class FixedDomainCredentialsLookup(space:Long, credentials:Option[HttpCredentials]) extends DomainCredentialsLookup {
 
-  def credentialsForUrl(domainName: String, url: String) = credentialsForUri(domainName, new URI(url))
+  def credentialsForUrl(space:Long, url: String) = credentialsForUri(space, new URI(url))
 
-  def credentialsForUri(domainName: String, uri: URI) = {
-    if (domainName == domain) {
+  def credentialsForUri(spaceId:Long, uri: URI) = {
+    if (space == spaceId) {
       credentials
     }
     else {
-      throw new IllegalArgumentException("Wrong domain: supported = " + domain + "; requested = " + domainName)
+      throw new IllegalArgumentException("Wrong domain: supported = " + spaceId + "; requested = " + space)
     }
   }
 }

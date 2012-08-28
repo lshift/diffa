@@ -19,13 +19,13 @@ package net.lshift.diffa.agent.rest
 import javax.ws.rs._
 import core.{Response, UriInfo}
 import net.lshift.diffa.kernel.reporting.ReportManager
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{DomainConfigStore, PairRef}
 import net.lshift.diffa.kernel.frontend.PairReportDef
 import scala.collection.JavaConversions._
 
 class ReportsResource(val config:DomainConfigStore,
                       val reports:ReportManager,
-                      val domain:String,
+                      val space:Long,
                       val uriInfo:UriInfo) {
 
   @GET
@@ -33,14 +33,14 @@ class ReportsResource(val config:DomainConfigStore,
   @Produces(Array("application/json"))
   def listReports(@PathParam("pairId") pairId: String,
                   @QueryParam("scope") scope: String): Array[PairReportDef] =
-      config.getPairDef(domain, pairId).reports.toSeq.toArray[PairReportDef]
+      config.getPairDef(space, pairId).reports.toSeq.toArray[PairReportDef]
 
   @POST
   @Path("/{pairId}/{reportId}")
   @Produces(Array("application/json"))
   def executeReport(@PathParam("pairId") pairId:String,
                    @PathParam("reportId") reportId:String) = {
-    reports.executeReport(DiffaPairRef(key = pairId, domain = domain), reportId)
+    reports.executeReport(PairRef(name = pairId, space = space), reportId)
     Response.status(Response.Status.OK).build
   }
 

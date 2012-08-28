@@ -19,7 +19,7 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.kernel.events.VersionID
-import net.lshift.diffa.kernel.differencing.{MatchState, DifferenceEvent}
+import net.lshift.diffa.kernel.differencing.{MatchState, ExternalDifferenceEvent}
 import support.{IncludesObjId, DoesntIncludeObjId, DiffCount, TestEnvironments}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.InvalidInventoryException
@@ -57,13 +57,13 @@ class InventoryTest extends AbstractEnvironmentTest {
       "id2,v2,tt,2012-03-10T10:05:12Z"
     ))
 
-    val diffs = env.differencesHelper.waitFor(yesterday, tomorrow, DiffCount(2)).sortBy(e => e.objId.id)
+    val diffs = env.differencesHelper.waitFor(yesterday, tomorrow, DiffCount(2)).sortBy(e => e.entityId)
     
     assertDiffEquals(
-      DifferenceEvent(objId = VersionID(env.pairRef, "id1"), state = MatchState.UNMATCHED, upstreamVsn = "v1"),
+      ExternalDifferenceEvent(entityId = "id1", state = MatchState.UNMATCHED, upstreamVsn = "v1"),
       diffs(0))
     assertDiffEquals(
-      DifferenceEvent(objId = VersionID(env.pairRef, "id2"), state = MatchState.UNMATCHED, upstreamVsn = "v2"),
+      ExternalDifferenceEvent(entityId = "id2", state = MatchState.UNMATCHED, upstreamVsn = "v2"),
       diffs(1))
   }
 
@@ -115,13 +115,13 @@ class InventoryTest extends AbstractEnvironmentTest {
     ))
     val diffs = env.differencesHelper.
       waitFor(yesterday, tomorrow, DiffCount(2), DoesntIncludeObjId("id1")).
-      sortBy(e => e.objId.id)
+      sortBy(e => e.entityId)
 
     assertDiffEquals(
-      DifferenceEvent(objId = VersionID(env.pairRef, "id2"), state = MatchState.UNMATCHED, upstreamVsn = "v2", downstreamVsn = "v3"),
+      ExternalDifferenceEvent(entityId = "id2", state = MatchState.UNMATCHED, upstreamVsn = "v2", downstreamVsn = "v3"),
       diffs(0))
     assertDiffEquals(
-      DifferenceEvent(objId = VersionID(env.pairRef, "id3"), state = MatchState.UNMATCHED, downstreamVsn = "v3"),
+      ExternalDifferenceEvent(entityId = "id3", state = MatchState.UNMATCHED, downstreamVsn = "v3"),
       diffs(1))
   }
 
@@ -211,8 +211,8 @@ class InventoryTest extends AbstractEnvironmentTest {
   }
 
   private def csv(lines:String*) = lines.mkString("\n")
-  private def assertDiffEquals(expected:DifferenceEvent, actual:DifferenceEvent) {
-    assertEquals(expected.objId, actual.objId)
+  private def assertDiffEquals(expected:ExternalDifferenceEvent, actual:ExternalDifferenceEvent) {
+    assertEquals(expected.entityId, actual.entityId)
     assertEquals(expected.state, actual.state)
     assertEquals(expected.upstreamVsn, actual.upstreamVsn)
     assertEquals(expected.downstreamVsn, actual.downstreamVsn)

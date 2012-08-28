@@ -41,16 +41,16 @@ class Changes(val domainConfig:DomainConfigStore,
    * Indicates that a change has occurred within a participant. Locates the appropriate policy for the pair the
    * event is targeted for, and provides the event to the policy.
    */
-  def onChange(domain:String, endpoint:String, evt:ChangeEvent) {
-    log.debug("Received change event for %s %s: %s".format(domain, endpoint, evt))
+  def onChange(space:Long, endpoint:String, evt:ChangeEvent) {
+    log.debug("Received change event for %s %s: %s".format(space, endpoint, evt))
 
     evt.ensureContainsMandatoryFields();
 
-    val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
+    val targetEndpoint = domainConfig.getEndpoint(space, endpoint)
     val evtAttributes:Map[String, String] = if (evt.getAttributes != null) evt.getAttributes.toMap else Map()
     val typedAttributes = targetEndpoint.schematize(evtAttributes)
 
-    domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
+    domainConfig.listPairsForEndpoint(space, endpoint).foreach(pair => {
       val pairEvt = if (pair.upstreamName == endpoint) {
         UpstreamPairChangeEvent(VersionID(pair.asRef, evt.getId), typedAttributes, evt.getLastUpdated, evt.getVersion)
       } else {
@@ -87,8 +87,8 @@ class Changes(val domainConfig:DomainConfigStore,
     })
   }
 
-  def startInventory(domain: String, endpoint: String, view:Option[String]):Seq[ScanRequest] = {
-    val targetEndpoint = domainConfig.getEndpointDef(domain, endpoint)
+  def startInventory(space:Long, endpoint: String, view:Option[String]):Seq[ScanRequest] = {
+    val targetEndpoint = domainConfig.getEndpointDef(space, endpoint)
     val requests = scala.collection.mutable.Set[ScanRequest]()
 
     view.foreach(v => {
@@ -98,7 +98,7 @@ class Changes(val domainConfig:DomainConfigStore,
       }
     })
 
-    domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
+    domainConfig.listPairsForEndpoint(space, endpoint).foreach(pair => {
       val side = pair.withoutDomain.whichSide(targetEndpoint)
 
       // Propagate the change event to the corresponding policy
@@ -108,8 +108,8 @@ class Changes(val domainConfig:DomainConfigStore,
     requests.toSeq
   }
 
-  def submitInventory(domain:String, endpoint:String, view:Option[String], constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]):Seq[ScanRequest] = {
-    val targetEndpoint = domainConfig.getEndpoint(domain, endpoint)
+  def submitInventory(space:Long, endpoint:String, view:Option[String], constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]):Seq[ScanRequest] = {
+    val targetEndpoint = domainConfig.getEndpoint(space, endpoint)
     val endpointCategories = CategoryUtil.fuseViewCategories(targetEndpoint.categories.toMap, targetEndpoint.views, view)
     val fullConstraints = CategoryUtil.mergeAndValidateConstraints(endpointCategories, constraints)
 
@@ -127,7 +127,7 @@ class Changes(val domainConfig:DomainConfigStore,
     }
 
     val nextRequests = scala.collection.mutable.Set[ScanRequest]()
-    domainConfig.listPairsForEndpoint(domain, endpoint).foreach(pair => {
+    domainConfig.listPairsForEndpoint(space, endpoint).foreach(pair => {
       val side = if (pair.upstreamName == endpoint) UpstreamEndpoint else DownstreamEndpoint
 
       // Propagate the change event to the corresponding policy

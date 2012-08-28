@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.reporting
 
-import net.lshift.diffa.kernel.config.{PairReportType, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{PairRef, PairReportType, DomainConfigStore}
 import net.lshift.diffa.kernel.differencing.DomainDifferenceStore
 import org.apache.http.impl.client.DefaultHttpClient
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
@@ -37,8 +37,8 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
    * Executes a report with the given name for the given pair.
    * @throws MissingObjectException if the requested report doesn't exist.
    */
-  def executeReport(pair:DiffaPairRef, name:String) {
-    val reportDef = configStore.getPairDef(pair.domain, pair.key).reports.
+  def executeReport(pair:PairRef, name:String) {
+    val reportDef = configStore.getPairDef(pair).reports.
       find(_.name == name).getOrElse(throw new MissingObjectException("pair report"))
 
     diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Initiating report %s".format(name))
@@ -64,7 +64,7 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
     }
   }
 
-  private def generateDifferencesReport(pair:DiffaPairRef, reportWriter:PrintWriter) {
+  private def generateDifferencesReport(pair:PairRef, reportWriter:PrintWriter) {
     val datetimeFormatter = ISODateTimeFormat.basicDateTime().withZoneUTC()
 
     reportWriter.println("detection date,entity id,upstream version,downstream version,state")

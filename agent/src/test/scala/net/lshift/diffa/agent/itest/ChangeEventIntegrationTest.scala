@@ -15,24 +15,27 @@
  */
 package net.lshift.diffa.agent.itest
 
-import org.junit.Test
+import org.junit.{Before, Test}
 import org.junit.Assert._
 import support.TestConstants._
 import net.lshift.diffa.participant.changes.ChangeEvent
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.agent.client.ConfigurationRestClient
-import com.eaio.uuid.UUID
 import net.lshift.diffa.client.{InvalidChangeEventException, ChangesRestClient}
+import org.apache.commons.lang3.RandomStringUtils
 
 
-class ChangeEventIntegrationTest {
+class ChangeEventIntegrationTest extends IsolatedDomainTest {
 
-  val endpoint = new UUID().toString
+  val endpoint = RandomStringUtils.randomAlphanumeric(10)
 
-  val configurationClient:ConfigurationRestClient = new ConfigurationRestClient(agentURL, defaultDomain)
-  configurationClient.declareEndpoint(EndpointDef(name = endpoint))
+  val configurationClient:ConfigurationRestClient = new ConfigurationRestClient(agentURL, isolatedDomain)
+  val changesClient:ChangesRestClient = new ChangesRestClient(agentURL, isolatedDomain, endpoint)
 
-  val changesClient:ChangesRestClient = new ChangesRestClient(agentURL, defaultDomain, endpoint)
+  @Before
+  def createEndpoint {
+    configurationClient.declareEndpoint(EndpointDef(name = endpoint))
+  }
 
   @Test
   def shouldRejectEventWithMissingMandatoryFields = {

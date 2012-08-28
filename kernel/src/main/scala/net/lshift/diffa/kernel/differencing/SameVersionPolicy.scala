@@ -21,7 +21,7 @@ import net.lshift.diffa.kernel.events._
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.participant.scanning.{Collation, ScanAggregation, ScanConstraint, ScanResultEntry}
 
 /**
@@ -41,20 +41,20 @@ class SameVersionPolicy(stores:VersionCorrelationStoreFactory, listener:Differen
   protected class DownstreamSameScanStrategy(collation: Collation) extends ScanStrategy {
     val name = "DownstreamSame"
 
-    def getAggregates(pair:DiffaPairRef, bucketing:Seq[ScanAggregation], constraints:Seq[ScanConstraint]) = {
+    def getAggregates(pair:PairRef, bucketing:Seq[ScanAggregation], constraints:Seq[ScanConstraint]) = {
 
       val aggregator = new Aggregator(bucketing, collation)
       stores(pair).queryDownstreams(constraints, aggregator.collectDownstream)
       aggregator.digests
     }
 
-    def getEntities(pair:DiffaPairRef, constraints:Seq[ScanConstraint]) = {
+    def getEntities(pair:PairRef, constraints:Seq[ScanConstraint]) = {
       stores(pair).queryDownstreams(constraints).map(x => {
         ScanResultEntry.forEntity(x.id, x.downstreamDVsn, x.lastUpdate, mapAsJavaMap(x.downstreamAttributes))
       })
     }
 
-    def handleMismatch(scanId:Option[Long], pair:DiffaPairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
+    def handleMismatch(scanId:Option[Long], pair:PairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
       vm match {
         case VersionMismatch(id, categories, lastUpdated, partVsn, _) =>
           if (partVsn != null) {

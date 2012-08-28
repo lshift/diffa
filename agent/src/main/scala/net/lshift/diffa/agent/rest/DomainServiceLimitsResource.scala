@@ -2,15 +2,15 @@ package net.lshift.diffa.agent.rest
 
 import javax.ws.rs._
 import net.lshift.diffa.kernel.frontend.Configuration
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
-class DomainServiceLimitsResource(val config:Configuration, val domain:String) {
+class DomainServiceLimitsResource(val config:Configuration, val space:Long) {
 
   @GET
   @Path("/{name}")
   @Produces(Array("text/plain"))
   def effectiveDomainLimit(@PathParam("name") name:String) : String = {
-    config.getEffectiveDomainLimit(domain, name).toString
+    config.getEffectiveDomainLimit(space, name).toString
   }
 
   @GET
@@ -18,7 +18,7 @@ class DomainServiceLimitsResource(val config:Configuration, val domain:String) {
   @Produces(Array("text/plain"))
   def effectiveDomainLimit(@PathParam("pair") pair:String,
                            @PathParam("name") name:String) : String = {
-    config.getEffectivePairLimit(DiffaPairRef(pair,domain), name).toString
+    config.getEffectivePairLimit(PairRef(pair,space), name).toString
   }
 
   @PUT
@@ -26,7 +26,7 @@ class DomainServiceLimitsResource(val config:Configuration, val domain:String) {
   @Produces(Array("application/json"))
   def setDomainHardLimit(@PathParam("name") name:String,
                          value:String) = {
-    config.setHardDomainLimit(domain, name, value.toInt)
+    config.setHardDomainLimit(space, name, value.toInt)
   }
 
   @PUT
@@ -34,7 +34,7 @@ class DomainServiceLimitsResource(val config:Configuration, val domain:String) {
   @Produces(Array("application/json"))
   def setDomainDefaultLimit(@PathParam("name") name:String,
                          value:String) = {
-    config.setDefaultDomainLimit(domain, name, value.toInt)
+    config.setDefaultDomainLimit(space, name, value.toInt)
   }
 
   @PUT
@@ -43,7 +43,7 @@ class DomainServiceLimitsResource(val config:Configuration, val domain:String) {
   def setPairLimit(@PathParam("pair") pair:String,
                             @PathParam("name") name:String,
                             value:String) = {
-    config.setPairLimit(DiffaPairRef(pair,domain), name, value.toInt)
+    config.setPairLimit(PairRef(pair,space), name, value.toInt)
   }
 
 }

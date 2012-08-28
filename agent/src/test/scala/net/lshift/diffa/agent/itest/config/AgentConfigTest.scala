@@ -20,18 +20,19 @@ import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.ConfigurationRestClient
 import org.junit.Test
 import com.eaio.uuid.UUID
-import net.lshift.diffa.client.NotFoundException
 import org.junit.Assert._
 import collection.JavaConversions._
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import net.lshift.diffa.client.NotFoundException
 
 /**
  * A bunch of smoke tests for the config of a known agent
  */
-class AgentConfigTest {
+class AgentConfigTest extends IsolatedDomainTest {
 
-  val client = new ConfigurationRestClient(agentURL, domain)
+  val client = new ConfigurationRestClient(agentURL, isolatedDomain)
 
   @Test
   def shouldFindExistentEndpoint = {

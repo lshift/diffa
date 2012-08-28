@@ -28,9 +28,9 @@ case class NotificationEvent (
   )
 {
 
-  def getPairKey = id.pair.key
+  def getPairKey = id.pair.name
   // TODO What about the domain ?
-  def getDomain = id.pair.domain
+  def getDomain = id.pair.space
   def getEntityId = id.id
   def getTimestamp = lastUpdated.toString()
   def getUpstream = upstreamVsn

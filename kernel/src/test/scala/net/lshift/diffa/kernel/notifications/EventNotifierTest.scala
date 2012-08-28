@@ -22,13 +22,13 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.junit.{Before, Test}
 import org.joda.time.{Period, DateTime}
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.config.DiffaPairRef._
+import net.lshift.diffa.kernel.config.PairRef._
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.differencing.{MatcherFiltered, LiveWindow, DifferencesManager}
 
 class EventNotifierTest {
 
-  val domain = Domain(name="domain")
+  val spaceId = System.currentTimeMillis()
   val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
   val differencesManager = createStrictMock("differencesManager", classOf[DifferencesManager])
 
@@ -37,15 +37,14 @@ class EventNotifierTest {
 
   @Before
   def setup = {
-    val user = User("FooBar","dev_null@lshift.net")
     val member = Member(domain = "domain", user = "FooBar")
-    expect(domainConfigStore.listDomainMembers(domain.name)).andStubReturn(List(member))
+    expect(domainConfigStore.listDomainMembers(spaceId)).andStubReturn(List(member))
     replay(domainConfigStore, differencesManager)
   }
 
   @Test
   def quiteTime = {
-    val id = VersionID(DiffaPairRef("pair", domain.name), "abc")
+    val id = VersionID(PairRef("pair", spaceId), "abc")
     val timestamp = new DateTime()
     val up = "foo"
     val down = "bar"

@@ -25,7 +25,7 @@ import org.junit.Before
 import org.junit.runner.RunWith
 import org.junit.Assert._
 import org.hamcrest.Matchers._
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.config.Endpoint
 import scala.collection.JavaConversions._
 import java.io.IOException
@@ -33,11 +33,11 @@ import java.io.IOException
 
 object ScanOrderVerificationTest {
 
-  val pair = new DiffaPairRef("some-domain", "some-pair")
+  val pair = new PairRef("some-domain", 701L)
 
   val serverPort = 41559
 
-  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, None)
+  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.space, None)
 
   object scanningParticipant extends ScanningParticipantHandler {
     import java.util.List
@@ -69,7 +69,7 @@ object ScanOrderVerificationTest {
   }
 
   lazy val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit: ServiceLimit): Int = limit.defaultLimit
+    def getEffectiveLimitByNameForPair(space: Long, pairKey: String, limit: ServiceLimit): Int = limit.defaultLimit
   }
 
   def scanningRestClientFor(ex: Example) = {

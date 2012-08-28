@@ -31,6 +31,7 @@
     <scala.version>2.9.1-1</scala.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
     <spring.version>3.1.0.RELEASE</spring.version>
+    <spring.security.version>3.1.2.RELEASE</spring.security.version>
     <hibernate.version>3.6.10.Final</hibernate.version>
     <hsqldb.version>2.2.8</hsqldb.version>
     <postgresql.version>9.1-901.jdbc4</postgresql.version>
@@ -122,7 +123,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-web</artifactId>
-      <version>${spring.version}</version>
+      <version>${spring.security.version}</version>
     </dependency>
     <dependency>    <!-- Listed specifically, since spring-security-web 3.1 has bad dependencies, and references 3.0.6 -->
       <groupId>org.springframework</groupId>
@@ -142,17 +143,17 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
-      <version>${spring.version}</version>
+      <version>${spring.security.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-taglibs</artifactId>
-      <version>${spring.version}</version>
+      <version>${spring.security.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-ldap</artifactId>
-      <version>${spring.version}</version>
+      <version>${spring.security.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

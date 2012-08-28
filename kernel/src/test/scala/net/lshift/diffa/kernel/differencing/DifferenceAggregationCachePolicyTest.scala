@@ -19,7 +19,7 @@ import org.junit.Assert._
 import org.junit.Assume._
 import org.hamcrest.CoreMatchers._
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theory, DataPoint, Theories}
 import org.joda.time.{DateTimeZone, DateTime}
@@ -78,7 +78,7 @@ object DifferenceAggregationCachePolicyTest {
   case class KeysForIntervalScenario(intervals:Seq[(DateTime, DateTime)], start:DateTime, end:DateTime)
     extends AggregationScenario
 
-  val p1 = DiffaPairRef(domain = "d", key = "p1")
+  val p1 = PairRef(space = 500L, name = "p1")
 
   val now = new DateTime(2012, 4, 23, 8, 30, 0, DateTimeZone.UTC)
   val currentHour = now.withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0)

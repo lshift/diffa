@@ -15,29 +15,35 @@
  */
 package net.lshift.diffa.agent.itest
 
-import support.TestConstants.{ agentURL, defaultDomain, yesterday }
+import support.TestConstants.{ agentURL, yesterday }
 import net.lshift.diffa.agent.client.ConfigurationRestClient
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.participant.changes.ChangeEvent
 
-import com.eaio.uuid.UUID
 import org.junit.Assert.fail
 import net.lshift.diffa.client.{RateLimitExceededException, ChangesRestClient}
 import net.lshift.diffa.kernel.client.ChangesClient
-import org.junit.{Before, BeforeClass, Test}
+import org.junit.{Before, Test}
 import com.hazelcast.util.Clock
+import org.apache.commons.lang3.RandomStringUtils
 
-class ChangeEventRateLimitingTest {
-  import ChangeEventRateLimitingTest._
+class ChangeEventRateLimitingTest extends IsolatedDomainTest {
 
   var clientCreateTime: Long = 0L
   var changesClient: ChangesClient = _
   var event: ChangeEvent = _
 
+  val endpoint = RandomStringUtils.randomAlphanumeric(10)
+  val lastUpdated = yesterday
+  val ratePerSecondLimit = 1
+
   @Before
   def initializeChangesClient {
+
+    new ConfigurationRestClient(agentURL, isolatedDomain).declareEndpoint(EndpointDef(name = endpoint))
+
     clientCreateTime = Clock.currentTimeMillis()
-    changesClient = new ChangesRestClient(agentURL, defaultDomain, endpoint)
+    changesClient = new ChangesRestClient(agentURL, isolatedDomain, endpoint)
     event = ChangeEvent.forChange("id", "aaff00001111", lastUpdated)
 
     // Make sure that no previous change events interfere with the acceptance of
@@ -58,7 +64,6 @@ class ChangeEventRateLimitingTest {
   @Test
   def givenDefaultConfigurationAndRateLimitAlreadyReachedWhenSubsequentChangeEventReceivedThenRejectEventSubmission {
     try {
-      var firstEvent = Clock.currentTimeMillis
       changesClient.onChangeEvent(event)
       assertFailUntil(clientCreateTime + 1000L)
     } catch {
@@ -84,25 +89,5 @@ class ChangeEventRateLimitingTest {
       }
       Thread.sleep(retryFrequency)
     }
-  }
-}
-
-object ChangeEventRateLimitingTest {
-  private[ChangeEventRateLimitingTest] val endpoint = new UUID().toString
-  private[ChangeEventRateLimitingTest] val lastUpdated = yesterday
-  private[ChangeEventRateLimitingTest] val ratePerSecondLimit = 1
-
-  @BeforeClass
-  def configure {
-    configureAgent(ratePerSecondLimit)
-    configureEndpoint
-  }
-
-  private def configureAgent(rateLimit: Int) {
-  }
-
-  private def configureEndpoint {
-    new ConfigurationRestClient(agentURL, defaultDomain).declareEndpoint(
-      EndpointDef(name = endpoint))
   }
 }

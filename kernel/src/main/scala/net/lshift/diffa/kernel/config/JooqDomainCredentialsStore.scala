@@ -26,42 +26,38 @@ import net.lshift.diffa.schema.tables.ExternalHttpCredentials.EXTERNAL_HTTP_CRED
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import java.lang.{Long => LONG}
 
-class JooqDomainCredentialsStore(val db: DatabaseFacade, spacePathCache:SpacePathCache)
+class JooqDomainCredentialsStore(val db: DatabaseFacade)
   extends DomainCredentialsManager
   with DomainCredentialsLookup {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  def addExternalHttpCredentials(domain:String, creds:InboundExternalHttpCredentialsDef) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def addExternalHttpCredentials(space:Long, creds:InboundExternalHttpCredentialsDef) = {
 
     db.execute { t =>
       creds.validate()
 
       t.insertInto(EXTERNAL_HTTP_CREDENTIALS).
-        set(EXTERNAL_HTTP_CREDENTIALS.SPACE, space.id:LONG).
-        set(EXTERNAL_HTTP_CREDENTIALS.URL, creds.url).
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE, creds.`type`).
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY, creds.key).
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE, creds.value).
+          set(EXTERNAL_HTTP_CREDENTIALS.SPACE, space:LONG).
+          set(EXTERNAL_HTTP_CREDENTIALS.URL, creds.url).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE, creds.`type`).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY, creds.key).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE, creds.value).
         onDuplicateKeyUpdate().
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE, creds.`type`).
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY, creds.key).
-        set(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE, creds.value).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE, creds.`type`).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY, creds.key).
+          set(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE, creds.value).
         execute()
     }
   }
 
-  def deleteExternalHttpCredentials(domain:String, url:String) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def deleteExternalHttpCredentials(space:Long, url:String) = {
 
     db.execute { t =>
       val deleted =
         t.delete(EXTERNAL_HTTP_CREDENTIALS).
-          where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space.id)).
-          and(EXTERNAL_HTTP_CREDENTIALS.URL.equal(url)).
+          where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space)).
+            and(EXTERNAL_HTTP_CREDENTIALS.URL.equal(url)).
           execute()
 
       if (deleted == 0) {
@@ -70,12 +66,13 @@ class JooqDomainCredentialsStore(val db: DatabaseFacade, spacePathCache:SpacePat
     }
   }
 
-  def listCredentials(domain:String) : Seq[OutboundExternalHttpCredentialsDef] = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def listCredentials(space:Long) : Seq[OutboundExternalHttpCredentialsDef] = {
 
     db.execute { t =>
-      t.select().from(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space.id)).fetch().map { r =>
+      t.select().
+        from(EXTERNAL_HTTP_CREDENTIALS).
+        where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space)).
+        fetch().map { r =>
         OutboundExternalHttpCredentialsDef(
           url = r.getValue(EXTERNAL_HTTP_CREDENTIALS.URL),
           key = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY),
@@ -85,27 +82,25 @@ class JooqDomainCredentialsStore(val db: DatabaseFacade, spacePathCache:SpacePat
     }
   }
 
-  def credentialsForUrl(domain:String, url:String) : Option[HttpCredentials] = credentialsForUri(domain, new URI(url))
+  def credentialsForUrl(space:Long, url:String) : Option[HttpCredentials] = credentialsForUri(space, new URI(url))
 
-  def credentialsForUri(domain:String, searchURI:URI) = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
+  def credentialsForUri(space:Long, searchURI:URI) = {
 
     db.execute { t =>
 
       val baseUrl = searchURI.getScheme + "://" + searchURI.getAuthority + "%"
 
       val results = t.selectFrom(EXTERNAL_HTTP_CREDENTIALS).
-        where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space.id)).
-        and(EXTERNAL_HTTP_CREDENTIALS.URL.like(baseUrl)).
-        fetch().map { r =>
-        ExternalHttpCredentials(
-          domain = domain,
-          url = r.getValue(EXTERNAL_HTTP_CREDENTIALS.URL),
-          key = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY),
-          value = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE),
-          credentialType = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE)
-        )
+                      where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(space)).
+                        and(EXTERNAL_HTTP_CREDENTIALS.URL.like(baseUrl)).
+                      fetch().map { r =>
+                      ExternalHttpCredentials(
+                        space = r.getValue(EXTERNAL_HTTP_CREDENTIALS.SPACE),
+                        url = r.getValue(EXTERNAL_HTTP_CREDENTIALS.URL),
+                        key = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_KEY),
+                        value = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_VALUE),
+                        credentialType = r.getValue(EXTERNAL_HTTP_CREDENTIALS.CRED_TYPE)
+                      )
       }
 
       if (results.isEmpty) {
@@ -119,7 +114,7 @@ class JooqDomainCredentialsStore(val db: DatabaseFacade, spacePathCache:SpacePat
             case _                                       =>
               // Be very careful not to log a password
               val message = "%s - Wrong credential type for url: %s".
-                format(formatAlertCode(domain, INVALID_EXTERNAL_CREDENTIAL_TYPE), searchURI)
+                format(formatAlertCode(space, INVALID_EXTERNAL_CREDENTIAL_TYPE), searchURI)
               logger.error(message)
               throw new Exception("Wrong credential type")
           }

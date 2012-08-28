@@ -29,6 +29,7 @@ import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.Pairs.PAIRS
+import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
@@ -77,6 +78,7 @@ object JooqConfigStoreCompanion {
    * so we alias the UNIQUE_CATEGORY_NAMES.NAME and UNIQUE_CATEGORY_VIEW_NAMES.NAME fields to something other than NAME.
    */
   val UNIQUE_CATEGORY_ALIAS = "unique_category_alias"
+  val SPACE_NAME_ALIAS = "space_name_alias"
 
   def listEndpoints(jooq:DatabaseFacade, space:Option[Long] = None, endpoint:Option[String] = None) : java.util.List[DomainEndpointDef] = {
     jooq.execute(t => {
@@ -86,7 +88,11 @@ object JooqConfigStoreCompanion {
         select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
         select(PREFIX_CATEGORIES.STEP, PREFIX_CATEGORIES.PREFIX_LENGTH, PREFIX_CATEGORIES.MAX_LENGTH).
         select(SET_CATEGORIES.VALUE).
+        select(SPACES.NAME.as(SPACE_NAME_ALIAS)).
         from(ENDPOINTS).
+
+        join(SPACES).
+          on(SPACES.ID.equal(ENDPOINTS.SPACE)).
 
         leftOuterJoin(UNIQUE_CATEGORY_NAMES).
           on(UNIQUE_CATEGORY_NAMES.SPACE.equal(ENDPOINTS.SPACE)).
@@ -123,7 +129,11 @@ object JooqConfigStoreCompanion {
         select(RANGE_CATEGORY_VIEWS.DATA_TYPE, RANGE_CATEGORY_VIEWS.LOWER_BOUND, RANGE_CATEGORY_VIEWS.UPPER_BOUND, RANGE_CATEGORY_VIEWS.MAX_GRANULARITY).
         select(PREFIX_CATEGORY_VIEWS.STEP, PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, PREFIX_CATEGORY_VIEWS.MAX_LENGTH).
         select(SET_CATEGORY_VIEWS.VALUE).
+        select(SPACES.NAME.as(SPACE_NAME_ALIAS)).
         from(ENDPOINT_VIEWS).
+
+        join(SPACES).
+          on(SPACES.ID.equal(ENDPOINT_VIEWS.SPACE)).
 
         join(ENDPOINTS).
           on(ENDPOINTS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
@@ -177,6 +187,8 @@ object JooqConfigStoreCompanion {
       results.iterator().foreach(record => {
 
         val currentEndpoint = DomainEndpointDef(
+          space = record.getValue(ENDPOINTS.SPACE),
+          domain = record.getValue(SPACES.NAME.as(SPACE_NAME_ALIAS)),
           name = record.getValue(ENDPOINTS.NAME),
           scanUrl = record.getValue(ENDPOINTS.SCAN_URL),
           contentRetrievalUrl = record.getValue(ENDPOINTS.CONTENT_RETRIEVAL_URL),
@@ -185,7 +197,7 @@ object JooqConfigStoreCompanion {
           collation = record.getValue(ENDPOINTS.COLLATION_TYPE)
         )
 
-        val compressionKey = currentEndpoint.domain + "/" + currentEndpoint.name
+        val compressionKey = currentEndpoint.space + "/" + currentEndpoint.name
 
         if (!endpoints.contains(compressionKey)) {
           endpoints.put(compressionKey, currentEndpoint);
@@ -266,12 +278,7 @@ object JooqConfigStoreCompanion {
     })
   }
 
-  /**
-   * TODO Passing the domain;String parameter should get nuked - it is currently in here for backwards compatibility
-   * when trying to avoid as little structural change as possible
-   */
   def listPairs(jooq:DatabaseFacade,
-                @Deprecated domain:String,
                 space:Long, key:Option[String] = None, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
 
     val baseQuery = t.select(PAIRS.getFields).
@@ -279,7 +286,10 @@ object JooqConfigStoreCompanion {
       select(REPAIR_ACTIONS.getFields).
       select(ESCALATIONS.getFields).
       select(PAIR_REPORTS.getFields).
+      select(SPACES.NAME).
       from(PAIRS).
+      join(SPACES).
+        on(SPACES.ID.equal(PAIRS.SPACE)).
       leftOuterJoin(PAIR_VIEWS).
         on(PAIR_VIEWS.PAIR.equal(PAIRS.NAME)).
         and(PAIR_VIEWS.SPACE.equal(PAIRS.SPACE)).
@@ -328,7 +338,7 @@ object JooqConfigStoreCompanion {
       val pair = compressed.getOrElseUpdate(compressedKey,
         DomainPairDef(
           space = record.getValue(PAIRS.SPACE),
-          domain = domain,
+          domain = record.getValue(SPACES.NAME),
           key = record.getValue(PAIRS.NAME),
           upstreamName = record.getValue(PAIRS.UPSTREAM),
           downstreamName = record.getValue(PAIRS.DOWNSTREAM),

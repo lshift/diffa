@@ -23,7 +23,7 @@ import org.junit.{Before, Test}
 import net.lshift.diffa.kernel.util.MissingObjectException
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
-import net.lshift.diffa.kernel.config.{DomainMembershipAware, Domain, Member, User}
+import net.lshift.diffa.kernel.config.{DomainMembershipAware, Member, User}
 
 @RunWith(classOf[Theories])
 class CachedSystemConfigStoreTest {

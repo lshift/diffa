@@ -34,7 +34,7 @@ import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import scala.collection.JavaConversions._
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore, DiffaPair}
+import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 
 /**
  * Quartz backed implementation of the ScanScheduler.
@@ -56,27 +56,26 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
   scheduler.start()
   scheduler.getListenerManager.addTriggerListener(new TriggerListenerSupport {
     override def triggerFired(trigger: Trigger, context: JobExecutionContext) {
-      val pairId = trigger.getJobKey.getName
-      val (domain,pairKey) = DiffaPair.fromIdentifier(pairId)
+      val pair = jobToPairRef(trigger.getJobKey)
       val view = trigger.getJobDataMap.getString(VIEW_DATA_KEY)
 
       if (view == "") {
         try {
-          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), None, None)
-          log.info(formatAlertCode(domain, pairKey, BASIC_SCHEDULED_SCAN_STARTED) + " starting basic scheduled scan")
+          pairPolicyClient.scanPair(pair, None, None)
+          log.info(formatAlertCode(pair, BASIC_SCHEDULED_SCAN_STARTED) + " starting basic scheduled scan")
         } catch {
             // Catch, log, and drop exceptions to prevent the scheduler trying to do any misfire handling
           case ex =>
-            log.error(formatAlertCode(domain, pairKey, BASIC_SCHEDULED_SCAN_FAILED) + " failed to start basic scheduled scan")
+            log.error(formatAlertCode(pair, BASIC_SCHEDULED_SCAN_FAILED) + " failed to start basic scheduled scan")
         }
       } else {
         try {
-          pairPolicyClient.scanPair(DiffaPairRef(pairKey, domain), Some(view), None)
-          log.info(formatAlertCode(domain, pairKey, VIEW_SCHEDULED_SCAN_STARTED) + " starting scheduled scan for view " + view)
+          pairPolicyClient.scanPair(pair, Some(view), None)
+          log.info(formatAlertCode(pair, VIEW_SCHEDULED_SCAN_STARTED) + " starting scheduled scan for view " + view)
         } catch {
             // Catch, log, and drop exceptions to prevent the scheduler trying to do any misfire handling
           case ex =>
-            log.error(formatAlertCode(domain, pairKey, VIEW_SCHEDULED_SCAN_FAILED) + " failed to start scheduled scan for view " + view)
+            log.error(formatAlertCode(pair, VIEW_SCHEDULED_SCAN_FAILED) + " failed to start scheduled scan for view " + view)
         }
       }
 
@@ -87,7 +86,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
   // Ensure that a trigger is registered for each pair on startup
   systemConfig.listPairs.foreach(p => onUpdatePair(p.asRef))
 
-  def onUpdatePair(pairRef:DiffaPairRef) {
+  def onUpdatePair(pairRef:PairRef) {
 
     val pair = domainConfig.getPairDef(pairRef)
 
@@ -148,7 +147,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
     }
   }
 
-  def onDeletePair(pair:DiffaPairRef) {
+  def onDeletePair(pair:PairRef) {
     val existingJob = jobForPair(pair)
     if (existingJob != null) {
       scheduler.deleteJob(jobIdentifier(pair))
@@ -162,8 +161,13 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
     scheduler.shutdown()
   }
 
-  private def jobForPair(pair:DiffaPairRef) = scheduler.getJobDetail(jobIdentifier(pair))
-  private def jobIdentifier(pair:DiffaPairRef) = new JobKey(pair.identifier)
+  private def jobForPair(pair:PairRef) = scheduler.getJobDetail(jobIdentifier(pair))
+
+  private def jobIdentifier(pair:PairRef) = new JobKey(pair.identifier)
+  private def jobToPairRef(key:JobKey) = {
+    val Array(space,pair) = key.getName().split("/")
+    PairRef(pair, space.toLong)
+  }
   private def createScheduler() = {
     val threadPool = new SimpleThreadPool(1, Thread.NORM_PRIORITY)
     threadPool.initialize()

@@ -35,7 +35,7 @@ import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.josql.filters.DefaultObjectFilter
 import org.josql.QueryParseException
-import net.lshift.diffa.kernel.config.{BreakerHelper, ConfigValidationException, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{BreakerHelper, ConfigValidationException, PairRef, DomainConfigStore}
 
 /**
  * This deals with escalating mismatches based on configurable escalation policies.
@@ -65,7 +65,7 @@ class EscalationManager(val config:DomainConfigStore,
 
   val log = LoggerFactory.getLogger(getClass)
 
-  private class EscalationActor(pair: DiffaPairRef) extends Actor {
+  private class EscalationActor(pair: PairRef) extends Actor {
     
     def receive = {
       case Escalate(d:DifferenceEvent)            =>
@@ -73,10 +73,10 @@ class EscalationManager(val config:DomainConfigStore,
           findEscalation(d.objId.pair, d.nextEscalation).map(e => {
             e.actionType match {
               case REPAIR =>
-                val result = actionsClient.invoke(ActionableRequest(d.objId.pair.key, d.objId.pair.domain, e.action, d.objId.id))
+                val result = actionsClient.invoke(ActionableRequest(d.objId.pair.name, d.objId.pair.space, e.action, d.objId.id))
                 log.debug("Escalation result for action [%s] using %s is %s".format(e.name, d.objId, result))
               case IGNORE =>
-                diffs.ignoreEvent(d.objId.pair.domain, d.seqId)
+                diffs.ignoreEvent(d.objId.pair.space, d.seqId)
             }
           })
         } else {
@@ -107,10 +107,10 @@ class EscalationManager(val config:DomainConfigStore,
   }
 
   private object EscalationActor {
-    def key(pair: DiffaPairRef) = "escalations:" + pair.identifier
+    def key(pair: PairRef) = "escalations:" + pair.identifier
   }
 
-  def createPairActor(pair: DiffaPairRef) = Some(actorSystem.actorOf(
+  def createPairActor(pair: PairRef) = Some(actorSystem.actorOf(
    Props(new EscalationActor(pair))))
 
   def initiateEscalation(e: DifferenceEvent) {
@@ -121,7 +121,7 @@ class EscalationManager(val config:DomainConfigStore,
     nc.registerForPairScanEvents(this)
   }
 
-  def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) {
+  def pairScanStateChanged(pair: PairRef, scanState: PairScanState) {
     scanState match {
       case PairScanState.FAILED     => escalatePairEvent(pair, SCAN_FAILED)
       case PairScanState.UP_TO_DATE => escalatePairEvent(pair, SCAN_COMPLETED)
@@ -129,14 +129,14 @@ class EscalationManager(val config:DomainConfigStore,
     }
   }
 
-  def escalatePairEvent(pairRef: DiffaPairRef, eventType:String) = {
+  def escalatePairEvent(pairRef: PairRef, eventType:String) = {
     findEscalationsForPair(pairRef, eventType).foreach(e => {
       log.debug("Escalating pair event as report %s".format(e.name))
       reportManager.executeReport(pairRef, e.action)
     })
   }
 
-  def findEscalations(pair: DiffaPairRef, diff:DifferenceEvent) = {
+  def findEscalations(pair: PairRef, diff:DifferenceEvent) = {
     config.getPairDef(pair).escalations.
       filter(e => {
         if (e.rule == null) {
@@ -148,12 +148,12 @@ class EscalationManager(val config:DomainConfigStore,
     })
   }
 
-  def findEscalationsForPair(pair: DiffaPairRef, eventType:String) = {
+  def findEscalationsForPair(pair: PairRef, eventType:String) = {
     config.getPairDef(pair).escalations.
       filter(e => e.rule == eventType && e.actionType == REPORT)
   }
 
-  def findEscalation(pair: DiffaPairRef, name:String) =
+  def findEscalation(pair: PairRef, name:String) =
     config.getPairDef(pair).escalations.find(_.name == name)
 
   def orderEscalations(escalations:Seq[EscalationDef]):Seq[EscalationDef] =

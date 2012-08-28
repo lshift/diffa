@@ -22,7 +22,7 @@ import java.io.InputStream
 import net.lshift.diffa.participant.scanning.ScanResultEntry
 import net.lshift.diffa.kernel.differencing.EntityValidator
 import net.lshift.diffa.schema.servicelimits.{ScanReadTimeout, ScanConnectTimeout}
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 
 trait ParticipantRestClientFactory {
 
@@ -33,9 +33,9 @@ class ScanningParticipantRestClientFactory(credentialsLookup:DomainCredentialsLo
   extends ScanningParticipantFactory with ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.scanUrl)
 
-  def createParticipantRef(endpoint: Endpoint, pairRef:DiffaPairRef) = {
-    val connectTimeout = limits.getEffectiveLimitByNameForPair(pairRef.domain, pairRef.key, ScanConnectTimeout)
-    val readTimeout =limits.getEffectiveLimitByNameForPair(pairRef.domain, pairRef.key, ScanReadTimeout)
+  def createParticipantRef(endpoint: Endpoint, pairRef:PairRef) = {
+    val connectTimeout = limits.getEffectiveLimitByNameForPair(pairRef.space, pairRef.name, ScanConnectTimeout)
+    val readTimeout =limits.getEffectiveLimitByNameForPair(pairRef.space, pairRef.name, ScanReadTimeout)
 
     val client = new ApacheHttpClient(connectTimeout, readTimeout)
     val validatorFactory = new CollationOrderEntityValidatorFactory(endpoint.lookupCollation)
@@ -49,7 +49,7 @@ class ScanningParticipantRestClientFactory(credentialsLookup:DomainCredentialsLo
 }
 
 object ScanningParticipantRestClientFactory {
-  def create(pair: DiffaPairRef, endpoint: Endpoint, serviceLimitsView: PairServiceLimitsView, credentialsLookup: DomainCredentialsLookup) =
+  def create(pair: PairRef, endpoint: Endpoint, serviceLimitsView: PairServiceLimitsView, credentialsLookup: DomainCredentialsLookup) =
       new ScanningParticipantRestClientFactory(credentialsLookup, serviceLimitsView).createParticipantRef(endpoint, pair)
 }
 
@@ -57,7 +57,7 @@ class ContentParticipantRestClientFactory(credentialsLookup:DomainCredentialsLoo
   extends ContentParticipantFactory with ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.contentRetrievalUrl)
 
-  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef)
+  def createParticipantRef(endpoint: Endpoint, pair:PairRef)
     = new ContentParticipantRestClient(serviceLimitsView = limits,
                                        scanUrl = endpoint.contentRetrievalUrl,
                                        credentialsLookup = credentialsLookup,
@@ -68,7 +68,7 @@ class VersioningParticipantRestClientFactory(credentialsLookup:DomainCredentials
   extends VersioningParticipantFactory with ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.versionGenerationUrl)
 
-  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef)
+  def createParticipantRef(endpoint: Endpoint, pair:PairRef)
     = new VersioningParticipantRestClient(serviceLimitsView = limits,
                                           scanUrl = endpoint.versionGenerationUrl,
                                           credentialsLookup = credentialsLookup,

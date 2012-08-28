@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.participants
 
 import collection.mutable.ListBuffer
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Endpoint}
+import net.lshift.diffa.kernel.config.{PairRef, Endpoint}
 
 /**
  * Factory that will resolve participant addresses to participant instances for querying.
@@ -33,14 +33,14 @@ class ParticipantFactory() {
   def registerContentFactory(f:ContentParticipantFactory) = contentFactories += f
   def registerVersioningFactory(f:VersioningParticipantFactory) = versioningFactories += f
 
-  def createUpstreamParticipant(endpoint:Endpoint, pair:DiffaPairRef): UpstreamParticipant = {
+  def createUpstreamParticipant(endpoint:Endpoint, pair:PairRef): UpstreamParticipant = {
     val scanningParticipant = createScanningParticipant(endpoint, pair)
     val contentParticipant = createContentParticipant(endpoint, pair)
 
     new CompositeUpstreamParticipant(endpoint.name, scanningParticipant, contentParticipant)
   }
 
-  def createDownstreamParticipant(endpoint:Endpoint, pair:DiffaPairRef): DownstreamParticipant = {
+  def createDownstreamParticipant(endpoint:Endpoint, pair:PairRef): DownstreamParticipant = {
     val scanningParticipant = createScanningParticipant(endpoint, pair)
     val contentParticipant = createContentParticipant(endpoint, pair)
     val versioningParticipant = createVersioningParticipant(endpoint, pair)
@@ -48,15 +48,15 @@ class ParticipantFactory() {
     new CompositeDownstreamParticipant(endpoint.name, scanningParticipant, contentParticipant, versioningParticipant)
   }
 
-  def createScanningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ScanningParticipantRef] =
+  def createScanningParticipant(endpoint:Endpoint, pair:PairRef): Option[ScanningParticipantRef] =
     createParticipant(scanningFactories, endpoint, pair, _.scanUrl)
-  def createContentParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[ContentParticipantRef] =
+  def createContentParticipant(endpoint:Endpoint, pair:PairRef): Option[ContentParticipantRef] =
     createParticipant(contentFactories, endpoint, pair, _.contentRetrievalUrl)
-  def createVersioningParticipant(endpoint:Endpoint, pair:DiffaPairRef): Option[VersioningParticipantRef] =
+  def createVersioningParticipant(endpoint:Endpoint, pair:PairRef): Option[VersioningParticipantRef] =
     createParticipant(versioningFactories, endpoint, pair, _.versionGenerationUrl)
 
   private def createParticipant[T](factories:Seq[AddressDrivenFactory[T]],
-                                   endpoint:Endpoint, pair:DiffaPairRef,
+                                   endpoint:Endpoint, pair:PairRef,
                                     accessor: Endpoint => String) : Option[T] = {
     val address = accessor(endpoint)
     Option(address) flatMap { _ =>

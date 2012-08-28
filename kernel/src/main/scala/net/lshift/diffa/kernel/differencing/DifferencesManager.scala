@@ -20,7 +20,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.participants.ParticipantType
 import org.joda.time.{Interval, DateTime}
-import net.lshift.diffa.kernel.config.{DiffaPairRef}
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 import java.util.HashMap
 
 /**
@@ -32,34 +32,34 @@ trait DifferencesManager {
    * Creates a writer for recording differences. The writer can be optionally opened in overwrite mode. If this is done,
    * then when the writer is closed, any difference not seen within the scope of the writer will be marked as matched.
    */
-  def createDifferenceWriter(domain:String, pair:String, overwrite:Boolean):DifferenceWriter
+  def createDifferenceWriter(space:Long, pair:String, overwrite:Boolean):DifferenceWriter
 
   /**
    * Retrieves a version for the given domain.
    */
-  def retrieveDomainSequenceNum(domain:String):String
+  def retrieveDomainSequenceNum(space:Long):String
 
   /**
    * Ignores the given difference.
    */
-  def ignoreDifference(domain:String, seqId:String):DifferenceEvent
+  def ignoreDifference(space:Long, seqId:String):DifferenceEvent
 
   /**
    * Unignores the given difference.
    */
-  def unignoreDifference(domain:String, seqId:String):DifferenceEvent
+  def unignoreDifference(space:Long, seqId:String):DifferenceEvent
 
   /**
    * Retrieves the version number of the last correlation to get transferred to the diff store.
    * This version number is global to the pair definition and can be used as a synchonization checkpoint.
    */
-  def lastRecordedVersion(pair:DiffaPairRef) : Option[Long]
+  def lastRecordedVersion(pair:PairRef) : Option[Long]
 
   /**
    * Retrieves aggregated count for the events between the given start and end time, for the given pair. Optionally
    * subdivides the accounts at intervals, as specified by the aggregateMinutes parameter.
    */
-  def retrieveAggregates(pair:DiffaPairRef, start:DateTime, end:DateTime, aggregation:Option[Int]):Seq[AggregateTile]
+  def retrieveAggregates(pair:PairRef, start:DateTime, end:DateTime, aggregation:Option[Int]):Seq[AggregateTile]
 
   /**
    *
@@ -68,13 +68,13 @@ trait DifferencesManager {
    * and returns a subset of the underlying data set that corresponds to the offset and length specified.
    * @throws MissingObjectException if the requested domain does not exist
    */
-  def retrievePagedEvents(domain:String, pairKey:String, interval:Interval, offset:Int, length:Int, options:EventOptions) : Seq[DifferenceEvent]
+  def retrievePagedEvents(space:Long, pairKey:String, interval:Interval, offset:Int, length:Int, options:EventOptions) : Seq[DifferenceEvent]
 
   /**
    * Count the number of events for the given pair within the given interval.
    * @throws MissingObjectException if the requested domain does not exist
    */
-  def countEvents(domain:String, pairKey:String, interval:Interval) : Int
+  def countEvents(space:Long, pairKey:String, interval:Interval) : Int
 
   /**
    * Retrieves any additional information that the differences manager knows about an event (eg, mismatched hashes,
@@ -82,27 +82,27 @@ trait DifferencesManager {
    * should generally only be called on explicit user request.
    * @throws MissingObjectException if the requested domain does not exist
    */
-  def retrieveEventDetail(domain:String, evtSeqId:String, t:ParticipantType.ParticipantType) : String
+  def retrieveEventDetail(space:Long, evtSeqId:String, t:ParticipantType.ParticipantType) : String
 
   /**
    * Informs the difference manager that a pair has been updated.
    */
-  def onUpdatePair(pairRef: DiffaPairRef)
+  def onUpdatePair(pairRef: PairRef)
 
   /**
    * Informs the difference manager that a pair has been deleted.
    */
-  def onDeletePair(pairRef: DiffaPairRef)
+  def onDeletePair(pairRef: PairRef)
 
   /**
    * Informs the difference manager that a domain has been updated.
    */
-  def onUpdateDomain(domain: String)
+  def onUpdateDomain(space:Long)
 
   /**
    * Informs the difference manager that a domain has been deleted.
    */
-  def onDeleteDomain(domain: String)
+  def onDeleteDomain(space:Long)
 }
 
 /**
@@ -153,9 +153,36 @@ case class DifferenceEvent(
 
   /** Proxy to the object id. Added to allow escalation rules like "id LIKE 'id123*'" to be applied. **/
   def id = objId.id
+
+  def toExternalFormat = ExternalDifferenceEvent(
+    seqId = seqId,
+    pair = objId.pair.name,
+    entityId = objId.id,
+    detectedAt = detectedAt,
+    state = state,
+    upstreamVsn = upstreamVsn,
+    downstreamVsn = downstreamVsn
+  )
 }
 
-abstract class DifferenceEventStatus
+
+
+/**
+ * This is a simplified representation of a difference event sent to clients.
+ */
+case class ExternalDifferenceEvent(
+    @BeanProperty var seqId:String = null,
+    @BeanProperty var pair:String = null,
+    @BeanProperty var entityId:String = null,
+    @BeanProperty var detectedAt:DateTime = null,
+    @BeanProperty var state:MatchState = null,
+    @BeanProperty var upstreamVsn:String = null,
+    @BeanProperty var downstreamVsn:String = null) {
+
+  def this() = this(seqId = null)
+}
+
+  abstract class DifferenceEventStatus
 case object NewUnmatchedEvent extends DifferenceEventStatus
 case object ReturnedUnmatchedEvent extends DifferenceEventStatus
 case object UpdatedUnmatchedEvent extends DifferenceEventStatus

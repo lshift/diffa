@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.matching
 
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, DiffaPair}
+import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, PairDef}
 import org.slf4j.LoggerFactory
 
@@ -31,25 +31,26 @@ class LocalEventMatchingManager(systemConfigStore: SystemConfigStore,
   val log = LoggerFactory.getLogger(getClass)
 
   private val reaper = new LocalEventMatcherReaper
-  private val matchers = new HashMap[DiffaPairRef, LocalEventMatcher]
+  private val matchers = new HashMap[PairRef, LocalEventMatcher]
   private val listeners = new ListBuffer[MatchingStatusListener]
 
   // Create a matcher for each pre-existing pair
   systemConfigStore.listPairs.foreach(updateMatcher(_))
 
-  def getMatcher(pair:DiffaPairRef) = matchers.get(pair)
+  def getMatcher(pair:PairRef) = matchers.get(pair)
 
-  def onUpdatePair(pairRef:DiffaPairRef):Unit = {
+  def onUpdatePair(pairRef:PairRef):Unit = {
 
     val pair = domainConfigStore.getPairDef(pairRef)
 
-    pair.matchingTimeout match {
-      case DiffaPair.NO_MATCHING => removeMatcher(pairRef)
-      case timeout => updateMatcher(pair)
+    if (pair.matchingTimeout < 0)  {
+      removeMatcher(pairRef)
+    } else {
+      updateMatcher(pair)
     }
   }
 
-  def onDeletePair(pair:DiffaPairRef) = {
+  def onDeletePair(pair:PairRef) = {
     removeMatcher(pair)
   }
 
@@ -89,7 +90,7 @@ class LocalEventMatchingManager(systemConfigStore: SystemConfigStore,
     matchers(pair.asRef) = newMatcher
   }
 
-  private def removeMatcher(pair:DiffaPairRef):Unit = {
+  private def removeMatcher(pair:PairRef):Unit = {
     matchers.get(pair) match {
       case Some(matcher) => {
         matcher.dispose

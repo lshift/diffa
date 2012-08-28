@@ -26,14 +26,14 @@ import net.lshift.diffa.schema.servicelimits.ServiceLimit
 class DomainsScanningTest {
 
   val limits = new PairServiceLimitsView {
-    def getEffectiveLimitByNameForPair(domainName: String, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
+    def getEffectiveLimitByNameForPair(space: Long, pairKey: String, limit:ServiceLimit): Int = limit.defaultLimit
   }
 
-  val pair = DiffaPairRef("foo","bar")
+  val pair = PairRef("foo", 802L)
   val endpoint = Endpoint(name = "domainsScanningTestEndpoint", scanUrl = agentURL + "/root/domains/scan")
 
 
-  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, Some(BasicAuthCredentials("guest", "guest")))
+  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.space, Some(BasicAuthCredentials("guest", "guest")))
   val participant = ScanningParticipantRestClientFactory.create(pair, endpoint, limits, domainCredentialsLookup)
 
   @Test

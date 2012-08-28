@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import net.lshift.diffa.kernel.config.{DiffaPairRef}
+import net.lshift.diffa.kernel.config.PairRef
 
 /**
  * Listener that receives notifications when the scan state of the given pair changes.
@@ -25,5 +25,5 @@ trait PairScanListener {
   /**
    * Indicates that the scan state of the given pair has changed.
    */
-  def pairScanStateChanged(pair:DiffaPairRef, scanState:PairScanState)
+  def pairScanStateChanged(pair:PairRef, scanState:PairScanState)
 }

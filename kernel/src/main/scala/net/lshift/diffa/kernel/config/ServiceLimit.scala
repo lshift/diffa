@@ -21,7 +21,7 @@ case class DomainServiceLimits(@BeanProperty var domain: Domain = null,
 }
 
 case class PairServiceLimits(@BeanProperty var domain: Domain = null,
-                             @BeanProperty var pair: DiffaPair = null,
+                             @BeanProperty var pair: PairRef = null,
                              @BeanProperty var limitName: String = null,
                              @BeanProperty var limitValue: Int = 0) {
   def this() = this(domain = null)
@@ -33,6 +33,6 @@ case class DomainScopedLimit(@BeanProperty var limitName: String = null,
 }
 
 case class PairScopedLimit(@BeanProperty var limitName: String = null,
-                           @BeanProperty var pair: DiffaPair = null) extends java.io.Serializable {
+                           @BeanProperty var pair: PairRef = null) extends java.io.Serializable {
   def this() = this(limitName = null)
 }

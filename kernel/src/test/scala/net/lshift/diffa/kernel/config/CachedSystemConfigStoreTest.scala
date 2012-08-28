@@ -25,14 +25,13 @@ import org.junit.Assert._
 import net.lshift.diffa.kernel.config.system.JooqSystemConfigStore
 import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 import org.easymock.IAnswer
+import org.apache.commons.lang.RandomStringUtils
 
 class CachedSystemConfigStoreTest {
 
   val jooq = E4.createStrictMock(classOf[DatabaseFacade])
   val cp = new HazelcastCacheProvider
   val sp = new HazelcastSequenceProvider
-
-  val spacePathCache = new SpacePathCache(jooq, cp)
 
   // When the JooqSystemConfigStore, boots it syncs the sequence provider with the database, so we need to mock this out
 
@@ -42,7 +41,7 @@ class CachedSystemConfigStoreTest {
 
   E4.replay(jooq)
 
-  val configStore = new JooqSystemConfigStore(jooq,cp, sp, spacePathCache)
+  val configStore = new JooqSystemConfigStore(jooq,cp, sp)
 
   // Make sure the that booting the JooqSystemConfigStore has performed the sequence provider sync
 
@@ -52,16 +51,12 @@ class CachedSystemConfigStoreTest {
 
   E4.reset(jooq)
 
-  @Before
-  def invalidateCaches {
-    spacePathCache.reset
-  }
-
   @Test
   def shouldCacheDomainExistenceAndInvalidateOnRemoval {
-    val domain = "a"
+    val domain = RandomStringUtils.randomAlphanumeric(10)
 
-    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(Space(id = persistentSequenceValue + 1)).once()
+    val initialSpaceId = persistentSequenceValue + 1
+    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(Space(id = initialSpaceId)).once()
 
     E4.replay(jooq)
 
@@ -78,12 +73,22 @@ class CachedSystemConfigStoreTest {
 
     // Remove the domain and verify that this result is also cached
 
-    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andReturn(Unit).once()
-    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(spacePathCache.NON_EXISTENT_SPACE).times(2)
+    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andAnswer(new IAnswer[Space] {
+      def answer = {
+
+        // Because the cache invalidation occurs within a recursive delete, we need to zero out the cache (i.e. a side effect)
+        // and also indicate to the caller that there is a cache miss (i.e. by returning them a marker to a non-existent space)
+
+        configStore.reset
+        configStore.NON_EXISTENT_SPACE
+      }
+    }).once()
+
+    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(configStore.NON_EXISTENT_SPACE).once()
 
     E4.replay(jooq)
 
-    configStore.deleteDomain(domain)
+    configStore.deleteSpace(initialSpaceId)
 
     assertFalse(configStore.doesDomainExist(domain))
     assertFalse(configStore.doesDomainExist(domain))
@@ -99,14 +104,20 @@ class CachedSystemConfigStoreTest {
 
     E4.reset(jooq)
 
-    // Now re-add the old domain and make sure that doesDomainExist reflects this coherently
-    expect(jooq.execute(anyObject[Function1[Factory,Unit]]())).andAnswer(new IAnswer[Unit] {
-      def answer = {
-        spacePathCache.reset
+    val subsequentSpaceId = persistentSequenceValue + 2
+    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andAnswer(new IAnswer[Space] {
+      def answer() = {
+
+        // Force a cache invalidation and return the new space
+
+        configStore.reset
+        Space(id = subsequentSpaceId)
       }
     }).once()
 
-    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(Space(id = persistentSequenceValue + 2)).once()
+
+    expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(Space(id = subsequentSpaceId)).once()
+
 
     E4.replay(jooq)
 

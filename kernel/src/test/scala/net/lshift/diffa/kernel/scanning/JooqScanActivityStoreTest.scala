@@ -21,7 +21,7 @@ import org.junit.{Test, AfterClass}
 import org.junit.Assert._
 import com.eaio.uuid.UUID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import org.apache.commons.lang.RandomStringUtils
 
 class JooqScanActivityStoreTest {
@@ -29,7 +29,6 @@ class JooqScanActivityStoreTest {
   private val storeReferences = JooqScanActivityStoreTest.storeReferences
   private val scanActivityStore = storeReferences.scanActivityStore
   private val systemConfigStore = storeReferences.systemConfigStore
-  private val spacePathCache = storeReferences.spacePathCache
 
   @Test
   def shouldBeAbleToReadInitialStatementAndThenUpdateIt {
@@ -37,23 +36,23 @@ class JooqScanActivityStoreTest {
     // Note the use of withMillisOfSecond(0) to avoid timestamp truncation in MySQL
 
     val domain = RandomStringUtils.randomAlphanumeric(10)
+
+    val space = systemConfigStore.createOrUpdateSpace(domain)
+
     val pair = RandomStringUtils.randomAlphanumeric(10)
     val id = System.currentTimeMillis()
 
-    val ref = DiffaPairRef(key = pair, domain = domain)
+    val ref = PairRef(name = pair, space = space.id)
 
     // TODO It not strictly necessary to create this domain since there is no foreign key from the SCAN_STATEMENTS table
     // to the SPACES table, but generally speaking, we will only create new SCAN_STATEMENTS records when we have a valid
     // space, hence we do a lookup of the SPACE id when creating the statement record. If we don't create this domain
     // as part of this test, that lookup will fail and the test will fail.
-    systemConfigStore.createOrUpdateDomain(domain)
-    val space = spacePathCache.resolveSpacePath(domain)
 
     val originalStatement = ScanStatement(
       space = space.id,
       id = id,
-      domain =  domain,
-      pair =  pair,
+      pair = pair,
       initiatedBy = Some("some-user"),
       startTime =  new DateTime().withMillisOfSecond(0)
     )

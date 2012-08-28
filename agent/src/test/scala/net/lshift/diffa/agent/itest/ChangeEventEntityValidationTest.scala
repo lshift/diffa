@@ -18,21 +18,29 @@ package net.lshift.diffa.agent.itest
 import net.lshift.diffa.client.{RateLimitExceededException, InvalidChangeEventException, ChangesRestClient}
 import support.TestConstants.{ agentURL, defaultDomain, yesterday }
 import com.eaio.uuid.UUID
-import org.junit.{BeforeClass, Test}
+import org.junit.{Before, BeforeClass, Test}
 import org.junit.Assert.fail
 import net.lshift.diffa.participant.changes.ChangeEvent
 import net.lshift.diffa.agent.client.ConfigurationRestClient
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import org.slf4j.LoggerFactory
+import org.apache.commons.lang3.RandomStringUtils
 
 
-class ChangeEventEntityValidationTest {
-  import ChangeEventEntityValidationTest._
+class ChangeEventEntityValidationTest extends IsolatedDomainTest {
 
-  val log = LoggerFactory.getLogger(getClass)
+  val logger = LoggerFactory.getLogger(getClass)
 
-  lazy val changeClient = new ChangesRestClient(agentURL, defaultDomain, endpoint)
-  lazy val event = ChangeEvent.forChange("\u2603", "aVersion", yesterday)
+  val endpoint = RandomStringUtils.randomAlphabetic(10)
+
+  val changeClient = new ChangesRestClient(agentURL, isolatedDomain, endpoint)
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
+  val event = ChangeEvent.forChange("\u2603", "aVersion", yesterday)
+
+  @Before
+  def configureEndpoint {
+    configClient.declareEndpoint(EndpointDef(name = endpoint))
+  }
 
   // TODO This should throw a InvalidChangeEventException, not a RateLimitExceededException - see #205
   //@Test(expected=classOf[InvalidChangeEventException])
@@ -45,18 +53,8 @@ class ChangeEventEntityValidationTest {
       case i:InvalidChangeEventException => // pass
       case i:RateLimitExceededException => {
         // should not occur, please fix me .... (see #205)
-        log.warn("RateLimitExceededException should not occur, please see #205")
+        logger.warn("RateLimitExceededException should not occur, please see #205")
       }
     }
   }
-}
-
-object ChangeEventEntityValidationTest {
-  val endpoint = new UUID().toString
-  @BeforeClass
-  def configure {
-    new ConfigurationRestClient(agentURL, defaultDomain).declareEndpoint(
-      EndpointDef(name = endpoint))
-  }
-
 }

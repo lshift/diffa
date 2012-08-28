@@ -21,7 +21,7 @@ import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{LocalDate, DateTimeZone, DateTime}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.util.{CategoryChange, EndpointSide}
 
 /**
@@ -36,7 +36,7 @@ trait VersionCorrelationStore extends Closeable {
   /**
    * The unique key for the upstream and downstream participant pair
    */
-  val pair: DiffaPairRef
+  val pair: PairRef
 
   /**
    * Opens a new writer, giving access to write operations on the store.
@@ -65,7 +65,7 @@ trait VersionCorrelationStore extends Closeable {
    */
   def queryUpstreams(constraints:Seq[ScanConstraint], handler:UpstreamVersionHandler):Unit = {
     queryUpstreams(constraints).foreach(c => {
-      val version = VersionID(DiffaPairRef(c.pairing, c.domain), c.id)
+      val version = VersionID(PairRef(c.pairing, c.space), c.id)
       val attributes = c.upstreamAttributes.toMap
       if (logger.isTraceEnabled) {
         logger.trace("US: version = %s; attributes = %s; lastUpdate = %s; uvsn = %s".format(version, attributes, c.lastUpdate, c.upstreamVsn))
@@ -79,7 +79,7 @@ trait VersionCorrelationStore extends Closeable {
    */
   def queryDownstreams(constraints:Seq[ScanConstraint], handler:DownstreamVersionHandler) : Unit = {
     queryDownstreams(constraints).foreach(c => {
-      val version = VersionID(DiffaPairRef(c.pairing, c.domain), c.id)
+      val version = VersionID(PairRef(c.pairing, c.space), c.id)
       val attributes = c.downstreamAttributes.toMap
       if (logger.isTraceEnabled) {
         logger.trace("DS: version = %s; attributes = %s; lastUpdate = %s; uvsn = %s; dvsn = %s".format(version, attributes, c.lastUpdate, c.upstreamVsn, c.downstreamDVsn))
@@ -177,20 +177,20 @@ trait ExtendedVersionCorrelationWriter extends LimitedVersionCorrelationWriter w
  */
 trait VersionCorrelationStoreFactory extends Closeable {
 
-  def apply(pair: DiffaPairRef): VersionCorrelationStore
+  def apply(pair: PairRef): VersionCorrelationStore
 
   /**
    * Closes the correlation store associated with the given, and removes all persistent resources. This method should
    * only be called when a pair is no longer valid within the system, and the data associated with it is no longer
    * required.
    */
-  def remove(pair: DiffaPairRef): Unit
+  def remove(pair: PairRef): Unit
 
   /**
    * Closes the correlation store associated with the given pair, releasing in-memory resources associated with it.
    * Does not remove any persistent resources.
    */
-  def close(pair: DiffaPairRef)
+  def close(pair: PairRef)
 }
 
 abstract class TypedAttribute { def value:String }

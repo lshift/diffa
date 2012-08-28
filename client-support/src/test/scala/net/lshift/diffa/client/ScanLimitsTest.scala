@@ -24,17 +24,17 @@ import org.junit.{Test, Before}
 import net.lshift.diffa.schema.servicelimits.{ScanReadTimeout, ScanConnectTimeout, ScanResponseSizeLimit}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.config.Endpoint
 
 
 object ScanLimitsTest {
 
-  val pair = new DiffaPairRef("some-domain", "some-pair")
+  val pair = new PairRef("some-domain", 703L)
 
   val serverPort = 41557
 
-  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.domain, None)
+  val domainCredentialsLookup = new FixedDomainCredentialsLookup(pair.space, None)
 
   object scanningParticipant extends ScanningParticipantHandler {
     import java.util.List
@@ -87,12 +87,12 @@ class ScanLimitsTest {
 
 
   def configureLimitsWithResponseSizeOf(responseSize: Int) {
-    expect(limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, ScanResponseSizeLimit)).
+    expect(limits.getEffectiveLimitByNameForPair(pair.space, pair.name, ScanResponseSizeLimit)).
       andReturn(responseSize).anyTimes()
 
     List(ScanConnectTimeout, ScanReadTimeout).foreach {
       limit =>
-        expect(limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, limit)).
+        expect(limits.getEffectiveLimitByNameForPair(pair.space, pair.name, limit)).
           andReturn(limit.defaultLimit)
     }
     replay(limits)

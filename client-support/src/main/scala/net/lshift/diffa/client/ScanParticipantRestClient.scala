@@ -23,13 +23,13 @@ import org.slf4j.LoggerFactory
 import java.net.{SocketTimeoutException, SocketException, ConnectException, URI}
 import net.lshift.diffa.kernel.differencing.ScanFailedException
 import net.lshift.diffa.kernel.util.AlertCodes._
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import net.lshift.diffa.kernel.config.QueryParameterCredentials
 import net.lshift.diffa.kernel.config.BasicAuthCredentials
 import scala.Some
 import org.apache.http.NoHttpResponseException
 
-class ScanParticipantRestClient(pair: DiffaPairRef,
+class ScanParticipantRestClient(pair: PairRef,
                                 scanUrl: String,
                                 credentialsLookup: DomainCredentialsLookup,
                                 httpClient: DiffaHttpClient,
@@ -43,7 +43,7 @@ class ScanParticipantRestClient(pair: DiffaPairRef,
       withConstraints(constraints).
       withAggregations(aggregations)
 
-    val credentials = credentialsLookup.credentialsForUri(pair.domain, new URI(scanUrl))
+    val credentials = credentialsLookup.credentialsForUri(pair.space, new URI(scanUrl))
 
     val queryWithCredentials = credentials match {
       case None => query

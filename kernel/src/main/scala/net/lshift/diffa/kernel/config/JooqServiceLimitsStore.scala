@@ -28,7 +28,7 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.schema.tables.records.{SpaceLimitsRecord, SystemLimitsRecord}
 import java.lang.{Long => LONG}
 
-class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCache) extends ServiceLimitsStore {
+class JooqServiceLimitsStore(jooq:JooqDatabaseFacade) extends ServiceLimitsStore {
 
   private def validate(limitValue: Int) {
     if (limitValue < 0 && limitValue != Unlimited.hardLimit)
@@ -44,20 +44,17 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCa
     execute()
   })
 
-  def deleteDomainLimits(domain: String) = jooq.execute(t => {
+  def deleteDomainLimits(space:Long) = jooq.execute(t => {
 
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-
-    deletePairLimitsByDomainInternal(t, space.id)
+    deletePairLimitsByDomainInternal(t, space)
 
     t.delete(SPACE_LIMITS).
-      where(SPACE_LIMITS.SPACE.equal(space.id)).
+      where(SPACE_LIMITS.SPACE.equal(space)).
       execute()
   })
 
-  def deletePairLimitsByDomain(domain: String) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domain)
-    jooq.execute(deletePairLimitsByDomainInternal(_, space.id))
+  def deletePairLimitsByDomain(space:Long) = {    
+    jooq.execute(deletePairLimitsByDomainInternal(_, space))
   }
 
   def setSystemHardLimit(limit: ServiceLimit, limitValue: Int) = jooq.execute(t => {
@@ -67,11 +64,10 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCa
     cascadeToSpaceLimits(t, limit, limitValue, SPACE_LIMITS.HARD_LIMIT)
   })
 
-  def setDomainHardLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+  def setDomainHardLimit(space:Long, limit: ServiceLimit, limitValue: Int) = {
     jooq.execute(t => {
       validate(limitValue)
-      setDomainLimit(t, space.id, limit, limitValue, SPACE_LIMITS.HARD_LIMIT)
+      setDomainLimit(t, space, limit, limitValue, SPACE_LIMITS.HARD_LIMIT)
     })
   }
 
@@ -79,16 +75,14 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCa
     setSystemLimit(t, limit, limitValue, SYSTEM_LIMITS.DEFAULT_LIMIT)
   })
 
-  def setDomainDefaultLimit(domainName: String, limit: ServiceLimit, limitValue: Int) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+  def setDomainDefaultLimit(space:Long, limit: ServiceLimit, limitValue: Int) = {
     jooq.execute(t => {
-      setDomainLimit(t, space.id, limit, limitValue, SPACE_LIMITS.DEFAULT_LIMIT)
+      setDomainLimit(t, space, limit, limitValue, SPACE_LIMITS.DEFAULT_LIMIT)
     })
   }
 
-  def setPairLimit(domainName: String, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
-    jooq.execute(setPairLimit(_, space.id, pairKey, limit, limitValue))
+  def setPairLimit(space:Long, pairKey: String, limit: ServiceLimit, limitValue: Int) = {
+    jooq.execute(setPairLimit(_, space, pairKey, limit, limitValue))
   }
 
 
@@ -98,20 +92,17 @@ class JooqServiceLimitsStore(jooq:JooqDatabaseFacade, spacePathCache:SpacePathCa
   def getSystemDefaultLimitForName(limit: ServiceLimit) =
     getLimit(SYSTEM_LIMITS.DEFAULT_LIMIT, SYSTEM_LIMITS, SYSTEM_LIMITS.NAME.equal(limit.key))
 
-  def getDomainHardLimitForDomainAndName(domainName: String, limit: ServiceLimit) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
-    getLimit(SPACE_LIMITS.HARD_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space.id))
+  def getDomainHardLimitForDomainAndName(space:Long, limit: ServiceLimit) = {
+    getLimit(SPACE_LIMITS.HARD_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space))
   }
 
-  def getDomainDefaultLimitForDomainAndName(domainName: String, limit: ServiceLimit) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
-    getLimit(SPACE_LIMITS.DEFAULT_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space.id))
+  def getDomainDefaultLimitForDomainAndName(space:Long, limit: ServiceLimit) = {
+    getLimit(SPACE_LIMITS.DEFAULT_LIMIT, SPACE_LIMITS, SPACE_LIMITS.NAME.equal(limit.key), SPACE_LIMITS.SPACE.equal(space))
   }
 
-  def getPairLimitForPairAndName(domainName: String, pairKey: String, limit: ServiceLimit) = {
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
+  def getPairLimitForPairAndName(space:Long, pairKey: String, limit: ServiceLimit) = {
     getLimit(PAIR_LIMITS.LIMIT_VALUE, PAIR_LIMITS,
-             PAIR_LIMITS.NAME.equal(limit.key), PAIR_LIMITS.SPACE.equal(space.id), PAIR_LIMITS.PAIR.equal(pairKey))
+             PAIR_LIMITS.NAME.equal(limit.key), PAIR_LIMITS.SPACE.equal(space), PAIR_LIMITS.PAIR.equal(pairKey))
   }
 
   private def getLimit(limitValue:TableField[_,_], table:TableImpl[_], predicate:Condition*) : Option[Int] = jooq.execute(t => {

@@ -20,7 +20,7 @@ import reflect.BeanProperty
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import net.lshift.diffa.kernel.config.RepairAction._
 import net.lshift.diffa.kernel.frontend.RepairActionDef
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 
 /**
  * Interface supported by clients capable of listing and invoking actions for pairs.
@@ -30,17 +30,17 @@ trait ActionsClient {
   /**
    * Lists all actions that a pairing offers
    */
-  def listActions(pair:DiffaPairRef): Seq[Actionable]
+  def listActions(pair:PairRef): Seq[Actionable]
 
   /**
    * Lists the entity-scoped actions that a pairing offers
    */
-  def listEntityScopedActions(pair:DiffaPairRef): Seq[Actionable]
+  def listEntityScopedActions(pair:PairRef): Seq[Actionable]
 
   /**
    * Lists the pair-scoped actions that a pairing offers
    */
-  def listPairScopedActions(pair:DiffaPairRef): Seq[Actionable]
+  def listPairScopedActions(pair:PairRef): Seq[Actionable]
 
   /**
    * Invokes an action against a pairing
@@ -59,8 +59,8 @@ case class Actionable (
 }
 
 object Actionable {
-  def fromRepairAction(domain:String, pair:String, a: RepairActionDef): Actionable = {
-    val path = "/domains/" + domain + "/actions/" + pair + "/" + a.name + (a.scope match {
+  def fromRepairAction(space:Long, pair:String, a: RepairActionDef): Actionable = {
+    val path = "/spaces/" + space + "/actions/" + pair + "/" + a.name + (a.scope match {
       case ENTITY_SCOPE =>  "/${id}"
       case PAIR_SCOPE => ""
     })
@@ -70,7 +70,7 @@ object Actionable {
 
 case class ActionableRequest (
   @BeanProperty var pairKey:String = null,
-  @BeanProperty var domain:String = null,
+  @BeanProperty var space:Long = -1L,
   @BeanProperty var actionId:String = null,
   @BeanProperty var entityId:String = null) {
 

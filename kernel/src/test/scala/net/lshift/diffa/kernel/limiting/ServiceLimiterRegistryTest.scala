@@ -54,8 +54,8 @@ object ServiceLimiterRegistryTest {
   @DataPoints
   def limiters = Array(
     Scenario(ServiceLimiterKey(dummyServiceLimit, None, None), {() => dummyLimiter}),
-    Scenario(ServiceLimiterKey(dummyServiceLimit, Some("dom1"), None), {() => dummyLimiter}),
+    Scenario(ServiceLimiterKey(dummyServiceLimit, Some(1L), None), {() => dummyLimiter}),
     Scenario(ServiceLimiterKey(dummyServiceLimit, None, Some("pair1")), {() => dummyLimiter}),
-    Scenario(ServiceLimiterKey(dummyServiceLimit, Some("dom1"), Some("pair1")), {() => dummyLimiter})
+    Scenario(ServiceLimiterKey(dummyServiceLimit, Some(1L), Some("pair1")), {() => dummyLimiter})
   )
 }

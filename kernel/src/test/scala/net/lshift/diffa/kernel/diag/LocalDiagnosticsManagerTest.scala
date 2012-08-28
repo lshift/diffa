@@ -24,14 +24,13 @@ class LocalDiagnosticsManagerTest {
   val explainRoot = new File("target/explain")
   val diagnostics = new LocalDiagnosticsManager(systemConfigStore, domainConfigStore, serviceLimitsStore, explainRoot.getPath)
 
-  val domainName = "domain"
-  val testDomain = Domain(name=domainName)
+  val spaceId = System.currentTimeMillis()
 
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")
 
-  val pair1 = DomainPairDef(key = "pair1", domain = domainName, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
-  val pair2 = DomainPairDef(key = "pair2", domain = domainName, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
+  val pair1 = DomainPairDef(key = "pair1", space = spaceId, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
+  val pair2 = DomainPairDef(key = "pair2", space = spaceId, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
 
   @Before
   def cleanupExplanations() {
@@ -41,9 +40,9 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldAcceptAndStoreLogEventForPair() {
     val pairKey = "moderateLoggingPair"
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
-    expectEventBufferLimitQuery(domainName, pairKey, 10)
+    expectEventBufferLimitQuery(spaceId, pairKey, 10)
 
     diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Some msg")
 
@@ -60,9 +59,9 @@ class LocalDiagnosticsManagerTest {
 
     val pairKey = "maxLoggingPair"
 
-    expectEventBufferLimitQuery(domainName, pairKey, 100)
+    expectEventBufferLimitQuery(spaceId, pairKey, 100)
 
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
     for (i <- 1 until 1000)
       diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Some msg")
@@ -76,23 +75,23 @@ class LocalDiagnosticsManagerTest {
 
     // Query for the states associated. We should get back an entry for pair in "unknown"
     assertEquals(Map("pair1" -> PairScanState.UNKNOWN, "pair2" -> PairScanState.UNKNOWN),
-      diagnostics.retrievePairScanStatesForDomain("domain"))
+      diagnostics.retrievePairScanStatesForDomain(spaceId))
 
     // Notify that the pair1 is now in Up To Date state
     diagnostics.pairScanStateChanged(pair1.asRef, PairScanState.UP_TO_DATE)
     assertEquals(Map("pair1" -> PairScanState.UP_TO_DATE, "pair2" -> PairScanState.UNKNOWN),
-      diagnostics.retrievePairScanStatesForDomain("domain"))
+      diagnostics.retrievePairScanStatesForDomain(spaceId))
 
     // Notify that the pair2 is now in Failed state
     diagnostics.pairScanStateChanged(pair2.asRef, PairScanState.FAILED)
     assertEquals(Map("pair1" -> PairScanState.UP_TO_DATE, "pair2" -> PairScanState.FAILED),
-      diagnostics.retrievePairScanStatesForDomain("domain"))
+      diagnostics.retrievePairScanStatesForDomain(spaceId))
 
     // Report a scan as being started. We should enter the scanning state again
     diagnostics.pairScanStateChanged(pair1.asRef, PairScanState.SCANNING)    // Simulate the supervisor indicating a scan start
     diagnostics.pairScanStateChanged(pair2.asRef, PairScanState.SCANNING)    // Simulate the supervisor indicating a scan start
     assertEquals(Map("pair1" -> PairScanState.SCANNING, "pair2" -> PairScanState.SCANNING),
-      diagnostics.retrievePairScanStatesForDomain("domain"))
+      diagnostics.retrievePairScanStatesForDomain(spaceId))
 
   }
 
@@ -102,23 +101,23 @@ class LocalDiagnosticsManagerTest {
     expectPairListFromConfigStore(pair1 :: pair2 :: Nil)
 
     diagnostics.pairScanStateChanged(pair1.asRef, PairScanState.SCANNING)
-    assertEquals(Map("pair1" -> PairScanState.SCANNING, "pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain("domain"))
+    assertEquals(Map("pair1" -> PairScanState.SCANNING, "pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain(spaceId))
 
     // Remove the pair, and report it
     reset(domainConfigStore)
-    expect(domainConfigStore.listPairs(domainName)).
+    expect(domainConfigStore.listPairs(spaceId)).
         andStubReturn(Seq(pair2))
     replayDomainConfig
     diagnostics.onDeletePair(pair1.asRef)
-    assertEquals(Map("pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain(domainName))
+    assertEquals(Map("pair2" -> PairScanState.UNKNOWN), diagnostics.retrievePairScanStatesForDomain(spaceId))
   }
   
   @Test
   def shouldNotGenerateAnyOutputWhenCheckpointIsCalledOnASilentPair() {
     val key = "quiet"
-    diagnostics.checkpointExplanations(None, DiffaPairRef(key, domainName))
+    diagnostics.checkpointExplanations(None, PairRef(key, spaceId))
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, key))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, key))
     if (pairDir.exists())
       assertEquals(0, pairDir.listFiles().length)
   }
@@ -126,14 +125,14 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldGenerateOutputWhenExplanationsHaveBeenLogged() {
     val pairKey = "explained"
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
-    expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
+    expectMaxExplainFilesLimitQuery(spaceId, pairKey, 1)
 
     diagnostics.logPairExplanation(None, pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(None, pair)
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, pairKey))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -150,16 +149,16 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldIncludeContentsOfObjectsAdded() {
     val pairKey = "explainedobj"
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
-    expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
+    expectMaxExplainFilesLimitQuery(spaceId, pairKey, 1)
 
     diagnostics.writePairExplanationObject(None, pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
     diagnostics.checkpointExplanations(None, pair)
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, pairKey))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -179,16 +178,16 @@ class LocalDiagnosticsManagerTest {
   @Test
   def shouldAddLogMessageIndicatingObjectWasAttached() {
     val pairKey = "explainedobj"
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
-    expectMaxExplainFilesLimitQuery(domainName, pairKey, 1)
+    expectMaxExplainFilesLimitQuery(spaceId, pairKey, 1)
 
     diagnostics.writePairExplanationObject(None, pair, "Test Case", "upstream.123.json", os => {
       os.write("{a: 1}".getBytes("UTF-8"))
     })
     diagnostics.checkpointExplanations(None, pair)
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, pairKey))
     val zips = pairDir.listFiles()
 
     assertEquals(1, zips.length)
@@ -209,9 +208,9 @@ class LocalDiagnosticsManagerTest {
   def shouldCreateMultipleOutputsWhenMultipleNonQuietRunsHaveBeenMade() {
     val pairKey = "explained_20_2"
 
-    expectMaxExplainFilesLimitQuery(domainName, pairKey, 2)
+    expectMaxExplainFilesLimitQuery(spaceId, pairKey, 2)
 
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
     diagnostics.logPairExplanation(None, pair, "Test Case", "Diffa did something")
     diagnostics.checkpointExplanations(None, pair)
@@ -219,7 +218,7 @@ class LocalDiagnosticsManagerTest {
     diagnostics.logPairExplanation(None, pair, "Test Case" , "Diffa did something else")
     diagnostics.checkpointExplanations(None, pair)
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, pairKey))
     val zips = pairDir.listFiles()
 
     assertEquals(2, zips.length)
@@ -230,16 +229,16 @@ class LocalDiagnosticsManagerTest {
     val filesToKeep = 20
     val generateCount = 100
     val pairKey = "controlled_100_20"
-    val pair = DiffaPairRef(pairKey, domainName)
+    val pair = PairRef(pairKey, spaceId)
 
-    expectMaxExplainFilesLimitQuery(domainName, pairKey, filesToKeep)
+    expectMaxExplainFilesLimitQuery(spaceId, pairKey, filesToKeep)
 
     for (i <- 1 until generateCount) {
       diagnostics.logPairExplanation(None, pair, "Test Case", i.toString)
       diagnostics.checkpointExplanations(None, pair)
     }
 
-    val pairDir = new File(explainRoot, "%s/%s".format(domainName, pairKey))
+    val pairDir = new File(explainRoot, "%s/%s".format(spaceId, pairKey))
     val zips = pairDir.listFiles()
 
     assertEquals(filesToKeep, zips.length)
@@ -257,30 +256,30 @@ class LocalDiagnosticsManagerTest {
     assertThat(new Integer(entryNum), is(greaterThanOrEqualTo(new Integer(earliestEntryNum))))
   }
 
-  private def expectEventBufferLimitQuery(domain:String, pairKey:String, eventBufferSize:Int) = {
+  private def expectEventBufferLimitQuery(space:Long, pairKey:String, eventBufferSize:Int) = {
 
     expect(serviceLimitsStore.
-      getEffectiveLimitByNameForPair(domain, pairKey, DiagnosticEventBufferSize)).
+      getEffectiveLimitByNameForPair(space, pairKey, DiagnosticEventBufferSize)).
       andReturn(eventBufferSize).atLeastOnce()
 
     replay(serviceLimitsStore)
   }
 
-  private def expectMaxExplainFilesLimitQuery(domain:String, pairKey:String, eventBufferSize:Int) = {
+  private def expectMaxExplainFilesLimitQuery(space:Long, pairKey:String, eventBufferSize:Int) = {
 
     expect(serviceLimitsStore.
-      getEffectiveLimitByNameForPair(domain, pairKey, ExplainFiles)).
+      getEffectiveLimitByNameForPair(space, pairKey, ExplainFiles)).
       andReturn(eventBufferSize).atLeastOnce()
 
     replay(serviceLimitsStore)
   }
 
   private def expectPairListFromConfigStore(pairs: Seq[DomainPairDef]) {
-    expect(domainConfigStore.listPairs(domainName)).
+    expect(domainConfigStore.listPairs(spaceId)).
       andStubReturn(pairs)
 
     pairs foreach { pairDef =>
-      expect(domainConfigStore.getPairDef(domainName, pairDef.key)).
+      expect(domainConfigStore.getPairDef(pairDef.asRef)).
         andStubReturn(pairDef)
     }
     replayDomainConfig

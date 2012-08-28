@@ -24,21 +24,35 @@ import net.lshift.diffa.kernel.frontend.DomainDef
 import net.lshift.diffa.client.NotFoundException
 import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import org.junit.Test
+import org.apache.commons.lang3.RandomStringUtils
 
 class SystemConfigTest {
 
   val client = new SystemConfigRestClient(agentURL)
 
   @Test
-  def shouldDeclareAndDeleteDomain {
-    val domain = DomainDef(name = new UUID().toString)
-    client.declareDomain(domain)
-    client.removeDomain(domain.name)
+  def shouldBeAbleToCreateAndRemoveSubSpaces {
+
+    val parentSpace = RandomStringUtils.randomAlphanumeric(10)
+    val childSpace = parentSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
+
+    client.declareDomain(DomainDef(name = parentSpace))
+    client.declareDomain(DomainDef(name = childSpace))
+
+    client.removeDomain(parentSpace)
+
+    try {
+      client.removeDomain(childSpace)
+      fail("Should have recursively deleted the child space")
+    }
+    catch {
+      case x:NotFoundException => // expected
+    }
   }
 
   @Test(expected = classOf[NotFoundException])
   def nonExistentDomainShouldRaiseError {
-    client.removeDomain(new UUID().toString)
+    client.removeDomain(RandomStringUtils.randomAlphanumeric(10))
   }
 
   @Test(expected = classOf[NotFoundException])

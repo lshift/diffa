@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.lifecycle
 
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
-import net.lshift.diffa.kernel.config.{DiffaPairRef}
+import net.lshift.diffa.kernel.config.{PairRef}
 import net.lshift.diffa.kernel.differencing._
 import collection.mutable.{ListBuffer}
 import collection.immutable.HashSet
@@ -81,7 +81,7 @@ class NotificationCentre
   // Pair Scan Listener Multicast
   //
 
-  def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) {
+  def pairScanStateChanged(pair: PairRef, scanState: PairScanState) {
     pairScanListeners.foreach(_.pairScanStateChanged(pair, scanState))
   }
 

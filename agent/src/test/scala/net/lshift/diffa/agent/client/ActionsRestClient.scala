@@ -17,31 +17,30 @@
 package net.lshift.diffa.agent.client
 
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
-import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest, ActionsClient}
-import net.lshift.diffa.kernel.config.{DiffaPairRef, RepairAction}
+import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest}
+import net.lshift.diffa.kernel.config.{PairRef, RepairAction}
 import net.lshift.diffa.client.RestClientParams
 
 class ActionsRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
-  extends DomainAwareRestClient(serverRootUrl, domain, "domains/{domain}/actions/", params)
-        with ActionsClient {
+  extends DomainAwareRestClient(serverRootUrl, domain, "domains/{domain}/actions/", params) {
 
-  def listActions(pair:DiffaPairRef): Seq[Actionable] = {
+  def listActions(pair:String): Seq[Actionable] = {
     val t = classOf[Array[Actionable]]
-    rpc(pair.key, t)
+    rpc(pair, t)
   }
   
-  def listEntityScopedActions(pair:DiffaPairRef): Seq[Actionable] = {
+  def listEntityScopedActions(pair:String): Seq[Actionable] = {
     val t = classOf[Array[Actionable]]
-    rpc(pair.key, t, "scope" -> RepairAction.ENTITY_SCOPE)
+    rpc(pair, t, "scope" -> RepairAction.ENTITY_SCOPE)
   }
 
-  def listPairScopedActions(pair:DiffaPairRef): Seq[Actionable] = {
+  def listPairScopedActions(pair:String): Seq[Actionable] = {
     val t = classOf[Array[Actionable]]
-    rpc(pair.key, t, "scope" -> RepairAction.PAIR_SCOPE)
+    rpc(pair, t, "scope" -> RepairAction.PAIR_SCOPE)
   }
 
-  def invoke(req:ActionableRequest) : InvocationResult = {
-    val path = Option(req.entityId).foldLeft(req.pairKey + "/" + req.actionId)((base, id) => base + "/" + id)
+  def invoke(pair:String, actionId:String, entityId:String) : InvocationResult = {
+    val path = Option(entityId).foldLeft(pair + "/" + actionId)((base, id) => base + "/" + id)
     val p = resource.path(path)
     val response = p.post(classOf[InvocationResult])
     response

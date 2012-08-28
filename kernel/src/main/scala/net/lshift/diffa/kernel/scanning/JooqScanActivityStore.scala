@@ -18,20 +18,19 @@ package net.lshift.diffa.kernel.scanning
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.jooq.DatabaseFacade._
 import net.lshift.diffa.schema.tables.ScanStatements.SCAN_STATEMENTS
-import net.lshift.diffa.kernel.config.{SpacePathCache, DiffaPairRef}
+import net.lshift.diffa.kernel.config.PairRef
 import org.jooq.Record
 import scala.collection.JavaConversions._
+import java.lang.{Long => LONG}
 
-class JooqScanActivityStore(jooq:DatabaseFacade, spacePathCache:SpacePathCache) extends ScanActivityStore {
+class JooqScanActivityStore(jooq:DatabaseFacade) extends ScanActivityStore {
 
   def createOrUpdateStatement(s:ScanStatement) = {
 
-    val space = spacePathCache.resolveSpacePathOrDie(s.domain)
-
     jooq.execute(t => {
       t.insertInto(SCAN_STATEMENTS).
-        set(SCAN_STATEMENTS.ID, long2Long(s.id)).
-        set(SCAN_STATEMENTS.SPACE, space.id).
+        set(SCAN_STATEMENTS.ID, s.id:LONG).
+        set(SCAN_STATEMENTS.SPACE, s.space:LONG).
         set(SCAN_STATEMENTS.PAIR, s.pair).
         set(SCAN_STATEMENTS.INITIATED_BY, s.initiatedBy.orNull).
         set(SCAN_STATEMENTS.START_TIME, dateTimeToTimestamp(s.startTime)).
@@ -46,24 +45,21 @@ class JooqScanActivityStore(jooq:DatabaseFacade, spacePathCache:SpacePathCache) 
     })
   }
 
-  def getStatement(pair:DiffaPairRef, id:Long) : ScanStatement = {
-
-    val space = spacePathCache.resolveSpacePathOrDie(pair.domain)
+  def getStatement(pair:PairRef, id:Long) : ScanStatement = {
 
     jooq.execute(t => {
       val record =  t.select().
         from(SCAN_STATEMENTS).
-        where(SCAN_STATEMENTS.SPACE.equal(space.id)).
-        and(SCAN_STATEMENTS.PAIR.equal(pair.key)).
-        and(SCAN_STATEMENTS.ID.equal(id)).
+        where(SCAN_STATEMENTS.SPACE.equal(pair.space)).
+          and(SCAN_STATEMENTS.PAIR.equal(pair.name)).
+          and(SCAN_STATEMENTS.ID.equal(id)).
         fetchOne()
-      recordToStatement(record, pair.domain)
+      recordToStatement(record)
     })
   }
 
-  private def recordToStatement(record:Record, domain:String) = ScanStatement(
+  private def recordToStatement(record:Record) = ScanStatement(
     id = record.getValue(SCAN_STATEMENTS.ID),
-    domain = domain,
     space =  record.getValue(SCAN_STATEMENTS.SPACE),
     pair =  record.getValue(SCAN_STATEMENTS.PAIR),
     initiatedBy =  Option(record.getValue(SCAN_STATEMENTS.INITIATED_BY)),

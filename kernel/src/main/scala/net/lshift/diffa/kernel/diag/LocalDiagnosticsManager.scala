@@ -3,15 +3,15 @@ package net.lshift.diffa.kernel.diag
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.differencing.{PairScanState, PairScanListener}
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
-import org.slf4j.LoggerFactory
 import java.io._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.joda.time.{DateTimeZone, DateTime}
-import net.lshift.diffa.kernel.config.{PairServiceLimitsView, ConfigOption, DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.schema.servicelimits._
+import scala.Some
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
@@ -26,49 +26,49 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     with PairScanListener
     with AgentLifecycleAware {
 
-  private val pairs = HashMap[DiffaPairRef, PairDiagnostics]()
+  private val pairs = HashMap[PairRef, PairDiagnostics]()
 
   private val timeFormatter = ISODateTimeFormat.time()
   private val fileNameFormatter = DateTimeFormat.forPattern(DiagnosticsManager.fileSystemFriendlyDateFormat)
   
-  def getPairFromRef(ref: DiffaPairRef) = domainConfigStore.getPairDef(ref.domain, ref.key)
+  def getPairFromRef(ref: PairRef) = domainConfigStore.getPairDef(ref)
 
-  def checkpointExplanations(scanId:Option[Long], pair: DiffaPairRef) {
+  def checkpointExplanations(scanId:Option[Long], pair: PairRef) {
     maybeGetPair(pair).map(p => p.checkpointExplanations())
   }
 
-  def logPairEvent(scanId:Option[Long], pair: DiffaPairRef, level: DiagnosticLevel, msg: String) {
+  def logPairEvent(scanId:Option[Long], pair: PairRef, level: DiagnosticLevel, msg: String) {
     val pairDiag = getOrCreatePair(pair)
     pairDiag.logPairEvent(PairEvent(new DateTime(), level, msg))
   }
 
-  def logPairExplanation(scanId:Option[Long], pair: DiffaPairRef, source:String, msg: String) {
+  def logPairExplanation(scanId:Option[Long], pair: PairRef, source:String, msg: String) {
     getOrCreatePair(pair).logPairExplanation(source, msg)
   }
 
-  def writePairExplanationObject(scanId:Option[Long], pair:DiffaPairRef, source:String, objName: String, f:OutputStream => Unit) {
+  def writePairExplanationObject(scanId:Option[Long], pair:PairRef, source:String, objName: String, f:OutputStream => Unit) {
     getOrCreatePair(pair).writePairExplanationObject(source, objName, f)
   }
 
-  def queryEvents(pair:DiffaPairRef, maxEvents: Int) = {
+  def queryEvents(pair:PairRef, maxEvents: Int) = {
     pairs.synchronized { pairs.get(pair) } match {
       case None           => Seq()
       case Some(pairDiag) => pairDiag.queryEvents(maxEvents)
     }
   }
 
-  def retrievePairScanStatesForDomain(domain:String) = {
-    val domainPairs = domainConfigStore.listPairs(domain)
+  def retrievePairScanStatesForDomain(space:Long) = {
+    val domainPairs = domainConfigStore.listPairs(space)
 
     pairs.synchronized {
-      domainPairs.map(p => pairs.get(DiffaPairRef(p.key, domain)) match {
+      domainPairs.map(p => pairs.get(PairRef(p.key, space)) match {
         case None           => p.key -> PairScanState.UNKNOWN
         case Some(pairDiag) => p.key -> pairDiag.scanState
       }).toMap
     }
   }
 
-  def pairScanStateChanged(pair: DiffaPairRef, scanState: PairScanState) = pairs.synchronized {
+  def pairScanStateChanged(pair: PairRef, scanState: PairScanState) = pairs.synchronized {
     val pairDiag = getOrCreatePair(pair)
     pairDiag.scanState = scanState
   }
@@ -76,7 +76,7 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
   /**
    * When pairs are deleted, we stop tracking their status in the pair scan map.
    */
-  def onDeletePair(pair:DiffaPairRef) {
+  def onDeletePair(pair:PairRef) {
     pairs.synchronized {
       pairs.remove(pair) match {
         case None =>
@@ -99,13 +99,13 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
   // Internals
   //
 
-  private def getOrCreatePair(pair:DiffaPairRef) =
+  private def getOrCreatePair(pair:PairRef) =
     pairs.synchronized { pairs.getOrElseUpdate(pair, new PairDiagnostics(pair)) }
 
-  private def maybeGetPair(pair:DiffaPairRef) =
+  private def maybeGetPair(pair:PairRef) =
     pairs.synchronized { pairs.get(pair) }
 
-  private class PairDiagnostics(pair:DiffaPairRef) {
+  private class PairDiagnostics(pair:PairRef) {
     private val pairExplainRoot = new File(explainRootDir, pair.identifier)
     private val log = ListBuffer[PairEvent]()
     var scanState:PairScanState = PairScanState.UNKNOWN
@@ -115,8 +115,8 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     private var explainDir:File = null
     private var explanationWriter:PrintWriter = null
 
-    private def getEventBufferSize = limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, DiagnosticEventBufferSize)
-    private def getMaxExplainFiles = limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, ExplainFiles)
+    private def getEventBufferSize = limits.getEffectiveLimitByNameForPair(pair.space, pair.name, DiagnosticEventBufferSize)
+    private def getMaxExplainFiles = limits.getEffectiveLimitByNameForPair(pair.space, pair.name, ExplainFiles)
 
     def logPairEvent(evt:PairEvent) {
       log.synchronized {

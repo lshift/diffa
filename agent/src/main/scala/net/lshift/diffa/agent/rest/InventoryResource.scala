@@ -29,7 +29,7 @@ import net.lshift.diffa.participant.scanning.{ScanRequest, AggregationBuilder, C
 /**
  * Resource allowing participants to provide bulk details of their current status.
  */
-class InventoryResource(changes:Changes, configStore:DomainConfigStore, domain:String) {
+class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Long) {
   @GET
   @Path("/{endpoint}")
   def startInventory(@PathParam("endpoint") endpoint: String):Response = startInventory(endpoint, null)
@@ -37,7 +37,7 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, domain:S
   @GET
   @Path("/{endpoint}/{view}")
   def startInventory(@PathParam("endpoint") endpoint: String, @PathParam("view") view:String):Response = {
-    val requests = changes.startInventory(domain, endpoint, if (view != null) Some(view) else None)
+    val requests = changes.startInventory(space, endpoint, if (view != null) Some(view) else None)
 
     Response.status(Response.Status.OK).
       `type`("text/plain").
@@ -57,11 +57,11 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, domain:S
     val constraintsBuilder = new ConstraintsBuilder(request)
     val aggregationBuilder = new AggregationBuilder(request)
 
-    val ep = configStore.getEndpoint(domain, endpoint)
+    val ep = configStore.getEndpoint(space, endpoint)
     ep.buildConstraints(constraintsBuilder)
     ep.buildAggregations(aggregationBuilder)
 
-    val nextRequests = changes.submitInventory(domain, endpoint, if (view != null) Some(view) else None,
+    val nextRequests = changes.submitInventory(space, endpoint, if (view != null) Some(view) else None,
       constraintsBuilder.toList.toSeq, aggregationBuilder.toList.toSeq, content.results)
     
     Response.status(Response.Status.ACCEPTED).

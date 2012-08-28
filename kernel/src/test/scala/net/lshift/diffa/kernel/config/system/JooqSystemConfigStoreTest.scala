@@ -36,8 +36,9 @@ class JooqSystemConfigStoreTest {
 
   @Before
   def setup() {
-    storeReferences.clearConfiguration(domainName)
-    systemConfigStore.createOrUpdateDomain(domainName)
+
+    val space = systemConfigStore.createOrUpdateSpace(domainName)
+    storeReferences.clearConfiguration(space.id)
 
     storeReferences.clearUserConfig
   }

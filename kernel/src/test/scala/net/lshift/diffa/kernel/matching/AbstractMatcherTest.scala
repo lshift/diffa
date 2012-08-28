@@ -21,7 +21,7 @@ import net.lshift.diffa.kernel.events.{DownstreamPairChangeEvent, UpstreamPairCh
 import org.joda.time.DateTime
 import org.junit.Assert._
 import java.util.concurrent.atomic.{AtomicInteger}
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue}
 
 /**
@@ -34,19 +34,19 @@ abstract class AbstractMatcherTest {
   val ackCallbackBListener = new LinkedBlockingQueue[Object]
 
   val pairId = "pair" + AbstractMatcherTest.nextPairId
-  val domain = "domain"
+  val spaceId = System.currentTimeMillis()
 
   val ackCallbackA:Function0[Unit] = () => ackCallbackAListener.add(new Object)
   val ackCallbackB:Function0[Unit] = () => ackCallbackBListener.add(new Object)
 
-  val id1 = VersionID(DiffaPairRef(pairId,domain), "aaaa1")
-  val id2 = VersionID(DiffaPairRef(pairId,domain), "aaaa2")
-  val id3 = VersionID(DiffaPairRef(pairId,domain), "aaaa3")
-  val id4 = VersionID(DiffaPairRef(pairId,domain), "aaaa4")
-  val id5 = VersionID(DiffaPairRef(pairId,domain), "aaaa5")
-  val id6 = VersionID(DiffaPairRef(pairId,domain), "aaaa6")
-  val idB6 = VersionID(DiffaPairRef(pairId,domain), "bbbb6")
-  val id7 = VersionID(DiffaPairRef(pairId,domain), "aaaa7")
+  val id1 = VersionID(PairRef(pairId,spaceId), "aaaa1")
+  val id2 = VersionID(PairRef(pairId,spaceId), "aaaa2")
+  val id3 = VersionID(PairRef(pairId,spaceId), "aaaa3")
+  val id4 = VersionID(PairRef(pairId,spaceId), "aaaa4")
+  val id5 = VersionID(PairRef(pairId,spaceId), "aaaa5")
+  val id6 = VersionID(PairRef(pairId,spaceId), "aaaa6")
+  val idB6 = VersionID(PairRef(pairId,spaceId), "bbbb6")
+  val id7 = VersionID(PairRef(pairId,spaceId), "aaaa7")
 
   def createMatcher(id:String, timeout:Int):EventMatcher
 

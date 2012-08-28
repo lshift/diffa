@@ -28,7 +28,7 @@ import scala.collection.JavaConversions._
 import javax.servlet.http.HttpServletRequest
 import net.lshift.diffa.kernel.frontend.{SystemConfiguration, DomainDef}
 import net.lshift.diffa.participant.scanning._
-import net.lshift.diffa.kernel.config.{Domain, ConfigValidationException}
+import net.lshift.diffa.kernel.config.{ValidationUtil, Domain, ConfigValidationException}
 
 @Path("/root")
 @Component
@@ -42,7 +42,9 @@ class SystemConfigResource {
   @Path("/spaces")
   @Consumes(Array("application/json"))
   def createSpace(domain:DomainDef) = {
-    systemConfig.createOrUpdateDomain(domain)
+    val path = domain.name
+    path.split("/").foreach(ValidationUtil.ensurePathSegmentFormat("space",_))
+    systemConfig.createOrUpdateSpace(path)
     resourceCreated(domain.name, uriInfo)
   }
 
@@ -54,7 +56,7 @@ class SystemConfigResource {
 
   @DELETE
   @Path("/spaces/{name}")
-  def deleteSpace(@PathParam("name") name:String) = systemConfig.deleteDomain(name)
+  def deleteSpace(@PathParam("name") name:String) = systemConfig.deleteSpace(name)
 
   @DELETE
   @Path("/domains/{name}")

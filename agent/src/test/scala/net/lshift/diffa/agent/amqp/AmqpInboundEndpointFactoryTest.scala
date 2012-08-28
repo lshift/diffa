@@ -84,7 +84,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(receivers(0).close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e.domain, e.name)
+    inboundEndpointFactory.endpointGone(e.space, e.name)
     verifyAll()
   }
 
@@ -103,7 +103,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
 
     expect(c1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e1.domain, e1.name)
+    inboundEndpointFactory.endpointGone(e1.space, e1.name)
     verifyAll()
 
     resetAll()
@@ -111,7 +111,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(c2.close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e2.domain, e2.name)
+    inboundEndpointFactory.endpointGone(e2.space, e2.name)
     verifyAll()
   }
 
@@ -141,7 +141,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
 
     expect(foo1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e1.domain, e1.name)
+    inboundEndpointFactory.endpointGone(e1.space, e1.name)
     verifyAll()
 
     resetAll()
@@ -149,14 +149,14 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(foo2.close())
     expect(connections(0).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e2.domain, e2.name)
+    inboundEndpointFactory.endpointGone(e2.space, e2.name)
     verifyAll()
 
     resetAll()
 
     expect(bar1.close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e3.domain, e3.name)
+    inboundEndpointFactory.endpointGone(e3.space, e3.name)
     verifyAll()
 
     resetAll()
@@ -164,7 +164,7 @@ class AmqpInboundEndpointFactoryTest { thisTest =>
     expect(bar2.close())
     expect(connections(1).close())
     replayAll()
-    inboundEndpointFactory.endpointGone(e4.domain, e4.name)
+    inboundEndpointFactory.endpointGone(e4.space, e4.name)
     verifyAll()
   }
 }

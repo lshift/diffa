@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.lifecycle.AgentLifecycleAware
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.PairChangeEvent
-import net.lshift.diffa.kernel.config.{DiffaPairRef, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef, DomainConfigStore}
 import net.lshift.diffa.kernel.util.EndpointSide
 import net.lshift.diffa.participant.scanning.{ScanAggregation, ScanRequest, ScanResultEntry, ScanConstraint}
 import net.lshift.diffa.kernel.util.AlertCodes._
@@ -58,12 +58,12 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
     systemConfig.listPairs.foreach(p => startActor(p.asRef))
   }
 
- def createPairActor(pairRef: DiffaPairRef) = {
+ def createPairActor(pairRef: PairRef) = {
    val pair = domainConfig.getPairDef(pairRef)
    policyManager.lookupPolicy(pair.versionPolicyName) match {
      case Some(pol) =>
-       val us = domainConfig.getEndpoint(pair.domain,  pair.upstreamName)
-       val ds = domainConfig.getEndpoint(pair.domain,  pair.downstreamName)
+       val us = domainConfig.getEndpoint(pair.space,  pair.upstreamName)
+       val ds = domainConfig.getEndpoint(pair.space,  pair.downstreamName)
 
        val usp = participantFactory.createUpstreamParticipant(us, pairRef)
        val dsp = participantFactory.createDownstreamParticipant(ds, pairRef)
@@ -84,22 +84,22 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
 
   // TODO: Pick more appropriate value.
   implicit val waitTimeout = Timeout(10 seconds)
-  def startInventory(pair: DiffaPairRef, side: EndpointSide, view:Option[String]): Seq[ScanRequest] = {
+  def startInventory(pair: PairRef, side: EndpointSide, view:Option[String]): Seq[ScanRequest] = {
     val future = (findActor(pair) ? StartInventoryMessage(side, view))
 
     Await.result(future, waitTimeout.duration).asInstanceOf[Seq[ScanRequest]]
   }
 
-  def submitInventory(pair:DiffaPairRef, side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]) = {
+  def submitInventory(pair:PairRef, side:EndpointSide, constraints:Seq[ScanConstraint], aggregations:Seq[ScanAggregation], entries:Seq[ScanResultEntry]) = {
     val res = (findActor(pair) ? InventoryMessage(side, constraints, aggregations, entries))
 
     Await.result(res, waitTimeout.duration).asInstanceOf[Seq[ScanRequest]]
   }
 
-  def difference(pairRef:DiffaPairRef) =
+  def difference(pairRef:PairRef) =
     findActor(pairRef) ! DifferenceMessage
 
-  def scanPair(pair:DiffaPairRef, scanView:Option[String], initiatingUser:Option[String]) = {
+  def scanPair(pair:PairRef, scanView:Option[String], initiatingUser:Option[String]) = {
     log.debug("Initiating scan %s with view %s".format(pair.identifier, scanView))
     // Update the scan state ourselves. The policy itself will send an update shortly, but since that happens
     // asynchronously, we might have returned before then, and this may potentially result in clients seeing
@@ -109,7 +109,7 @@ case class PairActorSupervisor(policyManager:VersionPolicyManager,
     findActor(pair) ! ScanMessage(scanView, initiatingUser)
   }
 
-  def cancelScans(pairRef:DiffaPairRef) = {
+  def cancelScans(pairRef:PairRef) = {
     val future = findActor(pairRef) ? CancelMessage
     Await.result(future, waitTimeout.duration) match {
       case flag => true

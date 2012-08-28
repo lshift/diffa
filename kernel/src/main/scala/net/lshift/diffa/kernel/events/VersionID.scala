@@ -18,13 +18,13 @@ package net.lshift.diffa.kernel.events
 
 import java.io.Serializable
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 
 /**
  * Identifier for a version within a given pair.
  */
 case class VersionID (
-  @BeanProperty var pair:DiffaPairRef = null,
+  @BeanProperty var pair:PairRef = null,
   @BeanProperty var id:String = null) extends Serializable {
 
   def this() = this(pair = null)

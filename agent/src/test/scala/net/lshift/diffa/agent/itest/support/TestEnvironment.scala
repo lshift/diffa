@@ -79,9 +79,6 @@ class TestEnvironment(val pairKey: String,
   // Domain
   val domain = TestEnvironment.domain
 
-  // Pair
-  val pairRef = DiffaPairRef(key = pairKey, domain = domain.name)
-
   val serverRoot = TestEnvironment.serverRoot
 
   // Version Generation
@@ -109,7 +106,7 @@ class TestEnvironment(val pairKey: String,
 
   lazy val configurationClient:ConfigurationRestClient = TestEnvironment.configurationClient
   lazy val diffClient:DifferencesRestClient = TestEnvironment.diffClient
-  lazy val actionsClient:ActionsClient = TestEnvironment.actionsClient
+  lazy val actionsClient:ActionsRestClient = TestEnvironment.actionsClient
   lazy val escalationsClient:EscalationsRestClient = TestEnvironment.escalationsClient
   lazy val usersClient:SecurityRestClient = TestEnvironment.usersClient
   lazy val scanningClient:ScanningRestClient = TestEnvironment.scanningClient
@@ -237,7 +234,7 @@ object TestEnvironment {
   // Clients
   lazy val configurationClient:ConfigurationRestClient = new ConfigurationRestClient(serverRoot, domain.name)
   lazy val diffClient:DifferencesRestClient = new DifferencesRestClient(serverRoot, domain.name)
-  lazy val actionsClient:ActionsClient = new ActionsRestClient(serverRoot, domain.name)
+  lazy val actionsClient:ActionsRestClient = new ActionsRestClient(serverRoot, domain.name)
   lazy val escalationsClient:EscalationsRestClient = new EscalationsRestClient(serverRoot, domain.name)
   lazy val usersClient:SecurityRestClient = new SecurityRestClient(serverRoot)
   lazy val scanningClient:ScanningRestClient = new ScanningRestClient(serverRoot, domain.name)

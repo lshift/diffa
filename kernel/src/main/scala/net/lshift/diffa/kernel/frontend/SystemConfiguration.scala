@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import net.lshift.diffa.kernel.differencing.DifferencesManager
-import net.lshift.diffa.kernel.config.{User, ServiceLimitsStore}
+import net.lshift.diffa.kernel.config.{ValidationUtil, User, ServiceLimitsStore}
 import net.lshift.diffa.kernel.config.limits.ValidServiceLimits
 import net.lshift.diffa.schema.configs.SystemConfigOption
 
@@ -37,19 +37,17 @@ class SystemConfiguration(val systemConfigStore: SystemConfigStore,
 
   def listDomains = systemConfigStore.listDomains
 
-  def createOrUpdateDomain(domain: DomainDef) = {
-    log.info("Processing domain declare/update request: %s".format(domain))
-    domain.validate()
-    systemConfigStore.createOrUpdateDomain(domain.name)
-    differencesManager.onUpdateDomain(domain.name)
+  def createOrUpdateSpace(path: String) = {
+    val space = systemConfigStore.createOrUpdateSpace(path)
+    differencesManager.onUpdateDomain(space.id)
   }
 
-  def deleteDomain(domain: String) = {
-    log.info("Processing domain delete request: %s".format(domain))
-    configuration.clearDomain(domain)
-    differencesManager.onDeleteDomain(domain)
-    serviceLimitsStore.deleteDomainLimits(domain)
-    systemConfigStore.deleteDomain(domain)
+  def deleteSpace(path: String) = {
+    val space = configuration.lookupSpacePath(path)
+    configuration.clearDomain(space.id)
+    differencesManager.onDeleteDomain(space.id)
+    serviceLimitsStore.deleteDomainLimits(space.id)
+    systemConfigStore.deleteSpace(space.id)
   }
 
   def getUser(username: String) : UserDef = toUserDef(systemConfigStore.getUser(username))

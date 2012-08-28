@@ -23,26 +23,26 @@ import net.lshift.diffa.agent.rest.ResponseUtils._
 
 
 class CredentialsResource(val credentialsManager:DomainCredentialsManager,
-                          val domain:String,
+                          val space:Long,
                           val uri:UriInfo) {
 
   @GET
   @Path("/")
   @Produces(Array("application/json"))
-  def listCredentials = credentialsManager.listCredentials(domain).toArray
+  def listCredentials = credentialsManager.listCredentials(space).toArray
 
   @POST
   @Path("/")
   @Consumes(Array("application/json"))
   def addCredentials(creds:InboundExternalHttpCredentialsDef) = {
-    credentialsManager.addExternalHttpCredentials(domain, creds)
+    credentialsManager.addExternalHttpCredentials(space, creds)
     resourceCreated(creds.url + "/" + creds.`type`, uri)
   }
 
   @DELETE
   @Path("/{url}")
   def deleteCredentials(@PathParam("url") url:String) = {
-    credentialsManager.deleteExternalHttpCredentials(domain, url)
+    credentialsManager.deleteExternalHttpCredentials(space, url)
     Response.noContent().build()
   }
 

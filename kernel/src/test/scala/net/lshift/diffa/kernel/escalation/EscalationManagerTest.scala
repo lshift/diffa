@@ -24,7 +24,6 @@ import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import org.junit.runner.RunWith
 import net.lshift.diffa.kernel.config._
 import org.junit.experimental.theories.{DataPoints, DataPoint, Theories, Theory}
-import net.lshift.diffa.kernel.config.DiffaPair
 import net.lshift.diffa.kernel.reporting.ReportManager
 import net.lshift.diffa.kernel.differencing._
 import org.easymock.classextension.{EasyMock => EasyMock4Classes}
@@ -39,15 +38,15 @@ import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
 import java.util.concurrent.atomic.AtomicInteger
 import system.SystemConfigStore
 import java.util.concurrent.{TimeUnit, CountDownLatch}
-import org.junit.{Test, Ignore, Before, After}
+import org.junit.{Test, Before, After}
 import com.typesafe.config.ConfigFactory
 
 @RunWith(classOf[Theories])
 class EscalationManagerTest {
 
-  val domain = "domain"
+  val spaceId = System.currentTimeMillis()
   val pairKey = "some pair key"
-  val pair = DiffaPair(key = pairKey, domain = Domain(name=domain))
+  val pair = PairRef(name = pairKey, space = spaceId)
   val customConf = ConfigFactory.parseString("""
     akka.actor.default-dispatcher {
       type = "akka.testkit.CallingThreadDispatcherConfigurator"
@@ -69,21 +68,21 @@ class EscalationManagerTest {
   escalationManager.onAgentInstantiationCompleted(notificationCentre)
 
   @Before
-  def startActor = escalationManager.startActor(pair.asRef)
+  def startActor = escalationManager.startActor(pair)
 
   @After
   def shutdown = escalationManager.close()
 
   def expectConfigStoreWithRepairs(rule:String) {
 
-    expect(configStore.getPairDef(DiffaPairRef(pairKey, domain))).andReturn(
+    expect(configStore.getPairDef(PairRef(pairKey, spaceId))).andReturn(
       DomainPairDef(escalations = Set(EscalationDef("foo", "bar", EscalationActionType.REPAIR, rule)))
     ).anyTimes()
   }
 
   def expectConfigStoreWithReports(event:String) {
 
-    expect(configStore.getPairDef(DiffaPairRef(pairKey, domain))).andReturn(
+    expect(configStore.getPairDef(PairRef(pairKey, spaceId))).andReturn(
       DomainPairDef(escalations = Set(EscalationDef("foo", "bar", EscalationActionType.REPORT, event)))
     ).anyTimes()
   }
@@ -102,19 +101,19 @@ class EscalationManagerTest {
     }
   }
 
-  def expectIgnore(latch: CountDownLatch) {
+  def expectIgnore(space:Long, latch: CountDownLatch) {
     val answer = new IAnswer[DifferenceEvent] {
       def answer = {
         latch.countDown()
         DifferenceEvent()
       }
     }
-    expect(diffs.ignoreEvent("d", "123")).andAnswer(answer).once()
+    expect(diffs.ignoreEvent(space, "123")).andAnswer(answer).once()
   }
 
   def expectReportManager(count:Int) {
     if (count > 0) {
-      reportManager.executeReport(pair.asRef, "bar"); expectLastCall.times(count)
+      reportManager.executeReport(pair, "bar"); expectLastCall.times(count)
     }
   }
   
@@ -128,7 +127,7 @@ class EscalationManagerTest {
 
     val now = new DateTime
     val event = DifferenceEvent(
-      seqId = "123", objId = VersionID(DiffaPairRef(key = "p1", domain ="d"), "id1"),
+      seqId = "123", objId = VersionID(PairRef(name = "p1", space = System.currentTimeMillis()), "id1"),
       upstreamVsn = s.uvsn, downstreamVsn = s.dvsn, detectedAt = now,
       nextEscalation = null)
 
@@ -156,9 +155,11 @@ class EscalationManagerTest {
     val s = scenario.asInstanceOf[EscalationSchedulingScenario]
     assumeTrue(s.expectedSelections.length > 0)
 
+    val spaceId = System.currentTimeMillis()
+
     val now = new DateTime
     val event = DifferenceEvent(
-      seqId = "123", objId = VersionID(DiffaPairRef(key = "p1", domain ="d"), "id1"),
+      seqId = "123", objId = VersionID(PairRef(name = "p1", space = spaceId), "id1"),
       upstreamVsn = s.uvsn, downstreamVsn = s.dvsn, detectedAt = now,
       nextEscalation = s.expectedSelections.head.name)
     val callCounter = new AtomicInteger(0)
@@ -166,11 +167,11 @@ class EscalationManagerTest {
     val schedulingCompletionMonitor = new CountDownLatch(1)
 
       // Don't let the breakers stop anything
-    expect(configStore.isBreakerTripped(EasyMock.eq("d"), EasyMock.eq("p1"), anyString)).andStubReturn(false)
+    expect(configStore.isBreakerTripped(EasyMock.eq(spaceId:java.lang.Long), EasyMock.eq("p1"), anyString)).andStubReturn(false)
 
     // Return our pair to have a corresponding actor started
     expect(systemConfig.listPairs).andReturn(
-      Seq(DomainPairDef(domain = event.objId.pair.domain, key = event.objId.pair.key)))
+      Seq(DomainPairDef(space = event.objId.pair.space, key = event.objId.pair.name)))
 
     // Make the diffs store return the difference once
     expect(diffs.pendingEscalatees(anyTimestamp, anyUnitF1)).andAnswer(new IAnswer[Unit] {
@@ -190,7 +191,7 @@ class EscalationManagerTest {
             e.copy(actionType = EscalationActionType.REPAIR, action = "some-action")
         })))).atLeastOnce()
     if (s.actionType == EscalationActionType.REPAIR) expectActionsClient(1, actionCompletionMonitor)
-    if (s.actionType == EscalationActionType.IGNORE) expectIgnore(actionCompletionMonitor)
+    if (s.actionType == EscalationActionType.IGNORE) expectIgnore(spaceId, actionCompletionMonitor)
     expect(diffs.scheduleEscalation(EasyMock.eq(event), anyString, anyTimestamp)).andAnswer(new IAnswer[Unit] {
       def answer() {
         schedulingCompletionMonitor.countDown()
@@ -215,24 +216,24 @@ class EscalationManagerTest {
     expectReportManager(pairScenario.invocations)
     replayAll()
     
-    notificationCentre.pairScanStateChanged(pair.asRef, pairScenario.state)
+    notificationCentre.pairScanStateChanged(pair, pairScenario.state)
     
     verifyAll()
   }
 
   @Test
   def applyingBreakerShouldPreventEscalationBeingProcessed() {
-    val event = DifferenceEvent(objId = VersionID(DiffaPairRef(pairKey, domain), "id1"), nextEscalation = "esc1",
+    val event = DifferenceEvent(objId = VersionID(PairRef(pairKey, spaceId), "id1"), nextEscalation = "esc1",
       nextEscalationTime = new DateTime)
     expect(systemConfig.listPairs).andReturn(
-      Seq(DomainPairDef(domain = event.objId.pair.domain, key = event.objId.pair.key)))
+      Seq(DomainPairDef(space = event.objId.pair.space, key = event.objId.pair.name)))
     expect(diffs.pendingEscalatees(anyTimestamp, anyUnitF1)).asStub()
     expect(configStore.getPairDef(event.objId.pair)).andReturn(DomainPairDef(escalations =
       Set(EscalationDef(name = "esc1", action = "a1", actionType = "repair"))))
     expect(diffs.scheduleEscalation(event, null, null)).once()
 
-    expect(configStore.isBreakerTripped(domain, pairKey, "escalation:*")).andReturn(false)
-    expect(configStore.isBreakerTripped(domain, pairKey, "escalation:esc1")).andReturn(true)
+    expect(configStore.isBreakerTripped(spaceId, pairKey, "escalation:*")).andReturn(false)
+    expect(configStore.isBreakerTripped(spaceId, pairKey, "escalation:esc1")).andReturn(true)
 
     replayAll()
 

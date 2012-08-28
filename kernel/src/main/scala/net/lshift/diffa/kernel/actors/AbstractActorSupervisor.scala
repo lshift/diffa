@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.actors
 
 import java.util.HashMap
 import net.lshift.diffa.kernel.util.AlertCodes._
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.util.{MissingObjectException, Lazy}
@@ -36,7 +36,7 @@ abstract class AbstractActorSupervisor
   private val logger = LoggerFactory.getLogger(getClass)
 
   private type PotentialActor = Lazy[Option[ActorRef]]
-  private val pairActors = new HashMap[DiffaPairRef, PotentialActor]()
+  private val pairActors = new HashMap[PairRef, PotentialActor]()
 
 
   val actorSystem: ActorSystem
@@ -46,13 +46,13 @@ abstract class AbstractActorSupervisor
    * Creates a topical actor for the given pair - supervising actor subclasses need to
    * define the concrete actor behavior they require.
    */
-  def createPairActor(pair:DiffaPairRef) : Option[ActorRef]
+  def createPairActor(pair:PairRef) : Option[ActorRef]
 
     // Note: The .toSeq ensures we don't end up with ConcurrentModificationExceptions since we iterate off
     // a copy of the list
   def close = pairActors.toSeq.foreach{ case (pairRef,_) => stopActor(pairRef) }
 
-  def startActor(pair: DiffaPairRef) {
+  def startActor(pair: PairRef) {
 
     def createAndStartPairActor = createPairActor(pair) map { actor =>
       logger.info("{} actor started", formatAlertCode(pair, ACTOR_STARTED))
@@ -83,7 +83,7 @@ abstract class AbstractActorSupervisor
     }
   }
 
-  def stopActor(pair: DiffaPairRef) {
+  def stopActor(pair: PairRef) {
     // TODO: replace this with actor = ConcurrentHashMap.remove(key)
     val actor = unregisterActor(pair)
 
@@ -102,7 +102,7 @@ abstract class AbstractActorSupervisor
    *
    * @return the actor for the given pair, or null if there was no actor in the map
    */
-  protected def unregisterActor(pair:DiffaPairRef) = pairActors.synchronized {
+  protected def unregisterActor(pair:PairRef) = pairActors.synchronized {
     val actor = pairActors.get(pair)
     if (actor != null) {
       pairActors.remove(pair)
@@ -112,7 +112,7 @@ abstract class AbstractActorSupervisor
 
   def findActor(id:VersionID) : ActorRef = findActor(id.pair)
 
-  def findActor(pair: DiffaPairRef) = {
+  def findActor(pair: PairRef) = {
 
     val actor = pairActors.get(pair)
 

@@ -152,7 +152,7 @@ case class PairActor(pair:DomainPairDef,
 
     // The receive timeout in seconds
     val timeout = domainConfigStore.configOptionOrDefault(
-      pairRef.domain, CorrelationWriterProxy.TIMEOUT_KEY,
+      pairRef.space, CorrelationWriterProxy.TIMEOUT_KEY,
       CorrelationWriterProxy.TIMEOUT_DEFAULT_VALUE).toInt
 
     def clearUpstreamVersion(id: VersionID, scanId:Option[Long]) = call( _.clearUpstreamVersion(id, scanId) )
@@ -343,8 +343,7 @@ case class PairActor(pair:DomainPairDef,
     val scanStatement = ScanStatement(
       space = -1L,
       id = activeScan.id,
-      pair = pairRef.key,
-      domain = pairRef.domain,
+      pair = pairRef.name,
       initiatedBy = activeScan.initiatingUser,
       startTime = activeScan.startTime,
       endTime = Some(new DateTime(DateTimeZone.UTC)),
@@ -479,8 +478,8 @@ case class PairActor(pair:DomainPairDef,
       val currentFeedbackHandle = feedbackHandle
 
       val infoMsg = scanView match {
-        case Some(name) => "Commencing scan on %s view for pair %s".format(name, pairRef.key)
-        case None =>       "Commencing non-filtered scan for pair %s".format(pairRef.key)
+        case Some(name) => "Commencing scan on %s view for pair %s".format(name, pairRef.name)
+        case None =>       "Commencing non-filtered scan for pair %s".format(pairRef.name)
       }
 
       diagnostics.logPairEvent(Some(createdScan.id), pairRef, DiagnosticLevel.INFO, infoMsg)

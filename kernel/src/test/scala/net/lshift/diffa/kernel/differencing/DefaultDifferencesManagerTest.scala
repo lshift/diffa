@@ -25,7 +25,7 @@ import net.lshift.diffa.kernel.matching.{MatchingStatusListener, EventMatcher, M
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import org.easymock.EasyMock
 import net.lshift.diffa.participant.scanning.ScanConstraint
-import net.lshift.diffa.kernel.config.{DiffaPairRef, Domain, Endpoint, DomainConfigStore, DiffaPair}
+import net.lshift.diffa.kernel.config.{PairRef, Domain, Endpoint, DomainConfigStore}
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.frontend.FrontendConversions._
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
@@ -42,7 +42,7 @@ class StubParticipantProtocolFactory
 
   def supports(endpoint: Endpoint) = true
 
-  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef) = new ScanningParticipantRef {
+  def createParticipantRef(endpoint: Endpoint, pair:PairRef) = new ScanningParticipantRef {
     def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) = null
   }
 }
@@ -51,7 +51,7 @@ class StubContentParticipantProtocolFactory
 
   def supports(endpoint: Endpoint) = true
 
-  def createParticipantRef(endpoint: Endpoint, pair:DiffaPairRef) = new ContentParticipantRef {
+  def createParticipantRef(endpoint: Endpoint, pair:PairRef) = new ContentParticipantRef {
     def retrieveContent(identifier: String) = "Some Content for " + identifier
   }
 }
@@ -66,11 +66,13 @@ class DefaultDifferencesManagerTest {
   val domain1 = Domain(name=domainName)
   val domain2 = Domain(name=domainName2)
 
+  val spaceId = System.currentTimeMillis()
+
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes", contentRetrievalUrl = "http://foo.com/content")
 
-  val pair1 = DomainPairDef(key = "pair1", domain = domain1.name, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
-  val pair2 = DomainPairDef(key = "pair2", domain = domain1.name, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name, matchingTimeout = 5)
+  val pair1 = DomainPairDef(key = "pair1", space = spaceId, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name)
+  val pair2 = DomainPairDef(key = "pair2", space = spaceId, versionPolicyName = "policy", upstreamName = u.name, downstreamName = d.name, matchingTimeout = 5)
 
 
   val systemConfigStore = createStrictMock("systemConfigStore", classOf[SystemConfigStore])
@@ -78,7 +80,7 @@ class DefaultDifferencesManagerTest {
   replay(systemConfigStore)
 
   val domainConfigStore = createStrictMock("domainConfigStore", classOf[DomainConfigStore])
-  expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(pair1, pair2))
+  expect(domainConfigStore.listPairs(spaceId)).andStubReturn(Seq(pair1, pair2))
   replay(domainConfigStore)
 
   val matchingManager = createStrictMock("matchingManager", classOf[MatchingManager])
@@ -137,7 +139,7 @@ class DefaultDifferencesManagerTest {
     expect(matcher.isVersionIDActive(VersionID(pair2.asRef, "id"))).andStubReturn(true)
     expect(matcher.isVersionIDActive(VersionID(pair1.asRef, "id2"))).andStubReturn(false)
 
-    expect(domainConfigStore.listPairs(domainName)).andStubReturn(Seq(pair1, pair2))
+    expect(domainConfigStore.listPairs(spaceId)).andStubReturn(Seq(pair1, pair2))
 
     replay(systemConfigStore, matchingManager, domainConfigStore)
   }
@@ -149,12 +151,12 @@ class DefaultDifferencesManagerTest {
 
     replay(pairPolicyClient)
   }
-  def expectScanAndDifferenceForPair(pairs:DiffaPair*)  = {
+  def expectScanAndDifferenceForPair(pairs:PairRef*)  = {
     pairs.foreach(p => {
-      expect(pairPolicyClient.difference(p.asRef)).atLeastOnce
+      expect(pairPolicyClient.difference(p)).atLeastOnce
     })
     pairs.foreach(p => {
-      expect(pairPolicyClient.scanPair(p.asRef, None, None)).atLeastOnce
+      expect(pairPolicyClient.scanPair(p, None, None)).atLeastOnce
     })
 
     replay(pairPolicyClient)
@@ -167,7 +169,7 @@ class DefaultDifferencesManagerTest {
 
     expectDifferenceForPair(pair1, pair2)
 
-    manager.onMatch(VersionID(DiffaPairRef(pair1.key,"domain"), "id"), "version", LiveWindow)
+    manager.onMatch(VersionID(PairRef(pair1.key,spaceId), "id"), "version", LiveWindow)
 
     verifyAll
   }
@@ -188,7 +190,7 @@ class DefaultDifferencesManagerTest {
   def shouldTriggerMismatchEventsWhenIdIsInactive {
     val timestamp = new DateTime()
     val evt = DifferenceEvent(
-      seqId = "123", objId = VersionID(DiffaPairRef("pair1", domainName), "id2"), detectedAt = timestamp,
+      seqId = "123", objId = VersionID(PairRef("pair1", spaceId), "id2"), detectedAt = timestamp,
       state = MatchState.UNMATCHED, upstreamVsn = "uvsn", downstreamVsn = "dvsn")
     expect(listener.onMismatch(evt.objId, evt.detectedAt, evt.upstreamVsn, evt.downstreamVsn, LiveWindow, MatcherFiltered))
     expect(domainDifferenceStore.addReportableUnmatchedEvent(
@@ -200,7 +202,7 @@ class DefaultDifferencesManagerTest {
 
     expectDifferenceForPair(pair1, pair2)
 
-    manager.onMismatch(VersionID(DiffaPairRef("pair1", domainName), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, Unfiltered)
+    manager.onMismatch(VersionID(PairRef("pair1", spaceId), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, Unfiltered)
     verifyAll
   }
 
@@ -208,7 +210,7 @@ class DefaultDifferencesManagerTest {
   def shouldNotEscalateEventThatHasAlreadyBeenSeen {
     val timestamp = new DateTime()
     val evt = DifferenceEvent(
-      seqId = "123", objId = VersionID(DiffaPairRef("pair1", domainName), "id2"), detectedAt = timestamp,
+      seqId = "123", objId = VersionID(PairRef("pair1", spaceId), "id2"), detectedAt = timestamp,
       state = MatchState.UNMATCHED, upstreamVsn = "uvsn", downstreamVsn = "dvsn")
     expect(listener.onMismatch(evt.objId, evt.detectedAt, evt.upstreamVsn, evt.downstreamVsn, LiveWindow, MatcherFiltered))
     expect(domainDifferenceStore.addReportableUnmatchedEvent(
@@ -219,7 +221,7 @@ class DefaultDifferencesManagerTest {
 
     expectDifferenceForPair(pair1, pair2)
 
-    manager.onMismatch(VersionID(DiffaPairRef("pair1", domainName), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, Unfiltered)
+    manager.onMismatch(VersionID(PairRef("pair1", spaceId), "id2"), timestamp, "uvsn", "dvsn", LiveWindow, Unfiltered)
     verifyAll
   }
 
@@ -232,7 +234,7 @@ class DefaultDifferencesManagerTest {
 
     expectDifferenceForPair(pair1, pair2)
 
-    manager.onDownstreamExpired(VersionID(DiffaPairRef("pair",domainName), "unknownid"), "dvsn")
+    manager.onDownstreamExpired(VersionID(PairRef("pair",spaceId), "unknownid"), "dvsn")
   }
 
   @Test
@@ -252,29 +254,29 @@ class DefaultDifferencesManagerTest {
 
   @Test
   def shouldRetrieveContentFromAnEndpointWithContentRetrievalUrl() {
-    expect(domainDifferenceStore.getEvent(domainName, "123")).
+    expect(domainDifferenceStore.getEvent(spaceId, "123")).
       andReturn(DifferenceEvent(seqId = "123", objId = VersionID(pair1.asRef, "id1"), upstreamVsn = "u", downstreamVsn = "d"))
     replay(domainDifferenceStore)
     reset(domainConfigStore)
-    expect(domainConfigStore.getEndpoint(domainName, d.name)).andReturn(d)
+    expect(domainConfigStore.getEndpoint(spaceId, d.name)).andReturn(d)
     expect(domainConfigStore.getPairDef(pair1.asRef)).andStubReturn(pair1)
     replay(domainConfigStore)
 
-    val content = manager.retrieveEventDetail(domainName, "123", ParticipantType.DOWNSTREAM)
+    val content = manager.retrieveEventDetail(spaceId, "123", ParticipantType.DOWNSTREAM)
     assertEquals("Some Content for id1", content)
   }
 
   @Test
   def shouldNotAttemptToRetrieveContentFromEndpointWithNoContentRetrievalUrl() {
-    expect(domainDifferenceStore.getEvent(domainName, "123")).
+    expect(domainDifferenceStore.getEvent(spaceId, "123")).
       andReturn(DifferenceEvent(seqId = "123", objId = VersionID(pair1.asRef, "id1"), upstreamVsn = "u", downstreamVsn = "d"))
     replay(domainDifferenceStore)
     reset(domainConfigStore)
-    expect(domainConfigStore.getEndpoint(domainName, u.name)).andStubReturn(u)
+    expect(domainConfigStore.getEndpoint(spaceId, u.name)).andStubReturn(u)
     expect(domainConfigStore.getPairDef(pair1.asRef)).andStubReturn(pair1)
     replay(domainConfigStore)
 
-    val content = manager.retrieveEventDetail(domainName, "123", ParticipantType.UPSTREAM)
+    val content = manager.retrieveEventDetail(spaceId, "123", ParticipantType.UPSTREAM)
     assertEquals("Content retrieval not supported", content)
   }
 

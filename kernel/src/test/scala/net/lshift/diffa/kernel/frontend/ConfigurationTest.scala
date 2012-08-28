@@ -24,7 +24,6 @@ import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
 import org.easymock.IArgumentMatcher
-import net.lshift.diffa.kernel.config.DiffaPair
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
@@ -32,6 +31,7 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.junit.{AfterClass, Test, Before}
+import org.apache.commons.lang.RandomStringUtils
 
 /**
  * Test cases for the Configuration frontend.
@@ -52,11 +52,12 @@ class ConfigurationTest {
   private val systemConfigStore = storeReferences.systemConfigStore
   private val domainConfigStore = storeReferences.domainConfigStore
   private val serviceLimitsStore = storeReferences.serviceLimitsStore
-  private val spacePathCache = storeReferences.spacePathCache
+  private val userPreferencesStore = storeReferences.userPreferencesStore
 
   private val configuration = new Configuration(domainConfigStore,
                                                 systemConfigStore,
                                                 serviceLimitsStore,
+                                                userPreferencesStore,
                                                 matchingManager,
                                                 versionCorrelationStoreFactory,
                                                 List(pairManager),
@@ -66,26 +67,30 @@ class ConfigurationTest {
                                                 diagnostics,
                                                 pairPolicyClient)
 
-  val domainName = "domain"
+  val domainName = RandomStringUtils.randomAlphanumeric(10)
   val domain = Domain(name = domainName)
+
+  var space:Space = null
 
   @Before
   def clearConfig = {
     try {
-      systemConfigStore.deleteDomain(domainName)
+      if (space != null) {
+        systemConfigStore.deleteSpace(space.id)
+      }
     }
     catch {
       case e:MissingObjectException => // ignore non-existent domain, since the point of this call was to delete it anyway
     }
-    systemConfigStore.createOrUpdateDomain(domainName)
+    space = systemConfigStore.createOrUpdateSpace(domainName)
   }
 
   @Test
   def shouldApplyEmptyConfigToEmptySystem {
     replayAll
 
-    configuration.applyConfiguration("domain", DiffaConfig())
-    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration("domain"))
+    configuration.applyConfiguration(space.id, DiffaConfig())
+    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration(space.id))
   }
 
   @Test
@@ -96,15 +101,15 @@ class ConfigurationTest {
 
     systemConfigStore.createOrUpdateUser(callingUser)
     systemConfigStore.createOrUpdateUser(anotherUser)
-    domainConfigStore.makeDomainMember("domain", "callingUser")
-    domainConfigStore.makeDomainMember("domain", "anotherUser")
+    domainConfigStore.makeDomainMember(space.id, "callingUser")
+    domainConfigStore.makeDomainMember(space.id, "anotherUser")
 
     val configWithCallingUser = DiffaConfig(
       members = Set("callingUser")
     )
 
-    configuration.applyConfiguration("domain", DiffaConfig(), Some("callingUser"))
-    assertEquals(Some(configWithCallingUser), configuration.retrieveConfiguration("domain"))
+    configuration.applyConfiguration(space.id, DiffaConfig(), Some("callingUser"))
+    assertEquals(Some(configWithCallingUser), configuration.retrieveConfiguration(space.id))
   }
 
   @Test
@@ -119,7 +124,7 @@ class ConfigurationTest {
     )
 
     try {
-      configuration.applyConfiguration("domain", conf)
+      configuration.applyConfiguration(space.id, conf)
       fail("Should have thrown ConfigValidationException")
     } catch {
       case ex:ConfigValidationException =>
@@ -129,9 +134,6 @@ class ConfigurationTest {
 
   @Test
   def shouldApplyConfigurationToEmptySystem() {
-
-    // Get the sugrrogate key from the cache
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
 
     // Create users that have membership references in the domain config
 
@@ -170,11 +172,11 @@ class ConfigurationTest {
         PairDef("ac", "same", 5, "upstream1", "downstream1", "0 * * * * ?", scanCronEnabled = false))
     )
 
-    val ab = DomainPairDef(key = "ab", domain = "domain", matchingTimeout = 5,
+    val ab = DomainPairDef(key = "ab", space = space.id, matchingTimeout = 5,
                        versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name,
                        views = List(PairViewDef("v1", "0 * * * * ?", false)))
 
-    val ac = DomainPairDef(key = "ac", domain = "domain", matchingTimeout = 5, scanCronEnabled = false,
+    val ac = DomainPairDef(key = "ac", space = space.id, matchingTimeout = 5, scanCronEnabled = false,
                            versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
 
@@ -192,8 +194,8 @@ class ConfigurationTest {
     expect(pairPolicyClient.difference(ac.asRef)).once
     replayAll
 
-    configuration.applyConfiguration("domain", config)
-    assertEquals(Some(config), configuration.retrieveConfiguration("domain"))
+    configuration.applyConfiguration(space.id, config)
+    assertEquals(Some(config), configuration.retrieveConfiguration(space.id))
     verifyAll
   }
 
@@ -202,9 +204,6 @@ class ConfigurationTest {
     // Apply the configuration used in the empty state test
     shouldApplyConfigurationToEmptySystem
     resetAll
-
-    // Get the surrogate key from the cache
-    val space = spacePathCache.resolveSpacePathOrDie(domainName)
 
       // upstream1 is kept but changed
     val ep1 = DomainEndpointDef(space = space.id, name = "upstream1", scanUrl = "http://localhost:6543/scan",
@@ -238,39 +237,39 @@ class ConfigurationTest {
         PairDef("ad", "same", 5, "upstream1", "downstream2"))
     )
 
-    val ab = DiffaPair(key = "ab", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
+    val ab = DomainPairDef(key = "ab", space = space.id, matchingTimeout = 5,
+                           versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
-    val ac = DiffaPair(key = "ac", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstream = ep1.name, downstream = ep2.name)
+    val ac = DomainPairDef(key = "ac", space = space.id, matchingTimeout = 5,
+                           versionPolicyName = "same", scanCronSpec = "0 * * * * ?", upstreamName = ep1.name, downstreamName = ep2.name)
 
-    val ad = DiffaPair(key = "ad", domain = Domain(name="domain"), matchingTimeout = 5,
-                          versionPolicyName = "same", upstream = ep1.name, downstream = ep2.name)
+    val ad = DomainPairDef(key = "ad", space = space.id, matchingTimeout = 5,
+                           versionPolicyName = "same", upstreamName = ep1.name, downstreamName = ep2.name)
 
     expect(pairManager.startActor(pairInstance("ab"))).once   // Note that this will result in the actor being restarted
     expect(matchingManager.onUpdatePair(ab.asRef)).once
     expect(scanScheduler.onUpdatePair(ab.asRef)).once
-    expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(pairPolicyClient.difference(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(pairManager.stopActor(DiffaPairRef(key = "ac", domain = "domain"))).once
+    expect(differencesManager.onUpdatePair(PairRef(name = "ab", space = space.id))).once
+    expect(pairPolicyClient.difference(PairRef(name = "ab", space = space.id))).once
+    expect(pairManager.stopActor(PairRef(name = "ac", space = space.id))).once
     expect(matchingManager.onDeletePair(ac.asRef)).once
     expect(scanScheduler.onDeletePair(ac.asRef)).once
     expect(differencesManager.onDeletePair(ac.asRef)).once
-    expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(diagnostics.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
+    expect(versionCorrelationStoreFactory.remove(PairRef(name = "ac", space = space.id))).once
+    expect(diagnostics.onDeletePair(PairRef(name = "ac", space = space.id))).once
     expect(pairManager.startActor(pairInstance("ad"))).once
     expect(matchingManager.onUpdatePair(ad.asRef)).once
     expect(scanScheduler.onUpdatePair(ad.asRef)).once
-    expect(differencesManager.onUpdatePair(DiffaPairRef(key = "ad", domain = "domain"))).once
-    expect(pairPolicyClient.difference(DiffaPairRef(key = "ad", domain = "domain"))).once
+    expect(differencesManager.onUpdatePair(PairRef(name = "ad", space = space.id))).once
+    expect(pairPolicyClient.difference(PairRef(name = "ad", space = space.id))).once
 
-    expect(endpointListener.onEndpointRemoved("domain", "downstream1")).once
+    expect(endpointListener.onEndpointRemoved(space.id, "downstream1")).once
     expect(endpointListener.onEndpointAvailable(ep1)).once
     expect(endpointListener.onEndpointAvailable(ep2)).once
     replayAll
 
-    configuration.applyConfiguration("domain",config)
-    val Some(newConfig) = configuration.retrieveConfiguration("domain")
+    configuration.applyConfiguration(space.id,config)
+    val Some(newConfig) = configuration.retrieveConfiguration(space.id)
     assertEquals(config, newConfig)
 
     // check that the action was updated
@@ -285,27 +284,27 @@ class ConfigurationTest {
     shouldApplyConfigurationToEmptySystem
     resetAll
 
-    val ab = DiffaPair(key = "ab", domain = Domain(name="domain"))
-    val ac = DiffaPair(key = "ac", domain = Domain(name="domain"))
+    val ab = DomainPairDef(key = "ab", space=space.id)
+    val ac = DomainPairDef(key = "ac", space=space.id)
 
-    expect(pairManager.stopActor(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(pairManager.stopActor(DiffaPairRef(key = "ac", domain = "domain"))).once
+    expect(pairManager.stopActor(PairRef(name = "ab", space = space.id))).once
+    expect(pairManager.stopActor(PairRef(name = "ac", space = space.id))).once
     expect(matchingManager.onDeletePair(ab.asRef)).once
     expect(matchingManager.onDeletePair(ac.asRef)).once
     expect(scanScheduler.onDeletePair(ab.asRef)).once
     expect(scanScheduler.onDeletePair(ac.asRef)).once
-    expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(versionCorrelationStoreFactory.remove(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(diagnostics.onDeletePair(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(diagnostics.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(differencesManager.onDeletePair(DiffaPairRef(key = "ab", domain = "domain"))).once
-    expect(differencesManager.onDeletePair(DiffaPairRef(key = "ac", domain = "domain"))).once
-    expect(endpointListener.onEndpointRemoved("domain", "upstream1")).once
-    expect(endpointListener.onEndpointRemoved("domain", "downstream1")).once
+    expect(versionCorrelationStoreFactory.remove(PairRef(name = "ab", space = space.id))).once
+    expect(versionCorrelationStoreFactory.remove(PairRef(name = "ac", space = space.id))).once
+    expect(diagnostics.onDeletePair(PairRef(name = "ab", space = space.id))).once
+    expect(diagnostics.onDeletePair(PairRef(name = "ac", space = space.id))).once
+    expect(differencesManager.onDeletePair(PairRef(name = "ab", space = space.id))).once
+    expect(differencesManager.onDeletePair(PairRef(name = "ac", space = space.id))).once
+    expect(endpointListener.onEndpointRemoved(space.id, "upstream1")).once
+    expect(endpointListener.onEndpointRemoved(space.id, "downstream1")).once
     replayAll
 
-    configuration.applyConfiguration("domain",DiffaConfig())
-    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration("domain"))
+    configuration.applyConfiguration(space.id,DiffaConfig())
+    assertEquals(Some(DiffaConfig()), configuration.retrieveConfiguration(space.id))
     verifyAll
   }
 
@@ -315,20 +314,20 @@ class ConfigurationTest {
     shouldApplyConfigurationToEmptySystem
     resetAll
 
-    configuration.clearRepairActions("domain", "ab")
-    configuration.clearEscalations("domain", "ab")
+    configuration.clearRepairActions(space.id, "ab")
+    configuration.clearEscalations(space.id, "ab")
 
-    assertEquals(0, configuration.getPairDef("domain", "ab").repairActions.size())
-    assertEquals(0, configuration.getPairDef("domain", "ab").escalations.size())
+    assertEquals(0, configuration.getPairDef(space.id, "ab").repairActions.size())
+    assertEquals(0, configuration.getPairDef(space.id, "ab").escalations.size())
   }
 
   private def replayAll = replay(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def verifyAll = verify(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
   private def resetAll = reset(matchingManager, pairManager, differencesManager, endpointListener, scanScheduler)
-  private def pairInstance(key:String):DiffaPairRef = {
+  private def pairInstance(key:String):PairRef = {
     reportMatcher(new IArgumentMatcher {
       def appendTo(buffer: StringBuffer) = buffer.append("pair with key " + key)
-      def matches(argument: AnyRef) = argument.asInstanceOf[DiffaPairRef].key == key
+      def matches(argument: AnyRef) = argument.asInstanceOf[PairRef].name == key
     })
     null
   }

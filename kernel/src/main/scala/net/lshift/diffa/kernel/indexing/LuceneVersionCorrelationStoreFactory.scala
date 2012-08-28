@@ -24,7 +24,7 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.apache.commons.io.FileUtils
 import org.apache.lucene.store.{SimpleFSDirectory, NIOFSDirectory}
 import org.slf4j.LoggerFactory
-import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore, DiffaPairRef}
 
 /**
  * Factory that creates LuceneVersionCorrelationStore instances.
@@ -38,20 +38,20 @@ class LuceneVersionCorrelationStoreFactory(
 
   import LuceneVersionCorrelationStoreFactory._
 
-  private val stores = HashMap[DiffaPairRef, LuceneVersionCorrelationStore]()
+  private val stores = HashMap[PairRef, LuceneVersionCorrelationStore]()
   
-  def apply(pair: DiffaPairRef) =
+  def apply(pair: PairRef) =
     stores.getOrElseUpdate(pair,
       new LuceneVersionCorrelationStore(pair, luceneDirectory(pair), configStore, domainConfigStore, diagnostics))
 
-  private def directory(pair: DiffaPairRef) = new File(baseDir, pair.identifier)
+  private def directory(pair: PairRef) = new File(baseDir, pair.identifier)
 
-  private def luceneDirectory(pair: DiffaPairRef) =
+  private def luceneDirectory(pair: PairRef) =
     directoryClass.getConstructor(classOf[File]).newInstance(directory(pair))
 
 
 
-  def remove(pair: DiffaPairRef) {
+  def remove(pair: PairRef) {
     close(pair)
 
     // No need to check if the pair/directory exists first, since the implementation of this method
@@ -59,7 +59,7 @@ class LuceneVersionCorrelationStoreFactory(
     FileUtils.deleteDirectory(directory(pair))
   }
 
-  def close(pair: DiffaPairRef) {
+  def close(pair: PairRef) {
     if (stores.contains(pair)) {
       stores(pair).close()
       stores.remove(pair)

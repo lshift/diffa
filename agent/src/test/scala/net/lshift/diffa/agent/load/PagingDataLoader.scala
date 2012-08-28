@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import scala.collection.JavaConversions._
 import net.lshift.diffa.agent.client.{DifferencesRestClient, ConfigurationRestClient}
 import org.junit.Assert._
-import net.lshift.diffa.kernel.differencing.DifferenceEvent
+import net.lshift.diffa.kernel.differencing.{ExternalDifferenceEvent, DifferenceEvent}
 import com.eaio.uuid.UUID
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
@@ -83,7 +83,7 @@ object PagingDataLoader {
 
   }
 
-  def tryAgain(client:DifferencesRestClient, poll:DifferencesRestClient => Seq[DifferenceEvent], n:Int = 10, wait:Int = 100) : Seq[DifferenceEvent]= {
+  def tryAgain(client:DifferencesRestClient, poll:DifferencesRestClient => Seq[ExternalDifferenceEvent], n:Int = 10, wait:Int = 100) : Seq[ExternalDifferenceEvent]= {
     var i = n
     var diffs = poll(client)
     while(diffs.isEmpty && i > 0) {

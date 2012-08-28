@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.participants
 
-import net.lshift.diffa.kernel.config.{Endpoint, DiffaPairRef}
+import net.lshift.diffa.kernel.config.{PairRef, Endpoint, DiffaPairRef}
 
 /**
  * Parent trait inherited by factories that create objects based on addresses and content types.
@@ -31,5 +31,5 @@ trait AddressDrivenFactory[T] {
    * already been checked for compatibility via supportsAddress. The behaviour when calling this method without
    * previously checking is undefined, and the factory implementation may return a non-functional proxy.
    */
-  def createParticipantRef(endpoint:Endpoint, pair:DiffaPairRef): T
+  def createParticipantRef(endpoint:Endpoint, pair:PairRef): T
 }

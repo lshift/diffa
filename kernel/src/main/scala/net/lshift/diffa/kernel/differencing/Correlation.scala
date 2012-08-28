@@ -23,14 +23,14 @@ import scala.collection.JavaConversions.MapWrapper
 import scala.collection.JavaConversions.asMap
 import collection.mutable.HashMap
 import net.lshift.diffa.kernel.events.VersionID
-import net.lshift.diffa.kernel.config.DiffaPairRef._
-import net.lshift.diffa.kernel.config.{DiffaPairRef}
+import net.lshift.diffa.kernel.config.PairRef._
+import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 
 // Base type for upstream and downstream correlations allowing pairs to be managed
 case class Correlation(
   @BeanProperty var oid:java.lang.Integer = null,
   @BeanProperty var pairing:String = null,
-  @BeanProperty var domain:String = null,
+  @BeanProperty var space:java.lang.Long = null,
   @BeanProperty var id:String = null,
   var upstreamAttributes:Map[String,String] = null,
   var downstreamAttributes:Map[String,String] = null,
@@ -43,22 +43,22 @@ case class Correlation(
   @BeanProperty var isMatched:java.lang.Boolean = null
 ) {
   def this() = this(oid= null)
-  def this(oid:java.lang.Integer,pair:DiffaPairRef,
+  def this(oid:java.lang.Integer,pair:PairRef,
            id:String,
            up:Map[String,String],
            down:Map[String,String],
            lastUpdate:DateTime, timestamp:DateTime,
            uvsn:String, duvsn:String, ddvsn:String,
-           isMatched:java.lang.Boolean) = this(oid,pair.key,pair.domain,id,up,down,lastUpdate,timestamp,0L,uvsn,duvsn,ddvsn,isMatched)
+           isMatched:java.lang.Boolean) = this(oid,pair.name,pair.space,id,up,down,lastUpdate,timestamp,0L,uvsn,duvsn,ddvsn,isMatched)
 
-  def this(oid:java.lang.Integer,pair:DiffaPairRef,
+  def this(oid:java.lang.Integer,pair:PairRef,
            id:String,
            up:Map[String,String],
            down:Map[String,String],
            lastUpdate:DateTime, timestamp:DateTime,
            storeVersion:java.lang.Long,
            uvsn:String, duvsn:String, ddvsn:String,
-           isMatched:java.lang.Boolean) = this(oid,pair.key,pair.domain,id,up,down,lastUpdate,timestamp,storeVersion,uvsn,duvsn,ddvsn,isMatched)
+           isMatched:java.lang.Boolean) = this(oid,pair.name,pair.space,id,up,down,lastUpdate,timestamp,storeVersion,uvsn,duvsn,ddvsn,isMatched)
 
   // Allocate these in the constructor because of NPE when Hibernate starts mapping this stuff 
   if (upstreamAttributes == null) upstreamAttributes = new HashMap[String,String]
@@ -85,12 +85,12 @@ case class Correlation(
   def setUpstreamAttributes(a:java.util.Map[String,String]) : Unit = upstreamAttributes = asMap(a)
   def setDownstreamAttributes(a:java.util.Map[String,String]) : Unit = downstreamAttributes = asMap(a)
 
-  def asVersionID = VersionID(DiffaPairRef(pairing,domain),id)
+  def asVersionID = VersionID(PairRef(pairing,space),id)
 }
 
 object Correlation {
-  def asDeleted(pair:DiffaPairRef, id:String, lastUpdate:DateTime) =
-    Correlation(null, pair.key, pair.domain, id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
+  def asDeleted(pair:PairRef, id:String, lastUpdate:DateTime) =
+    Correlation(null, pair.name, pair.space, id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
   def asDeleted(id:VersionID, lastUpdate:DateTime) =
-    Correlation(null, id.pair.key, id.pair.domain, id.id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
+    Correlation(null, id.pair.name, id.pair.space, id.id, null, null, lastUpdate, new DateTime, 0L, null, null, null, true)
 }

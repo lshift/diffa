@@ -41,5 +41,5 @@ trait InboundEndpointFactory {
    * system will not filter these events based on factory support, so factories should expect to see more removal
    * events than ensure events, and should silently ignore any unknown endpoints.
    */
-  def endpointGone(domain: String, endpoint: String)
+  def endpointGone(space:Long, endpoint: String)
 }

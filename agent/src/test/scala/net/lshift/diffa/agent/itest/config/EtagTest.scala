@@ -27,10 +27,11 @@ import org.apache.http.HttpHost
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.protocol.BasicHttpContext
 import org.apache.http.client.protocol.ClientContext
+import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
-class EtagTest {
+class EtagTest extends IsolatedDomainTest {
 
-  val configClient = new ConfigurationRestClient(agentURL, defaultDomain)
+  val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
 
   @Test
   def configChangeShouldUpgradeEtag {
@@ -60,8 +61,10 @@ class EtagTest {
       new UsernamePasswordCredentials(agentUsername, agentPassword))
 
     val httpResponse = httpClient.execute(
-      new HttpGet(agentURL + "/%s/diffa/diffs/aggregates".format(domainsLabel)),
+      new HttpGet(agentURL + "/spaces/%s/diffs/aggregates".format(isolatedDomain)),
       basicAuthContext(targetHost))
+
+    assertNotSame("Should not have got a 404", 404, httpResponse.getStatusLine.getStatusCode)
 
     val etag = httpResponse.getLastHeader("ETag")
     httpResponse.getAllHeaders foreach { header =>

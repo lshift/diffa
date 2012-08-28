@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 import net.lshift.diffa.kernel.util.{Lazy, Registry}
 import org.apache.http.annotation.ThreadSafe
 
-case class ServiceLimiterKey(limit: ServiceLimit, domain: Option[String], pair: Option[String]) {
+case class ServiceLimiterKey(limit: ServiceLimit, domain: Option[Long], pair: Option[String]) {
   override def hashCode = 31 * (31 * (31 + limit.hashCode) + domain.getOrElse("__").hashCode) +
     pair.getOrElse("__").hashCode
 }

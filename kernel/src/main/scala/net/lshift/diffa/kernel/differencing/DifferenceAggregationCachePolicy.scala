@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.kernel.differencing
 
-import net.lshift.diffa.kernel.config.DiffaPairRef
+import net.lshift.diffa.kernel.config.PairRef
 import org.joda.time.{Hours, DateTime}
 
 /**
@@ -33,14 +33,14 @@ object DifferenceAggregationCachePolicy {
     // Work out how many hours before now the open-ended before cache starts
   val startOfBefore = aggregationHours.last._2
 
-  def sequenceKeyForDetectionTime(pair:DiffaPairRef, now:DateTime, detectedAt:DateTime):SequenceCacheKey = {
+  def sequenceKeyForDetectionTime(pair:PairRef, now:DateTime, detectedAt:DateTime):SequenceCacheKey = {
     val nowHour = floorHour(now)
     val rangeIdx = aggregationRangeIdxForDetectionTime(nowHour, detectedAt)
 
     buildKey(pair, nowHour, aggregationHours(rangeIdx))
   }
 
-  def sequenceKeysForDetectionTimeRange(pair:DiffaPairRef, now:DateTime, rangeStart:DateTime, rangeEnd:DateTime):Seq[SequenceCacheKey] = {
+  def sequenceKeysForDetectionTimeRange(pair:PairRef, now:DateTime, rangeStart:DateTime, rangeEnd:DateTime):Seq[SequenceCacheKey] = {
     val nowHour = floorHour(now)
 
     // Work out the start index in our list of aggregation hours
@@ -76,7 +76,7 @@ object DifferenceAggregationCachePolicy {
     }
   }
 
-  private def buildKey(pair:DiffaPairRef, nowHour:DateTime, aggregationRange:(Int, Int)) = {
+  private def buildKey(pair:PairRef, nowHour:DateTime, aggregationRange:(Int, Int)) = {
     aggregationRange match {
       case (-1, end) =>
         SequenceCacheKey(pair, nowHour.minusHours(end - 1), null)

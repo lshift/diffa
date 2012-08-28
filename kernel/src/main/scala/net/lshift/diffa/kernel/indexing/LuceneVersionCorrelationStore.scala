@@ -38,7 +38,7 @@ import net.lshift.diffa.kernel.util._
  * provided. Lucene is utilised as it provides for schema-free storage, which strongly suits the dynamic schema nature
  * of pair attributes.
  */
-class LuceneVersionCorrelationStore(val pair: DiffaPairRef,
+class LuceneVersionCorrelationStore(val pair: PairRef,
                                     index:Directory,
                                     configStore:SystemConfigStore,
                                     domainConfigStore: DomainConfigStore,
@@ -137,7 +137,7 @@ class LuceneVersionCorrelationStore(val pair: DiffaPairRef,
       case UpstreamEndpoint => p.upstreamName
       case DownstreamEndpoint => p.downstreamName
     }
-    domainConfigStore.getEndpoint(pair.domain, endpointName).lookupCollation
+    domainConfigStore.getEndpoint(pair.space, endpointName).lookupCollation
   }
 
   def ensureUpgradeable(side:EndpointSide, changes:Seq[CategoryChange]) {
