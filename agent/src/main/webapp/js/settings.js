@@ -327,7 +327,7 @@ Diffa.Views.FormEditor = Backbone.View.extend({
       error: function(model, response) {
         saveButton.removeAttr('disabled');
 
-        self.showError(response.responseText);
+        self.showError(response.responseText || response);
       }
     });
   },

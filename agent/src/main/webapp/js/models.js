@@ -101,6 +101,30 @@ Diffa.Models.Endpoint = Backbone.Model.extend({
     Diffa.Helpers.CategoriesHelper.packCategories(this);
     Diffa.Helpers.ViewsHelper.packViews(this);
   },
+  validate: function(attrs) {
+    console.debug("[Endpoint.validate]")
+    var pcm = this.prefixCategories.models
+    var rcm = this.rangeCategories.models
+    var scm = this.setCategories.models
+    var freq = {}
+    this.accumulate(freq, pcm);
+    this.accumulate(freq, rcm);
+    this.accumulate(freq, scm);
+    for (var i in freq) {
+      if (freq[i] > 1) {
+        return "Categories must have unique names: the category name " + i + " was used more than once";
+      }
+    }
+  },
+  accumulate: function(freq, catModels) {
+    _.each(catModels, function(m) {
+      if (freq[m.id]) {
+        freq[m.id] += 1;
+      } else {
+        freq[m.id] = 1;
+      }
+    });
+  },
   uploadInventory: function(f, constraints, opts) {
     $.ajax($.extend({}, {
       url: '/domains/' + this.collection.domain.id + '/inventory/' + this.id + '?' + constraints,
