@@ -52,5 +52,5 @@ trait VerifiedMigrationStep extends MigrationStep {
 
   def randomString() = RandomStringUtils.randomAlphanumeric(10)
   def randomInt() = RandomStringUtils.randomNumeric(7)
-  def randomTimestamp() = new Timestamp(System.currentTimeMillis()).toString
+  def randomTimestamp() = new Timestamp(System.currentTimeMillis())
 }

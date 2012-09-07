@@ -272,6 +272,14 @@ case class PairDef(
     repairActions.foreach(_.validate(pairPath))
     escalations.foreach(_.validate(pairPath))
     reports.foreach(_.validate(pairPath))
+
+
+    escalations.groupBy(_.rule).foreach{case (rule, esc) => {
+      if (esc.size > 1) {
+        throw new ConfigValidationException(pairPath, "Rule '%s' was duplicated: %s".format(rule, escalations))
+      }
+    }}
+
   }
 }
 

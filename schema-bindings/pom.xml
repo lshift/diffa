@@ -69,6 +69,7 @@
             <systemProperty><key>diffa.jdbc.driver</key><value>${jdbcDriverClass}</value></systemProperty>
             <systemProperty><key>diffa.jdbc.username</key><value>${jdbcUser}</value></systemProperty>
             <systemProperty><key>diffa.jdbc.password</key><value>${jdbcPass}</value></systemProperty>
+            <systemProperty><key>logback.configurationFile</key><value>logback-jooq.xml</value></systemProperty>
           </systemProperties>
         </configuration>
       </plugin>
@@ -80,6 +81,16 @@
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>${hsqldb.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
           </dependency>
         </dependencies>
         <configuration>

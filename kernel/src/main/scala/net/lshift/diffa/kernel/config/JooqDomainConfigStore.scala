@@ -17,12 +17,12 @@
 package net.lshift.diffa.kernel.config
 
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
 import net.lshift.diffa.schema.tables.Members.MEMBERS
 import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
+import net.lshift.diffa.schema.tables.EscalationRules.ESCALATION_RULES
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
@@ -30,6 +30,7 @@ import net.lshift.diffa.schema.tables.Pairs.PAIRS
 import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import net.lshift.diffa.schema.tables.Breakers.BREAKERS
+import net.lshift.diffa.schema.tables.Extents.EXTENTS
 import JooqConfigStoreCompanion._
 import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
@@ -39,22 +40,23 @@ import reflect.BeanProperty
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
-import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.frontend.PairDef
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import org.jooq.{Record, Field, Condition, Table}
 import java.lang.{Long => LONG}
+import java.lang.{Integer => INT}
+import net.lshift.diffa.kernel.util.sequence.SequenceProvider
+import net.lshift.diffa.kernel.naming.SequenceName
+import java.sql.SQLIntegrityConstraintViolationException
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
-                            hookManager:HookManager,
                             cacheProvider:CacheProvider,
+                            sequenceProvider:SequenceProvider,
                             membershipListener:DomainMembershipAware)
     extends DomainConfigStore
     with DomainLifecycleAware {
-
-  val hook = hookManager.createDifferencePartitioningHook(jooq)
 
   private val pairEventSubscribers = new ListBuffer[PairLifecycleAware]
   def registerPairEventListener(p:PairLifecycleAware) = pairEventSubscribers += p
@@ -287,9 +289,10 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     pair.validate()
 
     jooq.execute(t => {
-      t.insertInto(PAIRS).
-          set(PAIRS.SPACE, space:LONG).
-          set(PAIRS.NAME, pair.key).
+
+      // Attempt to prevent unecessary sequence churn when updating pairs
+      // TODO We should consider splitting out create and update APIs for records that use sequences
+      val rows = t.update(PAIRS).
           set(PAIRS.UPSTREAM, pair.upstreamName).
           set(PAIRS.DOWNSTREAM, pair.downstreamName).
           set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
@@ -297,15 +300,36 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
           set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
           set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
           set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
-        onDuplicateKeyUpdate().
-          set(PAIRS.UPSTREAM, pair.upstreamName).
-          set(PAIRS.DOWNSTREAM, pair.downstreamName).
-          set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
-          set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
-          set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
-          set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
-          set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
+        where(PAIRS.SPACE.eq(space)).
+          and(PAIRS.NAME.eq(pair.key)).
         execute()
+
+      if (rows == 0) {
+
+        val extent = upgradeExtent(t)
+
+        t.insertInto(PAIRS).
+            set(PAIRS.SPACE, space:LONG).
+            set(PAIRS.NAME, pair.key).
+            set(PAIRS.EXTENT, extent:LONG).
+            set(PAIRS.UPSTREAM, pair.upstreamName).
+            set(PAIRS.DOWNSTREAM, pair.downstreamName).
+            set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+            set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+            set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
+            set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+            set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
+          onDuplicateKeyUpdate().
+            set(PAIRS.UPSTREAM, pair.upstreamName).
+            set(PAIRS.DOWNSTREAM, pair.downstreamName).
+            set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
+            set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
+            set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
+            set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
+            set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
+          execute()
+
+      }
 
       type HasName = {def name: String}
       def clearUnused[R <: Record](t:Factory, table:Table[R], namesSource:Iterable[HasName], pairCondition:Condition, nameField:Field[String]) {
@@ -334,9 +358,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       clearUnused(t, PAIR_VIEWS, pair.views,
         PAIR_VIEWS.SPACE.equal(space).and(PAIR_VIEWS.PAIR.equal(pair.key)),
         PAIR_VIEWS.NAME)
-      clearUnused(t, ESCALATIONS, pair.escalations,
-        ESCALATIONS.SPACE.equal(space).and(ESCALATIONS.PAIR.equal(pair.key)),
-        ESCALATIONS.NAME)
       clearUnused(t, PAIR_REPORTS, pair.reports,
         PAIR_REPORTS.SPACE.equal(space).and(PAIR_REPORTS.PAIR.equal(pair.key)),
         PAIR_REPORTS.NAME)
@@ -359,11 +380,142 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
           Map(PAIR_REPORTS.SPACE -> space, PAIR_REPORTS.PAIR -> pair.key, PAIR_REPORTS.NAME -> r.name),
           Map(PAIR_REPORTS.REPORT_TYPE -> r.reportType, PAIR_REPORTS.TARGET -> r.target))
       })
+
+      // Clear all previous escalations and then re-add them
+
+      t.update(ESCALATION_RULES).
+          set(ESCALATION_RULES.EXTENT, null:LONG).
+          set(ESCALATION_RULES.ESCALATION, null:String).
+        where(ESCALATION_RULES.EXTENT.eq(
+          t.select(PAIRS.EXTENT).
+            from(PAIRS).
+            where(PAIRS.SPACE.eq(space).
+              and(PAIRS.NAME.eq(pair.key))).
+            asField().
+            asInstanceOf[Field[LONG]]
+        )).execute()
+
+      t.delete(ESCALATIONS).
+        where(ESCALATIONS.EXTENT.eq(
+        t.select(PAIRS.EXTENT).
+          from(PAIRS).
+          where(PAIRS.SPACE.eq(space).
+            and(PAIRS.NAME.eq(pair.key))).
+          asField().
+          asInstanceOf[Field[LONG]]
+      )).execute()
+
       pair.escalations.foreach(e => {
-        insertOrUpdate(t, ESCALATIONS,
-          Map(ESCALATIONS.SPACE -> space, ESCALATIONS.PAIR -> pair.key, ESCALATIONS.NAME -> e.name),
-          Map(ESCALATIONS.ACTION -> e.action, ESCALATIONS.ACTION_TYPE -> e.actionType,
-            ESCALATIONS.RULE -> e.rule, ESCALATIONS.DELAY -> e.delay))
+
+        // TODO somehow factor out the subselect to avoid repetitions
+
+        t.insertInto(ESCALATIONS).
+            set(ESCALATIONS.NAME, e.name).
+            set(ESCALATIONS.EXTENT,
+              t.select(PAIRS.EXTENT).
+                from(PAIRS).
+                where(PAIRS.SPACE.eq(space).
+                  and(PAIRS.NAME.eq(pair.key))).
+                asField().
+                asInstanceOf[Field[LONG]]).
+            set(ESCALATIONS.ACTION, e.action).
+            set(ESCALATIONS.ACTION_TYPE, e.actionType).
+            set(ESCALATIONS.DELAY, e.delay:INT).
+          onDuplicateKeyUpdate().
+            set(ESCALATIONS.ACTION, e.action).
+            set(ESCALATIONS.ACTION_TYPE, e.actionType).
+            set(ESCALATIONS.DELAY, e.delay:INT).
+          execute()
+
+        val rule = if (e.rule == null) "*" else e.rule
+
+        // Attempt an update to the escalation rules table first to avoid sequence churn
+        // this means we'll have to potentially attempt the update twice, depending on concurrency
+
+        val updateExistingRules
+          = t.update(ESCALATION_RULES).
+                set(ESCALATION_RULES.ESCALATION, ESCALATION_RULES.PREVIOUS_ESCALATION).
+                set(ESCALATION_RULES.EXTENT, ESCALATION_RULES.PREVIOUS_EXTENT).
+              where(ESCALATION_RULES.RULE.eq(rule)).
+                and(ESCALATION_RULES.PREVIOUS_ESCALATION.eq(e.name)).
+                and(ESCALATION_RULES.PREVIOUS_EXTENT.eq(
+                  t.select(PAIRS.EXTENT).
+                    from(PAIRS).
+                    where(PAIRS.SPACE.eq(space).
+                      and(PAIRS.NAME.eq(pair.key))).
+                    asField().
+                    asInstanceOf[Field[LONG]]
+              ))
+
+        val rows = updateExistingRules.execute()
+
+        if (rows == 0) {
+
+          // Has just the escalation name changed?
+
+          val updatePreviousEscalationName
+            = t.update(ESCALATION_RULES).
+                  set(ESCALATION_RULES.ESCALATION, e.name).
+                  set(ESCALATION_RULES.PREVIOUS_ESCALATION, e.name).
+                  set(ESCALATION_RULES.EXTENT,
+                    t.select(PAIRS.EXTENT).
+                      from(PAIRS).
+                      where(PAIRS.SPACE.eq(space).
+                        and(PAIRS.NAME.eq(pair.key))).
+                      asField().
+                      asInstanceOf[Field[LONG]]
+                  ).
+                  where(ESCALATION_RULES.RULE.eq(rule)).
+                    and(ESCALATION_RULES.PREVIOUS_EXTENT.eq(
+                  t.select(PAIRS.EXTENT).
+                    from(PAIRS).
+                    where(PAIRS.SPACE.eq(space).
+                      and(PAIRS.NAME.eq(pair.key))).
+                    asField().
+                    asInstanceOf[Field[LONG]]
+                )).execute()
+
+          if (updatePreviousEscalationName == 0) {
+
+            val ruleId = sequenceProvider.nextSequenceValue(SequenceName.ESCALATION_RULES)
+
+            try {
+              t.insertInto(ESCALATION_RULES).
+                set(ESCALATION_RULES.ID, ruleId:LONG).
+                set(ESCALATION_RULES.EXTENT,
+                  t.select(PAIRS.EXTENT).
+                  from(PAIRS).
+                  where(PAIRS.SPACE.eq(space).
+                    and(PAIRS.NAME.eq(pair.key))).
+                  asField().
+                  asInstanceOf[Field[LONG]]).
+                set(ESCALATION_RULES.PREVIOUS_EXTENT,
+                  t.select(PAIRS.EXTENT).
+                    from(PAIRS).
+                    where(PAIRS.SPACE.eq(space).
+                    and(PAIRS.NAME.eq(pair.key))).
+                    asField().
+                    asInstanceOf[Field[LONG]]).
+                set(ESCALATION_RULES.ESCALATION, e.name).
+                set(ESCALATION_RULES.PREVIOUS_ESCALATION, e.name).
+                set(ESCALATION_RULES.RULE, rule).
+              execute()
+            }
+            catch {
+              case x:Exception if x.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] => {
+                // This should happen as a result of a race condition between the first attempt to update
+                // and the attempt to insert a new row. If there is a genuine reason for the non-PK unique
+                // constraint to have caused the constraint violation, then this second attempt to
+                // update the rule will correctly result in the constraint beingu
+                updateExistingRules.execute()
+              }
+            }
+          }
+
+        } else {
+
+        }
+
       })
 
       upgradeConfigVersion(t, space)
@@ -371,8 +523,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     })
 
     invalidatePairCachesOnly(space)
-
-    hook.pairCreated(space, pair.key)
 
     val ref = PairRef(space = space, name = pair.key)
 
@@ -386,7 +536,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       deletePairWithDependencies(t, ref)
       upgradeConfigVersion(t, space)
       pairEventSubscribers.foreach(_.onPairDeleted(ref))
-      hook.pairRemoved(space, key)
     })
   }
 
@@ -688,6 +837,18 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
       cachedBreakers.put(BreakerKey(space, pair, name), false)
     }
+  }
+
+  private def upgradeExtent(t:Factory) : Long = {
+
+    val extent = sequenceProvider.nextSequenceValue(SequenceName.EXTENTS)
+
+    t.insertInto(EXTENTS).
+        set(EXTENTS.ID, extent:LONG).
+      onDuplicateKeyIgnore().
+      execute()
+
+    extent
   }
 }
 

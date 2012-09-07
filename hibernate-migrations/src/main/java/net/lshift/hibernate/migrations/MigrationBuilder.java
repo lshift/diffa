@@ -226,7 +226,7 @@ public class MigrationBuilder {
     return dialectExtension.supportsHashPartitioning();
   }
 
-  public boolean canUseListPartitioning() {
+  @Deprecated public boolean canUseListPartitioning() {
     return dialectExtension.supportsListPartitioning();
   }
 

@@ -20,5 +20,7 @@ package net.lshift.diffa.kernel.naming;
  * This a is canonical list of names used to identify sequence.
  */
 public enum SequenceName {
-  SPACES
+  SPACES,
+  EXTENTS,
+  ESCALATION_RULES
 }

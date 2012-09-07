@@ -19,7 +19,6 @@ import org.junit.{Before, Test}
 import org.junit.Assert._
 import org.easymock.EasyMock._
 import net.lshift.diffa.schema.jooq.{DatabaseFacade => JooqDatabaseFacade}
-import net.lshift.diffa.kernel.hooks.HookManager
 import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 import org.easymock.classextension.{EasyMock => E4}
 import org.jooq.impl.Factory
@@ -29,16 +28,17 @@ import net.lshift.diffa.kernel.frontend.DomainPairDef
 import scala.Some
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.kernel.util.MissingObjectException
+import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 
 class CachedDomainConfigStoreTest {
 
   val jooq = E4.createStrictMock(classOf[JooqDatabaseFacade])
-  val hm = E4.createNiceMock(classOf[HookManager])
   val ml = createStrictMock(classOf[DomainMembershipAware])
 
   val cp = new HazelcastCacheProvider
+  val sp = new HazelcastSequenceProvider
 
-  val domainConfig = new JooqDomainConfigStore(jooq, hm, cp, ml)
+  val domainConfig = new JooqDomainConfigStore(jooq, cp, sp, ml)
   
   val spaceId = System.currentTimeMillis()
 

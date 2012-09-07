@@ -29,6 +29,7 @@ class Sweeper(val period:Int, diffStore:DomainDifferenceStore) {
   val sweepTask = new TimerTask {
     def run() {
       diffStore.expireMatches(new DateTime().minusMinutes(matchAgeMins))
+      diffStore.purgeOrphanedEvents
     }
   }
 

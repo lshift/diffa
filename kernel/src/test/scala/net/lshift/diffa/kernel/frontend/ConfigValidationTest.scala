@@ -321,6 +321,23 @@ class ConfigValidationTest extends DefValidationTestBase {
   }
 
   @Test
+  def shouldRejectPairsWithEscalationsThatUseDuplicateRule() {
+    validateError(
+      PairDef(key = "p", upstreamName = "a", downstreamName = "b",
+        escalations = Set(
+          EscalationDef(name = "e1", rule = "mismatch", action = "a1", actionType = EscalationActionType.REPAIR),
+          EscalationDef(name = "e2", rule = "mismatch", action = "a2", actionType = EscalationActionType.REPAIR)
+        )
+      ),
+      Set(
+        EndpointDef(name = "a"),
+        EndpointDef(name = "b")
+      ),
+      "config/pair[key=p]: Rule 'mismatch' was duplicated: [EscalationDef(e1,a1,repair,mismatch,0), EscalationDef(e2,a2,repair,mismatch,0)]"
+    )
+  }
+
+  @Test
   def shouldAcceptPairViewThatUsesValidCronExpression() {
     val pairDef = PairDef(key = "p", upstreamName = "a", downstreamName = "b",
       views = List(PairViewDef("abc", scanCronSpec = "0 * * * * ?")))

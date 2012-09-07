@@ -173,29 +173,6 @@ object HibernatePreparationUtils {
   def schemaVersionUpdateStatement(version:Int) =  "update schema_version set version = %s".format(version)
 }
 
-/**
- * One-off definition of the partition information table.
- */
-object DefinePartitionInformationTable {
-
-  def defineTable(migration:MigrationBuilder) {    
-    migration.createTable("partition_information").
-        column("table_name", Types.VARCHAR, 50, false).
-        column("version", Types.INTEGER, false).
-        pk("table_name", "version")
-  }
-
-  def applyPartitionVersion(migration:MigrationBuilder, table:String, versionId:Int) {
-    migration.insert("partition_information").
-                    values(Map("version" -> new java.lang.Integer(versionId),
-                               "table_name" -> table))
-  }
-
-  def preventPartitionReapplication(migration:MigrationBuilder, table:String, versionId:Int) {
-    migration.addPrecondition("partition_information",
-                              "where table_name = '%s' and version = %s".format(table, versionId), 0)
-  }
-}
 
 object HibernateConfigStorePreparationStep {
   /**
@@ -203,8 +180,6 @@ object HibernateConfigStorePreparationStep {
    * Note that these steps should be executed in strictly ascending order.
    */
   val migrationSteps = Seq(
-    Step0048,
-    Step0049,
-    Step0050
+    Step0051
   )
 }

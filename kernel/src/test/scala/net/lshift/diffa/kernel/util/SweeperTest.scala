@@ -46,6 +46,9 @@ class SweeperTest {
         latch.countDown()
       }
     }).anyTimes()
+
+    expect(diffStore.purgeOrphanedEvents).andStubReturn(10)
+
     replay(diffStore)
 
     val startTime = System.currentTimeMillis()

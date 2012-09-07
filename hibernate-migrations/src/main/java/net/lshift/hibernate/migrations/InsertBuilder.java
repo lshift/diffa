@@ -16,6 +16,8 @@
 package net.lshift.hibernate.migrations;
 
 import org.hibernate.dialect.Dialect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -33,6 +35,8 @@ public class InsertBuilder extends SingleStatementMigrationElement {
   private final Dialect dialect;
   private final String table;
   private final Map<String, Object> insertValues;
+
+  static Logger logger = LoggerFactory.getLogger(InsertBuilder.class);
 
   public InsertBuilder(Dialect dialect, String table) {
     this.table = table;
@@ -63,7 +67,10 @@ public class InsertBuilder extends SingleStatementMigrationElement {
       namesBuilder.append(entry.getKey());
       valuesBuilder.append("?");
 
-      orderedValues.add(convertValueType(dialect, entry.getValue()));
+      Object converted = convertValueType(dialect, entry.getValue());
+      logger.info(String.format("Converted %s field from %s to %s", entry.getKey(), entry.getValue(), converted));
+
+      orderedValues.add(converted);
     }
 
     PreparedStatement stmt = prepareAndLog(conn,
@@ -79,13 +86,10 @@ public class InsertBuilder extends SingleStatementMigrationElement {
    * A very crude differentiation for dialects that support SQL boolean types as opposed to mapping them as 1s or 0s.
    */
   private Object convertValueType(Dialect dialect, Object value) {
-    if (value.getClass().equals(Boolean.class)) {
+    if (value.equals("0") || value.equals("1")) {
       String type =  dialect.getTypeName(Types.BIT);
-      if (type.contains("bool")) {
-        return value;
-      }
-      else if (type.contains("number") || type.contains("int")) {
-        return (Boolean) value ? 1 : 0;
+      if (type.contains("bit")) {
+        return !value.equals("0");
       }
     }
     return value;

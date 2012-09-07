@@ -26,6 +26,7 @@ import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
 import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import scala.collection.JavaConversions._
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
+import net.lshift.diffa.schema.tables.EscalationRules.ESCALATION_RULES
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.Pairs.PAIRS
@@ -279,12 +280,20 @@ object JooqConfigStoreCompanion {
   }
 
   def listPairs(jooq:DatabaseFacade,
-                space:Long, key:Option[String] = None, endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => {
+                space:Long,
+                key:Option[String] = None,
+                endpoint:Option[String] = None) : Seq[DomainPairDef] = jooq.execute(t => listPairsInCurrentTx(t, space, key, endpoint))
+
+  def listPairsInCurrentTx(t:Factory,
+                           space:Long,
+                           key:Option[String] = None,
+                           endpoint:Option[String] = None) : Seq[DomainPairDef] = {
 
     val baseQuery = t.select(PAIRS.getFields).
       select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
       select(REPAIR_ACTIONS.getFields).
       select(ESCALATIONS.getFields).
+      select(ESCALATION_RULES.RULE).
       select(PAIR_REPORTS.getFields).
       select(SPACES.NAME).
       from(PAIRS).
@@ -297,11 +306,13 @@ object JooqConfigStoreCompanion {
         on(REPAIR_ACTIONS.PAIR.equal(PAIRS.NAME)).
         and(REPAIR_ACTIONS.SPACE.equal(PAIRS.SPACE)).
       leftOuterJoin(ESCALATIONS).
-        on(ESCALATIONS.PAIR.equal(PAIRS.NAME)).
-        and(ESCALATIONS.SPACE.equal(PAIRS.SPACE)).
+        on(ESCALATIONS.EXTENT.equal(PAIRS.EXTENT)).
+      leftOuterJoin(ESCALATION_RULES).
+        on(ESCALATION_RULES.ESCALATION.eq(ESCALATIONS.NAME)).
+          and(ESCALATION_RULES.EXTENT.eq(ESCALATIONS.EXTENT)).
       leftOuterJoin(PAIR_REPORTS).
         on(PAIR_REPORTS.PAIR.equal(PAIRS.NAME)).
-        and(PAIR_REPORTS.SPACE.equal(PAIRS.SPACE)).
+          and(PAIR_REPORTS.SPACE.equal(PAIRS.SPACE)).
         where(PAIRS.SPACE.equal(space))
 
     val keyedQuery = key match {
@@ -373,8 +384,8 @@ object JooqConfigStoreCompanion {
 
     })
 
-    compressed.values.toList
-  })
+    compressed.values.toList.sortBy(_.key)
+  }
 
   def mapResultsToList[T](results:Result[Record], rowMapper:Record => T) = {
     val escalations = new java.util.ArrayList[T]()
@@ -387,7 +398,7 @@ object JooqConfigStoreCompanion {
       name = record.getValue(ESCALATIONS.NAME),
       action = record.getValue(ESCALATIONS.ACTION),
       actionType = record.getValue(ESCALATIONS.ACTION_TYPE),
-      rule = record.getValue(ESCALATIONS.RULE),
+      rule = record.getValue(ESCALATION_RULES.RULE),
       delay = record.getValue(ESCALATIONS.DELAY))
   }
 
@@ -408,8 +419,8 @@ object JooqConfigStoreCompanion {
   }
 
   def deletePairWithDependencies(t:Factory, pair:PairRef) = {
-    deleteRepairActionsByPair(t, pair)
     deleteEscalationsByPair(t, pair)
+    deleteRepairActionsByPair(t, pair)
     deleteReportsByPair(t, pair)
     deletePairViewsByPair(t, pair)
     deleteStoreCheckpointsByPair(t, pair)
@@ -453,10 +464,27 @@ object JooqConfigStoreCompanion {
   }
 
   def deleteEscalationsByPair(t:Factory, pair:PairRef) = {
-    t.delete(ESCALATIONS).
-      where(ESCALATIONS.SPACE.equal(pair.space)).
-      and(ESCALATIONS.PAIR.equal(pair.name)).
+
+    t.update(ESCALATION_RULES).
+        set(ESCALATION_RULES.EXTENT, null:LONG).
+        set(ESCALATION_RULES.ESCALATION, null:String).
+      where(ESCALATION_RULES.EXTENT.eq(
+      t.select(PAIRS.EXTENT).
+        from(PAIRS).
+        where(PAIRS.SPACE.eq(pair.space).
+          and(PAIRS.NAME.eq(pair.name)))
+      )).
       execute()
+
+    t.delete(ESCALATIONS).
+      where(ESCALATIONS.EXTENT.eq(
+        t.select(PAIRS.EXTENT).
+          from(PAIRS).
+          where(PAIRS.SPACE.eq(pair.space).
+            and(PAIRS.NAME.eq(pair.name)))
+    )).
+    execute()
+
   }
 
   def deleteReportsByPair(t:Factory, pair:PairRef) = {

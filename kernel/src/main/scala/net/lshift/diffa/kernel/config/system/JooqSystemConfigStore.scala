@@ -28,6 +28,7 @@ import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import net.lshift.diffa.schema.tables.ExternalHttpCredentials.EXTERNAL_HTTP_CREDENTIALS
 import net.lshift.diffa.schema.tables.PairReports.PAIR_REPORTS
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
+import net.lshift.diffa.schema.tables.EscalationRules.ESCALATION_RULES
 import net.lshift.diffa.schema.tables.RepairActions.REPAIR_ACTIONS
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.Pairs.PAIRS
@@ -45,7 +46,6 @@ import net.lshift.diffa.schema.tables.ConfigOptions.CONFIG_OPTIONS
 import net.lshift.diffa.schema.tables.Members.MEMBERS
 import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.PendingDiffs.PENDING_DIFFS
-import net.lshift.diffa.schema.tables.Diffs.DIFFS
 import net.lshift.diffa.schema.tables.Spaces.SPACES
 import net.lshift.diffa.schema.tables.SpacePaths.SPACE_PATHS
 import net.lshift.diffa.schema.tables.SystemConfigOptions.SYSTEM_CONFIG_OPTIONS
@@ -314,6 +314,26 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
   private def deleteSingleSpace(t:Factory, id:Long) = {
 
+    t.update(ESCALATION_RULES).
+      set(ESCALATION_RULES.EXTENT, null:LONG).
+      set(ESCALATION_RULES.ESCALATION, null:String).
+      whereExists(
+      t.select(field("1")).
+        from(PAIRS).
+        where(ESCALATION_RULES.EXTENT.eq(PAIRS.EXTENT))
+        and(PAIRS.SPACE.eq(id)
+      )).
+      execute()
+
+    t.delete(ESCALATIONS).
+      whereExists(
+      t.select(field("1")).
+        from(PAIRS).
+        where(ESCALATIONS.EXTENT.eq(PAIRS.EXTENT))
+          and(PAIRS.SPACE.eq(id)
+        )).
+      execute()
+
     t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(id)).execute()
     t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.SPACE.equal(id)).execute()
     t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.SPACE.equal(id)).execute()
@@ -326,7 +346,6 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
     t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(id)).execute()
     t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.SPACE.equal(id)).execute()
     t.delete(PAIR_REPORTS).where(PAIR_REPORTS.SPACE.equal(id)).execute()
-    t.delete(ESCALATIONS).where(ESCALATIONS.SPACE.equal(id)).execute()
     t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.SPACE.equal(id)).execute()
     t.delete(PAIR_VIEWS).where(PAIR_VIEWS.SPACE.equal(id)).execute()
     t.delete(BREAKERS).where(BREAKERS.SPACE.equal(id)).execute()
@@ -336,7 +355,6 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
     t.delete(MEMBERS).where(MEMBERS.SPACE.equal(id)).execute()
     t.delete(STORE_CHECKPOINTS).where(STORE_CHECKPOINTS.SPACE.equal(id)).execute()
     t.delete(PENDING_DIFFS).where(PENDING_DIFFS.SPACE.equal(id)).execute()
-    t.delete(DIFFS).where(DIFFS.SPACE.equal(id)).execute()
 
     t.delete(SPACE_PATHS).
       where(SPACE_PATHS.ANCESTOR.equal(id)).

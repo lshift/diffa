@@ -156,6 +156,11 @@ trait DomainDifferenceStore {
    * Clears any scheduled escalations for all differences in the given pair.
    */
   def unscheduleEscalations(pair:PairRef)
+
+  /**
+   * Removes any differences that have been orphaned due to pair vacuuming or deletions.
+   */
+  def purgeOrphanedEvents : Int
 }
 
 case class TileGroup(
@@ -173,7 +178,8 @@ case class AggregateEvents(
 )
 
 case class ReportedDifferenceEvent(
-  @BeanProperty var seqId:java.lang.Long = null,
+  @BeanProperty var seqId:Long = -1,
+  @BeanProperty var extent:Long = -1,
   @BeanProperty var objId:VersionID = null,
   @BeanProperty var detectedAt:DateTime = null,
   @BeanProperty var isMatch:Boolean = false,
@@ -181,23 +187,11 @@ case class ReportedDifferenceEvent(
   @BeanProperty var downstreamVsn:String = null,
   @BeanProperty var lastSeen:DateTime = null,
   @BeanProperty var ignored:Boolean = false,
-  @BeanProperty var nextEscalation:String = null,
+  @BeanProperty var nextEscalationId:Long = -1,
   @BeanProperty var nextEscalationTime:DateTime = null
 ) {
 
-  def this() = this(seqId = null)
+  def this() = this(seqId = -1)
 
-  def asDifferenceEvent =
-    DifferenceEvent(seqId.toString, objId, detectedAt, state, upstreamVsn, downstreamVsn, lastSeen,
-      nextEscalation, nextEscalationTime)
-  def state = if (isMatch) {
-      MatchState.MATCHED
-    } else {
-      if (ignored) {
-        MatchState.IGNORED
-      } else {
-        MatchState.UNMATCHED
-      }
 
-    }
 }

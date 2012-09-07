@@ -5,7 +5,6 @@ import config.Member
 import config.system.JooqSystemConfigStore
 import config.User
 import differencing.JooqDomainDifferenceStore
-import hooks.HookManager
 import org.hibernate.dialect.Dialect
 import org.slf4j.LoggerFactory
 import preferences.JooqUserPreferencesStore
@@ -86,7 +85,6 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
 
   def facade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
 
-  private val hookManager = new HookManager(applicationEnvironment.jooqDialect)
   private val membershipListener = new DomainMembershipAware {
     def onMembershipCreated(member: Member) {}
     def onMembershipRemoved(member: Member) {}
@@ -115,7 +113,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore[ServiceLimitsStore](sf => new JooqServiceLimitsStore(jooqDatabaseFacade), "ServiceLimitsStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new JooqDomainConfigStore(jooqDatabaseFacade, hookManager, cacheProvider, membershipListener), "domainConfigStore")
+    makeStore(sf => new JooqDomainConfigStore(jooqDatabaseFacade, cacheProvider, sequenceProvider, membershipListener), "domainConfigStore")
 
   private lazy val _systemConfigStore =
     makeStore(sf => {
@@ -131,7 +129,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new JooqUserPreferencesStore(facade, cacheProvider), "userPreferencesStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider, hookManager), "DomainDifferenceStore")
+    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider), "DomainDifferenceStore")
 
   private lazy val _scanActivityStore =
     makeStore(sf => new JooqScanActivityStore(facade), "scanActivityStore")

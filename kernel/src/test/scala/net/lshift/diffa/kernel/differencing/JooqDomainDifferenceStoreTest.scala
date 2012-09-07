@@ -64,8 +64,14 @@ class JooqDomainDifferenceStoreTest {
 
     val pairTemplate = PairDef(upstreamName = us.name, downstreamName = ds.name)
     val pair1 = pairTemplate.copy(key = "pair1",
-      repairActions = Set(RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity")),
-      escalations = Set(EscalationDef(name = "esc1", action = "r1", actionType = "repair", rule = "upstreamMissing")))
+      repairActions = Set(
+        RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity"),
+        RepairActionDef(name = "r2", url = "http://localhost/repair", scope = "entity")
+      ),
+      escalations = Set(
+        EscalationDef(name = "esc1", action = "r1", actionType = "repair", rule = "upstreamMissing"),
+        EscalationDef(name = "esc2", action = "r2", actionType = "repair", rule = "downstreamMissing")
+      ))
     val pair2 = pairTemplate.copy(key = "pair2",
       repairActions = Set(RepairActionDef(name = "r1", url = "http://localhost/repair", scope = "entity")),
       escalations = Set(EscalationDef(name = "esc2", action = "r1", actionType = "repair", rule = "upstreamMissing")))
@@ -198,7 +204,7 @@ class JooqDomainDifferenceStoreTest {
     val (_, event1) = domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("pair2", space.id), "id2"), timestamp, "uV1", "dV1", timestamp)
     domainDiffStore.ignoreEvent(space.id, event1.seqId)
     val (_, event2) = domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("pair2", space.id), "id2"), timestamp, "uV2", "dV1", timestamp)
-    assertTrue(event1.seqId.toInt < event2.seqId.toInt)
+    assertTrue(event1.seqId.toLong < event2.seqId.toLong)
   }
 
   @Test
@@ -275,6 +281,13 @@ class JooqDomainDifferenceStoreTest {
 
     // Shred the milliseconds due to MySQL limitation
     assertEquals(timestamp.plusSeconds(10).withMillis(0), updatedEvent3.nextEscalationTime.withMillis(0))
+
+    domainDiffStore.removePair(PairRef("pair2", space.id))
+
+    // This should purge only the 1 removed events from pair2
+    val purged = domainDiffStore.purgeOrphanedEvents
+    assertEquals(1, purged)
+
   }
 
   @Test
@@ -664,14 +677,28 @@ class JooqDomainDifferenceStoreTest {
   @Test
   def shouldRemoveEventsWhenPairIsRemoved() {
     val timestamp = new DateTime()
+
     domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("pair2", space.id), "id2"), timestamp, "uV", "dV", timestamp)
     domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("pair2", space.id), "id3"), timestamp, "uV", "dV", timestamp)
+
+    domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("pair1", space.id), "id4"), timestamp, "uV", "dV", timestamp)
 
     domainDiffStore.removePair(PairRef("pair2", space.id))
 
     val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
-    val unmatched = domainDiffStore.retrieveUnmatchedEvents(space.id, interval)
-    assertEquals(0, unmatched.length)
+    val firstQuery = domainDiffStore.retrieveUnmatchedEvents(space.id, interval)
+    assertEquals(1, firstQuery.length)
+
+    // This should purge only the 2 removed events from pair2
+    val purged = domainDiffStore.purgeOrphanedEvents
+    assertEquals(2, purged)
+
+    // The unmatched events from pair1 should remain in tact
+    val secondQuery = domainDiffStore.retrieveUnmatchedEvents(space.id, interval)
+    assertEquals(1, secondQuery.length)
+
+    assertEquals(firstQuery, secondQuery)
+
   }
 
   @Test
@@ -734,10 +761,7 @@ class JooqDomainDifferenceStoreTest {
       domainDiffStore.addReportableUnmatchedEvent(VersionID(PairRef("nonexistent-pair1", space.id), "id1"), lastUpdate, "uV", "dV", seen)
       fail("No DataAccessException was thrown")
     } catch {
-      case e: DataAccessException =>
-        assertTrue("Cause must be an SQLIntegrityConstraintViolationException or ORA-14400",
-          e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException]
-          || e.getMessage.contains("ORA-14400"))
+      case e: IllegalStateException => assertTrue("Cause must be due to non-existent pair", e.getMessage.contains("No extent for pair"))
       case unexpected =>
         throw unexpected
     }
