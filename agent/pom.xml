@@ -425,15 +425,6 @@
         </configuration>
       </plugin>
     </plugins>
-
-    <extensions>
-      <extension>
-        <groupId>org.springframework.build.aws</groupId>
-        <artifactId>org.springframework.build.aws.maven</artifactId>
-        <version>${spring.version}</version>
-      </extension>
-    </extensions>
-
   </build>
   <reporting>
     <plugins>
