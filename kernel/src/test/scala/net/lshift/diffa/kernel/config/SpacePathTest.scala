@@ -81,18 +81,23 @@ class SpacePathTest {
 
     val firstParent = systemConfigStore.createOrUpdateSpace(firstParentSpace)
     assertTrue(systemConfigStore.doesDomainExist(firstParent.name))
+    assertEquals(firstParentSpace, systemConfigStore.lookupSpacePathById(firstParent.id))
 
     val secondParent = systemConfigStore.createOrUpdateSpace(secondParentSpace)
     assertTrue(systemConfigStore.doesDomainExist(secondParent.name))
+    assertEquals(secondParentSpace, systemConfigStore.lookupSpacePathById(secondParent.id))
 
     val child = systemConfigStore.createOrUpdateSpace(childSpace)
     assertTrue(systemConfigStore.doesDomainExist(childSpace))
+    assertEquals(childSpace, systemConfigStore.lookupSpacePathById(child.id))
 
     val grandChild = systemConfigStore.createOrUpdateSpace(grandChildSpace)
     assertTrue(systemConfigStore.doesDomainExist(grandChildSpace))
+    assertEquals(grandChildSpace, systemConfigStore.lookupSpacePathById(grandChild.id))
 
     val greatGrandChild = systemConfigStore.createOrUpdateSpace(greatGrandChildSpace)
     assertTrue(systemConfigStore.doesDomainExist(greatGrandChildSpace))
+    assertEquals(greatGrandChildSpace, systemConfigStore.lookupSpacePathById(greatGrandChild.id))
 
     // Verify the reported hierarchy
 

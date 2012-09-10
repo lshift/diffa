@@ -61,6 +61,8 @@ trait SystemConfigStore {
 
   def lookupSpaceByPath(path: String) : Space
 
+  def lookupSpacePathById(space: Long) : String
+
   @Deprecated  def listDomains : Seq[String]
   def listSpaces : Seq[Space]
 

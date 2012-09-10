@@ -153,6 +153,31 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
     jooq.execute(lookupSpaceId(_, path))
   }
 
+  def lookupSpacePathById(space: Long) = {
+    jooq.execute( t => {
+
+      val spacePath = Factory.groupConcat(SPACES.NAME).orderBy(SPACES.ID.asc()).separator("/")
+
+      val path =
+        t.select(spacePath.as("path")).
+          from(SPACES).
+          join(SPACE_PATHS).
+            on(SPACE_PATHS.ANCESTOR.eq(SPACES.ID)).
+          where(SPACE_PATHS.DESCENDANT.eq(space)).
+            and(SPACE_PATHS.ANCESTOR.ne(0)).
+          groupBy(SPACE_PATHS.DESCENDANT).
+          fetchOne()
+
+      if (path == null) {
+        throw new MissingObjectException(space.toString)
+      }
+      else {
+        path.getValueAsString("path")
+      }
+
+    })
+  }
+
   def doesDomainExist(path: String) = resolveSpaceByPath(path) match {
     case NON_EXISTENT_SPACE => false
     case _                  => true
@@ -518,13 +543,14 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
 
   private def descendancyTree(t:Factory, parent:Long) = {
-    val hierarchy = t.select().
-      from(SPACES).
-      join(SPACE_PATHS).
-        on(SPACE_PATHS.DESCENDANT.equal(SPACES.ID)).
-      where(SPACE_PATHS.ANCESTOR.equal(parent)).
-      orderBy(SPACE_PATHS.DEPTH.desc()).
-      fetch()
+    val hierarchy =
+      t.select().
+        from(SPACES).
+        join(SPACE_PATHS).
+          on(SPACE_PATHS.DESCENDANT.equal(SPACES.ID)).
+        where(SPACE_PATHS.ANCESTOR.equal(parent)).
+        orderBy(SPACE_PATHS.DEPTH.desc()).
+        fetch()
 
     if (hierarchy == null) {
       throw new MissingObjectException(parent.toString)
