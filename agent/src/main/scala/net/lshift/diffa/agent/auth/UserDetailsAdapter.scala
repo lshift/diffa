@@ -53,7 +53,7 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     extractDetails(user)
   }
 
-  def hasPermission(auth: Authentication, targetDomainObject: AnyRef, permission: AnyRef) = {
+  def hasPermission(auth: Authentication, targetObject: AnyRef, permission: AnyRef) = {
     permission match {
         // Tests to see whether the requesting user is the owner of the requested object
       case UserPrivilege("user-preferences") =>
@@ -63,12 +63,12 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
         1. outwardly appearing as such; professed; pretended: an ostensible cheerfulness concealing sadness.
         2.apparent, evident, or conspicuous: the ostensible truth of their theories.
         */
-        val ostensibleUsername = targetDomainObject.asInstanceOf[UserTarget].username
+        val ostensibleUsername = targetObject.asInstanceOf[UserTarget].username
         isUserWhoTheyClaimToBe(auth, ostensibleUsername)
 
         // For any other permission, check to see if the user has the privilege, or if they are a root user.
       case privilege:Privilege =>
-        val target = targetDomainObject.asInstanceOf[TargetObject]
+        val target = targetObject.asInstanceOf[TargetObject]
         isRoot(auth) || hasTargetPrivilege(auth, target, privilege)
 
 

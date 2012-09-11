@@ -162,8 +162,10 @@ Diffa.Models.HeatmapProjection = Backbone.Model.extend(Diffa.Collections.Watchab
   },
 
   saveHiddenPair: function(pairName) {
-    var self = this;
-    this.hiddenPairs.hidePair(pairName);
+    if (this.hiddenPairs) {
+      var self = this;
+      this.hiddenPairs.hidePair(pairName);
+    }
   },
 
   isHidden: function(pairKey) {
@@ -514,10 +516,15 @@ Diffa.Views.Heatmap = Backbone.View.extend(Diffa.Helpers.Viz).extend({
 
   pollAndUpdate: function() {
     var self = this;
-    self.model.hiddenPairs.fetch({success: function(collection, response) {
+    if (self.model.hiddenPairs) {
+      self.model.hiddenPairs.fetch({success: function(collection, response) {
+        self.update();
+        self.model.sync();
+      }});
+    } else {
       self.update();
       self.model.sync();
-    }});
+    }
   },
 
   update: function() {
@@ -1392,10 +1399,10 @@ function nearestHour() {
   return Date.today().add({hours: hours});
 }
 
-function conditionalLoad(domain, msg, fn) {
-  domain.loadAll(['pairs', 'hiddenPairs'], function() {
+function conditionalLoad(domain, msg, toLoadArr, fn) {
+  domain.loadAll(toLoadArr, function() {
     if (domain.pairs.length > 0) {
-      fn();
+        fn();
     }
   });
 }
@@ -1407,6 +1414,7 @@ $('.diffa-heatmap').each(function() {
   conditionalLoad(
     domain,
     'diffa-heatmap',
+    ['pairs'],
     function() {
       var pair = $(elem).data('pair');
 
@@ -1432,6 +1440,7 @@ $('.diffa-difflist').each(function() {
   conditionalLoad(
     domain,
     'diffa-difflist',
+    ['pairs'],
     function() {
       new Diffa.Views.DiffList({el: $(elem), model: domain.diffs})
     }
@@ -1444,6 +1453,7 @@ $('.diffa-contentviewer').each(function() {
   conditionalLoad(
     domain,
     'diffa-contentviewer',
+    ['pairs'],
     function() {
       new Diffa.Views.DiffDetail({el: $(elem), model: domain.diffs})
     }
@@ -1456,6 +1466,7 @@ $('.diffa-contentinspector').each(function() {
   conditionalLoad(
     domain,
     'diffa-contentinspector',
+    ['pairs'],
     function() {
       new Diffa.Views.DiffInspectorPopup({el: $(elem)})
     }

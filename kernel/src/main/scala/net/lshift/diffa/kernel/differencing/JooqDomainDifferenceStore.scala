@@ -1054,7 +1054,6 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
       upstreamVsn = r.getValue(PENDING_DIFFS.UPSTREAM_VSN),
       downstreamVsn = r.getValue(PENDING_DIFFS.DOWNSTREAM_VSN))
   }
-
 }
 
 case class InternalReportedDifferenceEvent(

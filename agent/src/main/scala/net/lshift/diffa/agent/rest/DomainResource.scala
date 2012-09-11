@@ -34,7 +34,7 @@ import net.lshift.diffa.kernel.limiting.DomainRateLimiterFactory
 import net.lshift.diffa.agent.rest.ResponseUtils._
 import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.differencing.{DomainDifferenceStore, DifferencesManager}
-import net.lshift.diffa.kernel.config.{BreakerHelper, DomainCredentialsManager, User, DomainConfigStore}
+import net.lshift.diffa.kernel.config.{BreakerHelper, DomainConfigStore, DomainCredentialsManager, User}
 import org.springframework.security.access.PermissionEvaluator
 import net.lshift.diffa.agent.rest.PermissionUtils._
 import net.lshift.diffa.agent.auth.{SpaceTarget, Privileges, SpacePrivilege}

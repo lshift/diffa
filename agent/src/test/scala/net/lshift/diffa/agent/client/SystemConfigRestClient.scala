@@ -30,9 +30,10 @@ import com.sun.jersey.api.representation.Form
 class SystemConfigRestClient(rootUrl:String, params: RestClientParams = RestClientParams.default)
     extends ExternalRestClient(rootUrl, "root/", params) {
 
-  def declareDomain(domain:DomainDef) = create("domains", domain)
+  @Deprecated
+  def declareDomain(domain:DomainDef) = create("spaces", domain)
 
-  def removeDomain(name: String) = delete("/domains/" + name)
+  def removeDomain(name: String) = delete("/spaces/" + name)
   
   def setConfigOption(key:String, value:String) = {    
     val path = resource.path("/system/config/" + key)

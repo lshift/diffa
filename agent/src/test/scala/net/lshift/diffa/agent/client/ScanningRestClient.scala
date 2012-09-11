@@ -27,7 +27,7 @@ import net.lshift.diffa.client.{BadRequestException, RestClientParams}
  * A RESTful client to manage participant scanning.
  */
 class ScanningRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)
-    extends DomainAwareRestClient(serverRootUrl, domain, "domains/{domain}/scanning/", params) {
+    extends DomainAwareRestClient(serverRootUrl, domain, "spaces/{domain}/scanning/", params) {
 
   def startScan(pairKey: String, view:Option[String] = None) = {
     val p = resource.path("pairs").path(pairKey).path("scan")

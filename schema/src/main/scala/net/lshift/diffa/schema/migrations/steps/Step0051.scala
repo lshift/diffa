@@ -816,6 +816,7 @@ object Step0051 extends VerifiedMigrationStep {
       "next_escalation" -> ruleId,
       "next_escalation_time" -> randomTimestamp()
     ))
+
   }
 
   def createEscalationRule(migration:MigrationBuilder, ruleId:String, extent:String, escalation:String) {

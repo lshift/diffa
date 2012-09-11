@@ -19,11 +19,11 @@ package net.lshift.diffa.agent.itest.config
 import org.junit.Test
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import net.lshift.diffa.client.{BadRequestException, NotFoundException}
-import net.lshift.diffa.agent.client.{ConfigurationRestClient, ScanningRestClient}
+import net.lshift.diffa.client.{RestClientParams, BadRequestException, NotFoundException}
+import net.lshift.diffa.agent.client.{SecurityRestClient, ConfigurationRestClient, ScanningRestClient}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
-import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
+import net.lshift.diffa.kernel.frontend.{DomainDef, UserDef, EndpointDef, PairDef}
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
 import org.apache.commons.lang.RandomStringUtils
 
@@ -31,9 +31,49 @@ import org.apache.commons.lang.RandomStringUtils
  * Smoke tests for the scan interface.
  */
 class ScanningTest extends IsolatedDomainTest {
-
-  val scanClient = new ScanningRestClient(agentURL, isolatedDomain)
+  val securityClient = new SecurityRestClient(agentURL)
   val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)
+  val scanClient = new ScanningRestClient(agentURL, isolatedDomain)
+
+  private def withSubspace(parentSpace: String, subspace: String, memberUsername: String, fn: => Unit) {
+    try {
+      systemConfig.declareDomain(DomainDef(name = parentSpace))
+      systemConfig.declareDomain(DomainDef(name = subspace))
+      val subspaceConfigClient = new ConfigurationRestClient(agentURL, subspace)
+      subspaceConfigClient.makeDomainMember(userName = memberUsername, policy = "Admin")
+      val pair = RandomStringUtils.randomAlphanumeric(10)
+      val up = RandomStringUtils.randomAlphanumeric(10)
+      val down = RandomStringUtils.randomAlphanumeric(10)
+      subspaceConfigClient.declareEndpoint(EndpointDef(name = up, scanUrl = "http://upstream.com"))
+      subspaceConfigClient.declareEndpoint(EndpointDef(name = down, scanUrl = "http://downstream.com"))
+      subspaceConfigClient.declarePair(PairDef(key = pair, upstreamName = up, downstreamName = down))
+      Thread.sleep(5000L) // declaring the pair is asynchronous, but we need it to be done before proceeding to next
+
+      fn
+    } finally {
+      systemConfig.removeDomain(subspace)
+      systemConfig.removeDomain(parentSpace)
+    }
+  }
+  @Test
+  def scanStatesShouldBeProvidedToSubspaceMember {
+    // GIVEN space a/b; AND u is a member of a/b; AND space a/b has at least one pair
+    // WHEN  m retrieves scan state of a/b
+    // THEN  m should get the scan status of pairs in a/b (not an exception)
+    val parentSpace = RandomStringUtils.randomAlphanumeric(10)
+    val subspace = "%s/%s".format(parentSpace, RandomStringUtils.randomAlphanumeric(10))
+    val nonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10),superuser = false, external = true)
+    securityClient.declareUser(nonRootUser)
+
+    val nonRootUserScanClient = {
+      val token = securityClient.getUserToken(nonRootUser.name)
+      val invokingCreds = RestClientParams(token = Some(token))
+      new ScanningRestClient(agentURL, subspace, invokingCreds)
+    }
+
+    withSubspace(parentSpace, subspace, nonRootUser.name,
+      assertFalse("Scan state query should return scan states", nonRootUserScanClient.getScanStatus.isEmpty))
+  }
 
   @Test(expected = classOf[NotFoundException])
   def nonExistentPairShouldGenerateNotFoundError = {
@@ -60,19 +100,18 @@ class ScanningTest extends IsolatedDomainTest {
   }
 
   @Test(expected = classOf[BadRequestException])
-  def shouldGenerateErrorWhenAScanIsTriggerForAPairWhereNeitherEndpointSupportScanning = {
+  def shouldGenerateErrorWhenAScanIsTriggeredForAPairWhereNeitherEndpointSupportsScanning = {
 
     val up = RandomStringUtils.randomAlphanumeric(10)
     val down = RandomStringUtils.randomAlphanumeric(10)
     val pair = RandomStringUtils.randomAlphanumeric(10)
 
-    // Neither endpoint support scanning
+    // Neither endpoint supports scanning
 
     configClient.declareEndpoint(EndpointDef(name = up))
     configClient.declareEndpoint(EndpointDef(name = down))
     configClient.declarePair(PairDef(key = pair, upstreamName = up, downstreamName = down))
 
     scanClient.startScan(pair)
-
   }
 }

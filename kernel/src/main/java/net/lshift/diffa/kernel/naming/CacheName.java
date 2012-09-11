@@ -38,5 +38,4 @@ public enum CacheName {
   DIFFS,
 
   EXTENT_PAIRS
-
 }

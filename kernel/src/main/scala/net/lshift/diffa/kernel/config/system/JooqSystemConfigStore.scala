@@ -179,7 +179,6 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       else {
         path.getValueAsString("path")
       }
-
     })
   }
 
@@ -482,7 +481,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
     )
   }
 
-  private def resolveSpaceById(id:Long) = {
+  private def resolveSpaceById(id:Long): Space = {
     spaceIdCache.readThrough(id, () => jooq.execute(t => {
       t.select().
         from(SPACES).

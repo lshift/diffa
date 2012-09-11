@@ -484,7 +484,12 @@ Diffa.Collections.HiddenPairs = Diffa.Collections.CollectionBase.extend({
   initialize: function(models, opts) {
     this.user = opts.user;
     this.domain = opts.domain;
-    this.fetch();
+    this.fetch({
+      success: function() {
+        this.sync();
+      },
+      error: function() {}
+    });
   },
   url: function() {
     return "/users/" + this.user + "/" + this.domain.id + "/filter/SWIM_LANE";

@@ -55,7 +55,7 @@ class SystemConfigResource {
   def createBackwardsCompatibleDomain(domain:DomainDef) = createSpace(domain)
 
   @DELETE
-  @Path("/spaces/{name}")
+  @Path("/spaces/{name:.+}")
   def deleteSpace(@PathParam("name") name:String) = systemConfig.deleteSpace(name)
 
   @DELETE
