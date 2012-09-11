@@ -32,7 +32,11 @@ class DiffaConfigReaderWriterTest {
   def roundtrip = {
     val config = new DiffaConfig(
       properties = Map("diffa.host" -> "localhost:1234", "a" -> "b"),
-      members = Set("abc"),
+      members = Set(
+        PolicyMember("abc", "Admin"),
+        PolicyMember("def", "User"),
+        PolicyMember("def", "Viewer")
+      ),
       endpoints = Set(
         EndpointDef(name = "upstream1",
           inboundUrl = "http://inbound",
@@ -87,7 +91,9 @@ class DiffaConfigReaderWriterTest {
       <diffa-config>
         <property key="diffa.host">localhost:1234</property>
         <property key="a">b</property>
-        <member>abc</member>
+        <member username="abc" policy="Admin" />
+        <member username="def" policy="User" />
+        <member username="def" policy="Viewer" />
         <endpoint name="upstream1"
                   inbound-url="http://inbound"
                   scan-url="http://localhost:1234/scan" content-url="http://localhost:1234/content"

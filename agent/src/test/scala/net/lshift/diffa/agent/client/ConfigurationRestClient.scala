@@ -56,9 +56,9 @@ class ConfigurationRestClient(serverRootUrl:String, domain:String, params: RestC
     delete("/pairs/" + pairKey + "/escalations/" + name)
   }
 
-  def makeDomainMember(userName: String) = resource.path("members/" + userName).post()
-  def removeDomainMembership(userName: String) = delete("/members/" + userName)
-  def listDomainMembers = rpc("members/",classOf[Array[String]])
+  def makeDomainMember(userName: String, policy:String) = resource.path("members/" + policy + "/" + userName).post()
+  def removeDomainMembership(userName: String, policy:String) = delete("/members/" + policy + "/" + userName)
+  def listDomainMembers = rpc("members/",classOf[Array[PolicyMember]])
 
   def deletePair(pairKey: String) = {
     val path = resource.path("pairs").path(pairKey)

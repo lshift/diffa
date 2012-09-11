@@ -155,20 +155,21 @@ class ConfigurationResource(val config:Configuration,
   def getPair(@PathParam("id") id:String) = config.getPairDef(space, id)
 
   @POST
-  @Path("/members/{username}")
-  def makespaceMember(@PathParam("username") userName:String) = {
-    val member = config.makeDomainMember(space, userName)
-    resourceCreated(member.user, uri)
+  @Path("/members/{policy}/{username}")
+  def makeSpaceMember(@PathParam("policy") policy:String, @PathParam("username") userName:String) = {
+    config.makeDomainMember(space, userName, policy)
+    resourceCreated(userName, uri)
   }
 
   @DELETE
-  @Path("/members/{username}")
-  def removespaceMembership(@PathParam("username") userName:String) = config.removeDomainMembership(space, userName)
+  @Path("/members/{policy}/{username}")
+  def removeSpaceMembership(@PathParam("policy") policy:String, @PathParam("username") userName:String) =
+    config.removeDomainMembership(space, userName, policy)
 
   @GET
   @Path("/members")
   @Produces(Array("application/json"))
-  def listspaceMembers : Array[String] = config.listDomainMembers(space).map(m => m.user).toArray
+  def listSpaceMembers : Array[PolicyMember] = config.listSpaceMembers(space).toArray
 
   @PUT
   @Path("/pairs/{id}/breakers/escalations")

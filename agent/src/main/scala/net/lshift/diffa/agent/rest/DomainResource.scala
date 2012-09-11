@@ -36,6 +36,8 @@ import net.lshift.diffa.kernel.frontend.EscalationDef
 import net.lshift.diffa.kernel.differencing.{DomainDifferenceStore, DifferencesManager}
 import net.lshift.diffa.kernel.config.{BreakerHelper, DomainCredentialsManager, User, DomainConfigStore}
 import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{SpaceTarget, Privileges, SpacePrivilege}
 
 /**
  * The policy is that we will publish spaces as the replacement term for domains
@@ -95,16 +97,16 @@ class DomainResource {
     case _                => null
   }
 
-  private def withSpace[T](path: String, f: Long => T) =  {
-    val authentication = SecurityContextHolder.getContext.getAuthentication
-    val hasPermission = permissionEvaluator.hasPermission(authentication, path, "domain-user")
-    if (hasPermission) {
-      val space = systemConfigStore.lookupSpaceByPath(path)
-      f(space.id)
-    }
-    else {
-      throw new WebApplicationException(403)
-    }
+  private def withSpace[T](path: String, privilege:SpacePrivilege, f: Long => T) =  {
+    val space = systemConfigStore.lookupSpaceByPath(path)
+
+    ensurePrivilege(permissionEvaluator, privilege, new SpaceTarget(space.id))
+    f(space.id)
+  }
+
+  private def withSpace[T <: IndividuallySecuredResource](path:String, f: Long => T) = {
+    val space = systemConfigStore.lookupSpaceByPath(path)
+    f(space.id)
   }
 
 
@@ -124,7 +126,7 @@ class DomainResource {
                        @PathParam("space") space:String,
                        @PathParam("id") id:String,
                        e: EscalationDef) = {
-    withSpace(space, (spaceId:Long) => {
+    withSpace(space, Privileges.CONFIGURE, (spaceId:Long) => {
       config.createOrUpdateEscalation(spaceId, id, e)
       resourceCreated(e.name, uri)
     })
@@ -135,7 +137,7 @@ class DomainResource {
   def deleteEscalation(@PathParam("space") space:String,
                        @PathParam("name") name: String,
                        @PathParam("pairKey") pairKey: String) = {
-    withSpace(space, (id:Long) => {
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => {
       config.deleteEscalation(id, name, pairKey)
     })
   }
@@ -147,50 +149,56 @@ class DomainResource {
   @Path("/{space:.+}/config")
   def getConfigResource(@Context uri:UriInfo,
                         @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ConfigurationResource(config, breakers, id, getCurrentUser(space), uri))
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => new ConfigurationResource(config, breakers, id, getCurrentUser(space), uri))
 
   @Path("/{space:.+}/credentials")
   def getCredentialsResource(@Context uri:UriInfo,
                              @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new CredentialsResource(credentialsManager, id, uri))
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => new CredentialsResource(credentialsManager, id, uri))
 
   @Path("/{space:.+}/diffs")
   def getDifferencesResource(@Context uri:UriInfo,
                              @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new DifferencesResource(differencesManager, domainConfigStore, id, uri))
+    withSpace(space, (id:Long) => new DifferencesResource(differencesManager, domainConfigStore, id, uri, permissionEvaluator))
 
   @Path("/{space:.+}/escalations")
   def getEscalationsResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new EscalationsResource(config, diffStore, id))
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => new EscalationsResource(config, diffStore, id))
 
   @Path("/{space:.+}/actions")
   def getActionsResource(@Context uri:UriInfo,
                          @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ActionsResource(actionsClient, id, uri))
+    withSpace(space, (id:Long) => new ActionsResource(actionsClient, id, uri, permissionEvaluator))
 
   @Path("/{space:.+}/reports")
   def getReportsResource(@Context uri:UriInfo,
                          @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ReportsResource(domainConfigStore, reports, id, uri))
+    withSpace(space, (id:Long) => new ReportsResource(domainConfigStore, reports, id, uri, permissionEvaluator))
 
   @Path("/{space:.+}/diagnostics")
   def getDiagnosticsResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new DiagnosticsResource(diagnosticsManager, config, id))
+    withSpace(space, (id:Long) => new DiagnosticsResource(diagnosticsManager, config, id, permissionEvaluator))
 
   @Path("/{space:.+}/scanning")
   def getScanningResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ScanningResource(pairPolicyClient, config, domainConfigStore, diagnosticsManager, id, getCurrentUser(space)))
+    withSpace(space, (id:Long) => new ScanningResource(pairPolicyClient, config, domainConfigStore, diagnosticsManager, id, getCurrentUser(space), permissionEvaluator))
 
   @Path("/{space:.+}/changes")
   def getChangesResource(@PathParam("space") space:String) = {
-    withSpace(space, (id:Long) => new ChangesResource(changes, id, changeEventRateLimiterFactory))
+    withSpace(space, (id:Long) => new ChangesResource(changes, id, changeEventRateLimiterFactory, permissionEvaluator))
   }
 
   @Path("/{space:.+}/inventory")
   def getInventoryResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new InventoryResource(changes, domainConfigStore, id))
+    withSpace(space, (id:Long) => new InventoryResource(changes, domainConfigStore, id, permissionEvaluator))
 
   @Path("/{space:.+}/limits")
   def getLimitsResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new DomainServiceLimitsResource(config, id))
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => new DomainServiceLimitsResource(config, id))
+
+  @Path("/{space:.+}/policies")
+  def getPoliciesResource(@PathParam("space") space:String) =
+    withSpace(space, Privileges.CONFIGURE, (id:Long) => new DomainPoliciesResource(systemConfigStore, id))
 }
+
+trait IndividuallySecuredResource

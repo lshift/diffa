@@ -23,6 +23,7 @@ import org.easymock.classextension.{EasyMock => E4}
 import org.junit.Test
 import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 import org.jooq.impl.Factory
+import net.lshift.diffa.kernel.config.system.PolicyKey
 import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 
 class DomainMembershipAwareTest {
@@ -37,7 +38,7 @@ class DomainMembershipAwareTest {
 
   val domainConfigStore = new JooqDomainConfigStore(jf, cp, sp, membershipListener)
 
-  val member = Member("user",0L,"domain")
+  val member = Member("user",0L,0L,"User","domain")
 
   @Test
   def shouldEmitDomainMembershipCreationEvent() = {
@@ -49,7 +50,7 @@ class DomainMembershipAwareTest {
     replay(membershipListener)
     E4.replay(jf)
 
-    domainConfigStore.makeDomainMember(0L, "user")
+    domainConfigStore.makeDomainMember(0L, "user", PolicyKey(0L, "User"))
 
     verify(membershipListener)
     E4.verify(jf)
@@ -64,7 +65,7 @@ class DomainMembershipAwareTest {
     replay(membershipListener)
     E4.replay(jf)
 
-    domainConfigStore.removeDomainMembership(0L, "user")
+    domainConfigStore.removeDomainMembership(0L, "user", "User")
 
     verify(membershipListener)
     E4.verify(jf)

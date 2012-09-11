@@ -28,6 +28,7 @@ import net.lshift.diffa.kernel.frontend.DomainPairDef
 import scala.Some
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.kernel.util.MissingObjectException
+import system.PolicyKey
 import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 
 class CachedDomainConfigStoreTest {
@@ -82,7 +83,7 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.removeDomainMembership(spaceId, "m1")
+    domainConfig.removeDomainMembership(spaceId, "m1", "User")
 
     val thirdCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, thirdCall)
@@ -103,7 +104,7 @@ class CachedDomainConfigStoreTest {
 
     E4.replay(jooq)
 
-    domainConfig.makeDomainMember(spaceId, "m3")
+    domainConfig.makeDomainMember(spaceId, "m3", PolicyKey(0, "User"))
 
     val fourthCall = domainConfig.listDomainMembers(spaceId)
     assertEquals(members.toList, fourthCall)

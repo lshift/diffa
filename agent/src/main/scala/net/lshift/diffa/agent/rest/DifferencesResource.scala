@@ -26,11 +26,16 @@ import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.differencing.{EventOptions, DifferencesManager}
 import javax.servlet.http.HttpServletRequest
 import net.lshift.diffa.kernel.config.{DomainConfigStore, PairRef}
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{DiffTarget, PairTarget, Privileges}
 
 class DifferencesResource(val differencesManager: DifferencesManager,
                           val domainConfigStore:DomainConfigStore,
                           val space:Long,
-                          val uriInfo:UriInfo) {
+                          val uriInfo:UriInfo,
+                          val permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
   private val log: Logger = LoggerFactory.getLogger(getClass)
 
@@ -46,6 +51,8 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                           @QueryParam("length") length_param:String,
                           @QueryParam("include-ignored") includeIgnored:java.lang.Boolean,
                           @Context request: Request) = {
+
+    ensurePrivilege(permissionEvaluator, Privileges.READ_DIFFS, new PairTarget(space, pairKey))
 
     try {
       val domainVsn = validateETag(request)
@@ -82,9 +89,12 @@ class DifferencesResource(val differencesManager: DifferencesManager,
     val domainVsn = validateETag(request)
 
     val requestedAggregates = parseAggregates(servletRequest)
-    val aggregates = domainConfigStore.listPairs(space).map(p => {
-      p.key -> mapAsJavaMap(processAggregates(PairRef(space = space, name = p.key), requestedAggregates))
-    }).toMap
+    val aggregates = domainConfigStore.listPairs(space).
+      filter(p => {
+        hasPrivilege(permissionEvaluator, Privileges.READ_DIFFS, new PairTarget(space, p.key))
+      }).map(p => {
+        p.key -> mapAsJavaMap(processAggregates(PairRef(space = space, name = p.key), requestedAggregates))
+      }).toMap
 
     Response.ok(mapAsJavaMap(aggregates)).tag(domainVsn).build()
   }
@@ -93,6 +103,8 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   @Path("/aggregates/{pair}")
   @Produces(Array("application/json"))
   def getAggregates(@PathParam("pair") pair:String, @Context request: Request, @Context servletRequest:HttpServletRequest): Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.READ_DIFFS, new PairTarget(space, pair))
+
     val domainVsn = validateETag(request)
 
     val requestedAggregates = parseAggregates(servletRequest)
@@ -105,13 +117,18 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   @Path("/events/{evtSeqId}/{participant}")
   @Produces(Array("text/plain"))
   def getDetail(@PathParam("evtSeqId") evtSeqId:String,
-                @PathParam("participant") participant:String) : String =
+                @PathParam("participant") participant:String) : String = {
+    ensurePrivilege(permissionEvaluator, Privileges.READ_EVENT_DETAILS, new DiffTarget(space, evtSeqId))
+
     differencesManager.retrieveEventDetail(space, evtSeqId, ParticipantType.withName(participant))
+  }
 
   @DELETE
   @Path("/events/{evtSeqId}")
   @Produces(Array("application/json"))
   def ignoreDifference(@PathParam("evtSeqId") evtSeqId:String):Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.IGNORE_DIFFS, new DiffTarget(space, evtSeqId))
+
     val ignored = differencesManager.ignoreDifference(space, evtSeqId).toExternalFormat
 
     Response.ok(ignored).build
@@ -121,6 +138,8 @@ class DifferencesResource(val differencesManager: DifferencesManager,
   @Path("/events/{evtSeqId}")
   @Produces(Array("application/json"))
   def unignoreDifference(@PathParam("evtSeqId") evtSeqId:String):Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.IGNORE_DIFFS, new DiffTarget(space, evtSeqId))
+
     val restored = differencesManager.unignoreDifference(space, evtSeqId).toExternalFormat
 
     Response.ok(restored).build

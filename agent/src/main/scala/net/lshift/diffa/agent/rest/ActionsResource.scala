@@ -21,34 +21,49 @@ import core.UriInfo
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import net.lshift.diffa.kernel.client.{Actionable, ActionableRequest, ActionsClient}
 import net.lshift.diffa.kernel.config.{PairRef, RepairAction}
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{ActionTarget, PairTarget, Privileges}
 
 class ActionsResource(val proxy:ActionsClient,
                       val space:Long,
-                      val uriInfo:UriInfo) {
+                      val uriInfo:UriInfo,
+                      val permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
   @GET
   @Path("/{pairId}")
   @Produces(Array("application/json"))
   def listActions(@PathParam("pairId") pairId: String,
-                  @QueryParam("scope") scope: String): Array[Actionable] = (scope match {
-    case RepairAction.ENTITY_SCOPE => proxy.listEntityScopedActions(PairRef(pairId, space))
-    case RepairAction.PAIR_SCOPE => proxy.listPairScopedActions(PairRef(pairId, space))
-    case _ => proxy.listActions(PairRef(pairId,space))
-  }).toArray
+                  @QueryParam("scope") scope: String): Array[Actionable] = {
+    ensurePrivilege(permissionEvaluator, Privileges.VIEW_ACTIONS, new PairTarget(space, pairId))
+
+    (scope match {
+      case RepairAction.ENTITY_SCOPE => proxy.listEntityScopedActions(PairRef(pairId, space))
+      case RepairAction.PAIR_SCOPE => proxy.listPairScopedActions(PairRef(pairId, space))
+      case _ => proxy.listActions(PairRef(pairId,space))
+    }).toArray
+  }
 
   @POST
   @Path("/{pairId}/{actionId}")
   @Produces(Array("application/json"))
   def invokeAction(@PathParam("pairId") pairId:String,
-                   @PathParam("actionId") actionId:String)
-    = proxy.invoke(ActionableRequest(pairId, space, actionId, null))
+                   @PathParam("actionId") actionId:String) = {
+    ensurePrivilege(permissionEvaluator, Privileges.INVOKE_ACTIONS, new ActionTarget(space, pairId, actionId))
+
+    proxy.invoke(ActionableRequest(pairId, space, actionId, null))
+  }
 
   @POST
   @Path("/{pairId}/{actionId}/{entityId}")
   @Produces(Array("application/json"))
   def invokeAction(@PathParam("pairId") pairId:String,
                    @PathParam("actionId") actionId:String,
-                   @PathParam("entityId") entityId:String) : InvocationResult
-    = proxy.invoke(ActionableRequest(pairId, space, actionId, entityId))
+                   @PathParam("entityId") entityId:String) : InvocationResult = {
+    ensurePrivilege(permissionEvaluator, Privileges.INVOKE_ACTIONS, new ActionTarget(space, pairId, actionId))
+
+    proxy.invoke(ActionableRequest(pairId, space, actionId, entityId))
+  }
 
 }

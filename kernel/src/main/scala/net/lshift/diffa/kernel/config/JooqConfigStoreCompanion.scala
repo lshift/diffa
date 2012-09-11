@@ -51,6 +51,7 @@ import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
 import org.jooq.{Field, Record, Result}
 import java.lang.{Long => LONG}
+import net.lshift.diffa.schema.tables.SpacePaths._
 
 /**
  * This object is a workaround for the fact that Scala is so slow
@@ -747,4 +748,18 @@ object JooqConfigStoreCompanion {
       execute()
   }
 
+  def ancestorIdTree(t:Factory, space:Long):Seq[Long] = {
+    val hierarchy = t.select().
+      from(SPACE_PATHS).
+      where(SPACE_PATHS.DESCENDANT.equal(space).and(SPACE_PATHS.ANCESTOR.notEqual(space))).
+      orderBy(SPACE_PATHS.DEPTH.asc()).
+      fetch()
+
+    if (hierarchy == null) {
+      throw new MissingObjectException(space.toString)
+    }
+    else {
+      hierarchy.iterator().map(_.getValue(SPACE_PATHS.ANCESTOR).longValue()).toSeq
+    }
+  }
 }

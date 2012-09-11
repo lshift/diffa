@@ -23,19 +23,25 @@ import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.diffa.kernel.limiting.{DomainRateLimiterFactory, ServiceLimiterKey, ServiceLimiterRegistry}
 import net.lshift.diffa.participant.common.{InvalidEntityException, ScanEntityValidator}
 import net.lshift.diffa.kernel.differencing.EntityValidator
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{EndpointTarget, Privileges}
 
 /**
  * Resource allowing participants to provide details of changes that have occurred.
  */
 class ChangesResource(changes:Changes, space:Long, rateLimiterFactory: DomainRateLimiterFactory,
-                      validator: ScanEntityValidator) {
+                      validator: ScanEntityValidator, permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
-  def this(changes:Changes, space:Long, rateLimiterFactory: DomainRateLimiterFactory) =
-    this(changes, space, rateLimiterFactory, EntityValidator)
+  def this(changes:Changes, space:Long, rateLimiterFactory: DomainRateLimiterFactory, permissionEvaluator:PermissionEvaluator) =
+    this(changes, space, rateLimiterFactory, EntityValidator, permissionEvaluator)
   @POST
   @Path("/{endpoint}")
   @Consumes(Array("application/json"))
   def submitChange(@PathParam("endpoint") endpoint: String, e:ChangeEvent) = {
+    ensurePrivilege(permissionEvaluator, Privileges.POST_CHANGE_EVENT, new EndpointTarget(space, endpoint))
+
     val limiter = ServiceLimiterRegistry.get(
       ServiceLimiterKey(ChangeEventRate, Some(space), None),
       () => rateLimiterFactory.createRateLimiter(space))

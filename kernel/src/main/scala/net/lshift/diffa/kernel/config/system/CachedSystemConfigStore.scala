@@ -19,6 +19,7 @@ package net.lshift.diffa.kernel.config.system
 import net.lshift.diffa.kernel.util.cache.CacheProvider
 import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
+import net.lshift.diffa.kernel.naming.CacheName
 
 class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheProvider)
   extends SystemConfigStore
@@ -27,11 +28,15 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   val userTokenCache = cacheProvider.getCachedMap[String, User]("user.tokens")
   val usersCache = cacheProvider.getCachedMap[String, User]("users")
   val membershipCache = cacheProvider.getCachedMap[String, java.util.List[Member]]("user.domain.memberships")
+  val policyCache = cacheProvider.getCachedMap[PolicyKey, java.util.List[PolicyStatement]](CacheName.SPACE_POLICY_STATEMENTS)
+  val superspaceCache = cacheProvider.getCachedMap[Long, java.util.List[Long]](CacheName.SPACE_SUPERSPACES)
 
   def reset {
     usersCache.evictAll()
     userTokenCache.evictAll()
     membershipCache.evictAll()
+    policyCache.evictAll()
+    superspaceCache.evictAll()
   }
 
   def onMembershipCreated(member: Member) = {
@@ -53,6 +58,7 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   def listSpaces : Seq[Space] = underlying.listSpaces
 
   def listSubspaces(parent:Long) = underlying.listSubspaces(parent)
+  def listSuperspaceIds(child:Long) = superspaceCache.readThrough(child, () => underlying.listSuperspaceIds(child).toList)
 
   def lookupSpaceByPath(path: String) = underlying.lookupSpaceByPath(path)
   def lookupSpacePathById(space: Long) = underlying.lookupSpacePathById(space)
@@ -88,6 +94,21 @@ class CachedSystemConfigStore(underlying:SystemConfigStore, cacheProvider:CacheP
   def listDomainMemberships(username: String) = {
     membershipCache.readThrough(username,
       () => underlying.listDomainMemberships(username).toList)
+  }
+
+  def lookupPolicyStatements(policy:PolicyKey) = {
+    policyCache.readThrough(policy,
+      () => underlying.lookupPolicyStatements(policy).toList)
+  }
+
+  def storePolicy(policy: PolicyKey, stmts: Seq[PolicyStatement]) {
+    underlying.storePolicy(policy, stmts)
+    policyCache.evict(policy)
+  }
+
+  def removePolicy(policy: PolicyKey) {
+    underlying.removePolicy(policy)
+    policyCache.evict(policy)
   }
 
   def getUser(username: String) = {

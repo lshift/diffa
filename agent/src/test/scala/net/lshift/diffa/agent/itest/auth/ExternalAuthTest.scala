@@ -96,7 +96,7 @@ class ExternalAuthTest {
 
       // Create an internal user, and make it a member of a domain. We'll use our new external superuser to do it.
       externalAdminUsersClient.declareUser(UserDef(name = "External User", email = "external-user@diffa.io", superuser = false, external = true))
-      externalAdminDomainConfigClient.makeDomainMember("External User")
+      externalAdminDomainConfigClient.makeDomainMember("External User", "Admin")
 
       // Try to make a call within the domain for the external user
       assertEquals(0, externalUserScanningClient.getScanStatus.size)

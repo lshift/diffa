@@ -31,6 +31,7 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.junit.{AfterClass, Test, Before}
+import net.lshift.diffa.kernel.config.system.PolicyKey
 import org.apache.commons.lang.RandomStringUtils
 
 /**
@@ -101,11 +102,11 @@ class ConfigurationTest {
 
     systemConfigStore.createOrUpdateUser(callingUser)
     systemConfigStore.createOrUpdateUser(anotherUser)
-    domainConfigStore.makeDomainMember(space.id, "callingUser")
-    domainConfigStore.makeDomainMember(space.id, "anotherUser")
+    domainConfigStore.makeDomainMember(space.id, "callingUser", PolicyKey(0, "Admin"))
+    domainConfigStore.makeDomainMember(space.id, "anotherUser", PolicyKey(0, "Admin"))
 
     val configWithCallingUser = DiffaConfig(
-      members = Set("callingUser")
+      members = Set(PolicyMember("callingUser", "Admin"))
     )
 
     configuration.applyConfiguration(space.id, DiffaConfig(), Some("callingUser"))
@@ -157,7 +158,7 @@ class ConfigurationTest {
           views = List(EndpointViewDef("v1")))
     val config = new DiffaConfig(
       properties = Map("diffa.host" -> "localhost:1234", "a" -> "b"),
-      members = Set("abc","def"),
+      members = Set(PolicyMember("abc", "Admin"),PolicyMember("def", "Admin")),
       endpoints = Set(ep1.withoutDomain, ep2.withoutDomain),
       pairs = Set(
         PairDef("ab", "same", 5, "upstream1", "downstream1", "0 * * * * ?",
@@ -221,7 +222,7 @@ class ConfigurationTest {
         // diffa.host is changed, a -> b is gone, c -> d is added
       properties = Map("c" -> "d", "diffa.host" -> "localhost:2345"),
         // abc is changed, def is gone, ghi is added
-      members = Set("abc","def"),
+      members = Set(PolicyMember("abc", "Admin"),PolicyMember("def", "Admin")),
       endpoints = Set(ep2.withoutDomain(), ep1.withoutDomain()),
         // gaa is gone, gcc is created, gbb is the same
       pairs = Set(

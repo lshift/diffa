@@ -24,14 +24,18 @@ import net.lshift.diffa.kernel.config.system.CachedSystemConfigStore
 import com.sun.jersey.api.NotFoundException
 import net.lshift.diffa.kernel.preferences.{UserPreferencesStore, FilteredItemType}
 import net.lshift.diffa.kernel.config.PairRef
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{SpaceTarget, UserTarget, Privileges}
+
 
 @Path("/users/{user}/{domain}")
 @Component
-@PreAuthorize("hasPermission(#user, 'user-preferences') and hasPermission(#domain, 'domain-user')")
 class UsersResource {
 
   @Autowired var systemConfigStore:CachedSystemConfigStore = null
   @Autowired var userPreferences:UserPreferencesStore = null
+  @Autowired var permissionEvaluator:PermissionEvaluator = null
 
   @GET
   @Path("/filter/{itemType}")
@@ -40,7 +44,11 @@ class UsersResource {
                  @PathParam("domain") domain:String,
                  @PathParam("itemType") itemType:String,
                  @Context request: Request) = {
+    ensurePrivilege(permissionEvaluator, Privileges.USER_PREFERENCES, new UserTarget(user))
+
     val space = systemConfigStore.lookupSpaceByPath(domain)
+    ensurePrivilege(permissionEvaluator, Privileges.SPACE_USER, new SpaceTarget(space.id))
+
     val filterType = getFilterType(itemType)
     val filters = userPreferences.listFilteredItems(space.id, user, filterType).toArray
 
@@ -64,7 +72,11 @@ class UsersResource {
                    @PathParam("domain") domain:String,
                    @PathParam("pair") pair:String,
                    @PathParam("itemType") itemType:String) {
+    ensurePrivilege(permissionEvaluator, Privileges.USER_PREFERENCES, new UserTarget(user))
+
     val space = systemConfigStore.lookupSpaceByPath(domain)
+    ensurePrivilege(permissionEvaluator, Privileges.SPACE_USER, new SpaceTarget(space.id))
+
     val filterType = getFilterType(itemType)
     userPreferences.createFilteredItem(PairRef(pair,space.id), user, filterType)
   }
@@ -75,7 +87,11 @@ class UsersResource {
                    @PathParam("domain") domain:String,
                    @PathParam("pair") pair:String,
                    @PathParam("itemType") itemType:String) {
+    ensurePrivilege(permissionEvaluator, Privileges.USER_PREFERENCES, new UserTarget(user))
+
     val space = systemConfigStore.lookupSpaceByPath(domain)
+    ensurePrivilege(permissionEvaluator, Privileges.SPACE_USER, new SpaceTarget(space.id))
+
     val filterType = getFilterType(itemType)
     userPreferences.removeFilteredItem(PairRef(pair,space.id), user, filterType)
   }

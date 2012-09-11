@@ -29,7 +29,7 @@ import net.lshift.diffa.kernel.escalation.EscalationManager
  * defined in a single config belong to a particular domain.
  */
 case class DiffaConfig(
-  members:Set[String] = Set(),
+  members:Set[PolicyMember] = Set(),
   properties:Map[String, String] = Map(),
   endpoints:Set[EndpointDef] = Set(),
   pairs:Set[PairDef] = Set()
@@ -48,6 +48,13 @@ object DefaultLimits {
   val URL_LENGTH_LIMIT = 1024
   // This appears to be the limit of column size that MySQL will let you set a PK varchar to be
   val MYSQL_VARCHAR_PK_LIMIT = 255
+}
+
+case class PolicyMember(
+  @BeanProperty var username:String = null,
+  @BeanProperty var policy:String = null
+) {
+  def this() = this(username = null)
 }
 
 /**

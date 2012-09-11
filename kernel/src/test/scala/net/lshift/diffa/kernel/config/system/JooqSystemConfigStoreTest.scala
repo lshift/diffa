@@ -115,6 +115,42 @@ class JooqSystemConfigStoreTest {
     assertEquals(List("Baz", "Foo", "bar", "diffa", "domain"), results.toList)
 
   }
+
+  @Test
+  def shouldBeAbleToStoreRetrieveAndUpdatePolicy() {
+    val space = systemConfigStore.createOrUpdateSpace(domainName)
+    val key = PolicyKey(space.id, "TestPol")
+    val initial = Seq(
+        PolicyStatement("space-user", "*"),
+        PolicyStatement("read-diffs", "*")
+      )
+
+    systemConfigStore.storePolicy(key, initial)
+    assertEquals(initial.toSet, systemConfigStore.lookupPolicyStatements(key).toSet)
+
+    val updated = Seq(
+        PolicyStatement("space-user", "*"),
+        PolicyStatement("read-diffs", "pair=p1"),
+        PolicyStatement("read-diffs", "pair=p2"),
+        PolicyStatement("initiate-scan", "pair=p2")
+      )
+    systemConfigStore.storePolicy(key, updated)
+    assertEquals(updated.toSet, systemConfigStore.lookupPolicyStatements(key).toSet)
+  }
+
+  @Test
+  def shouldBeAbleToRemovePolicy() {
+    val space = systemConfigStore.createOrUpdateSpace(domainName)
+    val key = PolicyKey(space.id, "TestPol")
+    val initial = Seq(
+        PolicyStatement("space-user", "*"),
+        PolicyStatement("read-diffs", "*")
+      )
+
+    systemConfigStore.storePolicy(key, initial)
+    systemConfigStore.removePolicy(key)
+    assertEquals(Set[PolicyStatement](), systemConfigStore.lookupPolicyStatements(key).toSet)
+  }
 }
 
 object JooqSystemConfigStoreTest {

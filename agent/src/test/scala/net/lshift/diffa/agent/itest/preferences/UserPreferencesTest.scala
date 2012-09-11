@@ -52,7 +52,7 @@ class UserPreferencesTest extends IsolatedDomainTest {
 
     val nonRootUser = UserDef(name = RandomStringUtils.randomAlphanumeric(10),superuser = false, external = true)
     securityClient.declareUser(nonRootUser)
-    configClient.makeDomainMember(nonRootUser.name)
+    configClient.makeDomainMember(nonRootUser.name, "User")
 
     val token = securityClient.getUserToken(nonRootUser.name)
     val invokingCreds = RestClientParams(token = Some(token))
@@ -88,8 +88,8 @@ class UserPreferencesTest extends IsolatedDomainTest {
 
     securityClient.declareUser(nonRootUser)
     securityClient.declareUser(otherNonRootUser)
-    configClient.makeDomainMember(nonRootUser.name)
-    configClient.makeDomainMember(otherNonRootUser.name)
+    configClient.makeDomainMember(nonRootUser.name, "User")
+    configClient.makeDomainMember(otherNonRootUser.name, "User")
 
     val token = securityClient.getUserToken(nonRootUser.name)
     val invokingCreds = RestClientParams(token = Some(token))
@@ -109,7 +109,7 @@ class UserPreferencesTest extends IsolatedDomainTest {
     defaultDomainConfigClient.declarePair(pair.withoutDomain)
 
     // When
-    configClient.makeDomainMember("guest") // Even the system user must be an explicit member of a space
+    configClient.makeDomainMember("guest", "User") // Even the system user must be an explicit member of a space
     rootUserPreferencesClient.createFilter(isolatedDomain, pair.getKey(), FilteredItemType.SWIM_LANE)
 
     // Then (assumes that no other filter items have been configured for the default system user.

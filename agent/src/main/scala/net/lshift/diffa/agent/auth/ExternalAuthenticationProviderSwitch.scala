@@ -16,7 +16,6 @@
 package net.lshift.diffa.agent.auth
 
 import org.springframework.security.core.Authentication
-import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import org.springframework.security.ldap.authentication.ad.ActiveDirectoryLdapAuthenticationProvider
 import org.slf4j.{LoggerFactory, Logger}
 import scala.collection.JavaConversions._
@@ -30,6 +29,8 @@ import org.springframework.security.ldap.DefaultSpringSecurityContextSource
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch
 import org.springframework.security.ldap.authentication.{NullLdapAuthoritiesPopulator, LdapAuthenticationProvider, BindAuthenticator}
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator
+import net.lshift.diffa.kernel.config.system.PolicyKey._
+import net.lshift.diffa.kernel.config.system.{PolicyKey, SystemConfigStore}
 
 /**
  * Runtime controllable authentication provider implementation, that will proxy to an internally configured LDAP
@@ -169,7 +170,8 @@ class ExternalAuthenticationProviderSwitch(val configStore:SystemConfigStore)
       // root authority.
       val identities = Seq(username) ++ res.getAuthorities.map(a => a.getAuthority)
       val memberships = identities.flatMap(i => configStore.listDomainMemberships(i))
-      val domainAuthorities = memberships.map(m => DomainAuthority(m.domain, "user")).toSet
+      val domainAuthorities = memberships.flatMap(m =>
+        configStore.lookupPolicyStatements(PolicyKey(m.policySpace, m.policy)).map(p => SpaceAuthority(m.space, m.domain, p)))
       val isRoot = configStore.containsRootUser(identities)
       val authorities = domainAuthorities ++ Seq(new SimpleGrantedAuthority("user")) ++ (isRoot match {
         case true   => Seq(new SimpleGrantedAuthority("root"))

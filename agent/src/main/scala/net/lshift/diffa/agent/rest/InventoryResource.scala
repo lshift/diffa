@@ -25,11 +25,15 @@ import com.sun.jersey.core.util.MultivaluedMapImpl
 import net.lshift.diffa.client.RequestBuildingHelper
 import java.net.URLEncoder
 import net.lshift.diffa.participant.scanning.{ScanRequest, AggregationBuilder, ConstraintsBuilder}
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.auth.{EndpointTarget, Privileges}
 
 /**
  * Resource allowing participants to provide bulk details of their current status.
  */
-class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Long) {
+class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Long, permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
   @GET
   @Path("/{endpoint}")
   def startInventory(@PathParam("endpoint") endpoint: String):Response = startInventory(endpoint, null)
@@ -37,6 +41,8 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Lo
   @GET
   @Path("/{endpoint}/{view}")
   def startInventory(@PathParam("endpoint") endpoint: String, @PathParam("view") view:String):Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.POST_INVENTORY, new EndpointTarget(space, endpoint))
+
     val requests = changes.startInventory(space, endpoint, if (view != null) Some(view) else None)
 
     Response.status(Response.Status.OK).
@@ -54,6 +60,8 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Lo
   @Path("/{endpoint}/{view}")
   @Consumes(Array("text/csv"))
   def submitInventory(@PathParam("endpoint") endpoint: String, @PathParam("view") view: String, @Context request:HttpServletRequest, content:ScanResultList):Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.POST_INVENTORY, new EndpointTarget(space, endpoint))
+
     val constraintsBuilder = new ConstraintsBuilder(request)
     val aggregationBuilder = new AggregationBuilder(request)
 

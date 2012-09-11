@@ -22,24 +22,34 @@ import net.lshift.diffa.kernel.reporting.ReportManager
 import net.lshift.diffa.kernel.config.{DomainConfigStore, PairRef}
 import net.lshift.diffa.kernel.frontend.PairReportDef
 import scala.collection.JavaConversions._
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{PairTarget, Privileges}
 
 class ReportsResource(val config:DomainConfigStore,
                       val reports:ReportManager,
                       val space:Long,
-                      val uriInfo:UriInfo) {
+                      val uriInfo:UriInfo,
+                      val permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
   @GET
   @Path("/{pairId}")
   @Produces(Array("application/json"))
   def listReports(@PathParam("pairId") pairId: String,
-                  @QueryParam("scope") scope: String): Array[PairReportDef] =
-      config.getPairDef(space, pairId).reports.toSeq.toArray[PairReportDef]
+                  @QueryParam("scope") scope: String): Array[PairReportDef] = {
+    ensurePrivilege(permissionEvaluator, Privileges.VIEW_REPORTS, new PairTarget(space, pairId))
+
+    config.getPairDef(space, pairId).reports.toSeq.toArray[PairReportDef]
+  }
 
   @POST
   @Path("/{pairId}/{reportId}")
   @Produces(Array("application/json"))
   def executeReport(@PathParam("pairId") pairId:String,
                    @PathParam("reportId") reportId:String) = {
+    ensurePrivilege(permissionEvaluator, Privileges.EXECUTE_REPORT, new PairTarget(space, pairId))
+
     reports.executeReport(PairRef(name = pairId, space = space), reportId)
     Response.status(Response.Status.OK).build
   }

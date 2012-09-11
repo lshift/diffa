@@ -20,17 +20,18 @@ import scala.collection.JavaConversions._
 import org.springframework.security.access.PermissionEvaluator
 import java.io.Serializable
 import org.springframework.security.core.{GrantedAuthority, Authentication}
-import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import net.lshift.diffa.kernel.util.MissingObjectException
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import net.lshift.diffa.kernel.config.User
+import net.lshift.diffa.kernel.config.system.{PolicyStatement, PolicyKey, SystemConfigStore}
 
 /**
  * Adapter for providing UserDetailsService on top of the underlying Diffa user store.
  */
 class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     extends UserDetailsService
-    with PermissionEvaluator {
+    with PermissionEvaluator
+    with TargetEnhancer {
 
   def loadUserByUsername(username: String) = {
     val user = try {
@@ -54,22 +55,22 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
 
   def hasPermission(auth: Authentication, targetDomainObject: AnyRef, permission: AnyRef) = {
     permission match {
-        // If we're asking for a domain-user, then return true if the provided authentication
-        // has a DomainAuthority for the given domain (or is a root user)
-      case "domain-user" =>
-        val domain = targetDomainObject.asInstanceOf[String]
-        isRoot(auth) || hasDomainRole(auth, domain, "user")
-
         // Tests to see whether the requesting user is the owner of the requested object
-      case "user-preferences" =>
+      case UserPrivilege("user-preferences") =>
         /*
         os.ten.si.ble [o-sten-suh-buhl]
         adjective
         1. outwardly appearing as such; professed; pretended: an ostensible cheerfulness concealing sadness.
         2.apparent, evident, or conspicuous: the ostensible truth of their theories.
         */
-        val ostensibleUsername = targetDomainObject.asInstanceOf[String]
+        val ostensibleUsername = targetDomainObject.asInstanceOf[UserTarget].username
         isUserWhoTheyClaimToBe(auth, ostensibleUsername)
+
+        // For any other permission, check to see if the user has the privilege, or if they are a root user.
+      case privilege:Privilege =>
+        val target = targetDomainObject.asInstanceOf[TargetObject]
+        isRoot(auth) || hasTargetPrivilege(auth, target, privilege)
+
 
         // Unknown permission request type
       case _ =>
@@ -82,7 +83,8 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
   def extractDetails(user:User) = {
     val isRoot = user.superuser
     val memberships = systemConfigStore.listDomainMemberships(user.name)
-    val domainAuthorities = memberships.map(m => DomainAuthority(m.domain, "user"))
+    val domainAuthorities = memberships.flatMap(m =>
+      systemConfigStore.lookupPolicyStatements(PolicyKey(m.policySpace, m.policy)).map(p => SpaceAuthority(m.space, m.domain, p)))
     val authorities = domainAuthorities ++
                       Seq(new SimpleGrantedAuthority("user"), new UserAuthority(user.name)) ++
     (isRoot match {
@@ -101,21 +103,31 @@ class UserDetailsAdapter(val systemConfigStore:SystemConfigStore)
     }
   }
   def isRoot(auth: Authentication) = auth.getAuthorities.find(_.getAuthority == "root").isDefined
-  def hasDomainRole(auth: Authentication, domain:String, role:String) = auth.getAuthorities.find {
-      case DomainAuthority(grantedDomain, grantedRole) =>
-        domain == grantedDomain && role == grantedRole
+  def hasTargetPrivilege(auth: Authentication, target:TargetObject, privilege:Privilege) = {
+    target.enhance(this)
+
+    auth.getAuthorities.find {
+      case SpaceAuthority(grantedSpace, grantedSpacePath, grantedPrivilegeStmt) =>
+        if (grantedPrivilegeStmt.privilege == privilege.name) {
+          privilege.isValidForTarget(grantedSpace, grantedPrivilegeStmt, target)
+        } else {
+          false
+        }
       case _ =>
         false
     }.isDefined
+  }
 
   def isUserWhoTheyClaimToBe(auth: Authentication, ostensibleUsername:String) = auth.getAuthorities.find {
     case UserAuthority(actualUsername) => actualUsername == ostensibleUsername
     case _                             => false
   }.isDefined
+
+  def expandSpaceParents(space: Long) = systemConfigStore.listSuperspaceIds(space)
 }
 
-case class DomainAuthority(domain:String, domainRole:String) extends GrantedAuthority {
-  def getAuthority = domainRole + "@" + domain
+case class SpaceAuthority(space:Long, spacePath:String, statement:PolicyStatement) extends GrantedAuthority {
+  def getAuthority = statement + "@" + spacePath
 }
 
 case class UserAuthority(username:String) extends GrantedAuthority {

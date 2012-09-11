@@ -22,6 +22,7 @@ import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, EndpointDef}
 import net.lshift.diffa.kernel.config.{User, Domain}
 import org.apache.commons.lang.RandomStringUtils
+import net.lshift.diffa.kernel.config.system.PolicyKey
 
 class JooqUserPreferencesStoreTest {
 
@@ -47,7 +48,7 @@ class JooqUserPreferencesStoreTest {
 
     systemConfigStore.createOrUpdateUser(User(name = "user", email = "", passwordEnc = ""))
 
-    domainConfigStore.makeDomainMember(space.id, "user")
+    domainConfigStore.makeDomainMember(space.id, "user", PolicyKey(0L, "User"))
 
     domainConfigStore.createOrUpdateEndpoint(space.id, upstream)
     domainConfigStore.createOrUpdateEndpoint(space.id, downstream)

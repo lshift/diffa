@@ -20,19 +20,26 @@ import javax.ws.rs.core.Response
 import javax.ws.rs._
 import net.lshift.diffa.kernel.frontend.Configuration
 import net.lshift.diffa.kernel.config.PairRef
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{PairTarget, Privileges}
 
 /**
  * Resource providing REST-based access to diagnostic data.
  */
 class DiagnosticsResource(val diagnostics: DiagnosticsManager,
                           val config: Configuration,
-                          val space:Long) {
+                          val space:Long,
+                          val permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
 
   @GET
   @Path("/{pairKey}/log")
   @Produces(Array("application/json"))
   def getPairStates(@PathParam("pairKey") pairKey: String, @QueryParam("maxItems") maxItems:java.lang.Integer): Response = {
+    ensurePrivilege(permissionEvaluator, Privileges.DIAGNOSTICS, new PairTarget(space, pairKey))
+
     val actualMaxItems = if (maxItems == null) 20 else maxItems.intValue()
     val pair = PairRef(pairKey,space)
     val events = diagnostics.queryEvents(pair, actualMaxItems)

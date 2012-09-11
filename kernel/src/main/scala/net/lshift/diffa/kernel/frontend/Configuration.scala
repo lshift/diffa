@@ -64,21 +64,17 @@ class Configuration(val configStore: DomainConfigStore,
     diffaConfig.properties.foreach { case (k, v) => configStore.setConfigOption(space, k, v) }
 
     // Remove missing members, and create/update the rest
-    val removedMembers = configStore.listDomainMembers(space).filter(m => diffaConfig.members.find(newM => newM == m.user).isEmpty)
+    val existingMembers = listSpaceMembers(space)
+    val removedMembers = existingMembers.diff(diffaConfig.members.toSeq)
     removedMembers.foreach(m => {
-      val userToRemove = m.user
-      callingUser match {
-        case Some(currentUser) if userToRemove == currentUser => // don't let this guy kill himself
-        case _                                                =>
-          preferencesStore.removeAllFilteredItemsForDomain(space, userToRemove)
-          configStore.removeDomainMembership(space, userToRemove)
+      if (Some(m.username) != callingUser) {      // Users aren't allowed to remove memberships for themselves
+        removeDomainMembership(space, m.username, m.policy)
       }
     })
-
-    diffaConfig.members.foreach(member => {
-      callingUser match {
-        case Some(currentUser) if member == currentUser => // this guy must already be there
-        case _                                          => configStore.makeDomainMember(space, member)
+    val newMembers = diffaConfig.members.toSeq.diff(existingMembers)
+    newMembers.foreach(m => {
+      if (Some(m.username) != callingUser) {      // Users aren't allowed to add memberships for themselves
+        makeDomainMember(space, m.username, m.policy)
       }
     })
 
@@ -102,7 +98,7 @@ class Configuration(val configStore: DomainConfigStore,
     if (doesSpaceExist(space))
       Some(DiffaConfig(
         properties = configStore.allConfigOptions(space),
-        members = configStore.listDomainMembers(space).map(_.user).toSet,
+        members = listSpaceMembers(space).toSet,
         endpoints = configStore.listEndpoints(space).toSet,
         pairs = configStore.listPairs(space).map(_.withoutDomain).toSet
       ))
@@ -267,9 +263,15 @@ class Configuration(val configStore: DomainConfigStore,
     updatePair(space, pairKey, pair => replaceByName(pair.reports, report))
   }
 
-  def makeDomainMember(space:Long, userName:String) = configStore.makeDomainMember(space,userName)
-  def removeDomainMembership(space:Long, userName:String) = configStore.removeDomainMembership(space, userName)
-  def listDomainMembers(space:Long) = configStore.listDomainMembers(space)
+  def makeDomainMember(space:Long, userName:String, policy:String) {
+    val policyKey = configStore.lookupPolicy(space, policy)
+    configStore.makeDomainMember(space, userName, policyKey)
+  }
+  def removeDomainMembership(space:Long, userName:String, policy:String) {
+    preferencesStore.removeAllFilteredItemsForDomain(space, userName)
+    configStore.removeDomainMembership(space, userName, policy)
+  }
+  def listSpaceMembers(space:Long) = configStore.listDomainMembers(space).map(m => PolicyMember(m.user, m.policy))
 
   def notifyPairUpdate(p:PairRef) {
     supervisors.foreach(_.startActor(p))

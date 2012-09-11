@@ -24,26 +24,39 @@ import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.util.AlertCodes._
+import org.springframework.security.access.PermissionEvaluator
+import net.lshift.diffa.agent.rest.PermissionUtils._
+import net.lshift.diffa.agent.auth.{SpaceTarget, PairTarget, Privileges}
 
 class ScanningResource(val pairPolicyClient:PairPolicyClient,
                        val config:Configuration,
                        val domainConfigStore:DomainConfigStore,
                        val diagnostics:DiagnosticsManager,
                        val space:Long,
-                       val currentUser:String) {
+                       val currentUser:String,
+                       val permissionEvaluator:PermissionEvaluator)
+    extends IndividuallySecuredResource {
 
   private val log: Logger = LoggerFactory.getLogger(getClass)
 
   @GET
   @Path("/states")
   def getAllPairStates = {
+      // Ensure that we're allowed to see at least some pair states
+    ensurePrivilege(permissionEvaluator, Privileges.SCAN_STATUS, new SpaceTarget(space))
+
     val states = diagnostics.retrievePairScanStatesForDomain(space)
-    Response.ok(scala.collection.JavaConversions.mapAsJavaMap(states)).build
+    val filteredStates = states.filter {
+      case (pair, state) => hasPrivilege(permissionEvaluator, Privileges.SCAN_STATUS, new PairTarget(space, pair))
+    }
+
+    Response.ok(scala.collection.JavaConversions.mapAsJavaMap(filteredStates)).build
   }
 
   @POST
   @Path("/pairs/{pairKey}/scan")
   def startScan(@PathParam("pairKey") pairKey:String, @FormParam("view") view:String) = {
+    ensurePrivilege(permissionEvaluator, Privileges.INITIATE_SCAN, new PairTarget(space, pairKey))
 
     val ref = PairRef(pairKey, space)
 
@@ -77,6 +90,8 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   @DELETE
   @Path("/pairs/{pairKey}/scan")
   def cancelScanning(@PathParam("pairKey") pairKey:String) = {
+    ensurePrivilege(permissionEvaluator, Privileges.CANCEL_SCAN, new PairTarget(space, pairKey))
+
     pairPolicyClient.cancelScans(PairRef(pairKey, space))
     Response.status(Response.Status.OK).build
   }
