@@ -127,7 +127,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       ValidationUtil.ensurePathSegmentFormat("spaces", childPath)
 
       jooq.execute(t => {
-        val parent = lookupSpaceId(t, parentPath + "%")
+        val parent = lookupSpaceId(t, parentPath)
         createSpace(t, childPath, parent.id, path)
       })
     }
@@ -512,7 +512,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
                     where(SPACE_PATHS.as("d").ANCESTOR.equal(0)).
                       and(SPACE_PATHS.as("d").ANCESTOR.notEqual(SPACE_PATHS.as("d").DESCENDANT)).
                     groupBy(SPACE_PATHS.as("d").DESCENDANT).
-                    having(spacePath.like(ROOT_SPACE.name + "/" + path)).
+                    having(spacePath.eq(ROOT_SPACE.name + "/" + path)).
                     fetchOne()
 
       if (null == space) {
@@ -616,7 +616,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
         join(SPACE_PATHS).
           on(SPACE_PATHS.DESCENDANT.equal(SPACES.ID)).
         where(SPACE_PATHS.ANCESTOR.equal(parent)).
-        orderBy(SPACE_PATHS.DEPTH.desc()).
+        orderBy(SPACE_PATHS.DEPTH.desc(), SPACES.ID.asc()).
         fetch()
 
     if (hierarchy == null) {

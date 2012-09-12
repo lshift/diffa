@@ -12,6 +12,7 @@
 
 * [254] - The database is now keyed on spaces with a surrogate key.
 * [260] - Introduce extents as a way to asynchronously vacuum the DIFFS table.
+* [266] - Fixed a caching bug in the space path lookup
 
 ## Library Upgrades
 

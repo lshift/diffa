@@ -75,8 +75,9 @@ class SpacePathTest {
 
     val firstParentSpace = RandomStringUtils.randomAlphanumeric(10)
     val secondParentSpace = RandomStringUtils.randomAlphanumeric(10)
-    val childSpace = firstParentSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
-    val grandChildSpace = childSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
+    val firstChildSpace = firstParentSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
+    val secondChildSpace = firstParentSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
+    val grandChildSpace = firstChildSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
     val greatGrandChildSpace = grandChildSpace + "/" + RandomStringUtils.randomAlphanumeric(10)
 
     val firstParent = systemConfigStore.createOrUpdateSpace(firstParentSpace)
@@ -87,9 +88,18 @@ class SpacePathTest {
     assertTrue(systemConfigStore.doesDomainExist(secondParent.name))
     assertEquals(secondParentSpace, systemConfigStore.lookupSpacePathById(secondParent.id))
 
-    val child = systemConfigStore.createOrUpdateSpace(childSpace)
-    assertTrue(systemConfigStore.doesDomainExist(childSpace))
-    assertEquals(childSpace, systemConfigStore.lookupSpacePathById(child.id))
+    val firstChild = systemConfigStore.createOrUpdateSpace(firstChildSpace)
+    assertTrue(systemConfigStore.doesDomainExist(firstChildSpace))
+    assertEquals(firstChildSpace, systemConfigStore.lookupSpacePathById(firstChild.id))
+
+    // make sure that a space path lookup doesn't cause the store to cache a false positive
+    // for sibling child spaces
+
+    systemConfigStore.reset
+
+    val secondChild = systemConfigStore.createOrUpdateSpace(secondChildSpace)
+    assertTrue(systemConfigStore.doesDomainExist(secondChildSpace))
+    assertEquals(secondChildSpace, systemConfigStore.lookupSpacePathById(secondChild.id))
 
     val grandChild = systemConfigStore.createOrUpdateSpace(grandChildSpace)
     assertTrue(systemConfigStore.doesDomainExist(grandChildSpace))
@@ -103,7 +113,7 @@ class SpacePathTest {
 
     val hierarchy = systemConfigStore.listSubspaces(firstParent.id)
 
-    assertEquals(Seq(greatGrandChild, grandChild, child, firstParent), hierarchy)
+    assertEquals(List(greatGrandChild, grandChild, firstChild, secondChild, firstParent), hierarchy.toList)
     assertFalse(hierarchy.contains(secondParent))
   }
 
