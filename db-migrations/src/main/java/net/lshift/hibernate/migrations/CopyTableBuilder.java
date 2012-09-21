@@ -23,6 +23,8 @@ import java.sql.*;
 import java.util.*;
 
 public class CopyTableBuilder extends TraceableMigrationElement {
+  private static final String AND = "and";
+  private static final String WHERE = "where";
 
   private Logger log = LoggerFactory.getLogger(CopyTableBuilder.class);
 
@@ -33,6 +35,7 @@ public class CopyTableBuilder extends TraceableMigrationElement {
   private Iterable<String> destCols;
 
   private List<JoinSpecification> joins = new ArrayList<JoinSpecification>();
+  private List<String> notNullClauses = new ArrayList<String>();
 
   private Map<String,String> sourcePredicate;
   private Map<String,String> constants = new TreeMap<String, String>();
@@ -64,6 +67,13 @@ public class CopyTableBuilder extends TraceableMigrationElement {
 
   public CopyTableBuilder whereSource(Map<String,String> predicate) {
     this.sourcePredicate = predicate;
+    return this;
+  }
+
+  public CopyTableBuilder notNull(Iterable<String> notNullCols) {
+    for (String col: notNullCols) {
+      notNullClauses.add(String.format("%s is not null", col));
+    }
     return this;
   }
 
@@ -120,9 +130,19 @@ public class CopyTableBuilder extends TraceableMigrationElement {
 
   }
 
+  private void appendNotNullClauses(String whereOrAnd, StringBuffer whereClauseBuffer) {
+    if (!notNullClauses.isEmpty()) {
+      whereClauseBuffer.append(String.format(" %s ", whereOrAnd));
+      Joiner joiner = Joiner.on(" and ").skipNulls();
+      whereClauseBuffer.append(joiner.join(notNullClauses));
+    }
+  }
+
   private String buildSelect()  {
     verifyColumnNames();
     Joiner joiner = Joiner.on(",").skipNulls();
+
+    StringBuffer whereClauseBuffer = new StringBuffer();
 
     if (!joins.isEmpty()) {
 
@@ -141,7 +161,6 @@ public class CopyTableBuilder extends TraceableMigrationElement {
 
       int index = 0;
       JoinSpecification firstJoin = joins.get(index);
-      StringBuffer whereClauseBuffer = new StringBuffer();
       String fragment = String.format("where j%s.%s = s.%s", index, firstJoin.getJoinColumn(), firstJoin.getJoinRefColumn());
       whereClauseBuffer.append(fragment);
 
@@ -152,6 +171,8 @@ public class CopyTableBuilder extends TraceableMigrationElement {
         String andFragment = String.format(" and j%s.%s = s.%s", i, join.getJoinColumn(), join.getJoinRefColumn());
         whereClauseBuffer.append(andFragment);
       }
+
+      appendNotNullClauses(AND, whereClauseBuffer);
 
       if (sourcePredicate != null && !sourcePredicate.isEmpty()) {
 
@@ -195,6 +216,7 @@ public class CopyTableBuilder extends TraceableMigrationElement {
     else {
       String sourceColumnNames = joiner.join(sourceCols);
 
+
       if (sourcePredicate != null && !sourcePredicate.isEmpty()) {
 
         List<String> predicates = new ArrayList<String>();
@@ -204,12 +226,17 @@ public class CopyTableBuilder extends TraceableMigrationElement {
         }
 
         String predicateClause = Joiner.on(" and ").skipNulls().join(predicates);
+        appendNotNullClauses(AND, whereClauseBuffer);
+        String whereClause = whereClauseBuffer.toString();
 
-        return String.format("select %s from %s where %s", sourceColumnNames, sourceTable, predicateClause);
+        return String.format("select %s from %s where %s%s", sourceColumnNames, sourceTable, predicateClause, whereClause);
 
       } else {
 
-        return String.format("select %s from %s", sourceColumnNames, sourceTable);
+        appendNotNullClauses(WHERE, whereClauseBuffer);
+        String whereClause = whereClauseBuffer.toString();
+
+        return String.format("select %s from %s%s", sourceColumnNames, sourceTable, whereClause);
 
       }
 

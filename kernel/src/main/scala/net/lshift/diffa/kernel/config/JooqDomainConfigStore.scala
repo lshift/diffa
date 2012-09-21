@@ -136,7 +136,6 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   }
 
   def onDomainUpdated(space: Long) = invalidateAllCaches(space)
-
   def onDomainRemoved(space: Long) = invalidateAllCaches(space)
 
   def createOrUpdateEndpoint(space: Long, endpointDef: EndpointDef) : DomainEndpointDef = {
@@ -207,6 +206,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     DomainEndpointDef(
       space = space,
       name = endpointDef.name,
+      validateEntityOrder = endpointDef.validateEntityOrder,
       collation = endpointDef.collation,
       contentRetrievalUrl = endpointDef.contentRetrievalUrl,
       scanUrl = endpointDef.scanUrl,
@@ -277,6 +277,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
         endpoints.head
       }
     })
+
   }
 
   def listEndpoints(space:Long): Seq[EndpointDef] =
@@ -560,6 +561,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       scanUrl = endpointDef.scanUrl,
       versionGenerationUrl = endpointDef.versionGenerationUrl,
       contentRetrievalUrl = endpointDef.contentRetrievalUrl,
+      validateEntityOrder = endpointDef.validateEntityOrder,
       collation = endpointDef.collation,
       categories = endpointDef.categories
     )

@@ -81,13 +81,15 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
       closeableWriter.close
       isClosed = true
     }
-    readersForWriter(writer) foreach { reader =>
-      reader.close
+
+    val toClose = readers.remove(writer)
+    if (toClose != null) {
+      toClose.foreach(_.close())
     }
+
   }
 
   val readers = new ConcurrentHashMap[IndexWriter, List[Closeable]]()
-  def readersForWriter(writer: IndexWriter) = readers.getOrElse(writer, List[Closeable]())
 
   // TODO: examine for race conditions.
   def getReader: IndexReader = {

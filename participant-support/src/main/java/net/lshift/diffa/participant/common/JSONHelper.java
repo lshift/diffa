@@ -71,7 +71,7 @@ public class JSONHelper {
     }
   }
 
-  public static ScanResultEntry[] readQueryResult(InputStream stream, ScanEntityValidator validator)
+  public static List<ScanResultEntry> readQueryResult(InputStream stream, ScanEntityValidator validator)
       throws IOException {
     try {
       List<ScanResultEntry> scanResultEntries = new ArrayList<ScanResultEntry>();
@@ -87,7 +87,7 @@ public class JSONHelper {
 
       }
       log.info("ScanResultEntry readQueryResult [count = " + scanResultEntries.size() + "]");
-      return scanResultEntries.toArray(new ScanResultEntry[scanResultEntries.size()]);
+      return scanResultEntries;
     } catch (IOException ex) {
       throw ex;
     } catch (Exception ex) {

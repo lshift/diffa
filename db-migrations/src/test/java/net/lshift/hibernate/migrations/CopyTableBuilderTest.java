@@ -75,25 +75,56 @@ public class CopyTableBuilderTest {
 
     Iterable<String> sourceCols = Arrays.asList("id", "bar", "baz");
     Iterable<String> destCols = Arrays.asList("foo", "bar2", "baz", "c1", "c2");
+    Iterable<String> nnCols = Arrays.asList("nn1", "nn2");
 
     Map<String,String> predicate = new HashMap<String,String>();
     predicate.put("predicate_column","predicate_value");
 
     mb.copyTableContents("src", "dest", sourceCols, destCols).
        join("join_table", "src_id", "id", Arrays.asList("kol1", "kol2")).
-       whereSource(predicate);
+       whereSource(predicate).
+       notNull(nnCols);
 
     Connection conn = createStrictMock(Connection.class);
 
     String sql =  "insert into dest(foo,bar2,baz,c1,c2) " +
                   "select s.id,s.bar,s.baz,j0.kol1,j0.kol2 from src s, join_table j0 "+
-                  "where j0.src_id = s.id and s.predicate_column = 'predicate_value'";
+                  "where j0.src_id = s.id "+
+                  "and nn1 is not null "+
+                  "and nn2 is not null "+
+                  "and s.predicate_column = 'predicate_value'";
 
     expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatementForUpdate(1));
     replay(conn);
 
     mb.apply(conn);
     verify(conn);
+  }
+
+  private void verifySqlMatches(String sql, MigrationBuilder mb) throws Exception {
+    Connection conn = createStrictMock(Connection.class);
+
+    expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatementForUpdate(1));
+    replay(conn);
+
+    mb.apply(conn);
+    verify(conn);
+  }
+
+  @Test
+  public void shouldFilterOutNullsAsDirected() throws Exception {
+    MigrationBuilder mb = new MigrationBuilder(HibernateHelper.configuration());
+
+    Iterable<String> cols = Arrays.asList("id");
+    Iterable<String> notNulls = Arrays.asList("nn1", "nn2");
+    mb.copyTableContents("src", "dest", cols, cols).notNull(notNulls);
+
+    String sql = "insert into dest(id) " +
+        "select id from src " +
+        "where nn1 is not null " +
+        "and nn2 is not null";
+
+    verifySqlMatches(sql, mb);
   }
 
   @Test

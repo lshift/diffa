@@ -5,6 +5,13 @@
 <div class="pane" data-pane="root">
   <dl>
     <dt>Name:</dt><dd class="name-container"><input data-bind-value="endpoint.name" type="text"><span data-bind-text="endpoint.name"></span></dd>
+    <dt>Entity ordering</dt>
+    <dd class="validateEntityOrder">
+      <input type="radio" data-bind-checked="endpoint.validateEntityOrder" id="entityOrderEnforced" name="validateEntityOrder" value="ordered" checked="checked" />
+      <label for="entityOrderEnforced">Enforced</label>
+      <input type="radio" data-bind-checked="endpoint.validateEntityOrder" id="entityOrderRelaxed" name="validateEntityOrder" value="unordered" />
+      <label for="entityOrderRelaxed">Unenforced (only do this if you have full understanding of the implications)</label>
+    </dd>
     <dt>Collation order</dt>
     <dd>
       <select data-bind-value="endpoint.collation">

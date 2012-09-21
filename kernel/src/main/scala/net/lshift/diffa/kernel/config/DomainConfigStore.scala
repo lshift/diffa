@@ -139,6 +139,10 @@ case class Endpoint(
 
   def this() = this(name = null)
 
+  if (collation.equals(UnorderedCollationOrdering.name)) {
+    validateEntityOrder = EntityOrdering.UNENFORCED
+  }
+
   def defaultView = views.find(v => v.name == "default").get
 
   /**

@@ -106,10 +106,10 @@ public class JSONHelperTest {
   public void shouldRoundtripSingleEntityWithNoAttributes() throws Exception {
     ScanResultEntry entry = ScanResultEntry.forEntity("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC));
     String single = serialiseResult(Arrays.asList(entry));
-    ScanResultEntry[] deserialised = deserialiseResult(single);
+    List<ScanResultEntry> deserialised = deserialiseResult(single);
 
-    assertEquals(1, deserialised.length);
-    assertEquals(entry, deserialised[0]);
+    assertEquals(1, deserialised.size());
+    assertEquals(entry, deserialised.get(0));
   }
 
   @Test
@@ -126,10 +126,10 @@ public class JSONHelperTest {
   public void shouldRoundtripSingleEntityWithAttributes() throws Exception {
     ScanResultEntry entry = ScanResultEntry.forEntity("id1", "v1", new DateTime(2011, 6, 5, 15, 3, 0, 0, DateTimeZone.UTC), generateAttributes("a1v1", "a2v2"));
     String single = serialiseResult(Arrays.asList(entry));
-    ScanResultEntry[] deserialised = deserialiseResult(single);
+    List<ScanResultEntry> deserialised = deserialiseResult(single);
 
-    assertEquals(1, deserialised.length);
-    assertEquals(entry, deserialised[0]);
+    assertEquals(1, deserialised.size());
+    assertEquals(entry, deserialised.get(0));
   }
 
   @Test
@@ -138,10 +138,10 @@ public class JSONHelperTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     JSONHelper.writeQueryResult(baos, Arrays.asList(entry));
     String formatted = new String(baos.toByteArray(), "UTF-8");
-    ScanResultEntry[] deserialised = deserialiseResult(formatted);
+    List<ScanResultEntry> deserialised = deserialiseResult(formatted);
 
-    assertEquals(1, deserialised.length);
-    assertEquals(entry, deserialised[0]);
+    assertEquals(1, deserialised.size());
+    assertEquals(entry, deserialised.get(0));
   }
 
   @Test
@@ -349,7 +349,7 @@ public class JSONHelperTest {
     return new String(baos.toByteArray(), "UTF-8");
   }
 
-  private static ScanResultEntry[] deserialiseResult(String s) throws Exception {
+  private static List<ScanResultEntry> deserialiseResult(String s) throws Exception {
     ByteArrayInputStream bais = new ByteArrayInputStream(s.getBytes("UTF-8"));
     return JSONHelper.readQueryResult(new ByteArrayInputStream(s.getBytes("UTF-8")),
             nullValidator);

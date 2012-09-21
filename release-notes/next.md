@@ -15,6 +15,7 @@
 * [260] - Introduce extents as a way to asynchronously vacuum the DIFFS table.
 * [266] - Fixed a caching bug in the space path lookup
 * [268] - Fixed a special case bug in the space path lookup for the root space.
+* [269] - Forward ported a fix for a memory leak from the 1.5.6 release tag.
 
 ## Library Upgrades
 

@@ -340,11 +340,16 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
     def handleMismatch(scanId:Option[Long], pair:PairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
       vm match {
         case VersionMismatch(id, attributes, lastUpdate,  usVsn, _) =>
-          if (usVsn != null) {
-            handleUpdatedCorrelation(writer.storeUpstreamVersion(VersionID(pair, id), attributes, lastUpdate, usVsn, scanId))
-          } else {
-            handleUpdatedCorrelation(writer.clearUpstreamVersion(VersionID(pair, id), scanId))
+
+          val corrrelation = writer.synchronized {
+            if (usVsn != null) {
+              writer.storeUpstreamVersion(VersionID(pair, id), attributes, lastUpdate, usVsn, scanId)
+            } else {
+              writer.clearUpstreamVersion(VersionID(pair, id), scanId)
+            }
           }
+
+          handleUpdatedCorrelation(corrrelation)
       }
     }
   }

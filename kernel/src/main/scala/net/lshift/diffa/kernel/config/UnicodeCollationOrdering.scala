@@ -43,6 +43,7 @@ object CollationOrdering {
     }
   }
 
+
   lazy val namedCollations: Set[CollationOrdering] = Set(
     UnorderedCollationOrdering,
     UnicodeCollationOrdering,

@@ -47,7 +47,7 @@
   -->
   <logger name="net.sf.ehcache" level="ERROR" />
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
 

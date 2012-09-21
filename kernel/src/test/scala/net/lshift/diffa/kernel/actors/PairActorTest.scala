@@ -437,8 +437,6 @@ class PairActorTest {
     val cancelMonitor = new Object
     val responseMonitor = new Object
 
-    val event = buildUpstreamEvent()
-
     val timeToWait = 2000L
     implicit val system =  actorSystem
     implicit val ec = ExecutionContext.defaultExecutionContext
@@ -544,125 +542,6 @@ class PairActorTest {
     supervisor.scanPair(pair.asRef, None, None)
     assertTrue(wasMarkedAsCancelled.get(4000).getOrElse(throw new Exception("Feedback handle check never reached in participant stub")))
     verify(versionPolicy, scanListener, diagnostics)
-  }
-
-  @Test
-  def shouldGenerateExceptionInVersionCorrelationWriterProxyWhenAParticipantFails = {
-    val proxyDidGenerateException = new SyncVar[Boolean]
-
-    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
-      def answer() {
-        val feedbackHandle = EasyMock.getCurrentArguments()(8).asInstanceOf[FeedbackHandle]
-        println("Awaiting %s;  args:%s".format(feedbackHandle,
-          EasyMock.getCurrentArguments().toList))
-        awaitFeedbackHandleCancellation(feedbackHandle)
-
-        println("Feedbackhandle %s cancelled? %s;".format(feedbackHandle,
-          feedbackHandle.isCancelled
-        ))
-
-        // Seemingly, what we're being passed in here as a writer instance is
-        // a mock object; which we haven't (at this point) configured to
-        // understand the message "clearDownstreamVersion"
-        // But only sometimes.Most of the time we get an instance of PairActor$$anon$2 (or something)
-
-        val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
-        println("writer (args(3))#getClass() -> %s".format(writer.getClass()))
-        try {
-          writer.clearDownstreamVersion(EasyMock.eq(VersionID(PairRef("p1", System.currentTimeMillis()), "abc")), EasyMock.anyObject[Option[Long]]())
-          proxyDidGenerateException.set(false)
-        } catch {
-          case c:ScanCancelledException => proxyDidGenerateException.set(true)
-        }
-      }
-    })
-
-    val numberOfScans = 1
-    expectScanCommencement(numberOfScans)
-    writer.close
-
-    replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
-
-    supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pair.asRef, None, None)
-
-    assertTrue(proxyDidGenerateException.get(4000).getOrElse(throw new Exception("Exception validation never reached in participant stub")))
-    verify(versionPolicy, scanListener, diagnostics)
-  }
-
-  @Test
-  def shouldGenerateExceptionInVersionCorrelationWriterProxyWhenAParticipantFailsAndANewScanHasStarted = {
-    // NOTE: We have a couple of different actions blocking on different threads. EasyMock by default will make
-    //       mocks threadsafe, which results in a deadlock. It isn't clear whether we'll have problems with disabling
-    //       the threadsafety given we are calling the mock from multiple threads, but without completely skipping the
-    //       use of EasyMock for this test, there aren't many other options.
-    makeThreadSafe(versionPolicy, false)
-
-    val proxyDidGenerateException = new SyncVar[Boolean]
-    val secondScanIsRunning = new SyncVar[Boolean]
-    val completionMonitor = new Object
-    val waitForSecondScanToStartDelay = 2000    // Wait up to 2 seconds for the first scan to fail and the second to start
-    val waitForStragglerToFinishDelay = 2000    // Wait up to 2 seconds for the "straggler" to finish once we've unblocked it
-    val overallProcessWait = waitForSecondScanToStartDelay + waitForStragglerToFinishDelay + 1000
-      // The overall process could take up to both delays, plus a bit of breathing room
-
-    expectFailingUpstreamScanAndUseProvidedDownstreamHandler(
-      downstreamHandler = new IAnswer[Unit] {
-          def answer() {
-            if (secondScanIsRunning.get(waitForSecondScanToStartDelay).isDefined) {
-              val writer = EasyMock.getCurrentArguments()(4).asInstanceOf[LimitedVersionCorrelationWriter]
-              try {
-                writer.clearDownstreamVersion(EasyMock.eq(VersionID(PairRef("p1",System.currentTimeMillis()), "abc")), EasyMock.anyObject[Option[Long]]())
-                proxyDidGenerateException.set(false)
-              } catch {
-                case c:ScanCancelledException => proxyDidGenerateException.set(true)
-              }
-            } else {
-              // Given this is on a background thread, we can't fail the test from here. The "proxyDidGenerateException"
-              // call will fail later (and cause the test to fail), but this exception should help diagnose where in
-              // the overall process things started falling apart.
-              throw new RuntimeException("Test has failed: Expired whilst waiting for second scan to start")
-            }
-          }
-        },
-      failStateHandler = new IAnswer[Unit] {
-          def answer {
-            supervisor.scanPair(pair.asRef, None, None)      // Run a second scan when the first one fails
-          }
-        })
-
-    scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall().atLeastOnce()
-    expectUpstreamScan().once()  // Succeed on second
-    expectDownstreamScan().andAnswer(new IAnswer[Unit] {
-      def answer() {
-        // Notify that the second scan has started
-        secondScanIsRunning.set(true)
-
-        // Block the second scan until the first has reached a conclusion
-        proxyDidGenerateException.get(waitForStragglerToFinishDelay)
-      }
-    }).once()
-    expectDifferencesReplay(assertFlush = false)
-    diagnostics.logPairEvent(EasyMock.anyObject[Option[Long]](), EasyMock.eq(pairRef), EasyMock.eq(DiagnosticLevel.INFO), EasyMock.eq("Scan completed")); expectLastCall
-    scanListener.pairScanStateChanged(pair.asRef, PairScanState.UP_TO_DATE); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
-      def answer {
-        completionMonitor.synchronized { completionMonitor.notifyAll() }
-      }
-    }).once()
-
-    expect(writer.close).anyTimes
-    val numberOfScans = 2
-    expectScanCommencement(numberOfScans)
-
-    replay(store, diffWriter, writer, versionPolicy, scanListener, diagnostics)
-
-    supervisor.startActor(pair.asRef)
-    supervisor.scanPair(pairRef, None, None)
-
-    assertTrue(proxyDidGenerateException.get(overallProcessWait).getOrElse(throw new Exception("Exception validation never reached in participant stub")))
-    completionMonitor.synchronized { completionMonitor.wait(1000) }   // Wait for the scan to complete too
-
-    verify(scanListener, diagnostics)
   }
 
   @Test

@@ -60,19 +60,25 @@ class CorrelatedVersionPolicy(stores:VersionCorrelationStoreFactory,
     def handleMismatch(scanId:Option[Long], pair:PairRef, writer: LimitedVersionCorrelationWriter, vm:VersionMismatch, listener:DifferencingListener) = {
       vm match {
         case VersionMismatch(id, categories, _, null, storedVsn) =>
-          handleUpdatedCorrelation(writer.clearDownstreamVersion(VersionID(pair, id), scanId))
+          val correlation = writer.synchronized{
+            writer.clearDownstreamVersion(VersionID(pair, id), scanId)
+          }
+          handleUpdatedCorrelation(correlation)
         case VersionMismatch(id, categories, lastUpdated, partVsn, _) =>
           val content = us.retrieveContent(id)
           val response = ds.generateVersion(content)
 
-          if (response.getDvsn == partVsn) {
-            // This is the same destination object, so we're safe to store the correlation
-            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, response.getUvsn, response.getDvsn, scanId))
-          } else {
-            // We don't know of an upstream version, so we'll put in a proxy dummy value.
-              // TODO: Is this an appropriate behaviour?
-            handleUpdatedCorrelation(writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, "UNKNOWN", partVsn, scanId))
+          val correlation = writer.synchronized {
+            if (response.getDvsn == partVsn) {
+              // This is the same destination object, so we're safe to store the correlation
+              writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, response.getUvsn, response.getDvsn, scanId)
+            } else {
+              // We don't know of an upstream version, so we'll put in a proxy dummy value.
+                // TODO: Is this an appropriate behaviour?
+              writer.storeDownstreamVersion(VersionID(pair, id), categories, lastUpdated, "UNKNOWN", partVsn, scanId)
+            }
           }
+          handleUpdatedCorrelation(correlation)
       }
     }
   }

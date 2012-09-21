@@ -20,6 +20,7 @@ import net.lshift.diffa.participant.common.JSONHelper
 import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
 import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
 import net.lshift.diffa.kernel.config.{PairServiceLimitsView, PairRef}
+import scala.collection.JavaConversions._
 
 class ValidatingScanResultParser(validatorFactory: ScanEntityValidatorFactory) extends JsonScanResultParser {
   def parse(s: InputStream) = JSONHelper.readQueryResult(s, validatorFactory.createValidator).toSeq
