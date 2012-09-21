@@ -159,27 +159,30 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
   }
 
   def lookupSpacePathById(space: Long) = {
-    jooq.execute( t => {
+    if (space == ROOT_SPACE.id) {
+      ROOT_SPACE.name
+    } else {
+      jooq.execute( t => {
+        val spacePath = Factory.groupConcat(SPACES.NAME).orderBy(SPACES.ID.asc()).separator("/")
 
-      val spacePath = Factory.groupConcat(SPACES.NAME).orderBy(SPACES.ID.asc()).separator("/")
+        val path =
+          t.select(spacePath.as("path")).
+            from(SPACES).
+            join(SPACE_PATHS).
+              on(SPACE_PATHS.ANCESTOR.eq(SPACES.ID)).
+            where(SPACE_PATHS.DESCENDANT.eq(space)).
+              and(SPACE_PATHS.ANCESTOR.ne(0)).
+            groupBy(SPACE_PATHS.DESCENDANT).
+            fetchOne()
 
-      val path =
-        t.select(spacePath.as("path")).
-          from(SPACES).
-          join(SPACE_PATHS).
-            on(SPACE_PATHS.ANCESTOR.eq(SPACES.ID)).
-          where(SPACE_PATHS.DESCENDANT.eq(space)).
-            and(SPACE_PATHS.ANCESTOR.ne(0)).
-          groupBy(SPACE_PATHS.DESCENDANT).
-          fetchOne()
-
-      if (path == null) {
-        throw new MissingObjectException(space.toString)
-      }
-      else {
-        path.getValueAsString("path")
-      }
-    })
+        if (path == null) {
+          throw new MissingObjectException(space.toString)
+        }
+        else {
+          path.getValueAsString("path")
+        }
+      })
+    }
   }
 
   def doesDomainExist(path: String) = resolveSpaceByPath(path) match {

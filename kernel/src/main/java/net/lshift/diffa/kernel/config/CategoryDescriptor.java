@@ -55,6 +55,12 @@ abstract public class CategoryDescriptor implements Serializable {
    */
   public abstract void validate(String path);
 
+  public void ensureOrderedOrNotAggregated(String path, String collationOrder) {
+    if (collationOrder.equals(UnorderedCollationOrdering.name())) {
+      throw new InvalidAggregationConfigurationException(path);
+    }
+  }
+
   /**
    * Determines whether the given other category descriptor is of the same type as this category descriptor. This
    * provides a fundamental compatibility check that can be applied before considering more complex checks like

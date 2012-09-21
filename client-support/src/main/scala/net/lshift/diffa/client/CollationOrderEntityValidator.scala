@@ -31,7 +31,7 @@ class CollationOrderEntityValidator(collation: Collation, private val next: Scan
        prevId <- previousId
        currentId <- Option(current.getId)
 
-     } if (collation.sortsBefore(currentId, prevId)) {
+     } if (!collation.sortsBefore(prevId, currentId)) {
        throw new OutOfOrderException(currentId, prevId)
      }
      nextValidator.foreach(_.process(current))

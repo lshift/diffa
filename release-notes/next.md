@@ -7,12 +7,14 @@
 ## New Features
 
 * [255] - Introduce sub spaces.
+* [267] - Support for disabling validation of Entity ordering.
 
 ## General Maintenance
 
 * [254] - The database is now keyed on spaces with a surrogate key.
 * [260] - Introduce extents as a way to asynchronously vacuum the DIFFS table.
 * [266] - Fixed a caching bug in the space path lookup
+* [268] - Fixed a special case bug in the space path lookup for the root space.
 
 ## Library Upgrades
 

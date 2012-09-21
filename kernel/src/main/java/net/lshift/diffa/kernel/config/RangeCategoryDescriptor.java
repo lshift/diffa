@@ -104,6 +104,13 @@ public class RangeCategoryDescriptor extends CategoryDescriptor {
   }
 
   @Override
+  public void ensureOrderedOrNotAggregated(String path, String collationOrder) {
+    if (collationOrder.equals(UnorderedCollationOrdering.name()) && maxGranularity != "individual") {
+      throw new InvalidAggregationConfigurationException(path);
+    }
+  }
+
+  @Override
   public boolean isSameType(CategoryDescriptor other) {
     return other instanceof RangeCategoryDescriptor && ((RangeCategoryDescriptor) other).dataType.equals(this.dataType);
   }

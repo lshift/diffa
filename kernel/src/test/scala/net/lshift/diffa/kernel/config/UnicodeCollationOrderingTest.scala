@@ -45,12 +45,31 @@ object AsciiCollationOrderingTest {
 
 }
 
+@RunWith(classOf[Theories])
+class UnorderedCollationOrderingTest extends CollationTestMixin {
+  val ordering = UnorderedCollationOrdering
+}
+object UnorderedCollationOrderingTest {
+  @DataPoint def trivial = ("a", "b", true)
+  @DataPoint def reversed = ("b", "a", true)
+
+  @DataPoint def numerical = ("1", "2", true)
+  @DataPoint def reversedNumerical = ("2", "1", true)
+
+  @DataPoint def mixedCase = ("c", "C", true)
+  @DataPoint def reversedMixedCase = ("C", "c", true)
+}
+
 class CollationOrderingTest {
   @Test def testGetCollatorForUnicode() = {
     assertEquals(UnicodeCollationOrdering, CollationOrdering.named("unicode"))
   }
   @Test def testGetCollatorForAscii() = {
     assertEquals(AsciiCollationOrdering, CollationOrdering.named("ascii"))
+  }
+
+  @Test def shouldHaveAnUnorderedCollator() = {
+    assertEquals(UnorderedCollationOrdering, CollationOrdering.named("unordered"))
   }
 
   @Test(expected=classOf[Exception])

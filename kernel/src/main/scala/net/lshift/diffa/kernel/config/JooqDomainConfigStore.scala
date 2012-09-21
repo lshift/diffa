@@ -139,8 +139,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
   def onDomainRemoved(space: Long) = invalidateAllCaches(space)
 
-  def createOrUpdateEndpoint(space:Long, endpointDef: EndpointDef) : DomainEndpointDef = {
-
+  def createOrUpdateEndpoint(space: Long, endpointDef: EndpointDef) : DomainEndpointDef = {
     jooq.execute(t => {
 
       t.insertInto(ENDPOINTS).
@@ -277,17 +276,12 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       } else {
         endpoints.head
       }
-
     })
   }
 
-
-  def listEndpoints(space:Long): Seq[EndpointDef] = {
-
-    val endpoints = cachedEndpoints.readThrough(space, () => JooqConfigStoreCompanion.listEndpoints(jooq, Some(space)))
-    endpoints.map(_.withoutDomain())
-
-  }
+  def listEndpoints(space:Long): Seq[EndpointDef] =
+    cachedEndpoints.readThrough(space, () => JooqConfigStoreCompanion.listEndpoints(jooq, Some(space))).
+      map(_.withoutDomain())
 
   def createOrUpdatePair(space:Long, pair: PairDef) = {
 

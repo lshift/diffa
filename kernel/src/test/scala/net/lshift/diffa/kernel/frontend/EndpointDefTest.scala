@@ -21,15 +21,13 @@ import org.junit.Assert._
  */
 
 class EndpointDefTest {
-
   @Test def testGetCollatorForUnicode() = {
-    val ep = new EndpointDef(collation = UnicodeCollationOrdering.name)
+    val ep = EndpointDef(collation = UnicodeCollationOrdering.name)
     assertEquals(UnicodeCollationOrdering, ep.lookupCollation)
   }
+
   @Test def testGetCollatorForAscii() = {
-    val ep = new EndpointDef(collation = AsciiCollationOrdering.name)
+    val ep = EndpointDef(collation = AsciiCollationOrdering.name)
     assertEquals(AsciiCollationOrdering, ep.lookupCollation)
-
   }
-
 }

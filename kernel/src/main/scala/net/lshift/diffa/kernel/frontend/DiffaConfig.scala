@@ -23,6 +23,7 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, EndpointSide}
 import net.lshift.diffa.participant.scanning.Collation
 import net.lshift.diffa.kernel.escalation.EscalationManager
+import java.lang
 
 /**
  * Describes a complete Diffa configuration in the context of a domain - this means that all of the objects
@@ -75,7 +76,7 @@ case class EndpointDef (
   val DEFAULT_URL_LENGTH_LIMIT = 1024
 
   /**
-   * Inidication of whether scanning is supported by the given endpoint.
+   * Indication of whether scanning is supported by the given endpoint.
    */
   def supportsScanning = scanUrl != null && scanUrl.length() > 0
 
@@ -97,7 +98,7 @@ case class EndpointDef (
 
     collation = ValidationUtil.maybeDefault(collation, AsciiCollationOrdering.name)
     ValidationUtil.ensureMembership(endPointPath, "collation", collation,
-      Set(AsciiCollationOrdering.name, UnicodeCollationOrdering.name))
+      CollationOrdering.namedCollations.map(_.name))
 
     Array(scanUrl,
           contentRetrievalUrl,
@@ -109,6 +110,7 @@ case class EndpointDef (
 
       ValidationUtil.requiredAndNotEmpty(categoryPath, "name", k)
       c.validate(categoryPath)
+      c.ensureOrderedOrNotAggregated(categoryPath, collation)
     }}
 
     ValidationUtil.ensureUniqueChildren(endPointPath, "views", "name", views.map(v => v.name))

@@ -6,11 +6,12 @@
   <dl>
     <dt>Name:</dt><dd class="name-container"><input data-bind-value="endpoint.name" type="text"><span data-bind-text="endpoint.name"></span></dd>
     <dt>Collation order</dt>
-    <dd class="collation">
-      <input type="radio" data-bind-checked="endpoint.collation" id="collationAscii" name="collation" value="ascii" checked="checked"/>
-        <label for="collationAscii">Ascii</label>
-      <input type="radio" data-bind-checked="endpoint.collation" id="collationUnicode" name="collation" value="unicode" />
-        <label for="collationUnicode" title="Case insensitive">Unicode</label>
+    <dd>
+      <select data-bind-value="endpoint.collation">
+        <option value="ascii">ASCII</option>
+        <option value="unicode">Unicode</option>
+        <option value="unordered">None</option>
+      </select>
     </dd>
   </dl>
 

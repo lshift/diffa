@@ -68,7 +68,7 @@ object ValidationUtil {
   /**
    * Verifies that the given value is a member of a permissible set.
    */
-  def ensureMembership(path:String, name:String, value:String, group:Set[String]) = {
+  def ensureMembership[T](path: String, name: String, value: T, group: Set[T]) = {
     if (value == null || !group.contains(value)) {
       throw new ConfigValidationException(path,
         "%s is invalid. %s is not a member of the set %s".format(name, value, group))
