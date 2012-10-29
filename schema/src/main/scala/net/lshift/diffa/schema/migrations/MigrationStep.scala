@@ -19,6 +19,7 @@ import org.hibernate.cfg.Configuration
 import net.lshift.hibernate.migrations.MigrationBuilder
 import org.apache.commons.lang.RandomStringUtils
 import java.sql.Timestamp
+import scala.collection.JavaConversions.mapAsJavaMap
 
 /**
  * Performs a database migration
@@ -53,4 +54,62 @@ trait VerifiedMigrationStep extends MigrationStep {
   def randomString() = RandomStringUtils.randomAlphanumeric(10)
   def randomInt() = RandomStringUtils.randomNumeric(7)
   def randomTimestamp() = new Timestamp(System.currentTimeMillis())
+
+  def createSpace(migration: MigrationBuilder, id: String, parentId: String, name: String) {
+    migration.insert("spaces").values(Map(
+      "id" -> id,
+      "parent" -> parentId,
+      "name" -> name,
+      "config_version" -> "0"
+    ))
+
+    migration.insert("space_paths").values(Map(
+      "ancestor"  -> id,
+      "descendant"   -> id,
+      "depth"   -> "0"
+    ))
+
+    migration.insert("space_paths").values(Map(
+      "ancestor"  -> parentId,
+      "descendant"   -> id,
+      "depth"   -> "0"
+    ))
+  }
+
+  def createEndpoint(migration:MigrationBuilder, spaceId:String, endpoint:String) {
+    migration.insert("endpoints").values(Map(
+      "space" -> spaceId,
+      "name" -> endpoint,
+      "scan_url" -> randomString(),
+      "content_retrieval_url" -> randomString(),
+      "version_generation_url" -> randomString(),
+      "inbound_url" -> randomString(),
+      "collation_type" -> "ascii"
+    ))
+  }
+
+  def createEndpointView(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+    migration.insert("endpoint_views").values(Map(
+      "space" -> spaceId,
+      "endpoint" -> endpoint,
+      "name" -> name
+    ))
+  }
+
+  def createUniqueCategoryName(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+    migration.insert("unique_category_names").values(Map(
+      "space" -> spaceId,
+      "endpoint" -> endpoint,
+      "name" -> name
+    ))
+  }
+
+  def createUniqueCategoryViewName(migration: MigrationBuilder, spaceId: String, endpoint: String, view: String, name: String) {
+    migration.insert("unique_category_view_names").values(Map(
+      "space" -> spaceId,
+      "endpoint" -> endpoint,
+      "name" -> name,
+      "view_name" -> view
+    ))
+  }
 }

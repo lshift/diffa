@@ -130,7 +130,7 @@ case class Endpoint(
   @BeanProperty var contentRetrievalUrl: String = null,
   @BeanProperty var versionGenerationUrl: String = null,
   @BeanProperty var inboundUrl: String = null,
-  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor],
+  @BeanProperty var categories: java.util.Map[String,AggregatingCategoryDescriptor] = new HashMap[String, AggregatingCategoryDescriptor],
   @BeanProperty var validateEntityOrder: String = EntityOrdering.ENFORCED,
   @BeanProperty var collation: String = AsciiCollationOrdering.name) {
 
@@ -196,7 +196,7 @@ case class Endpoint(
 case class EndpointView(
   @BeanProperty var name:String = null,
   @BeanProperty var endpoint:Endpoint = null,
-  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor]
+  @BeanProperty var categories: java.util.Map[String, CategoryDescriptor] = new HashMap[String, CategoryDescriptor]
 ) {
 
   def this() = this(name = null)

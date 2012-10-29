@@ -16,20 +16,16 @@
 
 package net.lshift.diffa.kernel.actors
 
-import java.util.concurrent.TimeUnit.MILLISECONDS
 import net.jcip.annotations.ThreadSafe
-import java.util.concurrent.ScheduledFuture
 import net.lshift.diffa.kernel.differencing._
 import net.lshift.diffa.kernel.events.{VersionID, PairChangeEvent}
 import net.lshift.diffa.kernel.participants.{DownstreamParticipant, UpstreamParticipant}
 import org.joda.time.{DateTimeZone, DateTime}
 import net.lshift.diffa.kernel.util.AlertCodes._
-import com.eaio.uuid.UUID
 import akka.actor._
 import akka.dispatch.{Await, ExecutionContext, Future}
 import akka.pattern.{ask, AskTimeoutException}
 
-import collection.mutable.{SynchronizedQueue, Queue}
 import collection.mutable.Queue
 import concurrent.SyncVar
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
@@ -437,6 +433,7 @@ case class PairActor(pair:DomainPairDef,
       // Allocate a feedback handle, and capture it into a local variable. This prevents us having problems
       // later if one adapter fails _really_ fast (ie, before the other has even made the scan* call).
       feedbackHandle = new ScanningFeedbackHandle
+      // race condition? If second thread allocates a new handle, our current handle might be theirs.
       val currentFeedbackHandle = feedbackHandle
 
       val infoMsg = scanView match {

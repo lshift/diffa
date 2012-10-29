@@ -102,7 +102,7 @@ class SecurityResource {
     aggregationsBuilder.maybeAddStringPrefixAggregation("name")
     val aggregations = aggregationsBuilder.toList
 
-    val aggregated = new UserScanningParticipant(systemConfig).perform(constraints, aggregations).toArray
+    val aggregated = new UserScanningParticipant(systemConfig).perform(constraints, aggregations).toArray.sortBy(_.getId)
 
     Response.ok(aggregated).build()
   }

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import org.junit.experimental.theories.{Theory, Theories, DataPoint}
 import org.easymock.{IAnswer, EasyMock}
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.config._
-import concurrent.SyncVar
 import net.lshift.diffa.adapter.scanning._
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.junit.Assume._
@@ -506,8 +505,8 @@ object AbstractDataDrivenPolicyTest {
 
   @DataPoint def noCategoriesScenario = Scenario(
     PairRef(name = "ab", space = 999L),
-    Endpoint(categories = new HashMap[String, CategoryDescriptor]),
-    Endpoint(categories = new HashMap[String, CategoryDescriptor]),
+    Endpoint(categories = new HashMap[String, AggregatingCategoryDescriptor]),
+    Endpoint(categories = new HashMap[String, AggregatingCategoryDescriptor]),
       EntityTx(Seq(),
         Vsn("id1", Map(), "vsn1"),
         Vsn("id2", Map(), "vsn2")

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.differencing
 
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.participants._
-import net.lshift.diffa.kernel.config.CategoryDescriptor
+import net.lshift.diffa.kernel.config.AggregatingCategoryDescriptor
 import scala.collection.JavaConversions._
 import net.lshift.diffa.adapter.scanning.{ScanConstraint, ScanResultEntry}
 
@@ -27,7 +27,7 @@ import net.lshift.diffa.adapter.scanning.{ScanConstraint, ScanResultEntry}
  */
 object DigestDifferencingUtils {
 
-  def differenceEntities(categories:Map[String, CategoryDescriptor],
+  def differenceEntities(categories:Map[String, AggregatingCategoryDescriptor],
                          ds1:Seq[ScanResultEntry],
                          ds2:Seq[ScanResultEntry],
                          constraints:Seq[ScanConstraint]) : Seq[VersionMismatch] = {

@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package net.lshift.diffa.kernel.config;
 
-import net.lshift.diffa.kernel.util.InvalidConstraintException;
 import net.lshift.diffa.adapter.scanning.ScanConstraint;
 import org.codehaus.jackson.annotate.JsonSubTypes;
 import org.codehaus.jackson.annotate.JsonTypeInfo;
@@ -24,17 +22,15 @@ import org.codehaus.jackson.annotate.JsonTypeInfo;
 import java.io.Serializable;
 
 /**
- * This provides various endpoint-specific attributes of a category that are necessary for the kernel
- * to be able auto-narrow a category.
+ * Each Endpoint View may define one or more constraints which further refine scan constraints for the Endpoint.
+ * A CategoryDescriptor is the parent interface for all such constraints.
  */
 @JsonTypeInfo(use=JsonTypeInfo.Id.NAME, include= JsonTypeInfo.As.PROPERTY, property="@type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = RangeCategoryDescriptor.class, name = "range"),
-  @JsonSubTypes.Type(value = SetCategoryDescriptor.class, name = "set"),
-  @JsonSubTypes.Type(value = PrefixCategoryDescriptor.class, name = "prefix")
+    @JsonSubTypes.Type(value = AggregatingCategoryDescriptor.class, name = "aggregating"),
+    @JsonSubTypes.Type(value = RollingWindowFilter.class, name = "rolling")
 })
-abstract public class CategoryDescriptor implements Serializable {
-
+public abstract class CategoryDescriptor implements Serializable {
   protected CategoryDescriptor() {
   }
 
@@ -55,12 +51,6 @@ abstract public class CategoryDescriptor implements Serializable {
    */
   public abstract void validate(String path);
 
-  public void ensureOrderedOrNotAggregated(String path, String collationOrder) {
-    if (collationOrder.equals(UnorderedCollationOrdering.name())) {
-      throw new InvalidAggregationConfigurationException(path);
-    }
-  }
-
   /**
    * Determines whether the given other category descriptor is of the same type as this category descriptor. This
    * provides a fundamental compatibility check that can be applied before considering more complex checks like
@@ -78,7 +68,9 @@ abstract public class CategoryDescriptor implements Serializable {
    * @return true - the provided other descriptor is a refinement; false - the other descriptor is outside the bounds of
    *      this descriptor.
    */
-  public abstract boolean isRefinement(CategoryDescriptor other);
+  public boolean isRefinement(CategoryDescriptor other) {
+    return false; // Only AggregatingCategoryDescriptors may be refined.
+  }
 
   /**
    * Applies the given other category descriptor as a refinement to this category descriptor. In many cases,
@@ -96,7 +88,7 @@ abstract public class CategoryDescriptor implements Serializable {
   /**
    * Ensures that the given constraint is acceptable to this category.
    * @param constraint the constraint to validate.
-   * @throws InvalidConstraintException if the constraint is invalid.
+   * @throws net.lshift.diffa.kernel.util.InvalidConstraintException if the constraint is invalid.
    */
   public abstract void validateConstraint(ScanConstraint constraint);
 }

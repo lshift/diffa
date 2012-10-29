@@ -39,6 +39,7 @@ import net.lshift.diffa.schema.tables.SetCategoryViews.SET_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
 import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.UniqueCategoryNames.UNIQUE_CATEGORY_NAMES
+import net.lshift.diffa.schema.tables.EndpointViewRollingWindows.ENDPOINT_VIEW_ROLLING_WINDOWS
 import net.lshift.diffa.schema.tables.UniqueCategoryViewNames.UNIQUE_CATEGORY_VIEW_NAMES
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
@@ -429,14 +430,15 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
     t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(id)).execute()
     t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.SPACE.equal(id)).execute()
-    t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.SPACE.equal(id)).execute()
     t.delete(PREFIX_CATEGORY_VIEWS).where(PREFIX_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(SET_CATEGORIES).where(SET_CATEGORIES.SPACE.equal(id)).execute()
+    t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.SPACE.equal(id)).execute()
     t.delete(SET_CATEGORY_VIEWS).where(SET_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.SPACE.equal(id)).execute()
+    t.delete(SET_CATEGORIES).where(SET_CATEGORIES.SPACE.equal(id)).execute()
+    t.delete(ENDPOINT_VIEW_ROLLING_WINDOWS).where(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(id)).execute()
     t.delete(RANGE_CATEGORY_VIEWS).where(RANGE_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.SPACE.equal(id)).execute()
+    t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.SPACE.equal(id)).execute()
     t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(id)).execute()
+    t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.SPACE.equal(id)).execute()
     t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.SPACE.equal(id)).execute()
     t.delete(PAIR_REPORTS).where(PAIR_REPORTS.SPACE.equal(id)).execute()
     t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.SPACE.equal(id)).execute()

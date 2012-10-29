@@ -28,7 +28,7 @@ import net.lshift.hibernate.migrations.MigrationBuilder
 
 import scala.collection.JavaConversions._
 import org.hibernate.`type`.IntegerType
-import org.hibernate.dialect.Dialect
+import org.hibernate.dialect.{Oracle10gDialect, Dialect}
 import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
 import org.hibernate.{SessionFactory}
 
@@ -137,16 +137,21 @@ class HibernateConfigStorePreparationStep
 
           val defaultCatalog = props.getProperty(Environment.DEFAULT_CATALOG)
           val defaultSchema = props.getProperty(dialectExtension.schemaPropertyName)
-
-          log.info("Retrieving table metadata: dialect = %s; extension = %s; catalog = %s; schema = %s".format(dialect, dialectExtension.getDialectName, defaultCatalog, defaultSchema))
-
-          val tableMetaData = dbMetadata.getTableMetadata(tableName, defaultSchema, defaultCatalog, false)
-
-          if (tableMetaData != null) {
-            log.info("Resulting metadata: name = %s; schema = %s".format(tableMetaData.getName, tableMetaData.getSchema))
-            hasTable = true
+          val schemaName = if (dialect.isInstanceOf[Oracle10gDialect]) {
+            props.getProperty(Environment.USER)
+          } else {
+            defaultSchema
           }
 
+          log.info("Retrieving table metadata: dialect = %s; extension = %s; user = %s; schema = %s".format(
+            dialect, dialectExtension.getDialectName, props.getProperty(Environment.USER), schemaName))
+
+          val tableMetaData = dbMetadata.getTableMetadata(tableName, schemaName, defaultCatalog, false)
+
+          if (tableMetaData != null) {
+            log.info("Resulting metadata: name = %s; schema = %s".format(tableMetaData.getName, schemaName))
+            hasTable = true
+          }
         }
       })
     })
@@ -189,6 +194,7 @@ object HibernateConfigStorePreparationStep {
    */
   val migrationSteps = Seq(
     Step0051,
-    Step0052
+    Step0052,
+    Step0053
   )
 }

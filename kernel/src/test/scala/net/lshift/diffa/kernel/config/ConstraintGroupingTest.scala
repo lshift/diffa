@@ -34,7 +34,7 @@ class ConstraintGroupingTest {
 }
 
 object ConstraintGroupingTest {
-  case class GroupExpectation(categories:Map[String,CategoryDescriptor], grouped:Seq[Seq[ScanConstraint]])
+  case class GroupExpectation(categories:Map[String,AggregatingCategoryDescriptor], grouped:Seq[Seq[ScanConstraint]])
 
   @DataPoint def rangeOnly =
     GroupExpectation(

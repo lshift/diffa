@@ -29,7 +29,6 @@ import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.Endpoints.ENDPOINTS
 import net.lshift.diffa.schema.tables.Pairs.PAIRS
 import net.lshift.diffa.schema.tables.Spaces.SPACES
-import net.lshift.diffa.schema.tables.SpacePaths.SPACE_PATHS
 import net.lshift.diffa.schema.tables.EndpointViews.ENDPOINT_VIEWS
 import net.lshift.diffa.schema.tables.Breakers.BREAKERS
 import net.lshift.diffa.schema.tables.Extents.EXTENTS
@@ -290,7 +289,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
     jooq.execute(t => {
 
-      // Attempt to prevent unecessary sequence churn when updating pairs
+      // Attempt to prevent unnecessary sequence churn when updating pairs
       // TODO We should consider splitting out create and update APIs for records that use sequences
       val rows = t.update(PAIRS).
           set(PAIRS.UPSTREAM, pair.upstreamName).

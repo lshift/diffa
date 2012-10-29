@@ -15,7 +15,8 @@ import net.lshift.diffa.kernel.frontend.PairDef
  */
 @RunWith(classOf[Theories])
 class JooqServiceLimitsStoreTest {
-  
+  import JooqServiceLimitsStoreTest.{Scenario, CascadingLimitScenario, LimitEnforcementScenario}
+
   var space:Space = null
   var pairRef:PairRef = null 
 
@@ -349,20 +350,20 @@ trait TestLimiter {
   def actionPerformed: Unit
 }
 
-abstract class Scenario
-
-case class LimitEnforcementScenario(systemLimit: Option[Int],
-                                    domainLimit: Option[Int],
-                                    pairLimit: Option[Int],
-                                    enforcedLimit: Int, usage: Int) extends Scenario
-
-case class CascadingLimitScenario(systemHardLimit: (Int, Option[Int], Int),
-                                  systemDefaultLimit: (Int, Option[Int], Int),
-                                  domainHardLimit: (Option[Int], Option[Int], Option[Int]),
-                                  domainDefaultLimit: (Option[Int], Option[Int], Option[Int]),
-                                  pairLimit: (Option[Int], Option[Int], Option[Int])) extends Scenario
-
 object JooqServiceLimitsStoreTest {
+  abstract class Scenario
+
+  case class LimitEnforcementScenario(systemLimit: Option[Int],
+                                      domainLimit: Option[Int],
+                                      pairLimit: Option[Int],
+                                      enforcedLimit: Int, usage: Int) extends Scenario
+
+  case class CascadingLimitScenario(systemHardLimit: (Int, Option[Int], Int),
+                                    systemDefaultLimit: (Int, Option[Int], Int),
+                                    domainHardLimit: (Option[Int], Option[Int], Option[Int]),
+                                    domainDefaultLimit: (Option[Int], Option[Int], Option[Int]),
+                                    pairLimit: (Option[Int], Option[Int], Option[Int])) extends Scenario
+
   private[JooqServiceLimitsStoreTest] val env = TestDatabaseEnvironments.uniqueEnvironment("target/serviceLimitsStore")
 
   private[JooqServiceLimitsStoreTest] val storeReferences =

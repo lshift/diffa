@@ -6,7 +6,7 @@ import org.junit.Assert
 import org.junit.Assert.assertEquals
 import net.lshift.diffa.kernel.config
 import config.{UnicodeCollationOrdering, AsciiCollationOrdering, UnorderedCollationOrdering}
-import config.{CategoryDescriptor, RangeCategoryDescriptor, PrefixCategoryDescriptor, SetCategoryDescriptor}
+import config.{AggregatingCategoryDescriptor, RangeCategoryDescriptor, PrefixCategoryDescriptor, SetCategoryDescriptor}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theory, DataPoint, Theories}
 
@@ -138,7 +138,7 @@ class EndpointDefValidationTest extends DefValidationTestBase {
 }
 
 object EndpointDefValidationTest {
-  case class Scenario(aggregatingCategory: CategoryDescriptor)
+  case class Scenario(aggregatingCategory: AggregatingCategoryDescriptor)
 
   @DataPoint def yearly = Scenario(new RangeCategoryDescriptor("date", "2012-01-01", "2013-01-01", "yearly"))
   @DataPoint def monthly = Scenario(new RangeCategoryDescriptor("date", "2012-01-01", "2012-02-01", "monthly"))

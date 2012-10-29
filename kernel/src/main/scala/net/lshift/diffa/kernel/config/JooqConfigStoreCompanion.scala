@@ -24,6 +24,7 @@ import net.lshift.diffa.schema.tables.SetCategories.SET_CATEGORIES
 import net.lshift.diffa.schema.tables.SetCategoryViews.SET_CATEGORY_VIEWS
 import net.lshift.diffa.schema.tables.RangeCategories.RANGE_CATEGORIES
 import net.lshift.diffa.schema.tables.RangeCategoryViews.RANGE_CATEGORY_VIEWS
+import net.lshift.diffa.schema.tables.EndpointViewRollingWindows.ENDPOINT_VIEW_ROLLING_WINDOWS
 import scala.collection.JavaConversions._
 import net.lshift.diffa.schema.tables.Escalations.ESCALATIONS
 import net.lshift.diffa.schema.tables.EscalationRules.ESCALATION_RULES
@@ -61,11 +62,13 @@ object JooqConfigStoreCompanion {
   val log = LoggerFactory.getLogger(getClass)
 
   /**
-   * A UNIQUE_CATEGORY_NAME can either refer to an endpoint or an endpoint view.
-   * These two enums signify those two legal values.
+   * Endpoints do not have filters such as rolling windows; they only have aggregating categories.
+   * The endpoint part of the view still needs the same arity, so these two column names are place-holders
+   * in the endpoint part of the query.
    */
-  val ENDPOINT_TARGET_TYPE = "endpoint"
-  val ENDPOINT_VIEW_TARGET_TYPE = "endpoint_view"
+  val PERIOD_COLUMN = "rw_period"
+  val OFFSET_COLUMN = "rw_offset"
+
 
   /**
    * Common name for the name of the view across both halves of the union query to list endpoints.
@@ -90,6 +93,8 @@ object JooqConfigStoreCompanion {
         select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
         select(PREFIX_CATEGORIES.STEP, PREFIX_CATEGORIES.PREFIX_LENGTH, PREFIX_CATEGORIES.MAX_LENGTH).
         select(SET_CATEGORIES.VALUE).
+        select(Factory.field("null").as(PERIOD_COLUMN)).
+        select(Factory.field("null").as(OFFSET_COLUMN)).
         select(SPACES.NAME.as(SPACE_NAME_ALIAS)).
         from(ENDPOINTS).
 
@@ -131,6 +136,8 @@ object JooqConfigStoreCompanion {
         select(RANGE_CATEGORY_VIEWS.DATA_TYPE, RANGE_CATEGORY_VIEWS.LOWER_BOUND, RANGE_CATEGORY_VIEWS.UPPER_BOUND, RANGE_CATEGORY_VIEWS.MAX_GRANULARITY).
         select(PREFIX_CATEGORY_VIEWS.STEP, PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, PREFIX_CATEGORY_VIEWS.MAX_LENGTH).
         select(SET_CATEGORY_VIEWS.VALUE).
+        select(ENDPOINT_VIEW_ROLLING_WINDOWS.PERIOD).
+        select(ENDPOINT_VIEW_ROLLING_WINDOWS.OFFSET).
         select(SPACES.NAME.as(SPACE_NAME_ALIAS)).
         from(ENDPOINT_VIEWS).
 
@@ -159,7 +166,12 @@ object JooqConfigStoreCompanion {
         leftOuterJoin(SET_CATEGORY_VIEWS).
           on(SET_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
           and(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME))
+          and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
+
+        leftOuterJoin(ENDPOINT_VIEW_ROLLING_WINDOWS).
+          on(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          and(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          and(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME))
 
       val secondUnionPart = space match {
         case None    => bottomHalf
@@ -226,19 +238,26 @@ object JooqConfigStoreCompanion {
 
         val categoryName = record.getValueAsString(UNIQUE_CATEGORY_ALIAS)
 
-        def applyCategoryToEndpointOrView(descriptor:CategoryDescriptor) = {
+        def applyCategoryToEndpoint(descriptor: AggregatingCategoryDescriptor) =
+          resolvedEndpoint.categories.put(categoryName, descriptor)
+
+        def applyFilterToEndpointView(descriptor: CategoryDescriptor, view: EndpointViewDef) =
+          view.categories.put(categoryName, descriptor)
+
+        def applyCategoryToEndpointOrView(descriptor: CategoryDescriptor) = {
           currentView match {
-            case None    => resolvedEndpoint.categories.put(categoryName, descriptor)
-            case Some(v) => v.categories.put(categoryName, descriptor)
+            // Since Map is invariant in its value type parameter, we resort to casting instead of using type bounds.
+            case None    => applyCategoryToEndpoint(descriptor.asInstanceOf[AggregatingCategoryDescriptor])
+            case Some(v) => applyFilterToEndpointView(descriptor, v)
           }
         }
 
-        def applySetMemberToDescriptorMapForCurrentCategory(value:String, descriptors:java.util.Map[String,CategoryDescriptor]) = {
-          var descriptor = descriptors.get(categoryName)
+        def applySetMemberToDescriptorMapForCurrentCategory[T <: CategoryDescriptor](value:String, descriptor: T,
+            insertNewSetFn: (SetCategoryDescriptor) => Unit) {
           if (descriptor == null) {
             val setDescriptor = new SetCategoryDescriptor()
             setDescriptor.addValue(value)
-            descriptors.put(categoryName, setDescriptor)
+            insertNewSetFn(setDescriptor)
           }
           else {
             descriptor.asInstanceOf[SetCategoryDescriptor].addValue(value)
@@ -252,7 +271,6 @@ object JooqConfigStoreCompanion {
           val maxGranularity = record.getValue(RANGE_CATEGORIES.MAX_GRANULARITY)
           val descriptor = new RangeCategoryDescriptor(dataType, lowerBound, upperBound, maxGranularity)
           applyCategoryToEndpointOrView(descriptor)
-
         }
         else if (record.getValue(PREFIX_CATEGORIES.PREFIX_LENGTH) != null) {
           val prefixLength = record.getValue(PREFIX_CATEGORIES.PREFIX_LENGTH)
@@ -268,12 +286,20 @@ object JooqConfigStoreCompanion {
           val setCategoryValue = record.getValue(SET_CATEGORIES.VALUE)
           currentView match {
             case None    =>
-              applySetMemberToDescriptorMapForCurrentCategory(setCategoryValue, resolvedEndpoint.categories)
+              applySetMemberToDescriptorMapForCurrentCategory(setCategoryValue,
+                resolvedEndpoint.categories.get(categoryName),
+                setCat => resolvedEndpoint.categories.put(categoryName, setCat))
             case Some(v) =>
-              applySetMemberToDescriptorMapForCurrentCategory(setCategoryValue, v.categories)
+              applySetMemberToDescriptorMapForCurrentCategory(setCategoryValue,
+                v.categories.get(categoryName),
+                setCat => v.categories.put(categoryName, setCat))
           }
+        } else if (record.getValueAsString(PERIOD_COLUMN) != null) {
+          val period = record.getValueAsString(PERIOD_COLUMN)
+          val offset = record.getValueAsString(OFFSET_COLUMN)
+          val filter = new RollingWindowFilter(period, offset)
+          applyFilterToEndpointView(filter, currentView.get)
         }
-
       })
 
       new java.util.ArrayList[DomainEndpointDef](endpoints.values())
@@ -527,6 +553,7 @@ object JooqConfigStoreCompanion {
           case r:RangeCategoryDescriptor  => insertRangeCategory(t, space, endpoint.name, categoryName, r)
           case s:SetCategoryDescriptor    => insertSetCategory(t, space, endpoint.name, categoryName, s)
           case p:PrefixCategoryDescriptor => insertPrefixCategory(t, space, endpoint.name, categoryName, p)
+          case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoints.
         }
       }
       catch {
@@ -563,6 +590,7 @@ object JooqConfigStoreCompanion {
           case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, space, endpoint, view.name, categoryName, r)
           case s:SetCategoryDescriptor    => insertSetCategoryView(t, space, endpoint, view.name, categoryName, s)
           case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, space, endpoint, view.name, categoryName, p)
+          case rw: RollingWindowFilter => insertViewRollingWindow(t, space, endpoint, view.name, categoryName, rw)
         }
       }
       catch {
@@ -667,6 +695,21 @@ object JooqConfigStoreCompanion {
       execute()
   }
 
+  def insertViewRollingWindow(t: Factory,
+                          space: Long,
+                          endpoint: String,
+                          viewName: String,
+                          categoryName: String,
+                          filter: RollingWindowFilter) =
+    t.insertInto(ENDPOINT_VIEW_ROLLING_WINDOWS).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE, space: LONG).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT, endpoint).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.VIEW_NAME, viewName).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME, categoryName).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.PERIOD, filter.periodExpression).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.OFFSET, filter.offsetDurationExpression).
+      execute()
+
   def insertRangeCategoryView(t:Factory,
                               space:Long,
                               endpoint:String,
@@ -728,23 +771,28 @@ object JooqConfigStoreCompanion {
   }
 
   def deleteCategories(t:Factory, space:Long, endpoint:String) = {
-    deletePrefixCategories(t, space, endpoint)
     deletePrefixCategoryViews(t, space, endpoint)
+    deletePrefixCategories(t, space, endpoint)
 
-    deleteSetCategories(t, space, endpoint)
     deleteSetCategoryViews(t, space, endpoint)
+    deleteSetCategories(t, space, endpoint)
 
-    deleteRangeCategories(t, space, endpoint)
     deleteRangeCategoryViews(t, space, endpoint)
+    deleteRangeCategories(t, space, endpoint)
 
-    t.delete(UNIQUE_CATEGORY_NAMES).
-      where(UNIQUE_CATEGORY_NAMES.SPACE.equal(space:LONG)).
-        and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
+    t.delete(ENDPOINT_VIEW_ROLLING_WINDOWS).
+      where(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(space:LONG)).
+      and(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(endpoint)).
       execute()
 
     t.delete(UNIQUE_CATEGORY_VIEW_NAMES).
       where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(space:LONG)).
-        and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(endpoint)).
+      and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(endpoint)).
+      execute()
+
+    t.delete(UNIQUE_CATEGORY_NAMES).
+      where(UNIQUE_CATEGORY_NAMES.SPACE.equal(space:LONG)).
+        and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
       execute()
   }
 

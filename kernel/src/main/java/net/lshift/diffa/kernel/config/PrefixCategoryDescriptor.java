@@ -24,7 +24,7 @@ import net.lshift.diffa.adapter.scanning.StringPrefixConstraint;
 /**
  * This describes a category that can be constrained by a prefix.
  */
-public class PrefixCategoryDescriptor extends CategoryDescriptor {
+public class PrefixCategoryDescriptor extends AggregatingCategoryDescriptor {
 
   public PrefixCategoryDescriptor() {
   }

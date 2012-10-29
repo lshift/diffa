@@ -91,7 +91,7 @@ class MemoryParticipantBase(nativeVsnGen: String => String)
           false   // We can't satisfy other constraints
       }
     }).toList
-    val asScanResults = entitiesInRange.sortWith(_.id < _.id).map { e => new ScanResultEntry(e.id, nativeVsnGen(e.body), e.lastUpdated, e.toAttributes) }
+    val asScanResults = entitiesInRange.sortBy(_.id).map { e => new ScanResultEntry(e.id, nativeVsnGen(e.body), e.lastUpdated, e.toAttributes) }
 
     if (aggregations.length > 0) {
       val digester = new DigestBuilder(aggregations)
