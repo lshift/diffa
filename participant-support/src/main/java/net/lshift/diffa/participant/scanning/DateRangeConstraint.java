@@ -94,7 +94,7 @@ public class DateRangeConstraint extends AbstractScanConstraint implements Range
   }
 
   private static LocalDate maybeParse(String dateStr) {
-    if (dateStr == null) {
+    if (dateStr == null || dateStr.equals("")) {
       return null;
     } else {
       return parser.parseDateTime(dateStr).toLocalDate();

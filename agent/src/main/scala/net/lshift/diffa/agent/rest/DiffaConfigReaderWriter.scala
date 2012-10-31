@@ -23,14 +23,14 @@ import javax.ws.rs.ext.{MessageBodyWriter, MessageBodyReader, Provider}
 import javax.ws.rs.{Consumes, Produces}
 import org.springframework.core.io.ClassPathResource
 import org.springframework.oxm.castor.CastorMarshaller
-import javax.xml.transform.Result
 import java.io.{StringWriter, OutputStream, InputStream}
 import javax.xml.transform.stream.{StreamSource, StreamResult}
 import scala.collection.JavaConversions._
 import reflect.BeanProperty
 import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.differencing.PairScanState
 import net.lshift.diffa.kernel.frontend._
+import java.util
+import net.lshift.diffa.kernel.util.CategoryUtil
 
 /**
  * Provider for encoding and decoding diffa configuration blocks.
@@ -122,11 +122,28 @@ trait Categorized {
       map { case (key, cat) => new CastorSerializableSetCategoryDescriptor(key, cat.asInstanceOf[SetCategoryDescriptor]) }.toList
   }
 
-  protected def toDiffaCategories:java.util.Map[String, CategoryDescriptor] = {
-    rangeCategories.map(c => c.name -> c.toRangeCategoryDescriptor).toMap[String, CategoryDescriptor] ++
-        prefixCategories.map(c => c.name -> c.toPrefixCategoryDescriptor).toMap[String, CategoryDescriptor] ++
-        setCategories.map(c => c.name -> c.toSetCategoryDescriptor).toMap[String, CategoryDescriptor]
+  protected def toDiffaCategories:java.util.Map[String, CategoryDescriptor] =
+    rangeCategories.map(c => c.name -> c.toRangeCategoryDescriptor).toMap[String, AggregatingCategoryDescriptor] ++
+      prefixCategories.map(c => c.name -> c.toPrefixCategoryDescriptor).toMap[String, AggregatingCategoryDescriptor] ++
+      setCategories.map(c => c.name -> c.toSetCategoryDescriptor).toMap[String, AggregatingCategoryDescriptor]
+
+  protected def toDiffaAggregatingCategories = toDiffaCategories.filter { case (key, cat) =>
+    cat.isInstanceOf[AggregatingCategoryDescriptor]
+  }.map { case (key, cat) => key -> cat.asInstanceOf[AggregatingCategoryDescriptor] }
+}
+
+trait Filtered extends Categorized {
+  @BeanProperty var rollingWindows: java.util.List[CastorSerializableRollingWindowFilter] = new util.ArrayList[CastorSerializableRollingWindowFilter]()
+
+  override protected def fromDiffaCategories(categories: java.util.Map[String, CategoryDescriptor]) {
+    super.fromDiffaCategories(categories)
+    rollingWindows = categories.filter { case (key, cat) => cat.isInstanceOf[RollingWindowFilter] }.map { case (key, cat) =>
+      new CastorSerializableRollingWindowFilter(key, cat.asInstanceOf[RollingWindowFilter])
+    }.toList
   }
+
+  override def toDiffaCategories = super.toDiffaCategories ++
+    rollingWindows.map(c => c.name -> c.toRollingWindowFilter).toMap[String, CategoryDescriptor]
 }
 
 class CastorSerializableEndpoint extends Categorized {
@@ -145,7 +162,7 @@ class CastorSerializableEndpoint extends Categorized {
     this.contentRetrievalUrl = e.contentRetrievalUrl
     this.versionGenerationUrl = e.versionGenerationUrl
     this.inboundUrl = e.inboundUrl
-    this.fromDiffaCategories(e.categories)
+    this.fromDiffaCategories(CategoryUtil.aggregatingCategoriesToFilters(e.categories))
     this.views = e.views.map(v => new CastorSerializableEndpointView().fromDiffaEndpointView(v));
     this.validateEntityOrder = e.validateEntityOrder
     this.collation = e.collation
@@ -157,14 +174,14 @@ class CastorSerializableEndpoint extends Categorized {
     EndpointDef(
       name = name, inboundUrl = inboundUrl,
       scanUrl = scanUrl, contentRetrievalUrl = contentRetrievalUrl, versionGenerationUrl = versionGenerationUrl,
-      categories = toDiffaCategories,
+      categories = toDiffaAggregatingCategories,
       views = views.map(v => v.toDiffaEndpointView),
       validateEntityOrder = validateEntityOrder,
       collation = collation
     )
 }
 
-class CastorSerializableEndpointView extends Categorized {
+class CastorSerializableEndpointView extends Filtered {
   @BeanProperty var name: String = null
 
   def fromDiffaEndpointView(e:EndpointViewDef) = {
@@ -209,6 +226,17 @@ class CastorSerializableSetCategoryDescriptor(@BeanProperty var name:String, @Be
 }
 class SetValue(@BeanProperty var value:String) {
   def this() = this(null)
+}
+
+class CastorSerializableRollingWindowFilter(
+  @BeanProperty var name: String,
+  @BeanProperty var period: String,
+  @BeanProperty var offset: String) {
+
+  def this() = this(null, null, null)
+  def this(name: String, rwf: RollingWindowFilter) = this(name, rwf.periodExpression, rwf.offsetDurationExpression)
+
+  def toRollingWindowFilter = new RollingWindowFilter(period, offset)
 }
 
 class CastorSerializablePair(

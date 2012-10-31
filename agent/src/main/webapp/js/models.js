@@ -43,6 +43,7 @@ Diffa.Helpers.CategoriesHelper = {
       model.rangeCategories.unpack(model.get('categories'));
       model.setCategories.unpack(model.get('categories'));
       model.prefixCategories.unpack(model.get('categories'));
+      model.rollingWindows.unpack(model.get('categories'));
     };
 
     model.bind('change:categories', updateCategories);
@@ -50,8 +51,14 @@ Diffa.Helpers.CategoriesHelper = {
     model.rangeCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'range'});
     model.setCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'set'});
     model.prefixCategories = new Diffa.Collections.CategoryCollection([], {categoryType: 'prefix'});
+    model.rollingWindows = new Diffa.Collections.CategoryCollection([], {categoryType: 'rolling'});
 
-    Diffa.Helpers.DirtyTracker.proxyChange(model, [model.rangeCategories, model.setCategories, model.prefixCategories]);
+    Diffa.Helpers.DirtyTracker.proxyChange(model, [
+      model.rangeCategories,
+      model.setCategories,
+      model.prefixCategories,
+      model.rollingWindows
+    ]);
 
     updateCategories();
   },
@@ -61,6 +68,7 @@ Diffa.Helpers.CategoriesHelper = {
     model.rangeCategories.pack(categories);
     model.setCategories.pack(categories);
     model.prefixCategories.pack(categories);
+    model.rollingWindows.pack(categories);
 
     model.set({categories: categories}, {silent: true});
   }
@@ -106,6 +114,7 @@ Diffa.Models.Endpoint = Backbone.Model.extend({
     var pcm = this.prefixCategories.models
     var rcm = this.rangeCategories.models
     var scm = this.setCategories.models
+    var rwm = this.rollingWindows.models
     var freq = {}
     this.accumulate(freq, pcm);
     this.accumulate(freq, rcm);
@@ -167,6 +176,7 @@ Diffa.Models.Endpoint = Backbone.Model.extend({
     applyCategory("range", this.rangeCategories);
     applyCategory("set", this.setCategories);
     applyCategory("prefix", this.prefixCategories);
+    applyCategory("rolling", this.rollingWindows);
 
     if (result.length > 0) {
       return result.join(", ");

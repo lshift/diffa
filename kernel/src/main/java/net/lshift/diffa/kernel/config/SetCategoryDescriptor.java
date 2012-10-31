@@ -26,7 +26,7 @@ import java.util.TreeSet;
 /**
  * This describes a category that constrains attributes based on a set of values.
  */
-public class SetCategoryDescriptor extends CategoryDescriptor {
+public class SetCategoryDescriptor extends AggregatingCategoryDescriptor {
 
   /**
    * The set of attribute values that a search space should contain.

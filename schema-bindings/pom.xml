@@ -5,12 +5,12 @@
   <parent>
     <groupId>net.lshift.diffa</groupId>
     <artifactId>diffa-parent</artifactId>
-    <version>1.5.6</version>
+    <version>1.5.7</version>
   </parent>
 
   <groupId>net.lshift.diffa</groupId>
   <artifactId>diffa-schema-bindings</artifactId>
-  <version>1.5.6</version>
+  <version>1.5.7</version>
 
   <name>LShift Diffa Schema Bindings</name>
   <description>JOOQ model class generation</description>

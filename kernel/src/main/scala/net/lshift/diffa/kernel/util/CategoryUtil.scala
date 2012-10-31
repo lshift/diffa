@@ -15,7 +15,6 @@
  */
 package net.lshift.diffa.kernel.util
 
-import net.lshift.diffa.kernel.participants.StringPrefixCategoryFunction._
 import scala.Option._
 import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
@@ -58,6 +57,7 @@ object CategoryUtil {
           case s:SetCategoryDescriptor    => None
           case r:RangeCategoryDescriptor  => RangeTypeRegistry.defaultCategoryFunction(name, r)
           case p:PrefixCategoryDescriptor => Some(StringPrefixCategoryFunction(name, p.prefixLength, p.maxLength, p.step))
+          case c: CategoryDescriptor      => None // only affects filtering, not aggregation.
         }
       }
     }.toSeq
@@ -66,7 +66,7 @@ object CategoryUtil {
   /**
    * Creates Category Functions for the given aggregations.
    */
-  def categoryFunctionsFor(aggregations:Seq[ScanAggregation], categories: Iterable[(String,CategoryDescriptor)]): Seq[CategoryFunction] = {
+  def categoryFunctionsFor(aggregations:Seq[ScanAggregation], categories: Iterable[(String,AggregatingCategoryDescriptor)]): Seq[CategoryFunction] = {
     val mappedCategories = categories.toMap
 
     aggregations.map {
@@ -122,6 +122,8 @@ object CategoryUtil {
               Some(r.toConstraint(name))
             }
           }
+          case rw: RollingWindowFilter =>
+            Some(rw.toConstraint(name))
           case p:PrefixCategoryDescriptor =>
             None
         }
@@ -142,7 +144,7 @@ object CategoryUtil {
   /**
    * Configures an AggregationBuilder based on the given category descriptors.
    */
-  def buildAggregations(builder: AggregationBuilder, descriptors: Map[String, CategoryDescriptor]) {
+  def buildAggregations(builder: AggregationBuilder, descriptors: Map[String, AggregatingCategoryDescriptor]) {
     descriptors.foreach {
       case (name, _:SetCategoryDescriptor)    => // Nothing to do
       case (name, _:PrefixCategoryDescriptor) => builder.maybeAddStringPrefixAggregation(name)
@@ -178,7 +180,7 @@ object CategoryUtil {
    * A category change is a mapping from category name to (before, after). before and after are both optional - a missing
    * before implies a new category, a missing after implies a removed category, both present indicates a category change.
    */
-  def differenceCategories(existing: Map[String, CategoryDescriptor], updated: Map[String, CategoryDescriptor]):
+  def differenceCategories(existing: Map[String, AggregatingCategoryDescriptor], updated: Map[String, AggregatingCategoryDescriptor]):
       Seq[CategoryChange] = {
     val existingKeys = existing.keySet.toSet
     val updatedKeys = updated.keySet.toSet
@@ -193,11 +195,15 @@ object CategoryUtil {
 
     removed ++ added ++ changed
   }
+
+  def aggregatingCategoriesToFilters(aggregatingCategories: java.util.Map[String, AggregatingCategoryDescriptor]) =
+    aggregatingCategories.map { case (key, cat) =>
+      key -> cat.asInstanceOf[CategoryDescriptor]
+    }
 }
 
-case class CategoryChange(name:String, before:Option[CategoryDescriptor], after:Option[CategoryDescriptor]) {
+case class CategoryChange(name:String, before:Option[AggregatingCategoryDescriptor], after:Option[AggregatingCategoryDescriptor]) {
   def isRemoval = after.isEmpty
   def isAddition = before.isEmpty
   def isChange = before.isDefined && after.isDefined
 }
-

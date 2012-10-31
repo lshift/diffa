@@ -202,6 +202,9 @@
     <field name="setCategories" type="net.lshift.diffa.agent.rest.CastorSerializableSetCategoryDescriptor" collection="arraylist">
       <bind-xml name="set-category" />
     </field>
+    <field name="rollingWindows" type="net.lshift.diffa.agent.rest.CastorSerializableRollingWindowFilter" collection="arraylist">
+      <bind-xml name="rolling-window" />
+    </field>
   </class>
 
   <class name="net.lshift.diffa.agent.rest.CastorSerializablePairView">

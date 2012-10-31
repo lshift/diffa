@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2010-2011 LShift Ltd.
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,11 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import scala.collection.mutable.{HashMap}
 import scala.collection.JavaConversions._
-import scala.concurrent.SyncVar
 
 import org.easymock.EasyMock._
 import org.easymock.{IAnswer, EasyMock}
 import org.joda.time.DateTime
-import org.apache.commons.codec.digest.DigestUtils
 import org.junit.Test
 
 import net.lshift.diffa.kernel.util.EasyMockScalaUtils._
@@ -119,8 +116,8 @@ abstract class AbstractPolicyTest {
   def bizDateStrMap(d:DateTime) = Map("bizDate" -> d.toString())
 
   case class PolicyTestData(
-    upstreamCategories: Map[String, CategoryDescriptor],
-    downstreamCategories: Map[String, CategoryDescriptor],
+    upstreamCategories: Map[String, AggregatingCategoryDescriptor],
+    downstreamCategories: Map[String, AggregatingCategoryDescriptor],
     bucketing:Seq[Seq[CategoryFunction]],
     constraints: Seq[Seq[ScanConstraint]],
     attributes: Seq[Map[String, String]],
@@ -237,8 +234,8 @@ abstract class AbstractPolicyTest {
   }
 
   protected def shouldStoreDownstreamChangesToCorrelationStoreAndNotifyDifferencesManager(
-    upstreamCategories: Map[String, CategoryDescriptor],
-    downstreamCategories: Map[String, CategoryDescriptor],
+    upstreamCategories: Map[String, AggregatingCategoryDescriptor],
+    downstreamCategories: Map[String, AggregatingCategoryDescriptor],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
     upstream.categories = upstreamCategories
@@ -255,8 +252,8 @@ abstract class AbstractPolicyTest {
   }
 
   protected def shouldStoreDownstreamCorrelatedChangesToCorrelationStoreAndNotifyDifferencesManager(
-    upstreamCategories: Map[String, CategoryDescriptor],
-    downstreamCategories: Map[String, CategoryDescriptor],
+    upstreamCategories: Map[String, AggregatingCategoryDescriptor],
+    downstreamCategories: Map[String, AggregatingCategoryDescriptor],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
     upstream.categories = upstreamCategories
@@ -272,8 +269,8 @@ abstract class AbstractPolicyTest {
   }
 
   protected def shouldRaiseMatchEventWhenDownstreamCausesMatchOfUpstream(
-    upstreamCategories: Map[String, CategoryDescriptor],
-    downstreamCategories: Map[String, CategoryDescriptor],
+    upstreamCategories: Map[String, AggregatingCategoryDescriptor],
+    downstreamCategories: Map[String, AggregatingCategoryDescriptor],
     downstreamAttributes: Map[String, TypedAttribute]
   ) {
     upstream.categories = upstreamCategories

@@ -16,6 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
+import org.junit.Assert
 import org.junit.Assert._
 import org.hamcrest.Matchers._
 import scala.collection.Map
@@ -31,8 +32,13 @@ import net.lshift.diffa.kernel.preferences.FilteredItemType
 import com.eaio.uuid.UUID
 import java.sql.SQLIntegrityConstraintViolationException
 import org.jooq.exception.DataAccessException
+import org.junit.experimental.theories.{DataPoint, Theories, Theory}
+import org.junit.runner.RunWith
+import org.apache.commons.lang.RandomStringUtils
 
+@RunWith(classOf[Theories])
 class JooqDomainConfigStoreTest {
+  import JooqDomainConfigStoreTest.{Scenario, randomDomain}
   private val log = LoggerFactory.getLogger(getClass)
 
   private val storeReferences = JooqDomainConfigStoreTest.storeReferences
@@ -408,6 +414,45 @@ class JooqDomainConfigStoreTest {
     }
   }
 
+  @Theory
+  def shouldStoreAnEndpoint(scenario: Scenario) {
+    val domain = randomDomain()
+    systemConfigStore.createOrUpdateDomain(domain)
+    domainConfigStore.createOrUpdateEndpoint(domain, scenario.upstream)
+
+    Assert.assertEquals("The endpoint retrieved should match the endpoint declared",
+      scenario.upstream, domainConfigStore.getEndpointDef(domain, scenario.upstream.name))
+  }
+
+  @Theory
+  def shouldListEndpoints(scenario: Scenario) {
+    val endpoints = Seq(scenario.upstream, scenario.downstream)
+    val domain = randomDomain()
+
+    val space = systemConfigStore.createOrUpdateDomain(domain)
+
+    endpoints.foreach { endpoint =>
+      domainConfigStore.createOrUpdateEndpoint(domain, endpoint)
+    }
+
+    Assert.assertEquals("The endpoints retrieved should match those declared",
+      endpoints.sortBy(_.name), domainConfigStore.listEndpoints(domain).sortBy(_.name))
+  }
+
+  @Theory
+  def shouldStoreRedeclaredEndpoint(scenario: Scenario) {
+    scenario.newUp.foreach { newUpstream =>
+      val domain = randomDomain()
+      systemConfigStore.createOrUpdateDomain(domain)
+
+      domainConfigStore.createOrUpdateEndpoint(domain, scenario.upstream)
+      domainConfigStore.createOrUpdateEndpoint(domain, newUpstream)
+
+      Assert.assertEquals("The new endpoint definition should replace the previous definition",
+        newUpstream, domainConfigStore.getEndpointDef(domain, newUpstream.name))
+    }
+  }
+
   @Test
   def shouldBeAbleToRedeclareEndpoints = {
 
@@ -476,13 +521,17 @@ class JooqDomainConfigStoreTest {
       ))
     verifyEndpoints(Seq(down_v4, up_v2))
 
-    val up_v3 = up_v0.copy(views = List(EndpointViewDef(
-      name = "view1",
-      categories = Map(
-        "november" -> new RangeCategoryDescriptor("date", null, "2010-11-11", null),
-        "zulu"     -> new PrefixCategoryDescriptor(3,6,3)
-      )
-    )))
+    val up_v3 = up_v0.copy(categories = Map(
+      "november" -> new RangeCategoryDescriptor("date", null, "2010-11-11", null),
+      "zulu"     -> new PrefixCategoryDescriptor(3,6,3)
+    ),
+      views = List(EndpointViewDef(
+        name = "view1",
+        categories = Map(
+          "november" -> new RangeCategoryDescriptor("date", null, "2010-11-11", null),
+          "zulu"     -> new PrefixCategoryDescriptor(3,6,3)
+        )
+      )))
     verifyEndpoints(Seq(down_v4, up_v3))
 
     verifyEndpoints(Seq(down_v0, up_v3))
@@ -849,6 +898,41 @@ object JooqDomainConfigStoreTest {
 
   private[JooqDomainConfigStoreTest] val storeReferences =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  private def randomName() = RandomStringUtils.randomAlphanumeric(10)
+  private[JooqDomainConfigStoreTest] def randomDomain() = randomName()
+  private def randomEndpoint() = EndpointDef(name = randomName())
+  private def endpointWithScanUrl() = EndpointDef(name = randomName())
+  private def endpointWithView() = EndpointDef(name = randomName(), views = List(EndpointViewDef(name = randomName())))
+  private def randomPair() = (randomEndpoint(), randomEndpoint())
+
+  case class Scenario(upstream: EndpointDef, downstream: EndpointDef, newUp: Option[EndpointDef] = None)
+
+  @DataPoint def blankEndpoints = Scenario(randomEndpoint(), randomEndpoint())
+  @DataPoint def upWithScanUrl = Scenario(endpointWithScanUrl(), randomEndpoint())
+  @DataPoint def bothWithScanUrl = Scenario(endpointWithScanUrl(), endpointWithScanUrl())
+  @DataPoint def upWithView = Scenario(endpointWithView(), endpointWithScanUrl())
+  @DataPoint def redeclareWithScanUrl = {
+    val (up, down) = randomPair()
+    Scenario(up, down, Some(up.copy(scanUrl = randomName())))
+  }
+  @DataPoint def redeclareWithView = {
+    val (up, down) = randomPair()
+    Scenario(up, down, Some(up.copy(views = List(EndpointViewDef(name = randomName())))))
+  }
+  @DataPoint def redeclareWithCategory = {
+    val (up, down) = randomPair()
+    Scenario(up, down, Some(up.copy(categories = Map("cat1" -> new RangeCategoryDescriptor("date", null, null, null)))))
+  }
+  @DataPoint def redeclareWithViewCategory = {
+    val (up, down) = randomPair()
+    Scenario(up, down, Some(up.copy(
+      categories = Map("cat1" -> new RangeCategoryDescriptor("date", null, null, null)),
+      views = List(EndpointViewDef(
+        name = randomName(),
+        categories = Map("cat1" -> new RangeCategoryDescriptor("date", "2012-01-01", "2012-01-14", "daily"))))))
+    )
+  }
 
   @AfterClass
   def tearDown {

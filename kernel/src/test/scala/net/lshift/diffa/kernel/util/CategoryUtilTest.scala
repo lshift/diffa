@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2010-2012 LShift Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package net.lshift.diffa.kernel.util
 
 import org.junit.Test
@@ -6,12 +22,23 @@ import scala.collection.JavaConversions._
 import org.springframework.mock.web.MockHttpServletRequest
 import net.lshift.diffa.participant.scanning._
 import net.lshift.diffa.kernel.config._
+import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.format.ISODateTimeFormat
 
 class CategoryUtilTest {
   val baseStringCategory = new SetCategoryDescriptor(Set("a", "b"))
   val baseIntCategory = new RangeCategoryDescriptor("integer", "5", "12")
   val baseDateCategory = new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31", "individual")
   val stringOverrideCategory = new SetCategoryDescriptor(Set("a"))
+
+  val dateFormatter = ISODateTimeFormat.date.withZoneUTC
+  val timeFormatter = ISODateTimeFormat.dateTime.withZoneUTC
+  val now = DateTime.now().withZone(DateTimeZone.UTC)
+  val tomorrow = now.plusDays(1).dayOfYear().roundFloorCopy().toString(dateFormatter)
+  val tomorrowMorning = now.plusDays(1).dayOfYear().roundFloorCopy().toString(timeFormatter)
+  val today = now.dayOfYear().roundFloorCopy().toString(dateFormatter)
+  val thisMorning = now.dayOfYear().roundFloorCopy().plusHours(1).toString(timeFormatter)
+  val threeDaysAgo = now.minusDays(3).dayOfYear().roundFloorCopy().toString(dateFormatter)
 
 
   val endpointCategories =
@@ -49,6 +76,29 @@ class CategoryUtilTest {
   }
 
   @Test
+  def shouldRefineDateRangeCategoryWithRollingWindow() {
+    val viewWithWindow = Seq(EndpointView(name = "threeDayRoller", categories = Map("someDateRange" -> new RollingWindowFilter("P3D", "PT1H"))))
+    val baseRangeCategory = Map("someDateRange" -> new RangeCategoryDescriptor("date", "2000-01-01", tomorrow, "individual"))
+
+    assertEquals("A date range should be constrained by a rolling window",
+      Map("someDateRange" -> new RangeCategoryDescriptor("date", threeDaysAgo, today, "individual")),
+      CategoryUtil.fuseViewCategories(baseRangeCategory, viewWithWindow, Some("threeDayRoller")))
+  }
+
+  @Test
+  def shouldRefineDateTimeRangeCategoryWithRollingWindow() {
+    val viewWithWindow = Seq(EndpointView(name = "threeDayRoller", categories = Map("someTimeRange" -> new RollingWindowFilter("P3D", "PT1H"))))
+    val baseRangeCategory = Map("someTimeRange" -> new RangeCategoryDescriptor("datetime", "2000-01-01T00:00:00Z", tomorrowMorning, "individual"))
+
+    assertEquals("A date range should be constrained by a rolling window",
+      Map("someTimeRange" -> new RangeCategoryDescriptor("datetime",
+        now.minusDays(3).dayOfYear().roundFloorCopy().plusHours(1).toString(timeFormatter),
+        thisMorning,
+        "individual")),
+      CategoryUtil.fuseViewCategories(baseRangeCategory, viewWithWindow, Some("threeDayRoller")))
+  }
+
+  @Test
   def shouldApplyDateCategoryOverrideAndOverrideGranularitySettings() {
     val fused = CategoryUtil.fuseViewCategories(endpointCategories, views, Some("lessDatesMoreGranularity"))
     val fusedDateCategory = new RangeCategoryDescriptor("date", "2011-05-05", "2011-06-01", "monthly")
@@ -62,11 +112,11 @@ class CategoryUtilTest {
     val unboundedUpperDateCategory = Map("someDate" -> new RangeCategoryDescriptor("date", "2011-01-01", null, "individual"))
     val unboundedLowerDateCategory = Map("someDate" -> new RangeCategoryDescriptor("date", null, "2011-12-31", "individual"))
 
-    val undoundedLowerView = Seq(EndpointView(name = "dates", categories = unboundedLowerDateCategory))
-    val undoundedUpperView = Seq(EndpointView(name = "dates", categories = unboundedUpperDateCategory))
+    val unboundedLowerView = Seq(EndpointView(name = "dates", categories = unboundedLowerDateCategory))
+    val unboundedUpperView = Seq(EndpointView(name = "dates", categories = unboundedUpperDateCategory))
 
-    val fusedForwards = CategoryUtil.fuseViewCategories(unboundedUpperDateCategory, undoundedLowerView, Some("dates"))
-    val fusedBackwards = CategoryUtil.fuseViewCategories(unboundedLowerDateCategory, undoundedUpperView, Some("dates"))
+    val fusedForwards = CategoryUtil.fuseViewCategories(unboundedUpperDateCategory, unboundedLowerView, Some("dates"))
+    val fusedBackwards = CategoryUtil.fuseViewCategories(unboundedLowerDateCategory, unboundedUpperView, Some("dates"))
 
     assertEquals(
       Map("someDate" -> new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31", "individual")),
@@ -239,7 +289,7 @@ class CategoryUtilTest {
       CategoryUtil.differenceCategories(Map("someSet" -> sc), Map("someSet" -> sc2)))
   }
 
-  private def expectConstraintException(categories:Map[String, CategoryDescriptor], constraints:Seq[ScanConstraint], message:String) {
+  private def expectConstraintException(categories:Map[String, AggregatingCategoryDescriptor], constraints:Seq[ScanConstraint], message:String) {
     try {
       CategoryUtil.mergeAndValidateConstraints(categories, constraints)
     } catch {

@@ -24,7 +24,6 @@ import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.{DownstreamEndpoint, UpstreamEndpoint, EndpointSide}
 import net.lshift.diffa.participant.scanning.Collation
 import net.lshift.diffa.kernel.escalation.EscalationManager
-import java.lang
 
 /**
  * Describes a complete Diffa configuration in the context of a domain - this means that all of the objects
@@ -61,7 +60,7 @@ case class EndpointDef (
   @BeanProperty var contentRetrievalUrl: String = null,
   @BeanProperty var versionGenerationUrl: String = null,
   @BeanProperty var inboundUrl: String = null,
-  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new HashMap[String, CategoryDescriptor],
+  @BeanProperty var categories: java.util.Map[String, AggregatingCategoryDescriptor] = new HashMap[String, AggregatingCategoryDescriptor],
   @BeanProperty var views: java.util.List[EndpointViewDef] = new java.util.ArrayList[EndpointViewDef],
   @BeanProperty var validateEntityOrder: String = EntityOrdering.ENFORCED,
   @BeanProperty var collation: String = AsciiCollationOrdering.name) {
@@ -132,7 +131,7 @@ case class DomainEndpointDef(
   @BeanProperty var contentRetrievalUrl: String = null,
   @BeanProperty var versionGenerationUrl: String = null,
   @BeanProperty var inboundUrl: String = null,
-  @BeanProperty var categories: java.util.Map[String,CategoryDescriptor] = new java.util.TreeMap[String, CategoryDescriptor],
+  @BeanProperty var categories: java.util.Map[String,AggregatingCategoryDescriptor] = new java.util.TreeMap[String, AggregatingCategoryDescriptor],
   @BeanProperty var views: java.util.List[EndpointViewDef] = new java.util.ArrayList[EndpointViewDef],
   @BeanProperty var validateEntityOrder: String = EntityOrdering.ENFORCED,
   @BeanProperty var collation: String = AsciiCollationOrdering.name) {

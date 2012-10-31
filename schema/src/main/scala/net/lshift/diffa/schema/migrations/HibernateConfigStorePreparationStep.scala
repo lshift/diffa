@@ -28,7 +28,7 @@ import net.lshift.hibernate.migrations.MigrationBuilder
 
 import scala.collection.JavaConversions._
 import org.hibernate.`type`.IntegerType
-import org.hibernate.dialect.Dialect
+import org.hibernate.dialect.{Oracle10gDialect, Dialect}
 import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
 import org.hibernate.{SessionFactory}
 
@@ -137,8 +137,17 @@ class HibernateConfigStorePreparationStep
 
           val defaultCatalog = props.getProperty(Environment.DEFAULT_CATALOG)
           val defaultSchema = props.getProperty(dialectExtension.schemaPropertyName)
+          val schemaName = if (dialect.isInstanceOf[Oracle10gDialect]) {
+            props.getProperty(Environment.USER)
+          } else {
+            defaultSchema
+          }
 
-          hasTable = (dbMetadata.getTableMetadata(tableName, defaultSchema, defaultCatalog, false) != null)
+          val tableMetaData = dbMetadata.getTableMetadata(tableName, schemaName, defaultCatalog, false)
+          if (tableMetaData != null) {
+            log.info("Resulting metadata: name = %s; schema = %s".format(tableMetaData.getName, schemaName))
+            hasTable = true
+          }
         }
       })
     })
@@ -227,6 +236,7 @@ object HibernateConfigStorePreparationStep {
     Step0043,
     Step0044,
     Step0045,
-    Step0046
+    Step0046,
+    Step0047
   )
 }

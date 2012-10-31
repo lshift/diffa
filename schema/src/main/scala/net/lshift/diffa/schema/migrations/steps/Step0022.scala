@@ -372,7 +372,7 @@ object Step0022 extends VerifiedMigrationStep {
       "endpoint"                -> endpoint,
       "name"                    -> endpointView,
       "category_descriptor_id"  -> prefixId,
-      "category_name"           -> "some-prefix-category-view"
+      "category_name"           -> "some-prefix-category"
     ))
 
     migration.insert("endpoint_categories").values(Map(
@@ -387,7 +387,7 @@ object Step0022 extends VerifiedMigrationStep {
       "endpoint"                -> endpoint,
       "name"                    -> endpointView,
       "category_descriptor_id"  -> setId,
-      "category_name"           -> "some-set-category-view"
+      "category_name"           -> "some-set-category"
     ))
 
     migration.insert("endpoint_categories").values(Map(
@@ -402,7 +402,7 @@ object Step0022 extends VerifiedMigrationStep {
       "endpoint"                -> endpoint,
       "name"                    -> endpointView,
       "category_descriptor_id"  -> rangeId,
-      "category_name"           -> "some-range-category-view"
+      "category_name"           -> "some-range-category"
     ))
 
     migration

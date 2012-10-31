@@ -456,7 +456,7 @@ Diffa.Views.RowEditor = Backbone.View.extend({
   remove: function() {
     this.model.collection.remove(this.model);
   }
-})
+});
 Diffa.Views.CategoryEditor = Diffa.Views.RowEditor.extend({
   events: {
     "click .remove-category": 'remove'
@@ -491,7 +491,8 @@ Diffa.Views.EndpointViewEditor = Diffa.Views.RowEditor.extend({
     this.categoryEditors = [
       new Diffa.Views.CategoriesEditor({collection: this.model.rangeCategories, el: this.$('.range-categories')}),
       new Diffa.Views.CategoriesEditor({collection: this.model.setCategories, el: this.$('.set-categories')}),
-      new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')})
+      new Diffa.Views.CategoriesEditor({collection: this.model.prefixCategories, el: this.$('.prefix-categories')}),
+      new Diffa.Views.CategoriesEditor({collection: this.model.rollingWindows, el: this.$('.rolling-windows')})
     ];
   }
 });

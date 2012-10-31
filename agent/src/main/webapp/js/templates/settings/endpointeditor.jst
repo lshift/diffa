@@ -107,8 +107,20 @@
 </div>
 <div class="pane" data-pane="views">
   <div class="description">
-    Views build upon categories and scans to allow for only a subsegment of your endpoint to be scanned. This allows
-    you to focus your scanning efforts on data that you believe might have changed.
+    <p>
+      Views are an advanced filtering mechanism for scans of the endpoint.  They specify further constraints on already
+      defined categories. This allows you to focus your scanning efforts on data that you believe might have changed.
+    </p>
+    Notes:
+    <ul>
+      <li>There are two contexts for the term View: Endpoint View and Pair View</li>
+      <li>the constraints defined in an Endpoint view are applied when a scan of a matching Pair View is initiated;</li>
+      <li>a matching Pair View is a View on a Pair such that the pair contains this endpoint and the Pair View name is the same as the Endpoint View name</li>
+      <li>any Categories being filtered in an Endpoint View must already be configured for the endpoint;</li>
+      <li>a Paired Endpoint is an endpoint that is in a pair with this endpoint</li>
+      <li>the Paired Endpoint must also have a view of the same name defined (the matching Endpoint View);</li>
+      <li>there is no requirement for the matching Endpoint View to have similar filters.</li>
+    </ul>
   </div>
 
   <div class="views">

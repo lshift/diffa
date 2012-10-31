@@ -24,7 +24,6 @@ import org.junit._
 import org.junit.Assert._
 import org.easymock.EasyMock.expect
 import org.easymock.classextension.EasyMock._
-import net.lshift.diffa.kernel.config.{Domain, Endpoint}
 import scala.collection.mutable.ListBuffer
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 

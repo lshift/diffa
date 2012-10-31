@@ -21,11 +21,10 @@ import org.junit.Assert._
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.differencing.{DateTimeAttribute, IntegerAttribute}
 import org.junit.runner.RunWith
-import org.junit.experimental.theories.{DataPoint, Theories, Theory, DataPoints}
+import org.junit.experimental.theories.{Theories, Theory, DataPoints}
 import net.lshift.diffa.kernel.config.EndpointTest.ConstraintExpectation
 import net.lshift.diffa.participant.scanning.{IntegerRangeConstraint, TimeRangeConstraint, DateRangeConstraint, ScanConstraint}
 import org.joda.time.{DateTimeZone, LocalDate, DateTime}
-import net.lshift.diffa.kernel.frontend.DiffaConfig
 
 /**
  * Test cases for the Endpoint class.
