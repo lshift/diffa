@@ -34,6 +34,7 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 import org.jooq.impl.Factory
 import org.slf4j.LoggerFactory
 import org.jooq.{Field, ResultQuery, Record}
+import java.sql.Timestamp
 
 /**
  * Hibernate backed Domain Cache provider.
@@ -408,8 +409,8 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
 
   def unscheduleEscalations(pair:DiffaPairRef) = db.execute { t =>
     t.update(DIFFS).
-      set(DIFFS.NEXT_ESCALATION, null).
-      set(DIFFS.NEXT_ESCALATION_TIME, null).
+      set(DIFFS.NEXT_ESCALATION, null: String).
+      set(DIFFS.NEXT_ESCALATION_TIME, null: Timestamp).
     where(DIFFS.DOMAIN.equal(pair.domain).
         and(DIFFS.PAIR.equal(pair.key))).
       execute()

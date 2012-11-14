@@ -25,9 +25,9 @@
       <New class="com.jolbox.bonecp.BoneCPDataSource">
         <Arg>
           <New class="com.jolbox.bonecp.BoneCPConfig">
-            <Set name="jdbcUrl">jdbc:oracle:thin:@(description=(address_list=(address=(protocol=tcp)(port=1521)(host=DBHOST)))(connect_data=(sid=SID)))</Set>
-            <Set name="username">CHANGEME</Set>
-            <Set name="password">CHANGEME</Set>
+            <Set name="jdbcUrl">jdbc:oracle:thin:@(description=(address_list=(address=(protocol=tcp)(port=1521)(host=oracledev)))(connect_data=(sid=orcl)))</Set>
+            <Set name="username">diffaci</Set>
+            <Set name="password">diffapass</Set>
           </New>
         </Arg>
         <Set name="driverClass">oracle.jdbc.OracleDriver</Set>
