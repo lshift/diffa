@@ -31,6 +31,16 @@ class ListeningLocalSessionFactoryBean extends LocalSessionFactoryBean {
 
   @BeanProperty var preparationSteps:Array[HibernatePreparationStep] = Array[HibernatePreparationStep]()
 
+  type HasUsername = { def getUsername: String }
+
+  override def postProcessConfiguration(config: Configuration) {
+    getDataSource match {
+      case ds: HasUsername =>
+        config.setProperty("diffa.jdbc.username", ds.getUsername)
+      case _ =>
+    }
+  }
+
   /**
    * Override the final step in the session factory creation to let us prepare the database.
    */

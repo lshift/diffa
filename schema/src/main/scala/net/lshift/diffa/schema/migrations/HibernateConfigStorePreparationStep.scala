@@ -138,7 +138,7 @@ class HibernateConfigStorePreparationStep
           val defaultCatalog = props.getProperty(Environment.DEFAULT_CATALOG)
           val defaultSchema = props.getProperty(dialectExtension.schemaPropertyName)
           val schemaName = if (dialect.isInstanceOf[Oracle10gDialect]) {
-            props.getProperty(Environment.USER)
+            config.getProperty("diffa.jdbc.username").toUpperCase
           } else {
             defaultSchema
           }
