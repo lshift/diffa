@@ -16,6 +16,8 @@
 * [260] - Introduce extents as a way to asynchronously vacuum the DIFFS table.
 * [266] - Fixed a caching bug in the space path lookup
 * [270] - Bug fix to Diffa as an adapter; presented users out of order.
+* [275] - Migration process may identify wrong schema in Oracle.
+* [277] - Report migration errors in the application log.
 
 ## Library Upgrades
 

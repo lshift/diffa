@@ -106,12 +106,11 @@ class HibernateConfigStorePreparationStep
 
             } catch {
               case ex =>
-                println("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
-                println("_" * 80)
-                println()
-                migration.getStatements.foreach(println(_))
-                println("_" * 80)
-                println()
+                val stmts = migration.getStatements
+                val stmtLog = stmts.tail.foldLeft(stmts.head) { (log, stmt) => "%s\n%s".format(log, stmt) }
+
+                log.error("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
+                log.error(stmtLog)
                 throw ex      // Higher level code will log the exception
             }
           })
@@ -138,7 +137,7 @@ class HibernateConfigStorePreparationStep
           val defaultCatalog = props.getProperty(Environment.DEFAULT_CATALOG)
           val defaultSchema = props.getProperty(dialectExtension.schemaPropertyName)
           val schemaName = if (dialect.isInstanceOf[Oracle10gDialect]) {
-            props.getProperty(Environment.USER)
+            System.getProperties().getProperty("diffa.jdbc.username").toUpperCase
           } else {
             defaultSchema
           }
