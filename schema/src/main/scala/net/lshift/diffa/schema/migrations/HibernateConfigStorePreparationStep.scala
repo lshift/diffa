@@ -106,8 +106,11 @@ class HibernateConfigStorePreparationStep
 
             } catch {
               case ex =>
+                val stmts = migration.getStatements
+                val stmtLog = stmts.tail.foldLeft(stmts.head) { (log, stmt) => "%s\n%s".format(log, stmt) }
+
                 log.error("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
-                migration.getStatements.foreach(log.error(_))
+                log.error(stmtLog)
                 throw ex      // Higher level code will log the exception
             }
           })
