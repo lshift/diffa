@@ -106,12 +106,8 @@ class HibernateConfigStorePreparationStep
 
             } catch {
               case ex =>
-                println("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
-                println("_" * 80)
-                println()
-                migration.getStatements.foreach(println(_))
-                println("_" * 80)
-                println()
+                log.error("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
+                migration.getStatements.foreach(log.error(_))
                 throw ex      // Higher level code will log the exception
             }
           })
