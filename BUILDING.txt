@@ -114,8 +114,8 @@ Diffa uses the maven license plugin (http://code.google.com/p/maven-license-plug
 
 To run the license check:
 
-    $ mvn -e license:format -Dyear=2010-2011
+    $ mvn -e license:format -Dyear=2012
 
 To reformat each file according to the header file:
 
-    $ mvn -e license:format -Dyear=2010-2011
+    $ mvn -e license:format -Dyear=2012

@@ -21,6 +21,7 @@
     <module>schema</module>
     <module>schema-bindings</module>
     <module>jst-packaging</module>
+    <module>snowflake</module>
   </modules>
 
   <properties>
