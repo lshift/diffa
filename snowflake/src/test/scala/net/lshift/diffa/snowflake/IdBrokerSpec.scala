@@ -25,7 +25,7 @@ import org.specs2.runner.JUnitRunner
 import java.lang.Math.{round, pow}
 
 @RunWith(classOf[JUnitRunner])
-class IdBrokerSpec extends SpecificationWithJUnit with ScalaCheck {
+class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
   final val timestampMask = 0xffffffffffc00000L
   final val machineIdMask = 0x00000000003ff000L
   final val sequenceMask  = 0x0000000000000fffL
@@ -48,32 +48,32 @@ class IdBrokerSpec extends SpecificationWithJUnit with ScalaCheck {
     }
   }
 
-  def getWithRetry(broker: IdBroker): Long = {
+  def getWithRetry(provider: IdProvider): Long = {
     try {
-      broker.getId()
+      provider.getId()
     } catch {
       case ex: SequenceExhaustedException =>
         Thread.sleep(1L)
-        getWithRetry(broker)
+        getWithRetry(provider)
     }
   }
 
-  "IdBroker" should {
+  "IdProvider" should {
 
     "generate an ID" in {
       val machineId = 1
-      val broker = new IdBroker(machineId)
-      (broker.getId should beGreaterThan(0L))
+      val provider = new IdProvider(machineId)
+      (provider.getId should beGreaterThan(0L))
     }
 
     "generate 1,000,000 identifiers in less than one second" in {
-      val broker = new IdBroker(1)
+      val provider = new IdProvider(1)
       val targetExecutionCount = 1000000
       val targetExecutionTime = 1000L // 1000 milliseconds == one second
 
       val startTime = System.currentTimeMillis()
       (1 to targetExecutionCount) foreach { i =>
-        retryEvery(100L) { broker.getId() }
+        retryEvery(100L) { provider.getId() }
       }
       (System.currentTimeMillis() - startTime) must be lessThan targetExecutionTime
     }
@@ -82,42 +82,42 @@ class IdBrokerSpec extends SpecificationWithJUnit with ScalaCheck {
       val ts = Gen.choose(1, timestampUpperBound)
 
       check(Prop.forAll(ts) { timestamp =>
-        val broker = new IdBroker(1)
-        broker.setTimeFn(new TimeFunction { def now = timestamp })
-        ((broker.getId() & timestampMask) >> (IdBroker.machineBits + IdBroker.sequenceBits)) must_== timestamp
+        val provider = new IdProvider(1)
+        provider.setTimeFn(new TimeFunction { def now = timestamp })
+        ((provider.getId() & timestampMask) >> (IdProvider.machineBits + IdProvider.sequenceBits)) must_== timestamp
       })
     }
 
-    "generate an ID that has a machine ID component matching the generating ID Broker" in {
+    "generate an ID that has a machine ID component matching the generating ID Provider" in {
       val machineId = Gen.choose(0, machineIdUpperBound)
 
       check(Prop.forAll(machineId) { id =>
-        val broker = new IdBroker(id)
-        ((broker.getId() & machineIdMask) >> IdBroker.sequenceBits) must_== id
+        val provider = new IdProvider(id)
+        ((provider.getId() & machineIdMask) >> IdProvider.sequenceBits) must_== id
       })
     }
 
     "generate the first ID with a sequence component of 0" in {
-      ((new IdBroker(1)).getId & sequenceMask) should_== 0
+      ((new IdProvider(1)).getId & sequenceMask) should_== 0
     }
 
     "generate a second ID for the same timestamp with a sequence component of 1" in {
-      val broker = new IdBroker(1)
-      broker.setTimeFn(new TimeFunction { def now = 1L })
+      val provider = new IdProvider(1)
+      provider.setTimeFn(new TimeFunction { def now = 1L })
 
-      broker.getId()
-      (broker.getId() & sequenceMask) should_== 1
+      provider.getId()
+      (provider.getId() & sequenceMask) should_== 1
     }
 
     "generate the (k+1)th ID for the same timestamp with a sequence component of k" in {
-      val seqNum = Gen.choose(1, IdBroker.sequenceUpperBound)
+      val seqNum = Gen.choose(1, IdProvider.sequenceUpperBound)
 
       check(Prop.forAll(seqNum) { k =>
-        val broker = new IdBroker(1)
-        broker.setTimeFn(new TimeFunction { def now = 1L })
+        val provider = new IdProvider(1)
+        provider.setTimeFn(new TimeFunction { def now = 1L })
 
-        (1 to k) foreach { i => broker.getId() }
-        (broker.getId() & sequenceMask) must_== k
+        (1 to k) foreach { i => provider.getId() }
+        (provider.getId() & sequenceMask) must_== k
       })
     }
 
@@ -125,29 +125,29 @@ class IdBrokerSpec extends SpecificationWithJUnit with ScalaCheck {
       val pauseGen = Gen.choose(50, 100)
 
       check(Prop.forAllNoShrink(pauseGen) { pause =>
-        val broker = new IdBroker(1)
-        broker.setPauseMs(pause)
+        val provider = new IdProvider(1)
+        provider.setPauseMs(pause)
         val otherThread = new Thread(new Runnable() {
           def run() {
-            broker.getId()
+            provider.getId()
           }
         })
         val startTime = System.currentTimeMillis()
         otherThread.start()
-        broker.getId()
+        provider.getId()
         otherThread.join()
         (System.currentTimeMillis() - startTime) must be greaterThanOrEqualTo (2 * pause)
       })(set(minTestsOk -> 5))
     }
 
     "generate k-ordered identifiers over a period" in {
-      val broker = new IdBroker(1)
+      val provider = new IdProvider(1)
       val period = 200L // milliseconds
       var lastId = -1L
 
       val startTime = System.currentTimeMillis()
       while (elapsedTime < period) {
-        val nextId = getWithRetry(broker)
+        val nextId = getWithRetry(provider)
         nextId must be greaterThan lastId
         lastId = nextId
       }
@@ -156,12 +156,12 @@ class IdBrokerSpec extends SpecificationWithJUnit with ScalaCheck {
     }
 
     "generate only unique identifiers, even when time runs backwards" in {
-      val broker = new IdBroker(1)
-      broker.setTimeFn(new TimeFunction { def now = 3L })
-      val id = broker.getId()
-      broker.setTimeFn(new TimeFunction { def now = 2L })
+      val provider = new IdProvider(1)
+      provider.setTimeFn(new TimeFunction { def now = 3L })
+      val id = provider.getId()
+      provider.setTimeFn(new TimeFunction { def now = 2L })
       try {
-        broker.getId()
+        provider.getId()
         failure("getId() should throw an InvalidSystemClockException when its clock runs backwards")
       } catch {
         case ex: InvalidSystemClockException =>

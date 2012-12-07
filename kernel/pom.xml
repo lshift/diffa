@@ -160,8 +160,9 @@
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
-      <groupId>net.lshift</groupId>
+      <groupId>net.lshift.diffa</groupId>
       <artifactId>db-migrations</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.ibm.icu</groupId>

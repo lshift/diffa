@@ -2,7 +2,12 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>net.lshift</groupId>
+  <parent>
+    <groupId>net.lshift.diffa</groupId>
+    <artifactId>diffa-parent</artifactId>
+    <version>1.6.2-SNAPSHOT</version>
+  </parent>
+
   <artifactId>db-migrations</artifactId>
   <version>1.6.2-SNAPSHOT</version>
 
@@ -46,9 +51,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.collections</groupId>
-      <artifactId>google-collections</artifactId>
-      <version>1.0</version>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>

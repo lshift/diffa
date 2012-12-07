@@ -19,7 +19,12 @@ package net.lshift.diffa.snowflake;
 import static java.lang.Math.pow;
 import static java.lang.Math.round;
 
-public class IdBroker {
+/**
+ * Provider of unique, k-ordered identifiers.  Uniqueness of identifiers across
+ * nodes is facilitated by using Apace ZooKeeper to co-ordinate the node identity
+ * component of the generated identifiers.
+ */
+public class IdProvider {
   public static final int machineBits = 10;
   public static final int sequenceBits = 12;
 
@@ -36,7 +41,7 @@ public class IdBroker {
   private long lastTimestamp = -1L;
   private Object mutex = new Object();
 
-  public IdBroker(int machineId) {
+  public IdProvider(int machineId) {
     this.machineId = machineId;
   }
 
@@ -59,7 +64,7 @@ public class IdBroker {
       } else if (now > lastTimestamp) {
         sequenceNum = 0;
       } else {
-        if (sequenceNum < IdBroker.sequenceUpperBound) {
+        if (sequenceNum < IdProvider.sequenceUpperBound) {
           sequenceNum++;
         } else {
           throw new SequenceExhaustedException(sequenceNum);

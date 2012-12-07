@@ -17,6 +17,7 @@
 * [266] - Fixed a caching bug in the space path lookup
 * [270] - Bug fix to Diffa as an adapter; presented users out of order.
 * [275] - Migration process may identify wrong schema in Oracle.
+* [279] - Run time dependency on Apache Zookeeper for multi-node identity provision service.
 
 ## Library Upgrades
 
@@ -25,6 +26,8 @@
 * Upgraded to Lucene 3.6.1
 * Upgraded to Spring Security 3.1.2
 * Downgraded to HSQLDB 2.2.8 (only relevant for testing purposes)
+* New Netflix Curator 1.2.3 dependency
+* Upgraded from Google Collections (obsolete) to Guava 11.0.1
 
 ## Upgrading
 

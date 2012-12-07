@@ -102,7 +102,12 @@ Set these parameters (either MAVEN_OPTS="-Dparam1 -Dparam2 ..." or mvn -Dparam1 
 Booting The Agent
 -----------------
 
-The Diffa agent can be run using the Jetty plugin:
+Before starting the Diffa agent, a Zookeeper service must be started:
+
+    $ cd /tmp/zookeeper-3.4.5 # verify this against zookeeper.install.dir in the parent pom.xml
+    $ bin/zkServer.sh start
+
+Once Zookeeper is running, the Diffa agent can be run using the Jetty plugin:
 
     $ cd agent
     $ mvn jetty:run

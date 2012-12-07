@@ -342,6 +342,11 @@
       Data
     ========
   -->
+
+  <bean id="idProviderFactory" class="net.lshift.diffa.snowflake.IdProviderFactory" lazy-init="false">
+    <constructor-arg name="clusterDescriptor" value="localhost:2181" />
+  </bean>
+
   <bean id="hibernateDialect" class="org.springframework.jndi.JndiObjectFactoryBean">
     <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
   </bean>
