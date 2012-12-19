@@ -21,7 +21,7 @@ class ReportManagerTest {
   private val domainConfigStore = storeReferences.domainConfigStore
   private val domainDiffStore = storeReferences.domainDifferenceStore
 
-  val domainName = "reportingDomain"
+  val spaceName = "reportingDomain"
 
   var space:Space = null
 
@@ -30,16 +30,19 @@ class ReportManagerTest {
 
   val reportManager = new ReportManager(domainConfigStore, domainDiffStore, diagnostics)
 
+  val e1 = EndpointDef(name = "e1")
+  val e2 = EndpointDef(name = "e2")
+
   @Before
   def prepareEnvironment() {
-    space = systemConfigStore.createOrUpdateSpace(domainName)
+    space = systemConfigStore.createOrUpdateSpace(spaceName)
     pair = PairRef(name = "p1", space = space.id)
 
 
     domainDiffStore.clearAllDifferences
 
-    domainConfigStore.createOrUpdateEndpoint(space.id, EndpointDef("e1"))
-    domainConfigStore.createOrUpdateEndpoint(space.id, EndpointDef("e2"))
+    domainConfigStore.createOrUpdateEndpoint(space.id, e1)
+    domainConfigStore.createOrUpdateEndpoint(space.id, e2)
   }
 
   @After
@@ -53,7 +56,7 @@ class ReportManagerTest {
     ReportListenerUtil.withReportListener(reports, reportListenerUrl => {
       // Create our pair/report
       domainConfigStore.createOrUpdatePair(space.id,
-        PairDef(pair.name, versionPolicyName = "same", upstreamName = "e1", downstreamName = "e2",
+        PairDef(pair.name, versionPolicyName = "same", upstreamName = e1.name, downstreamName = e2.name,
                 reports = Set(PairReportDef("send diffs", "differences", reportListenerUrl))))
 
       // Add some differences

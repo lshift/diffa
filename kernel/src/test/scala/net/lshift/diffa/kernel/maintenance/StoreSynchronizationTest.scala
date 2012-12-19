@@ -42,7 +42,6 @@ import net.lshift.diffa.kernel.frontend.{PairDef, DomainPairDef}
 import org.apache.commons.lang.RandomStringUtils
 
 class StoreSynchronizationTest {
-
   // Real Wiring
   private val storeReferences = StoreSynchronizationTest.storeReferences
 
@@ -55,8 +54,6 @@ class StoreSynchronizationTest {
 
   val domainName = RandomStringUtils.randomAlphabetic(10)
   val space = systemConfigStore.createOrUpdateSpace(domainName)
-
-  //val domain = Domain(name=domainName)
 
   val u = Endpoint(name = "1", scanUrl = "http://foo.com/scan", inboundUrl = "changes")
   val d = Endpoint(name = "2", scanUrl = "http://bar.com/scan", inboundUrl = "changes")

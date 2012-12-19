@@ -31,7 +31,7 @@ import java.lang.reflect.UndeclaredThrowableException
 
 class DatabaseFacade(dataSource: DataSource, dialect: String) {
 
-  private val resolvedDialect = SQLDialect.valueOf(dialect)
+  val resolvedDialect = SQLDialect.valueOf(dialect)
   private val settings = new Settings()
     .withRenderSchema(false)
     .withRenderNameStyle(RenderNameStyle.LOWER)

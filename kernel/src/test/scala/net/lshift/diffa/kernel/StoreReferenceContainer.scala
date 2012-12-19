@@ -1,5 +1,6 @@
 package net.lshift.diffa.kernel
 
+import actors.IncrementingIdProvider
 import config._
 import config.Member
 import config.system.JooqSystemConfigStore
@@ -21,6 +22,8 @@ import collection.JavaConversions._
 import com.jolbox.bonecp.BoneCPDataSource
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import scala.Some
+import net.lshift.diffa.snowflake.IdProvider
+import org.jooq.impl.Factory
 
 object StoreReferenceContainer {
   def withCleanDatabaseEnvironment(env: DatabaseEnvironment) = {
@@ -83,14 +86,13 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   private var _sessionFactory: Option[SessionFactory] = None
   private var _ds: Option[BoneCPDataSource] = None
 
-  def facade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
-
   private val membershipListener = new DomainMembershipAware {
     def onMembershipCreated(member: Member) {}
     def onMembershipRemoved(member: Member) {}
   }
   private def cacheProvider = new HazelcastCacheProvider
   private def sequenceProvider = new HazelcastSequenceProvider
+  private val idProvider = IncrementingIdProvider
 
   def sessionFactory = _sessionFactory.getOrElse {
     throw new IllegalStateException("Failed to initialize environment before using SessionFactory")
@@ -100,8 +102,6 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     throw new IllegalStateException("Failed to initialize environment before using DataSource")
   }
 
-  private lazy val jooqDatabaseFacade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
-
   private def makeStore[T](consFn: SessionFactory => T, className: String): T = _sessionFactory match {
     case Some(sf) =>
       consFn(sf)
@@ -109,15 +109,17 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
       throw new IllegalStateException("Failed to initialize environment before using " + className)
   }
 
+  private lazy val _jooqDatabaseFacade = new DatabaseFacade(ds, applicationEnvironment.jooqDialect)
+
   private lazy val _serviceLimitsStore =
-    makeStore[ServiceLimitsStore](sf => new JooqServiceLimitsStore(jooqDatabaseFacade), "ServiceLimitsStore")
+    makeStore[ServiceLimitsStore](sf => new JooqServiceLimitsStore(facade), "ServiceLimitsStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new JooqDomainConfigStore(jooqDatabaseFacade, cacheProvider, sequenceProvider, membershipListener), "domainConfigStore")
+    makeStore(sf => new JooqDomainConfigStore(facade, cacheProvider, sequenceProvider, idProvider, membershipListener), "domainConfigStore")
 
   private lazy val _systemConfigStore =
     makeStore(sf => {
-      val store = new JooqSystemConfigStore(jooqDatabaseFacade, cacheProvider, sequenceProvider)
+      val store = new JooqSystemConfigStore(facade, cacheProvider, sequenceProvider, idProvider)
       store.registerDomainEventListener(_domainConfigStore)
       store
     }, "SystemConfigStore")
@@ -129,11 +131,12 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new JooqUserPreferencesStore(facade, cacheProvider), "userPreferencesStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider), "DomainDifferenceStore")
+    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider, idProvider), "DomainDifferenceStore")
 
   private lazy val _scanActivityStore =
     makeStore(sf => new JooqScanActivityStore(facade), "scanActivityStore")
 
+  def facade = _jooqDatabaseFacade
   def serviceLimitsStore: ServiceLimitsStore = _serviceLimitsStore
   def systemConfigStore: JooqSystemConfigStore = _systemConfigStore
   def domainConfigStore: JooqDomainConfigStore = _domainConfigStore
@@ -141,6 +144,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
   def domainDifferenceStore: JooqDomainDifferenceStore = _domainDifferenceStore
   def userPreferencesStore: JooqUserPreferencesStore = _userPreferencesStore
   def scanActivityStore: JooqScanActivityStore = _scanActivityStore
+  def executeWithFactory[T](fn: Factory => T) = facade.execute(fn(_))
 
   def prepareEnvironmentForStores {
     performCleanerAction(cleaner => cleaner.clean)

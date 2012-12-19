@@ -62,6 +62,7 @@
     <hazelcast.version>2.4</hazelcast.version>
     <guava.version>11.0.1</guava.version>
     <zookeeper.version>3.4.5</zookeeper.version>
+    <scalatest.version>1.8</scalatest.version>
   </properties>
 
   <scm>
@@ -614,6 +615,26 @@
               <contextPath>/diffa-agent</contextPath>
             </webAppConfig>
           </configuration>
+          <executions>
+            <execution>
+              <id>start-jetty</id>
+              <phase>pre-integration-test</phase>
+              <goals>
+                <goal>run-war</goal>
+              </goals>
+              <configuration>
+                <scanIntervalSeconds>0</scanIntervalSeconds>
+                <daemon>true</daemon>
+              </configuration>
+            </execution>
+            <execution>
+              <id>stop-jetty</id>
+              <phase>post-integration-test</phase>
+              <goals>
+                <goal>stop</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

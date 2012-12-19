@@ -30,7 +30,7 @@ import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
-import org.junit.{AfterClass, Test, Before}
+import org.junit.{After, AfterClass, Test, Before}
 import net.lshift.diffa.kernel.config.system.PolicyKey
 import org.apache.commons.lang.RandomStringUtils
 
@@ -74,16 +74,20 @@ class ConfigurationTest {
   var space:Space = null
 
   @Before
-  def clearConfig = {
+  def prepare() {
+    cleanup()
+    space = systemConfigStore.createOrUpdateSpace(domainName)
+  }
+
+  @After
+  def cleanup() {
     try {
       if (space != null) {
         systemConfigStore.deleteSpace(space.id)
       }
+    } catch {
+      case e: MissingObjectException => // ignore non-existent space, since the point of this call was to delete it anyway
     }
-    catch {
-      case e:MissingObjectException => // ignore non-existent domain, since the point of this call was to delete it anyway
-    }
-    space = systemConfigStore.createOrUpdateSpace(domainName)
   }
 
   @Test
@@ -203,7 +207,7 @@ class ConfigurationTest {
   @Test
   def shouldUpdateConfigurationInNonEmptySystem() {
     // Apply the configuration used in the empty state test
-    shouldApplyConfigurationToEmptySystem
+    shouldApplyConfigurationToEmptySystem()
     resetAll
 
       // upstream1 is kept but changed
@@ -269,7 +273,7 @@ class ConfigurationTest {
     expect(endpointListener.onEndpointAvailable(ep2)).once
     replayAll
 
-    configuration.applyConfiguration(space.id,config)
+    configuration.applyConfiguration(space.id, config)
     val Some(newConfig) = configuration.retrieveConfiguration(space.id)
     assertEquals(config, newConfig)
 
@@ -339,6 +343,8 @@ object ConfigurationTest {
 
   private[ConfigurationTest] val storeReferences =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  private[ConfigurationTest] val endpointNameById = Map[Int, String](1 -> "upstream1", 2 -> "upstream2")
 
   @AfterClass
   def cleanupSchema {

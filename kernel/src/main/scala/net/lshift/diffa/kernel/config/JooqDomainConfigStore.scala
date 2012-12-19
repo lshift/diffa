@@ -41,21 +41,25 @@ import reflect.BeanProperty
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
-import net.lshift.diffa.kernel.frontend.DomainEndpointDef
-import net.lshift.diffa.kernel.frontend.DomainPairDef
-import net.lshift.diffa.kernel.frontend.PairDef
-import net.lshift.diffa.kernel.frontend.EndpointDef
-import org.jooq.{Record, Field, Condition, Table}
+import org.jooq._
 import java.lang.{Long => LONG}
-import net.lshift.diffa.kernel.config.system.PolicyKey
+import system.{ConflictingConcurrentModificationException, PolicyKey}
 import java.lang.{Integer => INT}
 import net.lshift.diffa.kernel.util.sequence.SequenceProvider
 import net.lshift.diffa.kernel.naming.SequenceName
 import java.sql.SQLIntegrityConstraintViolationException
+import org.jooq.exception.DataAccessException
+import net.lshift.diffa.snowflake.IdProvider
+import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.frontend.PairDef
+import scala.Some
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
                             cacheProvider:CacheProvider,
                             sequenceProvider:SequenceProvider,
+                            idProvider:IdProvider,
                             membershipListener:DomainMembershipAware)
     extends DomainConfigStore
     with DomainLifecycleAware {
@@ -138,23 +142,67 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
   def onDomainRemoved(space: Long) = invalidateAllCaches(space)
 
   def createOrUpdateEndpoint(space: Long, endpointDef: EndpointDef) : DomainEndpointDef = {
+    val id:LONG = idProvider.getId
+
     jooq.execute(t => {
 
-      t.insertInto(ENDPOINTS).
+      /* mergeInto should be used when there is merge support in MySQL. */
+      if (jooq.resolvedDialect.equals(SQLDialect.MYSQL)) {
+        val insert = t.insertInto(ENDPOINTS).
           set(ENDPOINTS.SPACE, space:LONG).
           set(ENDPOINTS.NAME, endpointDef.name).
+          set(ENDPOINTS.ID, id).
+          set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
+          set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+          set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
+          set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+          set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl)
+        val update = t.update(ENDPOINTS).
           set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
           set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
           set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
           set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
           set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).
-        onDuplicateKeyUpdate().
-          set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
-          set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
-          set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
-          set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
-          set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).
-        execute()
+          where(ENDPOINTS.SPACE.equal(space:LONG).and(ENDPOINTS.NAME.equal(endpointDef.name)))
+
+        // This is not a fail-safe way to create or update.  It is subject to a race condition:
+        // if the same endpoint is created between when the update fails and the insert is attempted,
+        // then the unique key constraint violation will trigger a DataAccessException.  In this case,
+        // we just let the user know it failed.
+        val rowsUpdated = update.execute()
+        if (rowsUpdated > 1) {
+          throw new RuntimeException("Duplicate endpoint definition found for endpoint %s".format(endpointDef.name))
+        } else if (rowsUpdated < 1) {
+          try {
+            insert.execute()
+          } catch {
+            case ex: DataAccessException =>
+              log.warn("Potential concurrent modification inserting " + endpointDef.name, ex)
+              throw new ConflictingConcurrentModificationException(endpointDef.name)
+          }
+        }
+      } else {
+        t.mergeInto(ENDPOINTS).
+          usingDual().
+          on(ENDPOINTS.SPACE.equal(space), ENDPOINTS.NAME.equal(endpointDef.name)).
+          whenMatchedThenUpdate().
+            set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
+            set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+            set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
+            set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+            set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).
+          whenNotMatchedThenInsert().
+            set(ENDPOINTS.SPACE, space:LONG).
+            set(ENDPOINTS.NAME, endpointDef.name).
+            set(ENDPOINTS.ID, id).
+            set(ENDPOINTS.COLLATION_TYPE, endpointDef.collation).
+            set(ENDPOINTS.CONTENT_RETRIEVAL_URL, endpointDef.contentRetrievalUrl).
+            set(ENDPOINTS.SCAN_URL, endpointDef.scanUrl).
+            set(ENDPOINTS.VERSION_GENERATION_URL, endpointDef.versionGenerationUrl).
+            set(ENDPOINTS.INBOUND_URL, endpointDef.inboundUrl).execute()
+      }
+
+      val endpointId = endpointIdByName(t, endpointDef.name, space)
 
       // Don't attempt to update to update any rows per se, just delete every associated
       // category and re-insert the new definitions, irrespective of
@@ -163,37 +211,22 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       deleteCategories(t, space, endpointDef.name)
 
       // Insert categories for the endpoint proper
-      insertCategories(t, space, endpointDef)
+      insertCategories(t, space, endpointId, endpointDef)
 
       // Update the view definitions
 
-      if (endpointDef.views.isEmpty) {
-
-        t.delete(ENDPOINT_VIEWS).
-          where(ENDPOINT_VIEWS.SPACE.equal(space)).
-            and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
-          execute()
-
-      } else {
-
-        t.delete(ENDPOINT_VIEWS).
-          where(ENDPOINT_VIEWS.NAME.notIn(endpointDef.views.map(v => v.name))).
-            and(ENDPOINT_VIEWS.SPACE.equal(space)).
-            and(ENDPOINT_VIEWS.ENDPOINT.equal(endpointDef.name)).
-          execute()
-
-      }
+      t.delete(ENDPOINT_VIEWS).
+          where(ENDPOINT_VIEWS.ENDPOINT.equal(endpointId)).
+        execute()
 
       endpointDef.views.foreach(v => {
         t.insertInto(ENDPOINT_VIEWS).
-            set(ENDPOINT_VIEWS.SPACE, space:LONG).
-            set(ENDPOINT_VIEWS.ENDPOINT, endpointDef.name).
+            set(ENDPOINT_VIEWS.ENDPOINT, endpointId).
             set(ENDPOINT_VIEWS.NAME, v.name).
-          onDuplicateKeyIgnore().
           execute()
 
           // Insert categories for the endpoint view
-        insertCategoriesForView(t, space, endpointDef.name, v)
+        insertCategoriesForView(t, space, endpointDef.name, endpointId, v)
       })
 
       upgradeConfigVersion(t, space)
@@ -216,9 +249,9 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     )
   }
 
-
-
   def deleteEndpoint(space:Long, endpoint: String) = {
+    val upstream = ENDPOINTS.as("upstream")
+    val downstream = ENDPOINTS.as("downstream")
 
     jooq.execute(t => {
 
@@ -226,9 +259,11 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
       val results = t.select(PAIRS.SPACE, PAIRS.NAME).
                       from(PAIRS).
+                      leftOuterJoin(upstream).on(upstream.ID.equal(PAIRS.UPSTREAM)).
+                      leftOuterJoin(downstream).on(downstream.ID.equal(PAIRS.DOWNSTREAM)).
                       where(PAIRS.SPACE.equal(space)).
-                        and(PAIRS.UPSTREAM.equal(endpoint).
-                            or(PAIRS.DOWNSTREAM.equal(endpoint))).fetch()
+                        and(upstream.NAME.equal(endpoint).
+                            or(downstream.NAME.equal(endpoint))).fetch()
 
       results.iterator().foreach(r => {
         val ref = PairRef(r.getValue(PAIRS.NAME), r.getValue(PAIRS.SPACE))
@@ -238,11 +273,10 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
       deleteCategories(t, space, endpoint)
 
       t.delete(ENDPOINT_VIEWS).
-        where(ENDPOINT_VIEWS.SPACE.equal(space)).
-          and(ENDPOINT_VIEWS.ENDPOINT.equal(endpoint)).
+          where(ENDPOINT_VIEWS.ENDPOINT.equal(endpointIdByNameAsField(t, endpoint, space))).
         execute()
 
-      var deleted = t.delete(ENDPOINTS).
+      val deleted = t.delete(ENDPOINTS).
                       where(ENDPOINTS.SPACE.equal(space)).
                         and(ENDPOINTS.NAME.equal(endpoint)).
                       execute()
@@ -288,12 +322,14 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
     pair.validate()
 
     jooq.execute(t => {
+      val upstream = endpointIdByNameAsField(t, pair.upstreamName, space)
+      val downstream = endpointIdByNameAsField(t, pair.downstreamName, space)
 
       // Attempt to prevent unnecessary sequence churn when updating pairs
       // TODO We should consider splitting out create and update APIs for records that use sequences
       val rows = t.update(PAIRS).
-          set(PAIRS.UPSTREAM, pair.upstreamName).
-          set(PAIRS.DOWNSTREAM, pair.downstreamName).
+          set(PAIRS.UPSTREAM, upstream).
+          set(PAIRS.DOWNSTREAM, downstream).
           set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
           set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
           set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
@@ -311,16 +347,16 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
             set(PAIRS.SPACE, space:LONG).
             set(PAIRS.NAME, pair.key).
             set(PAIRS.EXTENT, extent:LONG).
-            set(PAIRS.UPSTREAM, pair.upstreamName).
-            set(PAIRS.DOWNSTREAM, pair.downstreamName).
+            set(PAIRS.UPSTREAM, upstream).
+            set(PAIRS.DOWNSTREAM, downstream).
             set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
             set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
             set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
             set(PAIRS.SCAN_CRON_ENABLED, boolean2Boolean(pair.scanCronEnabled)).
             set(PAIRS.VERSION_POLICY_NAME, pair.versionPolicyName).
           onDuplicateKeyUpdate().
-            set(PAIRS.UPSTREAM, pair.upstreamName).
-            set(PAIRS.DOWNSTREAM, pair.downstreamName).
+            set(PAIRS.UPSTREAM, upstream).
+            set(PAIRS.DOWNSTREAM, downstream).
             set(PAIRS.ALLOW_MANUAL_SCANS, pair.allowManualScans).
             set(PAIRS.MATCHING_TIMEOUT, pair.matchingTimeout.asInstanceOf[Integer]).
             set(PAIRS.SCAN_CRON_SPEC, pair.scanCronSpec).
@@ -406,7 +442,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
       pair.escalations.foreach(e => {
 
-        // TODO somehow factor out the subselect to avoid repetitions
+        // TODO somehow factor out the sub-select to avoid repetitions
 
         t.insertInto(ESCALATIONS).
             set(ESCALATIONS.NAME, e.name).

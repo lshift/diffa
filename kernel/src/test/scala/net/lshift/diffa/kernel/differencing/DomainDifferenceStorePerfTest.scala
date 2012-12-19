@@ -83,6 +83,7 @@ class DomainDifferenceStorePerfTest {
     }
   }
 
+  // I can't see how the index on detected_at could help here.
   @Test
   @Ignore("detectedAt index doesn't appear to be correcting this")
   def differenceQueryShouldRemainConstantForSameNumberOfDifferences() {

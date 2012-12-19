@@ -558,23 +558,20 @@ class JooqDomainConfigStoreTest {
     val down_v1 = down_v0.copy(categories = Map("foo" -> new RangeCategoryDescriptor("date", null, null, null)))
     verifyEndpoints(Seq(down_v1, up_v2))
 
-    val down_v2 = down_v1.copy(
-      categories = Map(
+    val down_v2 = down_v1.copy(categories = Map(
         "foo" -> new RangeCategoryDescriptor("date", null, null, null),
         "bar" -> new PrefixCategoryDescriptor(1,3,1)
       ))
     verifyEndpoints(Seq(down_v2, up_v2))
 
-    val down_v3 = down_v2.copy(
-      categories = Map(
+    val down_v3 = down_v2.copy(categories = Map(
         "foo" -> new RangeCategoryDescriptor("date", null, null, null),
         "bar" -> new PrefixCategoryDescriptor(1,3,1),
         "baz" -> new SetCategoryDescriptor(Set("a","b","c"))
       ))
     verifyEndpoints(Seq(down_v3, up_v2))
 
-    val down_v4 = down_v3.copy(
-      categories = Map(
+    val down_v4 = down_v3.copy(categories = Map(
         "foo" -> new RangeCategoryDescriptor("date", null, null, null),
         "ibm" -> new RangeCategoryDescriptor("date", "1999-10-10", "1999-10-11", null),
         "bar" -> new PrefixCategoryDescriptor(1,3,1),
@@ -687,11 +684,11 @@ class JooqDomainConfigStoreTest {
 
     val pair = PairDef(key = new UUID().toString, upstreamName = upstream.name, downstreamName = downstream.name)
 
-    val space = systemConfigStore.createOrUpdateSpace(RandomStringUtils.randomAlphanumeric(10))
+    val space2 = systemConfigStore.createOrUpdateSpace(RandomStringUtils.randomAlphanumeric(10))
 
-    domainConfigStore.createOrUpdateEndpoint(space.id, upstream)
-    domainConfigStore.createOrUpdateEndpoint(space.id, downstream)
-    domainConfigStore.createOrUpdatePair(space.id, pair)
+    domainConfigStore.createOrUpdateEndpoint(space2.id, upstream)
+    domainConfigStore.createOrUpdateEndpoint(space2.id, downstream)
+    domainConfigStore.createOrUpdatePair(space2.id, pair)
 
     // It should not be possible to create more than one view with the same name within the same endpoint
 
@@ -700,14 +697,14 @@ class JooqDomainConfigStoreTest {
     val invalidUpstream = EndpointDef(name = new UUID().toString, categories = parentCategories, views = invalidUpstreamViews)
 
     try {
-      domainConfigStore.createOrUpdateEndpoint(space.id, invalidUpstream)
+      domainConfigStore.createOrUpdateEndpoint(space2.id, invalidUpstream)
       fail("Should have thrown integrity error")
     }
     catch {
       case x:DataAccessException => // expected
     }
     finally {
-      systemConfigStore.deleteSpace(space.id)
+      systemConfigStore.deleteSpace(space2.id)
     }
 
   }

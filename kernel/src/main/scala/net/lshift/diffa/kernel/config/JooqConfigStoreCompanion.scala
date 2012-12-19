@@ -38,21 +38,25 @@ import net.lshift.diffa.schema.tables.UserItemVisibility.USER_ITEM_VISIBILITY
 import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import net.lshift.diffa.schema.tables.StoreCheckpoints.STORE_CHECKPOINTS
 import net.lshift.diffa.schema.tables.Breakers.BREAKERS
-import net.lshift.diffa.kernel.frontend._
 import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.tables.EndpointViews._
-import net.lshift.diffa.kernel.frontend.DomainEndpointDef
-import net.lshift.diffa.kernel.frontend.RepairActionDef
-import net.lshift.diffa.kernel.frontend.EscalationDef
-import net.lshift.diffa.kernel.frontend.PairReportDef
 import collection.mutable
 import org.slf4j.LoggerFactory
 import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
-import org.jooq.{Field, Record, Result}
+import org.jooq._
 import java.lang.{Long => LONG}
 import net.lshift.diffa.schema.tables.SpacePaths._
+import net.lshift.diffa.kernel.frontend.DomainPairDef
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.frontend.RepairActionDef
+import scala.Some
+import net.lshift.diffa.kernel.frontend.EndpointViewDef
+import net.lshift.diffa.kernel.frontend.PairReportDef
+import net.lshift.diffa.kernel.frontend.EscalationDef
+import net.lshift.diffa.kernel.frontend.DomainEndpointDef
+import net.lshift.diffa.kernel.frontend.PairViewDef
 
 /**
  * This object is a workaround for the fact that Scala is so slow
@@ -102,22 +106,18 @@ object JooqConfigStoreCompanion {
           on(SPACES.ID.equal(ENDPOINTS.SPACE)).
 
         leftOuterJoin(UNIQUE_CATEGORY_NAMES).
-          on(UNIQUE_CATEGORY_NAMES.SPACE.equal(ENDPOINTS.SPACE)).
-          and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINTS.NAME)).
+          on(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(ENDPOINTS.ID)).
 
         leftOuterJoin(RANGE_CATEGORIES).
-          on(RANGE_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
-          and(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
+          on(RANGE_CATEGORIES.ENDPOINT.equal(ENDPOINTS.ID)).
           and(RANGE_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(PREFIX_CATEGORIES).
-          on(PREFIX_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
-          and(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
+          on(PREFIX_CATEGORIES.ENDPOINT.equal(ENDPOINTS.ID)).
           and(PREFIX_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME)).
 
         leftOuterJoin(SET_CATEGORIES).
-          on(SET_CATEGORIES.SPACE.equal(ENDPOINTS.SPACE)).
-          and(SET_CATEGORIES.ENDPOINT.equal(ENDPOINTS.NAME)).
+          on(SET_CATEGORIES.ENDPOINT.equal(ENDPOINTS.ID)).
           and(SET_CATEGORIES.NAME.equal(UNIQUE_CATEGORY_NAMES.NAME))
 
       val firstUnionPart = space match {
@@ -141,38 +141,36 @@ object JooqConfigStoreCompanion {
         select(SPACES.NAME.as(SPACE_NAME_ALIAS)).
         from(ENDPOINT_VIEWS).
 
-        join(SPACES).
-          on(SPACES.ID.equal(ENDPOINT_VIEWS.SPACE)).
-
         join(ENDPOINTS).
-          on(ENDPOINTS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
-          and(ENDPOINTS.NAME.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          on(ENDPOINT_VIEWS.ENDPOINT.equal(ENDPOINTS.ID)).
+
+        join(SPACES).
+        on(SPACES.ID.equal(ENDPOINTS.SPACE)).
 
         leftOuterJoin(UNIQUE_CATEGORY_VIEW_NAMES).
-          on(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
-          and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
+          on(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(ENDPOINTS.ID)).
           and(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME.equal(ENDPOINT_VIEWS.NAME)).
 
         leftOuterJoin(RANGE_CATEGORY_VIEWS).
-          on(RANGE_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          on(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINTS.ID)).
           and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(RANGE_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
           and(RANGE_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
 
         leftOuterJoin(PREFIX_CATEGORY_VIEWS).
-          on(PREFIX_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          on(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINTS.ID)).
           and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(PREFIX_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
           and(PREFIX_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
 
         leftOuterJoin(SET_CATEGORY_VIEWS).
-          on(SET_CATEGORY_VIEWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          on(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINTS.ID)).
           and(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
           and(SET_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
 
         leftOuterJoin(ENDPOINT_VIEW_ROLLING_WINDOWS).
-          on(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(ENDPOINT_VIEWS.SPACE)).
+          on(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(ENDPOINTS.ID)).
           and(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
           and(ENDPOINT_VIEW_ROLLING_WINDOWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME))
@@ -183,11 +181,11 @@ object JooqConfigStoreCompanion {
           val maybeUnionPart = bottomHalf.where(ENDPOINTS.SPACE.equal(s))
           endpoint match {
             case None    => maybeUnionPart
-            case Some(e) => maybeUnionPart.and(ENDPOINT_VIEWS.ENDPOINT.equal(e))
+            case Some(e) => maybeUnionPart.and(ENDPOINTS.NAME.equal(e))
           }
       }
 
-      // Sort the grand union rather than the individual constituent subselects
+      // Sort the grand union rather than the individual constituent sub-selects
 
       val grandUnion = firstUnionPart.union(secondUnionPart)
 
@@ -218,7 +216,7 @@ object JooqConfigStoreCompanion {
         val compressionKey = currentEndpoint.space + "/" + currentEndpoint.name
 
         if (!endpoints.contains(compressionKey)) {
-          endpoints.put(compressionKey, currentEndpoint);
+          endpoints.put(compressionKey, currentEndpoint)
         }
 
         val resolvedEndpoint = endpoints.get(compressionKey)
@@ -320,6 +318,9 @@ object JooqConfigStoreCompanion {
                            key:Option[String] = None,
                            endpoint:Option[String] = None) : Seq[DomainPairDef] = {
 
+    val upstream = ENDPOINTS.as("upstream")
+    val downstream = ENDPOINTS.as("downstream")
+
     val baseQuery = t.select(PAIRS.getFields).
       select(PAIR_VIEWS.NAME, PAIR_VIEWS.SCAN_CRON_SPEC, PAIR_VIEWS.SCAN_CRON_ENABLED).
       select(REPAIR_ACTIONS.getFields).
@@ -327,9 +328,15 @@ object JooqConfigStoreCompanion {
       select(ESCALATION_RULES.RULE).
       select(PAIR_REPORTS.getFields).
       select(SPACES.NAME).
+      select(upstream.NAME).
+      select(downstream.NAME).
       from(PAIRS).
       join(SPACES).
         on(SPACES.ID.equal(PAIRS.SPACE)).
+      leftOuterJoin(upstream).
+        on(PAIRS.UPSTREAM.equal(upstream.ID)).
+      leftOuterJoin(downstream).
+        on(PAIRS.DOWNSTREAM.equal(downstream.ID)).
       leftOuterJoin(PAIR_VIEWS).
         on(PAIR_VIEWS.PAIR.equal(PAIRS.NAME)).
         and(PAIR_VIEWS.SPACE.equal(PAIRS.SPACE)).
@@ -352,7 +359,9 @@ object JooqConfigStoreCompanion {
     }
     val query = endpoint match {
       case None       => keyedQuery
-      case Some(name) => keyedQuery.and(PAIRS.UPSTREAM.equal(name).or(PAIRS.DOWNSTREAM.equal(name)))
+      case Some(name) => keyedQuery.
+        and(upstream.NAME.equal(name).
+        or(downstream.NAME.equal(name)))
     }
 
     val results = query.fetch()
@@ -377,13 +386,15 @@ object JooqConfigStoreCompanion {
     results.iterator().foreach(record => {
       val pairKey = record.getValue(PAIRS.NAME)
       val compressedKey = compressionKey(pairKey)
+      val upstreamName = record.getValue(upstream.NAME)
+      val downstreamName = record.getValue(downstream.NAME)
       val pair = compressed.getOrElseUpdate(compressedKey,
         DomainPairDef(
           space = record.getValue(PAIRS.SPACE),
           domain = record.getValue(SPACES.NAME),
           key = record.getValue(PAIRS.NAME),
-          upstreamName = record.getValue(PAIRS.UPSTREAM),
-          downstreamName = record.getValue(PAIRS.DOWNSTREAM),
+          upstreamName = upstreamName,
+          downstreamName = downstreamName,
           versionPolicyName = record.getValue(PAIRS.VERSION_POLICY_NAME),
           scanCronSpec = record.getValue(PAIRS.SCAN_CRON_SPEC),
           scanCronEnabled = record.getValue(PAIRS.SCAN_CRON_ENABLED),
@@ -478,7 +489,12 @@ object JooqConfigStoreCompanion {
       execute()
   }
 
-
+  def deleteRecordsInSpace[R <: Record](t: Factory, space: Long, table: Table[R]) = {
+    t.delete(table).where(table.getField("ENDPOINT").in(
+      t.select(ENDPOINTS.ID).
+        from(ENDPOINTS).
+        where(ENDPOINTS.SPACE.equal(space))))
+  }
 
   def deleteBreakersByPair(t:Factory, pair:PairRef) = {
     t.delete(BREAKERS).
@@ -541,28 +557,26 @@ object JooqConfigStoreCompanion {
 
   def insertCategories(t:Factory,
                        space:java.lang.Long,
+                       endpointId:LONG,
                        endpoint:EndpointDef) = {
-
     endpoint.categories.foreach { case (categoryName, descriptor) => {
 
       try {
-
         t.insertInto(UNIQUE_CATEGORY_NAMES).
-            set(UNIQUE_CATEGORY_NAMES.SPACE, space).
-            set(UNIQUE_CATEGORY_NAMES.ENDPOINT, endpoint.name).
+            set(UNIQUE_CATEGORY_NAMES.ENDPOINT, endpointId).
             set(UNIQUE_CATEGORY_NAMES.NAME, categoryName).
           execute()
 
         descriptor match {
-          case r:RangeCategoryDescriptor  => insertRangeCategory(t, space, endpoint.name, categoryName, r)
-          case s:SetCategoryDescriptor    => insertSetCategory(t, space, endpoint.name, categoryName, s)
-          case p:PrefixCategoryDescriptor => insertPrefixCategory(t, space, endpoint.name, categoryName, p)
+          case r:RangeCategoryDescriptor  => insertRangeCategory(t, endpointId, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategory(t, endpointId, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategory(t, endpointId, categoryName, p)
           case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoints.
         }
       }
       catch {
           case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
-            val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_NAMES: domain = %s; endpoint = %s; categories = %s".
+            val msg = "Integrity constraint violation during insert into UNIQUE_CATEGORY_NAMES: domain = %s; endpoint = %s; categories = %s".
                       format(space, endpoint, endpoint.categories)
             log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), msg))
             log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
@@ -574,32 +588,45 @@ object JooqConfigStoreCompanion {
     }}
   }
 
-  def insertCategoriesForView(t:Factory,
-                              space:Long,
-                              endpoint:String,
-                              view:EndpointViewDef) = {
+  def endpointIdByNameAsField(t: Factory, endpointName: String, space: Long) =
+    selectEndpointIdByName(t, endpointName, space).
+      asField().
+      asInstanceOf[Field[LONG]]
 
+  def selectEndpointIdByName(t: Factory, endpointName: String, spaceId: Long) =
+    t.select(ENDPOINTS.ID).
+      from(ENDPOINTS).
+      where(ENDPOINTS.SPACE.equal(spaceId)).
+      and(ENDPOINTS.NAME.equal(endpointName))
+
+  def endpointIdByName(t: Factory, endpointName: String, spaceId: Long) =
+    selectEndpointIdByName(t, endpointName, spaceId).fetchOne(ENDPOINTS.ID).longValue():LONG
+
+  def insertCategoriesForView(t:Factory,
+                              space:LONG,
+                              endpoint:String,
+                              endpointId:LONG,
+                              view:EndpointViewDef) {
     view.categories.foreach { case (categoryName, descriptor) => {
 
       try {
 
         t.insertInto(UNIQUE_CATEGORY_VIEW_NAMES).
-            set(UNIQUE_CATEGORY_VIEW_NAMES.SPACE, space:LONG).
-            set(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT, endpoint).
+            set(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT, endpointId).
             set(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME, view.name).
             set(UNIQUE_CATEGORY_VIEW_NAMES.NAME, categoryName).
           execute()
 
         descriptor match {
-          case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, space, endpoint, view.name, categoryName, r)
-          case s:SetCategoryDescriptor    => insertSetCategoryView(t, space, endpoint, view.name, categoryName, s)
-          case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, space, endpoint, view.name, categoryName, p)
-          case rw: RollingWindowFilter => insertViewRollingWindow(t, space, endpoint, view.name, categoryName, rw)
+          case r:RangeCategoryDescriptor  => insertRangeCategoryView(t, endpointId, view.name, categoryName, r)
+          case s:SetCategoryDescriptor    => insertSetCategoryView(t, endpointId, view.name, categoryName, s)
+          case p:PrefixCategoryDescriptor => insertPrefixCategoryView(t, endpointId, view.name, categoryName, p)
+          case rw: RollingWindowFilter => insertViewRollingWindow(t, endpointId, view.name, categoryName, rw)
         }
       }
       catch {
         case e:DataAccessException if e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException] =>
-          val msg = "Integrity constaint during insert into UNIQUE_CATEGORY_VIEW_NAMES: domain = %s; endpoint = %s; view = %s".
+          val msg = "Integrity constraint violation during insert into UNIQUE_CATEGORY_VIEW_NAMES: domain = %s; endpoint = %s; view = %s".
             format(space, endpoint, view)
           log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), msg))
           log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
@@ -612,14 +639,12 @@ object JooqConfigStoreCompanion {
   }
 
   def insertPrefixCategory(t:Factory,
-                           space:Long,
-                           endpoint:String,
+                           endpointId:LONG,
                            categoryName:String,
                            descriptor:PrefixCategoryDescriptor) = {
 
     t.insertInto(PREFIX_CATEGORIES).
-        set(PREFIX_CATEGORIES.SPACE, space:LONG).
-        set(PREFIX_CATEGORIES.ENDPOINT, endpoint).
+        set(PREFIX_CATEGORIES.ENDPOINT, endpointId).
         set(PREFIX_CATEGORIES.NAME, categoryName).
         set(PREFIX_CATEGORIES.STEP, Integer.valueOf(descriptor.step)).
         set(PREFIX_CATEGORIES.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
@@ -628,15 +653,13 @@ object JooqConfigStoreCompanion {
   }
 
   def insertPrefixCategoryView(t:Factory,
-                               space:Long,
-                               endpoint:String,
+                               endpointId:LONG,
                                view:String,
                                categoryName:String,
                                descriptor:PrefixCategoryDescriptor) = {
 
     t.insertInto(PREFIX_CATEGORY_VIEWS).
-      set(PREFIX_CATEGORY_VIEWS.SPACE, space:LONG).
-      set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpoint).
+      set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpointId).
       set(PREFIX_CATEGORY_VIEWS.VIEW_NAME, view).
       set(PREFIX_CATEGORY_VIEWS.NAME, categoryName).
       set(PREFIX_CATEGORY_VIEWS.STEP, Integer.valueOf(descriptor.step)).
@@ -646,8 +669,7 @@ object JooqConfigStoreCompanion {
   }
 
   def insertSetCategory(t:Factory,
-                        space:Long,
-                        endpoint:String,
+                        endpointId:LONG,
                         categoryName:String,
                         descriptor:SetCategoryDescriptor) = {
 
@@ -655,8 +677,7 @@ object JooqConfigStoreCompanion {
 
     descriptor.values.foreach(value => {
       t.insertInto(SET_CATEGORIES).
-        set(SET_CATEGORIES.SPACE, space:LONG).
-        set(SET_CATEGORIES.ENDPOINT, endpoint).
+        set(SET_CATEGORIES.ENDPOINT, endpointId).
         set(SET_CATEGORIES.NAME, categoryName).
         set(SET_CATEGORIES.VALUE, value).
       execute()
@@ -664,18 +685,16 @@ object JooqConfigStoreCompanion {
   }
 
   def insertSetCategoryView(t:Factory,
-                            space:Long,
-                            endpoint:String,
+                            endpointId:LONG,
                             view:String,
                             categoryName:String,
-                            descriptor:SetCategoryDescriptor) = {
+                            descriptor:SetCategoryDescriptor) {
 
     // TODO Is there a way to re-use the insert statement with a bind parameter?
 
     descriptor.values.foreach(value => {
       t.insertInto(SET_CATEGORY_VIEWS).
-        set(SET_CATEGORY_VIEWS.SPACE, space:LONG).
-        set(SET_CATEGORY_VIEWS.ENDPOINT, endpoint).
+        set(SET_CATEGORY_VIEWS.ENDPOINT, endpointId).
         set(SET_CATEGORY_VIEWS.VIEW_NAME, view).
         set(SET_CATEGORY_VIEWS.NAME, categoryName).
         set(SET_CATEGORY_VIEWS.VALUE, value).
@@ -684,13 +703,11 @@ object JooqConfigStoreCompanion {
   }
 
   def insertRangeCategory(t:Factory,
-                          space:Long,
-                          endpoint:String,
+                          endpointId:LONG,
                           categoryName:String,
                           descriptor:RangeCategoryDescriptor) = {
     t.insertInto(RANGE_CATEGORIES).
-        set(RANGE_CATEGORIES.SPACE, space:LONG).
-        set(RANGE_CATEGORIES.ENDPOINT, endpoint).
+        set(RANGE_CATEGORIES.ENDPOINT, endpointId).
         set(RANGE_CATEGORIES.NAME, categoryName).
         set(RANGE_CATEGORIES.DATA_TYPE, descriptor.dataType).
         set(RANGE_CATEGORIES.LOWER_BOUND, descriptor.lower).
@@ -700,104 +717,52 @@ object JooqConfigStoreCompanion {
   }
 
   def insertViewRollingWindow(t: Factory,
-                          space: Long,
-                          endpoint: String,
+                          endpointId: LONG,
                           viewName: String,
                           categoryName: String,
                           filter: RollingWindowFilter) =
     t.insertInto(ENDPOINT_VIEW_ROLLING_WINDOWS).
-        set(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE, space: LONG).
-        set(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT, endpoint).
+        set(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT, endpointId).
         set(ENDPOINT_VIEW_ROLLING_WINDOWS.VIEW_NAME, viewName).
         set(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME, categoryName).
         set(ENDPOINT_VIEW_ROLLING_WINDOWS.PERIOD, filter.periodExpression).
         set(ENDPOINT_VIEW_ROLLING_WINDOWS.OFFSET, filter.offsetDurationExpression).
       execute()
 
+
   def insertRangeCategoryView(t:Factory,
-                              space:Long,
-                              endpoint:String,
+                              endpointId:LONG,
                               view:String,
                               categoryName:String,
-                              descriptor:RangeCategoryDescriptor) = {
+                              descriptor:RangeCategoryDescriptor) {
     t.insertInto(RANGE_CATEGORY_VIEWS).
-        set(RANGE_CATEGORY_VIEWS.SPACE, space:LONG).
-        set(RANGE_CATEGORY_VIEWS.ENDPOINT, endpoint).
-        set(RANGE_CATEGORY_VIEWS.VIEW_NAME, view).
-        set(RANGE_CATEGORY_VIEWS.NAME, categoryName).
-        set(RANGE_CATEGORY_VIEWS.DATA_TYPE, descriptor.dataType).
-        set(RANGE_CATEGORY_VIEWS.LOWER_BOUND, descriptor.lower).
-        set(RANGE_CATEGORY_VIEWS.UPPER_BOUND, descriptor.upper).
-        set(RANGE_CATEGORY_VIEWS.MAX_GRANULARITY, descriptor.maxGranularity).
+      set(RANGE_CATEGORY_VIEWS.ENDPOINT, endpointId).
+      set(RANGE_CATEGORY_VIEWS.VIEW_NAME, view).
+      set(RANGE_CATEGORY_VIEWS.NAME, categoryName).
+      set(RANGE_CATEGORY_VIEWS.DATA_TYPE, descriptor.dataType).
+      set(RANGE_CATEGORY_VIEWS.LOWER_BOUND, descriptor.lower).
+      set(RANGE_CATEGORY_VIEWS.UPPER_BOUND, descriptor.upper).
+      set(RANGE_CATEGORY_VIEWS.MAX_GRANULARITY, descriptor.maxGranularity).
       execute()
   }
 
-  def deleteRangeCategories(t:Factory, space:Long, endpoint:String) = {
-    t.delete(RANGE_CATEGORIES).
-      where(RANGE_CATEGORIES.SPACE.equal(space:LONG)).
-        and(RANGE_CATEGORIES.ENDPOINT.equal(endpoint)).
-      execute()
-  }
-
-  def deleteRangeCategoryViews(t:Factory, space:Long, endpoint:String) = {
-    t.delete(RANGE_CATEGORY_VIEWS).
-      where(RANGE_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
-        and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
-      execute()
-  }
-
-  def deleteSetCategories(t:Factory, space:Long, endpoint:String) = {
-    t.delete(SET_CATEGORIES).
-      where(SET_CATEGORIES.SPACE.equal(space:LONG)).
-        and(SET_CATEGORIES.ENDPOINT.equal(endpoint)).
-      execute()
-  }
-
-  def deleteSetCategoryViews(t:Factory, space:Long, endpoint:String) = {
-    t.delete(SET_CATEGORY_VIEWS).
-      where(SET_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
-        and(SET_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
-      execute()
-  }
-
-  def deletePrefixCategories(t:Factory, space:Long, endpoint:String) = {
-    t.delete(PREFIX_CATEGORIES).
-      where(PREFIX_CATEGORIES.SPACE.equal(space:LONG)).
-        and(PREFIX_CATEGORIES.ENDPOINT.equal(endpoint)).
-      execute()
-  }
-
-  def deletePrefixCategoryViews(t:Factory, space:Long, endpoint:String) = {
-    t.delete(PREFIX_CATEGORY_VIEWS).
-      where(PREFIX_CATEGORY_VIEWS.SPACE.equal(space:LONG)).
-        and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(endpoint)).
-      execute()
-  }
+  def deleteGenericCategoriesForEndpoint[R <: Record](t: Factory, space: Long, endpoint: String, table: Table[R]) =
+    t.delete(table).where(table.getField("ENDPOINT").in(selectEndpointIdByName(t, endpoint, space)))
 
   def deleteCategories(t:Factory, space:Long, endpoint:String) = {
-    deletePrefixCategoryViews(t, space, endpoint)
-    deletePrefixCategories(t, space, endpoint)
+    // The order of these tables is important. Incorrect ordering will result in foreign key constraint violation.
+    val categoryTables = Seq(
+      PREFIX_CATEGORY_VIEWS,
+      PREFIX_CATEGORIES,
+      SET_CATEGORY_VIEWS,
+      SET_CATEGORIES,
+      ENDPOINT_VIEW_ROLLING_WINDOWS,
+      RANGE_CATEGORY_VIEWS,
+      RANGE_CATEGORIES,
+      UNIQUE_CATEGORY_VIEW_NAMES,
+      UNIQUE_CATEGORY_NAMES)
 
-    deleteSetCategoryViews(t, space, endpoint)
-    deleteSetCategories(t, space, endpoint)
-
-    deleteRangeCategoryViews(t, space, endpoint)
-    deleteRangeCategories(t, space, endpoint)
-
-    t.delete(ENDPOINT_VIEW_ROLLING_WINDOWS).
-      where(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(space:LONG)).
-      and(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(endpoint)).
-      execute()
-
-    t.delete(UNIQUE_CATEGORY_VIEW_NAMES).
-      where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(space:LONG)).
-      and(UNIQUE_CATEGORY_VIEW_NAMES.ENDPOINT.equal(endpoint)).
-      execute()
-
-    t.delete(UNIQUE_CATEGORY_NAMES).
-      where(UNIQUE_CATEGORY_NAMES.SPACE.equal(space:LONG)).
-        and(UNIQUE_CATEGORY_NAMES.ENDPOINT.equal(endpoint)).
-      execute()
+    categoryTables foreach (deleteGenericCategoriesForEndpoint(t, space, endpoint, _).execute())
   }
 
   def ancestorIdTree(t:Factory, space:Long):Seq[Long] = {

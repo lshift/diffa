@@ -83,7 +83,6 @@ public class MachineIdAssigner {
 	}
 
 	public int assign(IdentityGenerator generator) {
-		// System.out.println("assign");
 		int retryCount = 0;
 		while (retryCount < COLLISION_MAX_RETRIES) {
 			try {
@@ -100,11 +99,15 @@ public class MachineIdAssigner {
 	}
 
 	private boolean tryAssign(String path) throws Exception {
-		// System.out.println("tryAssign");
 		InterProcessLock lock = new InterProcessMutex(curator, path);
 		return lock.acquire(acquireTimeout, acquireTimeoutTimeUnit);
 	}
 
+  /**
+   * Simulate process termination by pulling the curator out from underneath this assigner.
+   * This is only public until MachineIdAssignerSpec is moved into the same package as this.
+   */
+  @Deprecated
 	public void releaseAll() {
 		curator.close();
 	}

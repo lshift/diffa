@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,72 +16,8 @@
 
 package net.lshift.diffa.snowflake;
 
-import static java.lang.Math.pow;
-import static java.lang.Math.round;
-
 /**
- * Provider of unique, k-ordered identifiers.  Uniqueness of identifiers across
- * nodes is facilitated by using Apace ZooKeeper to co-ordinate the node identity
- * component of the generated identifiers.
  */
-public class IdProvider {
-  public static final int machineBits = 10;
-  public static final int sequenceBits = 12;
-
-  public static final short sequenceUpperBound = (short) (round(pow(2, sequenceBits)) - 1);
-
-  public static final int timestampLShift = machineBits + sequenceBits;
-  public static final int machineLShift = sequenceBits;
-  public static final int sequenceLShift = 0;
-
-  private int machineId;
-  private long pauseMs = 0L;
-  private TimeFunction timeFn = SystemTimeFunction.getInstance();
-  private short sequenceNum = 0;
-  private long lastTimestamp = -1L;
-  private Object mutex = new Object();
-
-  public IdProvider(int machineId) {
-    this.machineId = machineId;
-  }
-
-  public void setTimeFn(TimeFunction timeFn) {
-    this.timeFn = timeFn;
-  }
-
-  public void setPauseMs(int pause) {
-    this.pauseMs = pause;
-  }
-
-  public long getId() throws InvalidSystemClockException, SequenceExhaustedException {
-    long now = timeFn.now();
-
-    synchronized(mutex) {
-      maybePause();
-
-      if (now < lastTimestamp) {
-        throw new InvalidSystemClockException();
-      } else if (now > lastTimestamp) {
-        sequenceNum = 0;
-      } else {
-        if (sequenceNum < IdProvider.sequenceUpperBound) {
-          sequenceNum++;
-        } else {
-          throw new SequenceExhaustedException(sequenceNum);
-        }
-      }
-    }
-    lastTimestamp = now;
-
-    return (now << timestampLShift) | (machineId << machineLShift) | (sequenceNum << sequenceLShift);
-  }
-
-  private void maybePause() {
-    if (pauseMs > 0) {
-      try {
-        Thread.sleep(pauseMs);
-      } catch (InterruptedException ie) {
-      }
-    }
-  }
+public interface IdProvider {
+  public long getId() throws InvalidSystemClockException, SequenceExhaustedException;
 }

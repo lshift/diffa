@@ -59,6 +59,7 @@ class JooqDomainDifferenceStoreTest {
         
     val us = EndpointDef(name = "upstream")
     val ds = EndpointDef(name = "downstream")
+
     domainConfigStore.createOrUpdateEndpoint(space.id, us)
     domainConfigStore.createOrUpdateEndpoint(space.id, ds)
 

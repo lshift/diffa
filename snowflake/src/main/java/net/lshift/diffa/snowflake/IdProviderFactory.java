@@ -25,6 +25,6 @@ public class IdProviderFactory {
   }
 
   public IdProvider getProvider() {
-    return new IdProvider(machineIdAssigner.assign(machineIdGenerator));
+    return new SnowflakeIdProvider(machineIdAssigner.assign(machineIdGenerator));
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package net.lshift.diffa.schema.migrations.steps
 
-import org.hibernate.cfg.Configuration
-import net.lshift.hibernate.migrations.MigrationBuilder
-import java.sql.Types
 import net.lshift.diffa.schema.migrations.{MigrationUtil, VerifiedMigrationStep}
-import scala.collection.JavaConversions._
+import net.lshift.hibernate.migrations.MigrationBuilder
 import net.lshift.diffa.schema.configs.InternalCollation
 import net.lshift.diffa.schema.servicelimits._
 
-object Step0051 extends VerifiedMigrationStep {
+import java.sql.Types
+import org.hibernate.cfg.Configuration
+import scala.collection.JavaConversions._
 
-  def versionId = 51
-  def name = "Sub space database layout"
+/**
+ * Add a surrogate key to the endpoint entity.
+ */
+object Step0054 extends VerifiedMigrationStep {
+  /**
+   * The version that this step gets the database to.
+   */
+  def versionId = 54
+
+  /**
+   * This is a breaking change. It can only be applied to an empty system.
+   */
+  override def upgradeableFromVersion(fromVersion: Option[Int]) = fromVersion.isEmpty
+
+  /**
+   * The name of this migration step
+   */
+  def name = "Add surrogate key to endpoints"
+
+  /**
+   * Requests that the step create migration builder for doing it's migration.
+   */
 
   def createMigration(config: Configuration) = {
     val migration = new MigrationBuilder(config)
@@ -69,14 +89,28 @@ object Step0051 extends VerifiedMigrationStep {
 
     migration.alterTable("users").addUniqueConstraint("token")
 
+    migration.createTable("policies").
+      column("space", Types.BIGINT, false).
+      column("name", Types.VARCHAR, 50, false).
+      pk("space", "name")
+    migration.alterTable("policies").
+      addForeignKey("fk_plcy_spcs", "space", "spaces", "id")
+
+    // NOTE: A membership also needs to reference the space where the policy was defined.
+    //       This allows a policy to be defined at a high level, and then be used and applied
+    //       to specific child spaces (ie, define a top level "Admin" policy, but then only apply it to
+    //       a specific subspace).
     migration.createTable("members").
       column("space", Types.BIGINT, false).
       column("username", Types.VARCHAR, 50, false).
-      pk("space", "username")
+      column("policy", Types.VARCHAR, 50, false).
+      column("policy_space", Types.BIGINT, false).
+      pk("space", "username", "policy_space", "policy")
 
     migration.alterTable("members").
       addForeignKey("fk_mmbs_dmns", "space", "spaces", "id").
-      addForeignKey("fk_mmbs_user", "username", "users", "name")
+      addForeignKey("fk_mmbs_user", "username", "users", "name").
+      addForeignKey("fk_mmbs_plcy", Array("policy_space", "policy"), "policies", Array("space", "name"))
 
     // Now start to create things that are scoped on spaces
 
@@ -91,25 +125,29 @@ object Step0051 extends VerifiedMigrationStep {
 
     migration.createTable("endpoints").
       column("space", Types.BIGINT, false).
+      column("id", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("scan_url", Types.VARCHAR, 1024, true).
       column("content_retrieval_url", Types.VARCHAR, 1024, true).
       column("version_generation_url", Types.VARCHAR, 1024, true).
       column("inbound_url", Types.VARCHAR, 1024, true).
       column("collation_type", Types.VARCHAR, 16, false, "ascii").
-      pk("space", "name")
+      pk("id")
+
+    migration.createIndex("endpoints_space_id_idx", "endpoints", "space", "id")
 
     migration.alterTable("endpoints").
-      addForeignKey("fk_edpt_spcs", "space", "spaces", "id")
+      addForeignKey("fk_edpt_spcs", "space", "spaces", "id").
+      addUniqueConstraint("uk_endpoints_space_id", "space", "id").
+      addUniqueConstraint("uk_endpoints_space_name", "space", "name")
 
     migration.createTable("endpoint_views").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
-      pk("space", "endpoint", "name")
+      pk("endpoint", "name")
 
     migration.alterTable("endpoint_views").
-      addForeignKey("fk_epvw_edpt", Array("space", "endpoint"), "endpoints", Array("space", "name"))
+      addForeignKey("fk_epvw_edpt", "endpoint", "endpoints", "id")
 
     migration.createTable("extents").
       column("id", Types.BIGINT, false).
@@ -118,8 +156,8 @@ object Step0051 extends VerifiedMigrationStep {
     migration.createTable("pairs").
       column("space", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
-      column("upstream", Types.VARCHAR, 50, false).
-      column("downstream", Types.VARCHAR, 50, false).
+      column("upstream", Types.BIGINT, false).
+      column("downstream", Types.BIGINT, false).
       column("extent", Types.BIGINT, false).
       column("version_policy_name", Types.VARCHAR, 50, true).
       column("matching_timeout", Types.INTEGER, true).
@@ -131,11 +169,15 @@ object Step0051 extends VerifiedMigrationStep {
     migration.alterTable("pairs").
       addForeignKey("fk_pair_spcs", "space", "spaces", "id").
       addForeignKey("fk_pair_exts", "extent", "extents", "id").
-      addForeignKey("fk_pair_upstream_edpt", Array("space", "upstream"), "endpoints", Array("space", "name")).
-      addForeignKey("fk_pair_downstream_edpt", Array("space", "downstream"), "endpoints", Array("space", "name"))
+      addForeignKey("fk_pair_upstream_edpt", "upstream", "endpoints", "id").
+      addForeignKey("fk_pair_downstream_edpt", "downstream", "endpoints", "id")
 
     migration.alterTable("pairs")
       .addUniqueConstraint("uk_pair_exts", "extent")
+
+    // See note below regarding fk_escl_pair fk constraint.
+    migration.sql("alter table pairs add constraint fk_pair_upstream_spc foreign key (space, upstream) references endpoints (space, id)")
+    migration.sql("alter table pairs add constraint fk_pair_downstream_spc foreign key (space, downstream) references endpoints (space, id)")
 
     migration.createTable("escalations").
       column("name", Types.VARCHAR, 50, false).
@@ -237,106 +279,95 @@ object Step0051 extends VerifiedMigrationStep {
       addForeignKey("fk_prep_pair", Array("space", "pair"), "pairs", Array("space", "name"))
 
     migration.createTable("unique_category_names").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
-      pk("space", "endpoint", "name")
+      pk("endpoint", "name")
 
     migration.alterTable("unique_category_names").
-      addForeignKey("fk_ucns_edpt", Array("space", "endpoint"), "endpoints", Array("space", "name"))
+      addForeignKey("fk_ucns_edpt", "endpoint", "endpoints", "id")
 
     migration.createTable("prefix_categories").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("prefix_length", Types.INTEGER, true).
       column("max_length", Types.INTEGER, true).
       column("step", Types.INTEGER, true).
-      pk("space", "endpoint", "name")
+      pk("endpoint", "name")
 
     migration.alterTable("prefix_categories").
-      addForeignKey("fk_pfcg_ucns", Array("space", "endpoint", "name"), "unique_category_names", Array("space", "endpoint", "name"))
+      addForeignKey("fk_pfcg_ucns", Array("endpoint", "name"), "unique_category_names", Array("endpoint", "name"))
 
     migration.createTable("set_categories").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("value", Types.VARCHAR, 255, false).
-      pk("space", "endpoint", "name", "value")
+      pk("endpoint", "name", "value")
 
     migration.alterTable("set_categories").
-      addForeignKey("fk_stcg_ucns", Array("space", "endpoint", "name"), "unique_category_names", Array("space", "endpoint", "name"))
+      addForeignKey("fk_stcg_ucns", Array("endpoint", "name"), "unique_category_names", Array("endpoint", "name"))
 
     migration.createTable("range_categories").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("data_type", Types.VARCHAR, 20, false).
       column("lower_bound", Types.VARCHAR, 255, true).
       column("upper_bound", Types.VARCHAR, 255, true).
       column("max_granularity", Types.VARCHAR, 20, true).
-      pk("space", "endpoint", "name")
+      pk("endpoint", "name")
 
     migration.alterTable("range_categories").
-      addForeignKey("fk_racg_ucns", Array("space", "endpoint", "name"), "unique_category_names", Array("space", "endpoint", "name"))
-
+      addForeignKey("fk_racg_ucns", Array("endpoint", "name"), "unique_category_names", Array("endpoint", "name"))
 
     migration.createTable("unique_category_view_names").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("view_name", Types.VARCHAR, 50, false).
-      pk("space", "endpoint", "name", "view_name")
+      pk("endpoint", "name", "view_name")
 
     migration.alterTable("unique_category_view_names").
-      addForeignKey("fk_ucvn_evws", Array("space", "endpoint", "view_name"), "endpoint_views", Array("space", "endpoint", "name"))
+      addForeignKey("fk_ucvn_evws", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
+      addForeignKey("fk_ucvn_ucns", Array("endpoint", "name"), "unique_category_names", Array("endpoint", "name"))
 
     migration.createTable("prefix_category_views").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("view_name", Types.VARCHAR, 50, false).
       column("prefix_length", Types.INTEGER, true).
       column("max_length", Types.INTEGER, true).
       column("step", Types.INTEGER, true).
-      pk("space", "endpoint", "view_name", "name")
+      pk("endpoint", "view_name", "name")
 
     migration.alterTable("prefix_category_views").
-      addForeignKey("fk_pfcv_evws", Array("space", "endpoint", "view_name"), "endpoint_views", Array("space", "endpoint", "name"))
-
-    migration.alterTable("prefix_category_views").
-      addForeignKey("fk_pfcv_ucns", Array("space", "endpoint", "name", "view_name"), "unique_category_view_names", Array("space", "endpoint", "name", "view_name"))
+      addForeignKey("fk_pfcv_evws", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
+      addForeignKey("fk_pfcv_pfcg", Array("endpoint", "name"), "prefix_categories", Array("endpoint", "name")).
+      addForeignKey("fk_pfcv_ucns", Array("endpoint", "name", "view_name"), "unique_category_view_names", Array("endpoint", "name", "view_name"))
 
     migration.createTable("set_category_views").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("view_name", Types.VARCHAR, 50, false).
       column("value", Types.VARCHAR, 255, false).
-      pk("space", "endpoint",  "view_name", "name", "value")
+      pk("endpoint",  "view_name", "name", "value")
 
     migration.alterTable("set_category_views").
-      addForeignKey("fk_stcv_evws", Array("space", "endpoint", "view_name"), "endpoint_views", Array("space", "endpoint", "name"))
-
-    migration.alterTable("set_category_views").
-      addForeignKey("fk_stcv_ucns", Array("space", "endpoint", "name", "view_name"), "unique_category_view_names", Array("space", "endpoint", "name", "view_name"))
+      addForeignKey("fk_stcv_evws", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
+      //addForeignKey("fk_stcv_stcg", Array("endpoint", "name", "value"), "set_categories", Array("endpoint", "name", "value")).
+      addForeignKey("fk_stcv_ucns", Array("endpoint", "name", "view_name"), "unique_category_view_names", Array("endpoint", "name", "view_name"))
 
     migration.createTable("range_category_views").
-      column("space", Types.BIGINT, false).
-      column("endpoint", Types.VARCHAR, 50, false).
+      column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("view_name", Types.VARCHAR, 50, false).
       column("data_type", Types.VARCHAR, 20, false).
       column("lower_bound", Types.VARCHAR, 255, true).
       column("upper_bound", Types.VARCHAR, 255, true).
       column("max_granularity", Types.VARCHAR, 20, true).
-      pk("space", "endpoint", "name", "view_name")
+      pk("endpoint", "name", "view_name")
 
     migration.alterTable("range_category_views").
-      addForeignKey("fk_racv_evws", Array("space", "endpoint", "view_name"), "endpoint_views", Array("space", "endpoint", "name"))
-
-    migration.alterTable("range_category_views").
-      addForeignKey("fk_racv_ucns", Array("space", "endpoint", "name", "view_name"), "unique_category_view_names", Array("space", "endpoint", "name", "view_name"))
+      addForeignKey("fk_racv_evws", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
+      addForeignKey("fk_racv_racg", Array("endpoint", "name"), "range_categories", Array("endpoint", "name")).
+      addForeignKey("fk_racv_ucns", Array("endpoint", "name", "view_name"), "unique_category_view_names", Array("endpoint", "name", "view_name"))
 
     migration.createTable("external_http_credentials").
       column("space", Types.BIGINT, false).
@@ -396,9 +427,11 @@ object Step0051 extends VerifiedMigrationStep {
       column("item_type", Types.VARCHAR, 20, false).
       pk("space", "pair", "username", "item_type")
 
+    // With policies, it is no longer mandatory that a user be a member of a space to have item filtering
+    // in that space.  These mechanics are governed by the relationship between members and policies.
     migration.alterTable("user_item_visibility").
       addForeignKey("fk_uiv_pair", Array("space", "pair"), "pairs", Array("space", "name")).
-      addForeignKey("fk_uiv_mmbs", Array("space", "username"), "members", Array("space", "username"))
+      addForeignKey("fk_uiv_user", Array("username"), "users", Array("name"))
 
     // Limits
 
@@ -445,6 +478,38 @@ object Step0051 extends VerifiedMigrationStep {
       column("opt_val", Types.VARCHAR, 255, false).
       pk("opt_key")
 
+    // Access control policies
+
+    migration.createTable("privilege_names").
+      column("name", Types.VARCHAR, 50, false).
+      pk("name")
+
+    migration.createTable("policy_statements").
+      column("space", Types.BIGINT, false).
+      column("policy", Types.VARCHAR, 50, false).
+      column("privilege", Types.VARCHAR, 50, false).
+      column("target", Types.VARCHAR, 50, true).
+      pk("space", "policy", "privilege", "target")
+    migration.alterTable("policy_statements").
+      addForeignKey("fk_plcy_stmts_plcy", "space", "spaces", "id").
+      addForeignKey("fk_plcy_stmts_priv", "privilege", "privilege_names", "name")
+
+    // Endpoint View Rolling Windows
+    migration.createTable("endpoint_view_rolling_windows").
+      column("endpoint", Types.BIGINT, false).
+      column("view_name", Types.VARCHAR, 50, false).
+      column("name", Types.VARCHAR, 50, false).
+      column("period", Types.VARCHAR, 50, true).
+      column("offset", Types.VARCHAR, 50, true).
+      pk("endpoint", "name")
+
+    // Beware of changing column order in referential constraint definitions.
+    // Column names here are ignored when the schema is built on Oracle.
+    migration.alterTable("endpoint_view_rolling_windows").
+      addForeignKey("fk_evrw_epvw", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
+      addForeignKey("fk_evrw_ucvn", Array("endpoint", "name", "view_name"), "unique_category_view_names", Array("endpoint", "name", "view_name"))
+
+
     // Prime with initial data
 
     migration.insert("system_config_options").values(Map(
@@ -476,13 +541,28 @@ object Step0051 extends VerifiedMigrationStep {
       "superuser" -> "1"
     ))
 
-    migration.insert("members").values(Map(
-      "username" -> "guest",
-      "space"    -> "0"
-    ))
-
     migration.insert("schema_version").values(Map(
       "version" -> new java.lang.Integer(versionId)
+    ))
+
+    definePrivileges(migration,
+      "space-user", "read-diffs", "configure", "initiate-scan", "cancel-scan", "post-change-event",
+      "post-inventory", "view-scan-status", "view-diagnostics", "invoke-actions", "ignore-diffs", "view-explanations",
+      "execute-report", "view-actions", "view-reports", "read-event-details")
+
+    // Replacement policy for indicating a domain user
+    createPolicy(migration, "0", "User", "space-user")
+
+    // Full-access admin policy
+    createPolicy(migration, "0", "Admin", "space-user", "read-diffs", "configure", "initiate-scan", "cancel-scan", "post-change-event",
+      "post-inventory", "view-scan-status", "view-diagnostics", "invoke-actions", "ignore-diffs", "view-explanations",
+      "execute-report", "view-actions", "view-reports", "read-event-details")
+
+    migration.insert("members").values(Map(
+      "username" -> "guest",
+      "space"    -> "0",
+      "policy_space" -> "0",
+      "policy" -> "Admin"
     ))
 
     MigrationUtil.insertLimit(migration, ChangeEventRate)
@@ -493,14 +573,20 @@ object Step0051 extends VerifiedMigrationStep {
     MigrationUtil.insertLimit(migration, ScanResponseSizeLimit)
 
     if (migration.canAnalyze) {
-      migration.analyzeTable("diffs");
+      migration.analyzeTable("diffs")
     }
 
     migration
   }
 
+  /**
+   * This allows for a step to insert data into the database to prove this step works
+   * and to provide an existing state for a subsequent migration to use
+   */
   def applyVerification(config: Configuration) = {
     val migration = new MigrationBuilder(config)
+
+    // Shared setup
 
     createRandomSubspace(migration)
 
@@ -508,18 +594,25 @@ object Step0051 extends VerifiedMigrationStep {
     val spaceId = randomInt()
 
     createSpace(migration, spaceId, "0", spaceName)
+
+    val user = randomString()
+
     createConfigOption(migration, spaceId)
 
-    val upstream = randomString()
-    val downstream = randomString()
+    val upstreamName = randomString()
+    val upstream = randomInt()
+    val downstreamName = randomString()
+    val downstream = randomInt()
 
     val upstreamView = randomString()
     val downstreamView = randomString()
 
-    createEndpoint(migration, spaceId, upstream)
-    createEndpointView(migration, spaceId, upstream,upstreamView)
-    createEndpoint(migration, spaceId, downstream)
-    createEndpointView(migration, spaceId, downstream, downstreamView)
+    createEndpoint(migration, spaceId, upstreamName, upstream)
+    createEndpointView(migration, upstream, upstreamView)
+    createEndpoint(migration, spaceId, downstreamName, downstream)
+    createEndpointView(migration, downstream, downstreamView)
+
+    createUser(migration, user)
 
     val extent = randomInt()
 
@@ -552,24 +645,24 @@ object Step0051 extends VerifiedMigrationStep {
 
     val prefixCategoryName = randomString()
 
-    createUniqueCategoryName(migration, spaceId, upstream, prefixCategoryName)
-    createUniqueCategoryViewName(migration, spaceId, upstream, upstreamView, prefixCategoryName)
-    createPrefixCategory(migration, spaceId, upstream, prefixCategoryName)
-    createPrefixCategoryView(migration, spaceId, upstream, upstreamView, prefixCategoryName)
+    createUniqueCategoryName(migration, upstream, prefixCategoryName)
+    createUniqueCategoryViewName(migration, upstream, upstreamView, prefixCategoryName)
+    createPrefixCategory(migration, upstream, prefixCategoryName)
+    createPrefixCategoryView(migration, upstream, upstreamView, prefixCategoryName)
 
     val setCategoryName = randomString()
 
-    createUniqueCategoryName(migration, spaceId, upstream, setCategoryName)
-    createUniqueCategoryViewName(migration, spaceId, upstream, upstreamView, setCategoryName)
-    createSetCategory(migration, spaceId, upstream, setCategoryName)
-    createSetCategoryView(migration, spaceId, upstream, upstreamView, setCategoryName)
+    createUniqueCategoryName(migration, upstream, setCategoryName)
+    createUniqueCategoryViewName(migration, upstream, upstreamView, setCategoryName)
+    createSetCategory(migration, upstream, setCategoryName)
+    createSetCategoryView(migration, upstream, upstreamView, setCategoryName)
 
     val rangeCategoryName = randomString()
 
-    createUniqueCategoryName(migration, spaceId, downstream, rangeCategoryName)
-    createUniqueCategoryViewName(migration, spaceId, downstream, downstreamView, rangeCategoryName)
-    createRangeCategory(migration, spaceId, downstream, rangeCategoryName)
-    createRangeCategoryView(migration, spaceId, downstream, downstreamView, rangeCategoryName)
+    createUniqueCategoryName(migration, downstream, rangeCategoryName)
+    createUniqueCategoryViewName(migration, downstream, downstreamView, rangeCategoryName)
+    createRangeCategory(migration, downstream, rangeCategoryName)
+    createRangeCategoryView(migration, downstream, downstreamView, rangeCategoryName)
 
     createExternalHttpCredentials(migration, spaceId)
 
@@ -579,11 +672,23 @@ object Step0051 extends VerifiedMigrationStep {
 
     createStoreCheckpoint(migration, spaceId, pair)
 
-    val user = randomString()
+    // Policies
+    val policy = randomString()
+    val privilege1 = randomString()
+    val privilege2 = randomString()
 
-    createUser(migration, user)
-    createMember(migration, spaceId, user)
+    definePrivileges(migration, privilege1, privilege2)
+    createPolicy(migration, spaceId, policy, privilege1, privilege2)
+    createMember(migration, spaceId, user, spaceId, policy)
+
+    // User item visibility
     createUserItemVisibility(migration, spaceId, pair, user)
+
+    // Endpoint View Rolling Windows
+    val viewName = randomString()
+    val rollingWindowName = randomString()
+    createEndpointView(migration, upstream, viewName)
+    createRollingWindow(migration, upstream, viewName, rollingWindowName)
 
     migration
   }
@@ -602,13 +707,6 @@ object Step0051 extends VerifiedMigrationStep {
       "pair" -> pair,
       "username" -> user,
       "item_type" -> "SWIM_LANE"
-    ))
-  }
-
-  def createMember(migration:MigrationBuilder, spaceId:String, user:String) {
-    migration.insert("members").values(Map(
-      "space" -> spaceId,
-      "username" -> user
     ))
   }
 
@@ -662,9 +760,8 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
-  def createRangeCategory(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+  def createRangeCategory(migration:MigrationBuilder, endpoint:String, name:String) {
     migration.insert("range_categories").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "data_type" -> "date",
@@ -674,9 +771,8 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
-  def createRangeCategoryView(migration:MigrationBuilder, spaceId:String, endpoint:String, view:String, name:String) {
+  def createRangeCategoryView(migration:MigrationBuilder, endpoint:String, view:String, name:String) {
     migration.insert("range_category_views").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "view_name" -> view,
@@ -687,18 +783,16 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
-  def createSetCategory(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+  def createSetCategory(migration:MigrationBuilder, endpoint:String, name:String) {
     migration.insert("set_categories").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "value" -> randomString()
     ))
   }
 
-  def createSetCategoryView(migration:MigrationBuilder, spaceId:String, endpoint:String, view:String, name:String) {
+  def createSetCategoryView(migration:MigrationBuilder, endpoint:String, view:String, name:String) {
     migration.insert("set_category_views").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "view_name" -> view,
@@ -706,9 +800,8 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
-  def createPrefixCategoryView(migration:MigrationBuilder, spaceId:String, endpoint:String, view:String, name:String) {
+  def createPrefixCategoryView(migration:MigrationBuilder, endpoint:String, view:String, name:String) {
     migration.insert("prefix_category_views").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "view_name" -> view,
@@ -718,9 +811,8 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
-  def createPrefixCategory(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+  def createPrefixCategory(migration:MigrationBuilder, endpoint:String, name:String) {
     migration.insert("prefix_categories").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "prefix_length" -> "1",
@@ -900,4 +992,55 @@ object Step0051 extends VerifiedMigrationStep {
     ))
   }
 
+  def definePrivileges(migration:MigrationBuilder, privileges:String*) {
+    privileges.foreach(p =>
+      migration.insert("privilege_names").values(Map(
+        "name" -> p
+      ))
+    )
+  }
+
+  def createPolicy(migration:MigrationBuilder, spaceId:String, name:String, privileges:String*) {
+    migration.insert("policies").values(Map(
+      "space" -> spaceId,
+      "name" -> name
+    ))
+
+    privileges.foreach(p =>
+      migration.insert("policy_statements").values(Map(
+        "space" -> spaceId,
+        "policy" -> name,
+        "privilege" -> p,
+        "target" -> "*"
+      ))
+    )
+  }
+
+  def createMember(migration:MigrationBuilder, spaceId:String, user:String, policySpaceId:String, policy:String) {
+    migration.insert("members").values(Map(
+      "space" -> spaceId,
+      "username" -> user,
+      "policy_space" -> policySpaceId,
+      "policy" -> policy
+    ))
+  }
+
+  private def createRollingWindow(migration: MigrationBuilder, endpoint: String, viewName: String, name: String) {
+    migration.insert("unique_category_names").values(Map(
+      "endpoint" -> endpoint,
+      "name" -> name
+    ))
+    migration.insert("unique_category_view_names").values(Map(
+      "endpoint" -> endpoint,
+      "view_name" -> viewName,
+      "name" -> name
+    ))
+    migration.insert("endpoint_view_rolling_windows").values(Map(
+      "endpoint" -> endpoint,
+      "view_name" -> viewName,
+      "name" -> name,
+      "period" -> "P3M",
+      "offset" -> "PT6H"
+    ))
+  }
 }

@@ -13,6 +13,7 @@
 * [270] - Bug fix to Diffa as an adapter; presented users out of order.
 * [275] - Migration process may identify wrong schema in Oracle.
 * [279] - Run time dependency on Apache Zookeeper for multi-node identity provision service.
+* [280] - Endpoints are represented by a surrogate key which will later be the mechanism for internally relating them to other entities.
 
 ## Library Upgrades
 

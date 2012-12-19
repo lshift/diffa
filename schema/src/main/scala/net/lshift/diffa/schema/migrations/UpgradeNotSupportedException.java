@@ -14,29 +14,15 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.snowflake;
+package net.lshift.diffa.schema.migrations;
 
-public class RandomIdentityGenerator implements IdentityGenerator {
-	public static IdentityGenerator unseeded() {
-		return new RandomIdentityGenerator();
-	}
-
-	public static IdentityGenerator seeded(long seed) {
-		return new RandomIdentityGenerator();
-	}
-
-	private java.util.Random rng;
-
-	RandomIdentityGenerator() {
-		rng = new java.util.Random();
-	}
-
-	RandomIdentityGenerator(long seed) {
-		rng = new java.util.Random(seed);
-	}
-
-	@Override
-	public int generate() {
-		return rng.nextInt(10);
-	}
+/**
+ * This exception should be thrown when a migration step should not be applied because the version
+ * of the system is incompatible with the step.
+ */
+public class UpgradeNotSupportedException extends Exception {
+  public UpgradeNotSupportedException(Integer newVersionId, String newVersionName, Integer oldVersion) {
+    super(String.format("Migration to version %d (%s) is not supported from version %d",
+        newVersionId, newVersionName, oldVersion));
+  }
 }

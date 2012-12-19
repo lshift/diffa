@@ -26,6 +26,7 @@ import net.lshift.diffa.kernel.config.system.JooqSystemConfigStore
 import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 import org.easymock.IAnswer
 import org.apache.commons.lang.RandomStringUtils
+import net.lshift.diffa.kernel.actors.IncrementingIdProvider
 
 class CachedSystemConfigStoreTest {
 
@@ -41,7 +42,7 @@ class CachedSystemConfigStoreTest {
 
   E4.replay(jooq)
 
-  val configStore = new JooqSystemConfigStore(jooq,cp, sp)
+  val configStore = new JooqSystemConfigStore(jooq,cp, sp, IncrementingIdProvider)
 
   // Make sure the that booting the JooqSystemConfigStore has performed the sequence provider sync
 

@@ -16,11 +16,6 @@ object OracleSchemaCleaner extends SchemaCleaner {
   val log = LoggerFactory.getLogger(getClass)
 
   override def drop(sysUserEnvironment: DatabaseEnvironment, appEnvironment: DatabaseEnvironment) {
-    val schemaName = appEnvironment.username
-    val dbaConfig = sysUserEnvironment.getHibernateConfigurationWithoutMappingResources
-    val dbaSessionFactory = dbaConfig.buildSessionFactory
-
-    conditionalDrop(dbaSessionFactory, schemaName)
   }
 
   override def clean(sysUserEnvironment: DatabaseEnvironment, appEnvironment: DatabaseEnvironment) {
@@ -29,95 +24,28 @@ object OracleSchemaCleaner extends SchemaCleaner {
     val dbaConfig = sysUserEnvironment.getHibernateConfigurationWithoutMappingResources
     val dbaSessionFactory = dbaConfig.buildSessionFactory
 
-    conditionalDrop(dbaSessionFactory, schemaName)
-
-    createSchemaWithPrivileges(dbaSessionFactory, schemaName, password)
-
-    dbaSessionFactory.close()
-    waitForSchemaCreation(appEnvironment, pollIntervalMs = 100L, timeoutMs = 10000L)
-  }
-
-  private def conditionalDrop(dbaSessionFactory: SessionFactory, schemaName: String) {
-    if (userExists(dbaSessionFactory, schemaName)) {
-      disconnectActiveSessions(schemaName, dbaSessionFactory)
-      dropSchema(dbaSessionFactory, schemaName)
+    if (userExists(sessionFactory = dbaSessionFactory, username = schemaName)) {
+      dropAllObjects(sessionFactory = dbaSessionFactory, schemaName = schemaName)
+    } else {
+      createSchemaWithPrivileges(dbaSessionFactory, schemaName, password)
+      dbaSessionFactory.close()
+      waitForSchemaCreation(appEnvironment, pollIntervalMs = 100L, timeoutMs = 10000L)
     }
   }
 
-  private def disconnectActiveSessions(username: String, sessionFactory: SessionFactory) {
-    sessionFactory.withSession(session => {
-      session.doWork(new Work {
-        def execute(connection: Connection) {
-          val getSessionInfo = "select sid, serial# from v$session where upper(username) = '%s'".format(username.toUpperCase)
-          val sessionInfoStmt = connection.prepareStatement(getSessionInfo)
-          val rs = sessionInfoStmt.executeQuery
-          var sessions: List[(Int, Int)] = Nil
-          while (rs.next()) {
-            sessions = (rs.getInt("sid"), rs.getInt("serial#")) :: sessions
-          }
+  def dropAllObjects(sessionFactory: SessionFactory, schemaName: String) {
+    val tableNamesQuery = "select table_name from all_tables where owner = upper(?)"
+    val dropTableStmtTemplate = "drop table %s.%s cascade constraints purge"
 
-          sessions foreach {
-            sessionInfoPair: (Int, Int) =>
-              val (sid, serialnum) = sessionInfoPair
-              val disconnectUser = "alter system disconnect session '%d,%d' immediate".format(sid, serialnum)
-              val disconnectStmt = connection.prepareStatement(disconnectUser)
-              try {
-                disconnectStmt.execute
-                log.debug("Disconnected user: %s".format(disconnectUser))
-              } catch {
-                case ex =>
-                  log.error("Failed to disconnect session [%d/%d]".format(sid, serialnum))
-                  throw ex
-              }
-          }
-        }
-      })
-    })
-  }
-
-  private def dropSchema(sessionFactory: SessionFactory, schemaName: String) {
-    val dropSchemaStatement = "drop user %s cascade".format(schemaName.toUpperCase)
-    val recreateAttemptThreshold = 10
-    val retryIntervalMs = 1000L
-    var recreateAttemptCount = 0
-    var userExists = true
-
-    val start = new DateTime()
-
-    // Disconnecting a user can succeed, but the effect may not be immediate.  Retry this a few times.
-    while (userExists && recreateAttemptCount < recreateAttemptThreshold) {
-      try {
-        sessionFactory.executeOnSession(connection => {
-          val stmt = connection.createStatement
-          (dropSchemaStatement :: Nil) foreach {
-            stmtText => {
-              try {
-                stmt.execute(stmtText)
-                userExists = false
-              } catch {
-                case ex =>
-                  log.error("Failed to execute prepared statement: %s".format(stmtText))
-                  throw ex
-              }
-            }
-          }
-          stmt.close()
-        })
-      } catch {
-        case ex: Exception =>
-
-          recreateAttemptCount += 1
-
-          if (recreateAttemptCount >= recreateAttemptThreshold) {
-            val end = new DateTime()
-            val interval = new Interval(start,end)
-            log.error("Failed to drop user [%s] after %s, attempted at %s".format(schemaName, interval.toPeriod, interval))
-            throw ex
-          }
-
-          Thread.sleep(retryIntervalMs)
+    sessionFactory.executeOnSession(connection => {
+      val qryStmt = connection.prepareStatement(tableNamesQuery)
+      qryStmt.setString(1, schemaName)
+      val rs = qryStmt.executeQuery()
+      while (rs.next()) {
+        val dropStmt = connection.createStatement()
+        dropStmt.execute(dropTableStmtTemplate.format(schemaName, rs.getString(1)))
       }
-    }
+    })
   }
 
   private def userExists(sessionFactory: SessionFactory, username: String): Boolean = {
@@ -179,7 +107,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
           }
       }
     }
-    
+
     sessionFactory.close()
   }
 }

@@ -25,7 +25,6 @@ import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.config.system.PolicyKey
 
 class JooqUserPreferencesStoreTest {
-
   private var storeReferences = JooqUserPreferencesStoreTest.storeReferences
 
   val preferencesStore = storeReferences.userPreferencesStore

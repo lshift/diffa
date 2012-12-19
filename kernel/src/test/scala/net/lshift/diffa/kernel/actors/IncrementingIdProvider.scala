@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2010-2011 LShift Ltd.
+/*
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,18 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.agent.itest
+package net.lshift.diffa.kernel.actors
 
-import net.lshift.diffa.agent.itest.support.TestEnvironment
-import org.junit.{After, Before}
+import net.lshift.diffa.snowflake.IdProvider
 
 /**
- * Common base for a difference test.
+ * A simple sequentially incrementing ID Provider for single-threaded, single-node testing only.
  */
-abstract class AbstractEnvironmentTest {
-  def envFactory(ident: String): TestEnvironment
+object IncrementingIdProvider extends IdProvider {
+  var next = 0L
 
-  /**
-   * The environment under test.
-   */
-  val env: TestEnvironment = envFactory("pair-" + (new com.eaio.uuid.UUID()).toString)
-
-  @Before
-  def setup() {
-    env.clearParticipants()
-    env.entityResendTally.clear()
-  }
-
-  @After
-  def removePair() {
-    env.deletePair()
+  def getId = {
+    next = next + 1
+    next
   }
 }

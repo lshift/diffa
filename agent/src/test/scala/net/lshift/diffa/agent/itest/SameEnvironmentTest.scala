@@ -25,6 +25,6 @@ import net.lshift.diffa.agent.itest.support.TestEnvironments
  */
 class SameEnvironmentTest extends AbstractEnvironmentTest
     with CommonDifferenceTests {
-  
-  val envFactory = TestEnvironments.same _
+
+  def envFactory(ident: String) = TestEnvironments.same(ident)
 }

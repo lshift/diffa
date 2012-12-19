@@ -30,7 +30,7 @@ class DataAccessExceptionMapper extends ExceptionMapper[DataAccessException] {
   def toResponse(x: DataAccessException): Response = {
 
     if (x.getCause.isInstanceOf[SQLIntegrityConstraintViolationException]) {
-      log.debug(formatAlertCode(INTEGRITY_CONSTRAINT_VIOLATED) + " " + x.getMessage)
+      log.warn(formatAlertCode(INTEGRITY_CONSTRAINT_VIOLATED) + " " + x.getMessage)
       Response.status(Response.Status.BAD_REQUEST).entity("Inconsistent parameters").`type`("text/plain").build()
     }
     else {

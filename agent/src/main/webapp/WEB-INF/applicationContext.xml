@@ -113,6 +113,7 @@
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
+    <constructor-arg ref="idProvider" />
   </bean>
 
   <!-- register user preferences store as an event listener of the domain config store -->
@@ -343,10 +344,6 @@
     ========
   -->
 
-  <bean id="idProviderFactory" class="net.lshift.diffa.snowflake.IdProviderFactory" lazy-init="false">
-    <constructor-arg name="clusterDescriptor" value="localhost:2181" />
-  </bean>
-
   <bean id="hibernateDialect" class="org.springframework.jndi.JndiObjectFactoryBean">
     <property name="jndiName" value="java:comp/env/diffaHibernateDialect"/>
   </bean>
@@ -395,6 +392,10 @@
 
   <bean id="hazelcastSequenceProvider" class="net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider"></bean>
 
+  <bean id="idProvider" class="net.lshift.diffa.kernel.util.DiffaIdProvider">
+    <constructor-arg name="zookeeperCluster" value="localhost:2181" />
+  </bean>
+
   <!--
     ===========
       Service Limiting
@@ -414,6 +415,7 @@
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
+    <constructor-arg ref="idProvider" />
   </bean>
 
   <!-- NOTE that this explicit depends-on is required for sequence initialization -->
@@ -422,6 +424,7 @@
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
     <constructor-arg ref="hazelcastSequenceProvider" />
+    <constructor-arg ref="idProvider" />
     <constructor-arg ref="systemConfigStore" />
   </bean>
 

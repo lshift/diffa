@@ -25,7 +25,7 @@ import org.specs2.runner.JUnitRunner
 import java.lang.Math.{round, pow}
 
 @RunWith(classOf[JUnitRunner])
-class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
+class SnowflakeIdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
   final val timestampMask = 0xffffffffffc00000L
   final val machineIdMask = 0x00000000003ff000L
   final val sequenceMask  = 0x0000000000000fffL
@@ -48,7 +48,7 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
     }
   }
 
-  def getWithRetry(provider: IdProvider): Long = {
+  def getWithRetry(provider: SnowflakeIdProvider): Long = {
     try {
       provider.getId()
     } catch {
@@ -58,16 +58,16 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
     }
   }
 
-  "IdProvider" should {
+  "SnowflakeIdProvider" should {
 
     "generate an ID" in {
       val machineId = 1
-      val provider = new IdProvider(machineId)
+      val provider = new SnowflakeIdProvider(machineId)
       (provider.getId should beGreaterThan(0L))
     }
 
     "generate 1,000,000 identifiers in less than one second" in {
-      val provider = new IdProvider(1)
+      val provider = new SnowflakeIdProvider(1)
       val targetExecutionCount = 1000000
       val targetExecutionTime = 1000L // 1000 milliseconds == one second
 
@@ -82,9 +82,9 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
       val ts = Gen.choose(1, timestampUpperBound)
 
       check(Prop.forAll(ts) { timestamp =>
-        val provider = new IdProvider(1)
+        val provider = new SnowflakeIdProvider(1)
         provider.setTimeFn(new TimeFunction { def now = timestamp })
-        ((provider.getId() & timestampMask) >> (IdProvider.machineBits + IdProvider.sequenceBits)) must_== timestamp
+        ((provider.getId() & timestampMask) >> (SnowflakeIdProvider.machineBits + SnowflakeIdProvider.sequenceBits)) must_== timestamp
       })
     }
 
@@ -92,17 +92,24 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
       val machineId = Gen.choose(0, machineIdUpperBound)
 
       check(Prop.forAll(machineId) { id =>
-        val provider = new IdProvider(id)
-        ((provider.getId() & machineIdMask) >> IdProvider.sequenceBits) must_== id
+        val provider = new SnowflakeIdProvider(id)
+        ((provider.getId() & machineIdMask) >> SnowflakeIdProvider.sequenceBits) must_== id
+      })
+    }
+
+    "not operate with a machine ID outside the range [0, 1023]" in {
+      check(Prop.forAll { id: Int => (id < 0 || id > 1023) ==> {
+          (new SnowflakeIdProvider(id)) should throwAn[IllegalArgumentException]
+        }
       })
     }
 
     "generate the first ID with a sequence component of 0" in {
-      ((new IdProvider(1)).getId & sequenceMask) should_== 0
+      ((new SnowflakeIdProvider(1)).getId & sequenceMask) should_== 0
     }
 
     "generate a second ID for the same timestamp with a sequence component of 1" in {
-      val provider = new IdProvider(1)
+      val provider = new SnowflakeIdProvider(1)
       provider.setTimeFn(new TimeFunction { def now = 1L })
 
       provider.getId()
@@ -110,10 +117,10 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
     }
 
     "generate the (k+1)th ID for the same timestamp with a sequence component of k" in {
-      val seqNum = Gen.choose(1, IdProvider.sequenceUpperBound)
+      val seqNum = Gen.choose(1, SnowflakeIdProvider.sequenceUpperBound)
 
       check(Prop.forAll(seqNum) { k =>
-        val provider = new IdProvider(1)
+        val provider = new SnowflakeIdProvider(1)
         provider.setTimeFn(new TimeFunction { def now = 1L })
 
         (1 to k) foreach { i => provider.getId() }
@@ -125,7 +132,7 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
       val pauseGen = Gen.choose(50, 100)
 
       check(Prop.forAllNoShrink(pauseGen) { pause =>
-        val provider = new IdProvider(1)
+        val provider = new SnowflakeIdProvider(1)
         provider.setPauseMs(pause)
         val otherThread = new Thread(new Runnable() {
           def run() {
@@ -141,14 +148,15 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
     }
 
     "generate k-ordered identifiers over a period" in {
-      val provider = new IdProvider(1)
-      val period = 200L // milliseconds
+      val provider = new SnowflakeIdProvider(1)
+      val period = 2000L // milliseconds
       var lastId = -1L
 
       val startTime = System.currentTimeMillis()
       while (elapsedTime < period) {
         val nextId = getWithRetry(provider)
         nextId must be greaterThan lastId
+        nextId must be greaterThan 0
         lastId = nextId
       }
 
@@ -156,7 +164,7 @@ class IdProviderSpec extends SpecificationWithJUnit with ScalaCheck {
     }
 
     "generate only unique identifiers, even when time runs backwards" in {
-      val provider = new IdProvider(1)
+      val provider = new SnowflakeIdProvider(1)
       provider.setTimeFn(new TimeFunction { def now = 3L })
       val id = provider.getId()
       provider.setTimeFn(new TimeFunction { def now = 2L })

@@ -14,29 +14,12 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.snowflake;
+package net.lshift.diffa.kernel.config.system
 
-public class RandomIdentityGenerator implements IdentityGenerator {
-	public static IdentityGenerator unseeded() {
-		return new RandomIdentityGenerator();
-	}
-
-	public static IdentityGenerator seeded(long seed) {
-		return new RandomIdentityGenerator();
-	}
-
-	private java.util.Random rng;
-
-	RandomIdentityGenerator() {
-		rng = new java.util.Random();
-	}
-
-	RandomIdentityGenerator(long seed) {
-		rng = new java.util.Random(seed);
-	}
-
-	@Override
-	public int generate() {
-		return rng.nextInt(10);
-	}
-}
+/**
+ * A configuration item change has been concurrently modified in a way that
+ * conflicts with the requested change.  This should only be thrown if retrying
+ * the action without change has a reasonable chance of succeeding.
+ */
+class ConflictingConcurrentModificationException(val modifiedObject: String)
+  extends RuntimeException("A concurrent modification to the object %s invalidated the requested change.  Retry the operation.".format(modifiedObject))

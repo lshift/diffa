@@ -32,6 +32,11 @@ trait MigrationStep {
   def versionId:Int
 
   /**
+   * The minimum version that this step supports upgrade from.
+   */
+  def upgradeableFromVersion(fromVersion: Option[Int]) = true
+
+  /**
    * The name of this migration step
    */
   def name:String
@@ -76,9 +81,10 @@ trait VerifiedMigrationStep extends MigrationStep {
     ))
   }
 
-  def createEndpoint(migration:MigrationBuilder, spaceId:String, endpoint:String) {
+  def createEndpoint(migration:MigrationBuilder, spaceId:String, endpoint:String, endpointId: String) {
     migration.insert("endpoints").values(Map(
       "space" -> spaceId,
+      "id" -> endpointId,
       "name" -> endpoint,
       "scan_url" -> randomString(),
       "content_retrieval_url" -> randomString(),
@@ -88,25 +94,22 @@ trait VerifiedMigrationStep extends MigrationStep {
     ))
   }
 
-  def createEndpointView(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+  def createEndpointView(migration:MigrationBuilder, endpoint:String, name:String) {
     migration.insert("endpoint_views").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name
     ))
   }
 
-  def createUniqueCategoryName(migration:MigrationBuilder, spaceId:String, endpoint:String, name:String) {
+  def createUniqueCategoryName(migration:MigrationBuilder, endpoint:String, name:String) {
     migration.insert("unique_category_names").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name
     ))
   }
 
-  def createUniqueCategoryViewName(migration: MigrationBuilder, spaceId: String, endpoint: String, view: String, name: String) {
+  def createUniqueCategoryViewName(migration: MigrationBuilder, endpoint: String, view: String, name: String) {
     migration.insert("unique_category_view_names").values(Map(
-      "space" -> spaceId,
       "endpoint" -> endpoint,
       "name" -> name,
       "view_name" -> view

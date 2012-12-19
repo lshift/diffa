@@ -16,19 +16,21 @@
 
 package net.lshift.diffa.kernel.frontend
 
+import scala.collection.JavaConversions._
+
 import org.slf4j.{Logger, LoggerFactory}
+
 import net.lshift.diffa.kernel.config._
 import limits.ValidServiceLimits
+import system.SystemConfigStore
+
 import net.lshift.diffa.kernel.matching.MatchingManager
 import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelationStoreFactory}
 import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
 import net.lshift.diffa.kernel.scheduler.ScanScheduler
-import system.SystemConfigStore
 import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
-import org.joda.time.{Interval, DateTime, Period}
 import net.lshift.diffa.kernel.util.{CategoryUtil, MissingObjectException}
-import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.preferences.UserPreferencesStore
 
 class Configuration(val configStore: DomainConfigStore,

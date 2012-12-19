@@ -28,5 +28,5 @@ class CorrelatedEnvironmentTest extends AbstractEnvironmentTest
     with CommonEscalationTests
     with CommonActionTests {
   
-  def envFactory = TestEnvironments.correlated _
+  def envFactory(ident: String) = TestEnvironments.correlated(ident)
 }

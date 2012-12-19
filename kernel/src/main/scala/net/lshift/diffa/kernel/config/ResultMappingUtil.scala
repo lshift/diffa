@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
-import org.jooq.{Result, Record}
+import org.jooq.{Field, Result, Record}
 import net.lshift.diffa.kernel.frontend.{PairViewDef, DomainPairDef}
 import net.lshift.diffa.schema.tables.Pairs.PAIRS
 import net.lshift.diffa.schema.tables.Spaces.SPACES
@@ -24,6 +24,7 @@ import net.lshift.diffa.schema.tables.PairViews.PAIR_VIEWS
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import java.util
+import org.jooq.impl.Factory
 
 object ResultMappingUtil {
 
@@ -32,8 +33,8 @@ object ResultMappingUtil {
       space = r.getValue(PAIRS.SPACE),
       key = r.getValue(PAIRS.NAME),
       domain = r.getValue(SPACES.NAME),
-      upstreamName = r.getValue(PAIRS.UPSTREAM),
-      downstreamName = r.getValue(PAIRS.DOWNSTREAM),
+      upstreamName = r.getValue(Factory.field("upstreamName").asInstanceOf[Field[String]]),
+      downstreamName = r.getValue(Factory.field("downstreamName").asInstanceOf[Field[String]]),
       matchingTimeout = r.getValue(PAIRS.MATCHING_TIMEOUT),
       versionPolicyName = r.getValue(PAIRS.VERSION_POLICY_NAME),
       scanCronSpec = r.getValue(PAIRS.SCAN_CRON_SPEC),
@@ -53,8 +54,8 @@ object ResultMappingUtil {
     val pair = DomainPairDef(
       space = record.getValue(PAIRS.SPACE),
       key = record.getValue(PAIRS.NAME),
-      upstreamName = record.getValue(PAIRS.UPSTREAM),
-      downstreamName = record.getValue(PAIRS.DOWNSTREAM),
+      upstreamName = record.getValue(Factory.field("upstreamName").asInstanceOf[Field[String]]),
+      downstreamName = record.getValue(Factory.field("downstreamName").asInstanceOf[Field[String]]),
       matchingTimeout = record.getValue(PAIRS.MATCHING_TIMEOUT),
       versionPolicyName = record.getValue(PAIRS.VERSION_POLICY_NAME),
       scanCronSpec = record.getValue(PAIRS.SCAN_CRON_SPEC),

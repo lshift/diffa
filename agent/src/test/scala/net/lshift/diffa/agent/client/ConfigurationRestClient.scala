@@ -19,8 +19,6 @@ package net.lshift.diffa.agent.client
 import scala.collection.JavaConversions._
 import com.sun.jersey.api.client.ClientResponse
 import net.lshift.diffa.kernel.frontend._
-import javax.ws.rs.core.MediaType
-import org.eclipse.jetty.io.EndPoint
 import net.lshift.diffa.client.RestClientParams
 
 class ConfigurationRestClient(serverRootUrl:String, domain:String, params: RestClientParams = RestClientParams.default)

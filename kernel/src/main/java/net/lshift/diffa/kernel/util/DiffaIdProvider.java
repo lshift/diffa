@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2010-2011 LShift Ltd.
+/*
+ * Copyright (C) 2010-2012 LShift Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,17 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.agent.itest
+package net.lshift.diffa.kernel.util;
 
-import net.lshift.diffa.agent.itest.support.TestEnvironment
-import org.junit.{After, Before}
+import net.lshift.diffa.snowflake.MachineIdAssigner;
+import net.lshift.diffa.snowflake.RandomIdentityGenerator;
+import net.lshift.diffa.snowflake.SnowflakeIdProvider;
 
 /**
- * Common base for a difference test.
+ * An IdProvider that uses ZooKeeper to co-ordinate node identifiers which are generated randomly.
  */
-abstract class AbstractEnvironmentTest {
-  def envFactory(ident: String): TestEnvironment
-
-  /**
-   * The environment under test.
-   */
-  val env: TestEnvironment = envFactory("pair-" + (new com.eaio.uuid.UUID()).toString)
-
-  @Before
-  def setup() {
-    env.clearParticipants()
-    env.entityResendTally.clear()
-  }
-
-  @After
-  def removePair() {
-    env.deletePair()
+public class DiffaIdProvider extends SnowflakeIdProvider {
+  public DiffaIdProvider(String zookeeperCluster) throws Exception {
+    super(MachineIdAssigner.getInstance(zookeeperCluster).assign(RandomIdentityGenerator.unseeded()));
   }
 }

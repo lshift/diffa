@@ -45,7 +45,7 @@ class MachineIdAssignerSpec extends FlatSpec with ShouldMatchers {
     withAssigner(prepAssigner => {
       withAssigner(assigner => {
         var genCount = 0
-        val fixedId: Int = 7001
+        val fixedId: Int = 300
         val idGenerator = new IdentityGenerator {
           def generate = {
             genCount += 1
@@ -63,9 +63,24 @@ class MachineIdAssignerSpec extends FlatSpec with ShouldMatchers {
     })
   }
 
+  it should "only provide identifiers in the range 1 to 1024" in {
+    val idGenerator = RandomIdentityGenerator.unseeded()
+    (1 to 20).foreach { i =>
+      val id = idGenerator.generate()
+      id should be >= 0
+      id should be < 1024
+    }
+  }
+
   it should "assign an identifier within one second in a sparsely populated identifier space" in {
     withAssigner(assigner => {
-      val idGenerator = RandomIdentityGenerator.seeded(1L)
+      var k = 900
+      val idGenerator = new IdentityGenerator {
+        def generate() = {
+          k = k + 1
+          k
+        }
+      }
       // Given that there are fewer than 20 identifiers currently assigned
       (1 to 19).foreach { i =>
         assigner.assign(idGenerator)
@@ -80,7 +95,7 @@ class MachineIdAssignerSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "assign a released identifier" in {
-    val fixedId: Int = 1873
+    val fixedId: Int = 800
     val idGenerator: IdentityGenerator = fixedId
 
     withAssigner { assigner =>
@@ -89,7 +104,7 @@ class MachineIdAssignerSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "assign the first 20 identifiers within 2 seconds" in {
-    var k = 6789
+    var k = 500
     val idGenerator = new IdentityGenerator { def generate() = k }
 
     withAssigner { assigner =>
@@ -105,7 +120,7 @@ class MachineIdAssignerSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "not assign a currently assigned identifier" in {
-    val idGenerator = 11001
+    val idGenerator = 400
     val assigner = createAssigner
 
     withAssigner { prepAssigner =>

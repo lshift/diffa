@@ -26,7 +26,7 @@ import net.lshift.diffa.kernel.frontend.InvalidInventoryException
 import net.lshift.diffa.adapter.scanning.{DateGranularityEnum, DateAggregation, SetConstraint}
 
 class InventoryTest extends AbstractEnvironmentTest {
-  val envFactory = TestEnvironments.same _
+  def envFactory(ident: String) = TestEnvironments.same(ident)
 
   @Test
   def shouldReturnInitialListOfTasksToBePerformedForAnInventory() {

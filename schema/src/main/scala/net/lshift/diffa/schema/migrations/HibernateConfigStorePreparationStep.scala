@@ -71,6 +71,12 @@ class HibernateConfigStorePreparationStep
       s.doWork(new Work {
         def execute(connection: Connection) {
           migrations.foreach(step => {
+            if (!step.upgradeableFromVersion(version)) {
+              val upgradeFailed = new UpgradeNotSupportedException(step.versionId, step.name, version.getOrElse(0):Int)
+              log.error("Failed to prepare the database - " + upgradeFailed.getMessage)
+              throw upgradeFailed
+            }
+
             val migration = step.createMigration(config)
 
             try {
@@ -193,8 +199,6 @@ object HibernateConfigStorePreparationStep {
    * Note that these steps should be executed in strictly ascending order.
    */
   val migrationSteps = Seq(
-    Step0051,
-    Step0052,
-    Step0053
+    Step0054
   )
 }

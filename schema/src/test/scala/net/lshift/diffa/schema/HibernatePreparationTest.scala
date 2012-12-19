@@ -36,7 +36,7 @@ class HibernatePreparationTest {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  val startingVersion = 51
+  val startingVersion = 54
   
   @Test
   def migrationStepsShouldBeOrderedCorrectly = {

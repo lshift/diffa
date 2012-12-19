@@ -70,11 +70,13 @@ import net.lshift.diffa.kernel.naming.{CacheName, SequenceName}
 import org.jooq.impl.Factory
 import org.jooq._
 import collection.JavaConversions._
-import net.lshift.diffa.kernel.config.JooqConfigStoreCompanion.{ancestorIdTree}
+import net.lshift.diffa.kernel.config.JooqConfigStoreCompanion.{ancestorIdTree, deleteRecordsInSpace}
+import net.lshift.diffa.snowflake.IdProvider
 
 class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
                             cacheProvider:CacheProvider,
-                            sequenceProvider:SequenceProvider)
+                            sequenceProvider:SequenceProvider,
+                            idProvider: IdProvider)
     extends SystemConfigStore {
 
   val logger = LoggerFactory.getLogger(getClass)
@@ -211,16 +213,26 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       )).toSeq
   })
 
-  def listPairs = jooq.execute { t =>
-    t.select(PAIRS.getFields).select(SPACES.NAME).
-      from(PAIRS).
-      join(SPACES).on(SPACES.ID.equal(PAIRS.SPACE)).
+  def listPairs = {
+    val upstream = ENDPOINTS.as("upstream")
+    val downstream = ENDPOINTS.as("downstream")
+
+    jooq.execute { t =>
+      t.select(PAIRS.getFields).
+          select(SPACES.NAME).
+          select(upstream.NAME.as("upstreamName")).
+          select(downstream.NAME.as("downstreamName")).
+        from(PAIRS).
+        join(SPACES).on(SPACES.ID.equal(PAIRS.SPACE)).
+        leftOuterJoin(upstream).on(upstream.ID.equal(PAIRS.UPSTREAM)).
+        leftOuterJoin(downstream).on(downstream.ID.equal(PAIRS.DOWNSTREAM)).
       fetch().
       map(new RecordMapper[Record, DomainPairDef] {
         def map(r:Record) : DomainPairDef = {
           ResultMappingUtil.recordToDomainPairDef(r)
         }
       })
+    }
   }
 
   def listEndpoints : Seq[DomainEndpointDef] = JooqConfigStoreCompanion.listEndpoints(jooq)
@@ -434,16 +446,23 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
     t.delete(EXTERNAL_HTTP_CREDENTIALS).where(EXTERNAL_HTTP_CREDENTIALS.SPACE.equal(id)).execute()
     t.delete(USER_ITEM_VISIBILITY).where(USER_ITEM_VISIBILITY.SPACE.equal(id)).execute()
-    t.delete(PREFIX_CATEGORY_VIEWS).where(PREFIX_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(PREFIX_CATEGORIES).where(PREFIX_CATEGORIES.SPACE.equal(id)).execute()
-    t.delete(SET_CATEGORY_VIEWS).where(SET_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(SET_CATEGORIES).where(SET_CATEGORIES.SPACE.equal(id)).execute()
-    t.delete(ENDPOINT_VIEW_ROLLING_WINDOWS).where(ENDPOINT_VIEW_ROLLING_WINDOWS.SPACE.equal(id)).execute()
-    t.delete(RANGE_CATEGORY_VIEWS).where(RANGE_CATEGORY_VIEWS.SPACE.equal(id)).execute()
-    t.delete(RANGE_CATEGORIES).where(RANGE_CATEGORIES.SPACE.equal(id)).execute()
-    t.delete(UNIQUE_CATEGORY_VIEW_NAMES).where(UNIQUE_CATEGORY_VIEW_NAMES.SPACE.equal(id)).execute()
-    t.delete(UNIQUE_CATEGORY_NAMES).where(UNIQUE_CATEGORY_NAMES.SPACE.equal(id)).execute()
-    t.delete(ENDPOINT_VIEWS).where(ENDPOINT_VIEWS.SPACE.equal(id)).execute()
+
+    // The order of deletion is important. Incorrect ordering will cause foreign key constraint violations.
+    // TODO describe this ordering dependency in a more obvious and visible fashion.
+    val dependentTables = Seq(
+      PREFIX_CATEGORY_VIEWS,
+      PREFIX_CATEGORIES,
+      SET_CATEGORY_VIEWS,
+      SET_CATEGORIES,
+      ENDPOINT_VIEW_ROLLING_WINDOWS,
+      RANGE_CATEGORY_VIEWS,
+      RANGE_CATEGORIES,
+      UNIQUE_CATEGORY_VIEW_NAMES,
+      UNIQUE_CATEGORY_NAMES,
+      ENDPOINT_VIEWS)
+
+    dependentTables foreach (deleteRecordsInSpace(t, id, _).execute())
+
     t.delete(PAIR_REPORTS).where(PAIR_REPORTS.SPACE.equal(id)).execute()
     t.delete(REPAIR_ACTIONS).where(REPAIR_ACTIONS.SPACE.equal(id)).execute()
     t.delete(PAIR_VIEWS).where(PAIR_VIEWS.SPACE.equal(id)).execute()
