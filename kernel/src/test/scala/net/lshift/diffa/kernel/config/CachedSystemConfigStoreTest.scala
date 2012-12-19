@@ -23,7 +23,6 @@ import org.easymock.EasyMock._
 import org.jooq.impl.Factory
 import org.junit.Assert._
 import net.lshift.diffa.kernel.config.system.JooqSystemConfigStore
-import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 import org.easymock.IAnswer
 import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.actors.IncrementingIdProvider
@@ -32,31 +31,14 @@ class CachedSystemConfigStoreTest {
 
   val jooq = E4.createStrictMock(classOf[DatabaseFacade])
   val cp = new HazelcastCacheProvider
-  val sp = new HazelcastSequenceProvider
 
-  // When the JooqSystemConfigStore, boots it syncs the sequence provider with the database, so we need to mock this out
-
-  val persistentSequenceValue = System.currentTimeMillis()
-
-  expect(jooq.execute(anyObject[Function1[Factory,Long]]())).andReturn(persistentSequenceValue).once()
-
-  E4.replay(jooq)
-
-  val configStore = new JooqSystemConfigStore(jooq,cp, sp, IncrementingIdProvider)
-
-  // Make sure the that booting the JooqSystemConfigStore has performed the sequence provider sync
-
-  E4.verify(jooq)
-
-  // Make the jooq mock available for use again
-
-  E4.reset(jooq)
+  val configStore = new JooqSystemConfigStore(jooq,cp, IncrementingIdProvider)
 
   @Test
   def shouldCacheDomainExistenceAndInvalidateOnRemoval {
     val domain = RandomStringUtils.randomAlphanumeric(10)
 
-    val initialSpaceId = persistentSequenceValue + 1
+    val initialSpaceId = System.currentTimeMillis() + 1
     expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andReturn(Space(id = initialSpaceId)).once()
 
     E4.replay(jooq)
@@ -105,7 +87,7 @@ class CachedSystemConfigStoreTest {
 
     E4.reset(jooq)
 
-    val subsequentSpaceId = persistentSequenceValue + 2
+    val subsequentSpaceId = initialSpaceId + 2
     expect(jooq.execute(anyObject[Function1[Factory,Space]]())).andAnswer(new IAnswer[Space] {
       def answer() = {
 

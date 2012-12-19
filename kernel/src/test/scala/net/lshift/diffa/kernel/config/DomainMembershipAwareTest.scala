@@ -24,7 +24,6 @@ import org.junit.Test
 import net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider
 import org.jooq.impl.Factory
 import net.lshift.diffa.kernel.config.system.PolicyKey
-import net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider
 import net.lshift.diffa.kernel.actors.IncrementingIdProvider
 
 class DomainMembershipAwareTest {
@@ -33,11 +32,10 @@ class DomainMembershipAwareTest {
   val jf = E4.createStrictMock(classOf[JooqDatabaseFacade])
 
   val cp = new HazelcastCacheProvider
-  val sp = new HazelcastSequenceProvider
 
   val membershipListener = createStrictMock(classOf[DomainMembershipAware])
 
-  val domainConfigStore = new JooqDomainConfigStore(jf, cp, sp, IncrementingIdProvider, membershipListener)
+  val domainConfigStore = new JooqDomainConfigStore(jf, cp, IncrementingIdProvider, membershipListener)
 
   val member = Member("user",0L,0L,"User","domain")
 

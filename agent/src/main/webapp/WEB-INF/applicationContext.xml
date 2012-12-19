@@ -112,7 +112,6 @@
   <bean id="domainDifferenceStore" class="net.lshift.diffa.kernel.differencing.JooqDomainDifferenceStore" depends-on="diffaSessionFactory">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
-    <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="idProvider" />
   </bean>
 
@@ -390,8 +389,6 @@
 
   <bean id="hazelcastCacheProvider" class="net.lshift.diffa.kernel.util.cache.HazelcastCacheProvider"></bean>
 
-  <bean id="hazelcastSequenceProvider" class="net.lshift.diffa.kernel.util.sequence.HazelcastSequenceProvider"></bean>
-
   <bean id="idProvider" class="net.lshift.diffa.kernel.util.DiffaIdProvider">
     <constructor-arg name="zookeeperCluster" value="localhost:2181" />
   </bean>
@@ -414,7 +411,6 @@
   <bean id="underlyingConfigStore" class="net.lshift.diffa.kernel.config.system.JooqSystemConfigStore" depends-on="diffaSessionFactory">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
-    <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="idProvider" />
   </bean>
 
@@ -423,7 +419,6 @@
   <bean id="domainConfigStore" class="net.lshift.diffa.kernel.config.JooqDomainConfigStore" depends-on="diffaSessionFactory">
     <constructor-arg ref="jooqDatabaseFacade" />
     <constructor-arg ref="hazelcastCacheProvider" />
-    <constructor-arg ref="hazelcastSequenceProvider" />
     <constructor-arg ref="idProvider" />
     <constructor-arg ref="systemConfigStore" />
   </bean>

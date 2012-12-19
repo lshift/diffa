@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory
 import preferences.JooqUserPreferencesStore
 import scanning.JooqScanActivityStore
 import util.cache.HazelcastCacheProvider
-import util.sequence.HazelcastSequenceProvider
 import util.MissingObjectException
 import org.hibernate.SessionFactory
 import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHelper
@@ -91,7 +90,6 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     def onMembershipRemoved(member: Member) {}
   }
   private def cacheProvider = new HazelcastCacheProvider
-  private def sequenceProvider = new HazelcastSequenceProvider
   private val idProvider = IncrementingIdProvider
 
   def sessionFactory = _sessionFactory.getOrElse {
@@ -115,11 +113,11 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore[ServiceLimitsStore](sf => new JooqServiceLimitsStore(facade), "ServiceLimitsStore")
 
   private lazy val _domainConfigStore =
-    makeStore(sf => new JooqDomainConfigStore(facade, cacheProvider, sequenceProvider, idProvider, membershipListener), "domainConfigStore")
+    makeStore(sf => new JooqDomainConfigStore(facade, cacheProvider, idProvider, membershipListener), "domainConfigStore")
 
   private lazy val _systemConfigStore =
     makeStore(sf => {
-      val store = new JooqSystemConfigStore(facade, cacheProvider, sequenceProvider, idProvider)
+      val store = new JooqSystemConfigStore(facade, cacheProvider, idProvider)
       store.registerDomainEventListener(_domainConfigStore)
       store
     }, "SystemConfigStore")
@@ -131,7 +129,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     makeStore(sf => new JooqUserPreferencesStore(facade, cacheProvider), "userPreferencesStore")
 
   private lazy val _domainDifferenceStore =
-    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, sequenceProvider, idProvider), "DomainDifferenceStore")
+    makeStore(sf => new JooqDomainDifferenceStore(facade, cacheProvider, idProvider), "DomainDifferenceStore")
 
   private lazy val _scanActivityStore =
     makeStore(sf => new JooqScanActivityStore(facade), "scanActivityStore")

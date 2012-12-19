@@ -57,7 +57,6 @@ import net.lshift.diffa.kernel.lifecycle.DomainLifecycleAware
 import collection.mutable.ListBuffer
 import net.lshift.diffa.kernel.util.cache.CacheProvider
 import net.lshift.diffa.schema.tables.records.UsersRecord
-import net.lshift.diffa.kernel.util.sequence.SequenceProvider
 import java.lang.{Long => LONG, Integer => INT}
 import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
@@ -66,7 +65,7 @@ import scala.Some
 import net.lshift.diffa.kernel.config.Member
 import net.lshift.diffa.kernel.config.User
 import net.lshift.diffa.kernel.frontend.{DomainPairDef, DomainEndpointDef}
-import net.lshift.diffa.kernel.naming.{CacheName, SequenceName}
+import net.lshift.diffa.kernel.naming.CacheName
 import org.jooq.impl.Factory
 import org.jooq._
 import collection.JavaConversions._
@@ -75,7 +74,6 @@ import net.lshift.diffa.snowflake.IdProvider
 
 class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
                             cacheProvider:CacheProvider,
-                            sequenceProvider:SequenceProvider,
                             idProvider: IdProvider)
     extends SystemConfigStore {
 
@@ -86,8 +84,6 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
   private val spacePathCache = cacheProvider.getCachedMap[String,Space](CacheName.SPACE_PATHS)
   private val spaceIdCache = cacheProvider.getCachedMap[java.lang.Long,Space](CacheName.SPACE_IDS)
-
-  initializeExistingSequences()
 
   private val domainEventSubscribers = new ListBuffer[DomainLifecycleAware]
 
@@ -571,7 +567,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
     if (count == 0) {
 
-      val sequence = sequenceProvider.nextSequenceValue(SequenceName.SPACES)
+      val sequence = idProvider.getId()
 
       try {
 
@@ -663,24 +659,6 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
       configVersion = record.getValue(SPACES.CONFIG_VERSION)
     )
   }
-
-  private def initializeExistingSequences() = {
-    val persistentValue = jooq.execute { t =>
-
-      t.select(max(SPACES.ID).as("max_space_id")).
-        from(SPACES).
-        fetchOne().
-        getValueAsBigInteger("max_space_id").longValue()
-
-    }
-
-    val currentValue = sequenceProvider.currentSequenceValue(SequenceName.SPACES)
-
-    if (persistentValue > currentValue) {
-      sequenceProvider.upgradeSequenceValue(SequenceName.SPACES, currentValue, persistentValue)
-    }
-  }
-
 
   private def getUserByPredicate(predicate: String, fieldToMatch:TableField[UsersRecord, String]) : User = jooq.execute(t => {
     val record =  t.select().

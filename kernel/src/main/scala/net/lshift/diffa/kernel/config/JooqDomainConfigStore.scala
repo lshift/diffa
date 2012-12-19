@@ -45,8 +45,6 @@ import org.jooq._
 import java.lang.{Long => LONG}
 import system.{ConflictingConcurrentModificationException, PolicyKey}
 import java.lang.{Integer => INT}
-import net.lshift.diffa.kernel.util.sequence.SequenceProvider
-import net.lshift.diffa.kernel.naming.SequenceName
 import java.sql.SQLIntegrityConstraintViolationException
 import org.jooq.exception.DataAccessException
 import net.lshift.diffa.snowflake.IdProvider
@@ -58,7 +56,6 @@ import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
                             cacheProvider:CacheProvider,
-                            sequenceProvider:SequenceProvider,
                             idProvider:IdProvider,
                             membershipListener:DomainMembershipAware)
     extends DomainConfigStore
@@ -512,7 +509,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
           if (updatePreviousEscalationName == 0) {
 
-            val ruleId = sequenceProvider.nextSequenceValue(SequenceName.ESCALATION_RULES)
+            val ruleId = idProvider.getId()
 
             try {
               t.insertInto(ESCALATION_RULES).
@@ -915,7 +912,7 @@ class JooqDomainConfigStore(jooq:JooqDatabaseFacade,
 
   private def upgradeExtent(t:Factory) : Long = {
 
-    val extent = sequenceProvider.nextSequenceValue(SequenceName.EXTENTS)
+    val extent = idProvider.getId()
 
     t.insertInto(EXTENTS).
         set(EXTENTS.ID, extent:LONG).
