@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.sql;
+package net.lshift.diffa.dbapp;
 
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.jooq.SQLDialect;
 import org.jooq.impl.Factory;
 
@@ -44,8 +43,12 @@ public abstract class TestSchema {
     ds.setDriverClass(driverClass());
 
     Factory factory = new Factory(ds.getConnection(), dialect());
-    factory.execute(tableOfThingsDDL());
-    factory.execute(md5FunctionDDL());
+    try {
+      factory.execute(tableOfThingsDDL());
+      factory.execute(md5FunctionDDL());
+    } catch (Exception e) {
+      // Ignore the case where these already exist.
+    }
 
     dataSource = ds;
   }
@@ -54,15 +57,12 @@ public abstract class TestSchema {
     return dataSource;
   }
 
-  protected abstract String driverClass();
-  protected abstract String getJdbcUrl();
+  public abstract String driverClass();
+  public abstract String getJdbcUrl();
 
   protected abstract String tableOfThingsDDL();
   protected abstract String md5FunctionDDL();
 
-  private String username = "SQLDRV" + RandomStringUtils.randomAlphabetic(5);
-  protected String dbUsername() {
-    return username;
-  }
-  protected abstract String dbPassword();
+  public abstract String dbUsername();
+  public abstract String dbPassword();
 }

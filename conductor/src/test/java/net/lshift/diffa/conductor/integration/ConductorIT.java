@@ -1,7 +1,8 @@
 package net.lshift.diffa.conductor.integration;
 
 import com.google.common.collect.ImmutableMap;
-import com.googlecode.flyway.core.Flyway;
+import net.lshift.diffa.dbapp.TestDBProvider;
+import net.lshift.diffa.dbapp.TestSchema;
 import net.lshift.diffa.conductor.*;
 import net.lshift.diffa.events.ChangeEvent;
 import net.lshift.diffa.railyard.RailYard;
@@ -11,7 +12,6 @@ import net.lshift.diffa.versioning.events.PartitionedEvent;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.joda.time.DateTime;
 import org.jooq.SQLDialect;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.sql.DataSource;
@@ -19,33 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static net.lshift.diffa.conductor.plumbing.ConfigurationBuilder.buildDataSource;
 import static net.lshift.diffa.conductor.plumbing.ConfigurationBuilder.buildMetaData;
 
 public class ConductorIT {
 
   static String url = "http://localhost:" + ConductorDaemon.DEFAULT_PORT;
 
-  private int port = Integer.parseInt(System.getProperty("hsqldb.port", "11091"));
-  private String dbUrl = "jdbc:hsqldb:hsql://localhost:" + port + "/things";
-  private String driver = "org.hsqldb.jdbcDriver";
-  private String username = "sa";
-  private String password = "";
-
-
-  @Before
-  public void migrate() {
-
-    DataSource ds = buildDataSource(dbUrl, driver, username, password);
-
-    Flyway flyway = new Flyway();
-    flyway.setDataSource(ds);
-    flyway.setLocations("hsqldb");
-    flyway.setSqlMigrationPrefix("M");
-    flyway.clean();
-    flyway.migrate();
-
-  }
+  private TestSchema schema = TestDBProvider.createSchema();
 
   @Test
   public void interviewShouldFinishWhenVersionStoreIsInSyncWithRemoteSystem() throws Exception {
@@ -58,23 +38,19 @@ public class ConductorIT {
     conf.setIdFieldName("id");
     conf.setVersionFieldName("version");
     conf.setPartitionFieldName("entry_date");
-    conf.setDriverClass(driver);
+    conf.setDriverClass(schema.driverClass());
+    conf.setUrl(schema.getJdbcUrl());
+    conf.setUsername(schema.dbUsername());
+    conf.setPassword(schema.dbPassword());
+    conf.setDialect(schema.dialect().name());
 
-    conf.setUrl(dbUrl);
-    conf.setUsername(username);
-    conf.setPassword(password);
-    // TODO add support for databases other than HSQLDB.
-    conf.setDialect("HSQLDB");
-
-    DataSource ds = buildDataSource(conf);
+    DataSource ds = schema.getDataSource();
 
     Conductor conductor = new ConductorClient(url);
 
     conductor.registerDriver(space, endpoint, conf);
 
-
     int maxSliceSize = 100;
-
 
     PartitionMetadata metadata = buildMetaData(conf);
     PartitionedStore partitionAwareStore = new PartitionedStore(ds, metadata, SQLDialect.valueOf(conf.getDialect()));

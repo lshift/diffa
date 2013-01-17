@@ -15,20 +15,15 @@ public class ConfigurationBuilder {
   }
 
   public static DataSource buildDataSource(String url, String driver, String user, String password) {
-
-    try {
-      Class.forName(driver);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
     BoneCPConfig config = new BoneCPConfig();
 
     config.setJdbcUrl(url);
     config.setUsername(user);
     config.setPassword(password);
+    BoneCPDataSource ds = new BoneCPDataSource(config);
+    ds.setDriverClass(driver);
 
-    return new BoneCPDataSource(config);
+    return ds;
   }
 
   public static PartitionMetadata buildMetaData(DriverConfiguration conf) {

@@ -29,7 +29,7 @@ public class PartitionMetadata {
     return withField(partitionBy, type);
   }
 
-  public Table<Record> getTable() {
+  public DynamicTable getTable() {
     return table;
   }
 

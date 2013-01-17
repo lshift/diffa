@@ -18,7 +18,7 @@
     <commons.lang.version>3.1</commons.lang.version>
     <junit.version>4.10</junit.version>
     <hsqldb.version>2.2.8</hsqldb.version>
-    <jooq.version>2.5.1 </jooq.version>
+    <jooq.version>2.6.1</jooq.version>
     <bonecp.version>0.7.1.RELEASE</bonecp.version>
     <guice.version>3.0</guice.version>
   </properties>
@@ -53,6 +53,13 @@
       <groupId>net.lshift.diffa</groupId>
       <artifactId>scanning-support</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>diffa-db-testapp</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -125,14 +132,6 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
-      <dependencies>
-        <dependency>
-          <groupId>com.oracle</groupId>
-          <artifactId>ojdbc6</artifactId>
-          <version>11.2.0.1.0</version>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
       <build>
         <plugins>
           <plugin>
@@ -152,9 +151,6 @@
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
-      <properties>
-        <jdbcDriverClass>oracle.jdbc.OracleDriver</jdbcDriverClass>
-      </properties>
       <dependencies>
         <dependency>
           <groupId>com.oracle</groupId>

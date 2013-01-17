@@ -38,6 +38,7 @@
     <module>plumbing-support</module>
     <module>snowflake</module>
     <module>sql-driver</module>
+    <module>db-testapp</module>
   </modules>
 
   <properties>

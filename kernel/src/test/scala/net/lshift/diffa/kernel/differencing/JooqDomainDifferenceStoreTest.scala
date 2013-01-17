@@ -16,7 +16,6 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import org.hibernate.exception.ConstraintViolationException
 import org.junit.Assert._
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.events.VersionID
@@ -34,6 +33,7 @@ import collection.mutable.ListBuffer
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.{RepairActionDef, EscalationDef, EndpointDef, PairDef}
 import org.apache.commons.lang.RandomStringUtils
+import net.lshift.diffa.adapter.scanning.{ScanConstraint, SetConstraint}
 import net.lshift.diffa.scanning.plumbing.BufferedPruningHandler
 
 
@@ -795,6 +795,45 @@ class JooqDomainDifferenceStoreTest {
 
     assertFalse(handler.getAnswers.isEmpty)
 
+  }
+
+  @Test
+  def scanOfEmptyExtentShouldGiveEmptyAnswer() {
+    val extentConstraint: ScanConstraint = new SetConstraint("EXTENT", Set("1000000"))
+    val pairRef = PairRef("pair1", space.id)
+
+    val handler = new BufferedPruningHandler()
+    val timestamp = new DateTime()
+
+    // Given
+    domainDiffStore.addReportableUnmatchedEvent(
+      VersionID(pairRef, "id1"), timestamp, "uV", "dV", timestamp)
+
+    // When
+    domainDiffStore.scan(Set(extentConstraint), null, 100, handler)
+
+    // Then
+    assertTrue("Empty extent should have no diffs", handler.getAnswers.isEmpty)
+  }
+
+  @Test
+  def scanOfNonEmptyExtentShouldGiveNonEmptyAnswer() {
+    val timestamp = new DateTime()
+    val pairRef = PairRef("pair1", space.id)
+
+    val handler = new BufferedPruningHandler()
+
+    // Given
+    domainDiffStore.addReportableUnmatchedEvent(
+      VersionID(PairRef("pair1", space.id), "id1"), timestamp, "uV", "dV", timestamp)
+    val populatedExtent = domainDiffStore.extentsByPair.get(pairRef)
+    val extentConstraint: ScanConstraint = new SetConstraint("EXTENT", Set(populatedExtent.toString))
+
+    // When
+    domainDiffStore.scan(Set(extentConstraint), null, 100, handler)
+
+    // Then
+    assertFalse("Populated extent should have diffs", handler.getAnswers.isEmpty)
   }
 
   @Test

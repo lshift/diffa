@@ -1,8 +1,8 @@
 package net.lshift.diffa.sql;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import net.lshift.diffa.adapter.scanning.*;
+import net.lshift.diffa.dbapp.TestDBProvider;
 import net.lshift.diffa.interview.Answer;
 import net.lshift.diffa.interview.SimpleGroupedAnswer;
 import net.lshift.diffa.scanning.plumbing.BufferedPruningHandler;
@@ -10,23 +10,31 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.joda.time.DateTime;
 import org.jooq.impl.Factory;
 import org.jooq.impl.SQLDataType;
+import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 import java.sql.Connection;
 import java.sql.Date;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class SQLDriverIT extends AbstractDatabaseAware {
-
   public SQLDriverIT() {
-    super(TestDBProvider.getDataSource(), TestDBProvider.getDialect());
+    super(TestDBProvider.createSchema().getDataSource(), TestDBProvider.getDialect());
   }
 
-  @Test
-  public void shouldPartitionByDate() throws Exception {
+  private final PartitionMetadata metadata = new PartitionMetadata("THINGS");
+  {
+    metadata.withId("ID", SQLDataType.VARCHAR).
+        withVersion("VERSION", SQLDataType.VARCHAR).
+        partitionBy("ENTRY_DATE", SQLDataType.DATE);
+  }
 
+  @Before
+  public void seed() throws Exception {
     DateTime start = new DateTime(2005,7,29,0,0,0,0);
     int days = 1000;
 
@@ -44,12 +52,58 @@ public class SQLDriverIT extends AbstractDatabaseAware {
 
     connection.commit();
     closeConnection(connection, true);
+  }
 
-    PartitionMetadata metadata = new PartitionMetadata("THINGS");
-    metadata.withId("ID", SQLDataType.VARCHAR).
-             withVersion("VERSION", SQLDataType.VARCHAR).
-             partitionBy("ENTRY_DATE", SQLDataType.DATE);
+  @Test
+  public void shouldFilterByExtentWithDateBasedAggregation() throws Exception {
+    // Given the standard test data with an 'extent' column named 'id'...
+    String selectedExtent = "1";
+    ScanConstraint extentConstraint = new SetConstraint("ID", Collections.singleton(selectedExtent));
+    ScanAggregation dateAggregation = new DateAggregation("some_date", DateGranularityEnum.Yearly);
 
+    PartitionAwareDriver driver = new PartitionAwareDriver(ds, metadata, TestDBProvider.getDialect());
+    BufferedPruningHandler handler = new BufferedPruningHandler();
+
+    // When
+    driver.scan(Collections.singleton(extentConstraint), Collections.singleton(dateAggregation), 1, handler);
+
+    // Then
+    // There's only one record with an ID = '1', so we just have one entry in the 'extent'.
+    String expectedAggregateVersion = md5(md5(md5(md5(md5(selectedExtent)))));
+    Set<Answer> expectedResults = Collections.singleton(
+        (Answer) new SimpleGroupedAnswer("2005", expectedAggregateVersion));
+
+    assertEquals(expectedResults, handler.getAnswers());
+  }
+
+  @Test
+  public void shouldFilterByExtentWithPrefixBasedAggregation() throws Exception {
+    // Given the standard test data with an 'extent' column named 'id'...
+    String selectedExtent = "1";
+    String idColumn = "ID";
+    TreeSet<Integer> prefixLengths = new TreeSet<Integer>();
+    Collections.addAll(prefixLengths, 1,2,3);
+    ScanConstraint extentConstraint = new SetConstraint(idColumn, Collections.singleton(selectedExtent));
+    ScanAggregation prefixAggregation = new StringPrefixAggregation(idColumn, null, prefixLengths);
+    metadata.partitionBy(idColumn, SQLDataType.VARCHAR);
+
+    PartitionAwareDriver driver = new PartitionAwareDriver(ds, metadata, TestDBProvider.getDialect());
+    BufferedPruningHandler handler = new BufferedPruningHandler();
+
+    // When
+    driver.scan(Collections.singleton(extentConstraint), Collections.singleton(prefixAggregation), 1, handler);
+
+    // Then
+    // There's only one record with an ID = '1', so we just have one entry in the 'extent'.
+    String expectedAggregateVersion = md5(md5(md5(md5(md5(selectedExtent)))));
+    Set<Answer> expectedResults = Collections.singleton(
+        (Answer) new SimpleGroupedAnswer(selectedExtent, expectedAggregateVersion));
+
+    assertEquals(expectedResults, handler.getAnswers());
+  }
+
+  @Test
+  public void shouldPartitionByDate() throws Exception {
     PartitionAwareDriver driver = new PartitionAwareDriver(ds, metadata, TestDBProvider.getDialect());
 
     ScanAggregation dateAggregation = new DateAggregation("some_date", DateGranularityEnum.Yearly, null);
@@ -70,13 +124,11 @@ public class SQLDriverIT extends AbstractDatabaseAware {
     expectedResults.add(new SimpleGroupedAnswer("2006", "6b4ee3a8dcf9e71af301b5722406e52f"));
     expectedResults.add(new SimpleGroupedAnswer("2007", "c7b7eb798fcf835ace16f469c6919e1c"));
     expectedResults.add(new SimpleGroupedAnswer("2008", "0906f8b73c3e2ff365ff235b3cb020b7"));
-    /*
-    expectedResults.add(ScanResultEntry.forAggregate("696a51b5982b8521625d39631c1175bb", ImmutableMap.of("bizDate", "2005")));
-    expectedResults.add(ScanResultEntry.forAggregate("6b4ee3a8dcf9e71af301b5722406e52f", ImmutableMap.of("bizDate", "2006")));
-    expectedResults.add(ScanResultEntry.forAggregate("c7b7eb798fcf835ace16f469c6919e1c", ImmutableMap.of("bizDate", "2007")));
-    expectedResults.add(ScanResultEntry.forAggregate("0906f8b73c3e2ff365ff235b3cb020b7", ImmutableMap.of("bizDate", "2008")));
-    */
-    assertEquals(expectedResults, handler.getAnswers());
 
+    assertEquals(expectedResults, handler.getAnswers());
+  }
+
+  private static String md5(String msg) {
+    return DigestUtils.md5Hex(msg);
   }
 }

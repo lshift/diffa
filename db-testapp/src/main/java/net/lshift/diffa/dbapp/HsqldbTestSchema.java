@@ -14,26 +14,37 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.sql;
+package net.lshift.diffa.dbapp;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.jooq.SQLDialect;
 
 /**
  */
 public class HsqldbTestSchema extends TestSchema {
+  private final String jdbcUrl;
+
+  public HsqldbTestSchema(String jdbcUrl) {
+    if (jdbcUrl == null) {
+      this.jdbcUrl = "jdbc:hsqldb:mem:" + RandomStringUtils.randomAlphabetic(5);
+    } else {
+      this.jdbcUrl = jdbcUrl;
+    }
+  }
+
   @Override
   public SQLDialect dialect() {
     return SQLDialect.HSQLDB;
   }
 
   @Override
-  protected String driverClass() {
+  public String driverClass() {
     return "org.hsqldb.jdbc.JDBCDriver";
   }
 
   @Override
-  protected String getJdbcUrl() {
-    return "jdbc:hsqldb:mem:" + dbUsername();
+  public String getJdbcUrl() {
+    return jdbcUrl;
   }
 
   @Override
@@ -49,7 +60,12 @@ public class HsqldbTestSchema extends TestSchema {
   }
 
   @Override
-  protected String dbPassword() {
+  public String dbUsername() {
+    return "sa";
+  }
+
+  @Override
+  public String dbPassword() {
     return "";
   }
 }

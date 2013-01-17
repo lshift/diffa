@@ -81,6 +81,13 @@
     </dependency>
 
     <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>diffa-db-testapp</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
       <version>${guice.version}</version>
@@ -270,5 +277,59 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>hsqldb</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.12.4</version>
+            <configuration>
+              <systemPropertyVariables>
+                <jooqDialect>HSQLDB</jooqDialect>
+                <jdbcUrl>jdbc:hsqldb:hsql://localhost:11091/things</jdbcUrl>
+                <jdbcUsername>SA</jdbcUsername>
+                <jdbcPass></jdbcPass>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>oracle</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle</groupId>
+          <artifactId>ojdbc6</artifactId>
+          <version>11.2.0.1.0</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.12.4</version>
+            <configuration>
+              <systemPropertyVariables>
+                <jooqDialect>ORACLE</jooqDialect>
+                <jdbcUrl>${diffa.jdbc.url}</jdbcUrl>
+                <jdbcUsername>${diffa.jdbc.sys.username}</jdbcUsername>
+                <jdbcPass>${diffa.jdbc.sys.password}</jdbcPass>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
 

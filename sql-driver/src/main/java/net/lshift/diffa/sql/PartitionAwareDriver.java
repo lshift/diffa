@@ -1,29 +1,20 @@
 package net.lshift.diffa.sql;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
+import net.lshift.diffa.adapter.scanning.DateAggregation;
 import net.lshift.diffa.adapter.scanning.ScanAggregation;
 import net.lshift.diffa.adapter.scanning.ScanConstraint;
-import net.lshift.diffa.adapter.scanning.ScanResultEntry;
-import net.lshift.diffa.interview.GroupedAnswer;
-import net.lshift.diffa.interview.SimpleGroupedAnswer;
 import net.lshift.diffa.scanning.PruningHandler;
 import net.lshift.diffa.scanning.Scannable;
-import org.joda.time.DateTime;
 import org.jooq.*;
 import org.jooq.impl.Factory;
-import org.jooq.impl.SQLDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.Date;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-
-import static org.jooq.impl.Factory.*;
 
 public class PartitionAwareDriver extends AbstractDatabaseAware implements Scannable {
 
@@ -91,107 +82,32 @@ public class PartitionAwareDriver extends AbstractDatabaseAware implements Scann
     Connection connection = getConnection();
     Factory db = getFactory(connection);
 
-    Table<Record> underlyingTable = config.getTable();
+//    DataType<?> partitionType = underlyingPartition.getDataType();
+//
+//    if (partitionType.equals(SQLDataType.DATE) || partitionType.equals(SQLDataType.TIMESTAMP)) {
+//      Field<Date> typedField = (Field<Date>) underlyingPartition;
+//      underlyingPartition = A.getField(typedField);
+//    }
+//    else {
+//      throw new RuntimeException("Currently we can not handle partition type: " + underlyingPartition.getDataType() + " ; please contact your nearest software developer");
+//    }
 
-    Table<Record> A = underlyingTable.as("a");
-    Table<Record> B = underlyingTable.as("b");
-
-    /**
-     * This is pretty dodgy - we assume that anything you can md5 must be coercible to a VARCHAR for the purposes
-     * of this query - this is probably not generally the case for any type of query, but until it blows
-     * up for us, we assume it to hold true.
-     */
-    Field<String> underlyingId = (Field<String>) config.getId();
-    Field<String> underlyingVersion = (Field<String>) config.getVersion();
-
-    /**
-     * OTOH we do need to do something more sensible with partition because we need to slice and dice in different
-     * ways for different data types.
-     */
-    Field<?> underlyingPartition = config.partitionBy();
-
-    Field<String> A_ID = A.getField(underlyingId);
-    Field<String> B_ID = B.getField(underlyingId);
-    Field<String> A_VERSION = A.getField(underlyingVersion);
-
-    DataType<?> partitionType = underlyingPartition.getDataType();
-
-    if (partitionType.equals(SQLDataType.DATE) || partitionType.equals(SQLDataType.TIMESTAMP)) {
-      Field<Date> typedField = (Field<Date>) underlyingPartition;
-      underlyingPartition = A.getField(typedField);
-    }
-    else {
-      throw new RuntimeException("Currently we can not handle partition type: " + underlyingPartition.getDataType() + " ; please contact your nearest software developer");
+    // default to date based aggregation for now. TODO default to prefix aggregation or no aggregation.
+    AggregatingScanner scanner = new PrefixBasedAggregationScanner(db, config, maxSliceSize);
+    if (aggregations != null) {
+      if (aggregations.size() == 1) {
+        ScanAggregation head = aggregations.iterator().next();
+        if (head instanceof DateAggregation) {
+          scanner = new DateBasedAggregationScanner(db, config, maxSliceSize);
+        }
+      }
     }
 
-    Field<Object> day = field("DAY");
-    Field<Object> month = field("MONTH");
-    Field<Object> year = field("YEAR");
-
-    Field<Object> bucket = field("BUCKET");
-    Field<Object> version = field("VERSION");
-    Field<Object> id = field("ID");
-    Field<Object> digest = field("DIGEST");
-
-    Field<Date> truncDay = Factory.field("trunc({0}, {1})", SQLDataType.DATE, underlyingPartition, inline("DD"));
-    Field<Date> truncMonth = Factory.field("trunc({0}, {1})", SQLDataType.DATE, day, inline("MM"));
-    Field<Date> truncYear = Factory.field("trunc({0}, {1})", SQLDataType.DATE, month, inline("YY"));
-
-    Field<Integer> bucketCount = Factory.cast(ceil(cast(count(), SQLDataType.REAL).div(maxSliceSize)), SQLDataType.INTEGER);
-
-    SelectHavingStep slicedBuckets =
-        db.select(day, bucket, function("md5", String.class, groupConcat(version).orderBy(id.asc()).separator("")).as(digest.getName())).
-            from(
-                db.select(truncDay.as(day.getName()), A_ID.as(id.getName()), A_VERSION.as(version.getName()), bucketCount.as(bucket.getName())).
-                    from(A).
-                    join(B).
-                    on(A_ID.eq(B_ID)).
-                    and(A_ID.ge(B_ID)).
-                    groupBy(truncDay, A_ID, A_VERSION).
-                    orderBy(truncDay, bucket)
-            ).
-            groupBy(day, bucket);
-
-    SelectLimitStep dailyBuckets =
-        db.select(day, function("md5", String.class, groupConcat(digest).orderBy(bucket.asc()).separator("")).as(digest.getName())).
-            from(slicedBuckets).
-            groupBy(day).
-            orderBy(day);
-
-    SelectLimitStep monthlyBuckets =
-        db.select(truncMonth.as(month.getName()), function("md5", String.class, groupConcat(digest).orderBy(day.asc()).separator("")).as(digest.getName())).
-            from(dailyBuckets).
-            groupBy(truncMonth).
-            orderBy(month);
-
-    SelectLimitStep yearlyBuckets =
-        db.select(truncYear.as(year.getName()), function("md5", String.class, groupConcat(digest).orderBy(month.asc()).separator("")).as(digest.getName())).
-            from(monthlyBuckets).
-            groupBy(truncYear).
-            orderBy(year);
-
-    Cursor<Record> cursor = yearlyBuckets.fetchLazy();
-
-    while(cursor.hasNext()) {
-      Record record = cursor.fetchOne();
-
-      Date sqlDate = record.getValueAsDate(year);
-      DateTime date = new DateTime(sqlDate.getTime());
-      String dateComponent = date.getYear() + "";
-
-      String digestValue = record.getValueAsString(digest);
-
-      GroupedAnswer answer = new SimpleGroupedAnswer(dateComponent, digestValue);
-      handler.onPrune(answer);
-
-    }
+    scanner.scan(constraints, aggregations, handler);
 
     handler.onCompletion();
 
-
     closeConnection(connection);
   }
-
   // TODO This stuff shouldn't really get invoked inline, we should have some kind of wrapping function ....
-
 }

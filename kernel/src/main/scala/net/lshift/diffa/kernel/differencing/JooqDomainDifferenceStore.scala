@@ -26,20 +26,18 @@ import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.jooq.DatabaseFacade.{timestampToDateTime, dateTimeToTimestamp}
 import net.lshift.diffa.schema.Tables._
 import net.lshift.diffa.schema.tables.records.PendingDiffsRecord
+import org.jooq.{RecordMapper, Record, Field, ResultQuery}
+import org.jooq.impl.Factory
 import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.util.MissingObjectException
-import org.jooq.impl.Factory
 import org.slf4j.LoggerFactory
-import org.jooq._
 import java.lang.{Long => LONG}
 import java.sql.Timestamp
 import net.lshift.diffa.kernel.naming.CacheName
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.lifecycle.PairLifecycleAware
-import net.lshift.diffa.adapter.scanning.{ScanResultEntry, ScanAggregation, ScanConstraint}
-import java.io.{BufferedOutputStream, OutputStream}
-import net.lshift.diffa.scanning.{PruningHandler, Scannable}
-import java.util
+import net.lshift.diffa.adapter.scanning.{ScanAggregation, ScanConstraint}
+import net.lshift.diffa.scanning.PruningHandler
 import net.lshift.diffa.sql.{PartitionMetadata, PartitionAwareDriver}
 import net.lshift.diffa.snowflake.IdProvider
 
@@ -82,7 +80,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
   val metadata = new PartitionMetadata(DIFFS.getName)
   metadata.withId(DIFFS.SEQ_ID.getName, DIFFS.SEQ_ID.getDataType)
   metadata.withVersion(DIFFS.SEQ_ID.getName, DIFFS.SEQ_ID.getDataType)
-  metadata.partitionBy(DIFFS.DETECTED_AT.getName, DIFFS.DETECTED_AT.getDataType)
+  metadata.partitionBy(DIFFS.ENTITY_ID.getName, DIFFS.ENTITY_ID.getDataType)
 
   val scanDriver = new PartitionAwareDriver(db.dataSource, metadata, db.resolvedDialect)
 

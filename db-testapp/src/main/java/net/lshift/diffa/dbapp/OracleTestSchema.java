@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package net.lshift.diffa.sql;
+package net.lshift.diffa.dbapp;
 
 import com.jolbox.bonecp.BoneCPConfig;
 import com.jolbox.bonecp.BoneCPDataSource;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.jooq.SQLDialect;
 import org.jooq.impl.Factory;
 
@@ -62,17 +63,23 @@ public class OracleTestSchema extends TestSchema {
   }
 
   @Override
-  protected String driverClass() {
+  public String driverClass() {
     return "oracle.jdbc.OracleDriver";
   }
 
   @Override
-  protected String getJdbcUrl() {
+  public String getJdbcUrl() {
     return jdbcUrl;
   }
 
+  private final String username = "SQLDRV" + RandomStringUtils.randomAlphabetic(5);
   @Override
-  protected String dbPassword() {
+  public String dbUsername() {
+    return username;
+  }
+
+  @Override
+  public String dbPassword() {
     return "sqldriverit";
   }
 

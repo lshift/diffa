@@ -1,7 +1,6 @@
 package net.lshift.diffa.sql;
 
 import org.jooq.DataType;
-import org.jooq.impl.SchemaImpl;
 import org.jooq.impl.TableImpl;
 
 /**
