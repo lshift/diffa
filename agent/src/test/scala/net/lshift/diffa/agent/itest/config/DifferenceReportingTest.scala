@@ -16,25 +16,24 @@
 
 package net.lshift.diffa.agent.itest.config
 
-import net.lshift.diffa.agent.itest.support.TestConstants._
-import net.lshift.diffa.agent.client.DifferencesRestClient
-import net.lshift.diffa.kernel.participants.ParticipantType
-import org.junit.Test
-import net.lshift.diffa.kernel.differencing.InvalidSequenceNumberException
+
+import org.junit.{Ignore, Test}
 import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
 /**
  * A bunch of smoke tests for the differences reporting of a known agent
  */
+@Ignore
 class DifferenceReportingTest extends IsolatedDomainTest {
 
   // Assume that the id given is sufficiently large that it won't be hit in test cases
   val invalidSeqId = RandomStringUtils.randomNumeric(7)
-
+  /*
   @Test(expected = classOf[InvalidSequenceNumberException])
   def nonExistentSequenceNumberShouldGenerateNotSequenceError() {
     val client = new DifferencesRestClient(agentURL, isolatedDomain)
     client.eventDetail(invalidSeqId, ParticipantType.UPSTREAM)
   }
+  */
 }

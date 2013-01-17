@@ -16,7 +16,6 @@
 package net.lshift.diffa.client
 
 import javax.ws.rs.core.MultivaluedMap
-import net.lshift.diffa.kernel.participants.{StringPrefixCategoryFunction, CategoryFunction}
 import scala.collection.JavaConversions._
 import net.lshift.diffa.adapter.scanning._
 
@@ -43,7 +42,7 @@ object RequestBuildingHelper {
   def aggregationsToQueryArguments(params:MultivaluedMap[String,String], aggregations:Seq[ScanAggregation]) {
     aggregations.foreach {
       case spf:StringPrefixAggregation =>
-        params.add(spf.getAttributeName + "-length", spf.getLength.toString)
+        spf.getOffsets.foreach(o => params.add(spf.getAttributeName + "-offset", o.toString))
       case ga:GranularityAggregation =>
         params.add(ga.getAttributeName + "-granularity", ga.getGranularityString)
     }

@@ -19,7 +19,6 @@ package net.lshift.diffa.agent.client
 import com.sun.jersey.api.client.ClientResponse
 import com.sun.jersey.core.util.MultivaluedMapImpl
 import net.lshift.diffa.client.{RequestBuildingHelper, RestClientParams}
-import net.lshift.diffa.kernel.frontend.InvalidInventoryException
 import java.lang.String
 import net.lshift.diffa.adapter.scanning.{ScanAggregation, ScanConstraint}
 
@@ -34,7 +33,7 @@ class InventoryRestClient(serverRootUrl:String, domain:String, params: RestClien
     val status = response.getClientResponseStatus
     status.getStatusCode match {
       case 200     => response.getEntity(classOf[String]).split("\n")
-      case 400     => throw new InvalidInventoryException(response.getEntity(classOf[String]))
+      case 400     => throw new RuntimeException(response.getEntity(classOf[String]))
       case x:Int   => handleHTTPError(x,path, status)
     }
   }
@@ -52,7 +51,7 @@ class InventoryRestClient(serverRootUrl:String, domain:String, params: RestClien
     val status = response.getClientResponseStatus
     status.getStatusCode match {
       case 202     => response.getEntity(classOf[String]).split("\n") // Successfully submitted (202 is "Accepted")
-      case 400     => throw new InvalidInventoryException(response.getEntity(classOf[String]))
+      case 400     => throw new RuntimeException(response.getEntity(classOf[String]))
       case x:Int   => handleHTTPError(x,path, status)
     }
   }

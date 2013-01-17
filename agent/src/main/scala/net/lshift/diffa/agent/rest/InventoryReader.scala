@@ -27,7 +27,6 @@ import java.io.{InputStreamReader, InputStream}
 import collection.mutable.ListBuffer
 import org.joda.time.format.ISODateTimeFormat
 import java.util.HashMap
-import net.lshift.diffa.kernel.frontend.InvalidInventoryException
 import net.lshift.diffa.kernel.differencing.EntityValidator
 import net.lshift.diffa.adapter.common.{InvalidEntityException, ScanEntityValidator}
 
@@ -50,7 +49,7 @@ class InventoryReader(resultValidator:ScanEntityValidator)
     val header = reader.readNext()
 
     if (header == null) {
-      throw new InvalidInventoryException("CSV file appears to be empty. No header line was found")
+      throw new RuntimeException("CSV file appears to be empty. No header line was found")
     }
 
     val idPosition = maybeField("id", header)
@@ -74,7 +73,7 @@ class InventoryReader(resultValidator:ScanEntityValidator)
 
       if (line != null) {
         if (line.length != header.length) {
-            throw new InvalidInventoryException("Line %s has %s elements, but the header had %s".format(
+            throw new RuntimeException("Line %s has %s elements, but the header had %s".format(
               lineCounter, line.length, header.length))
         }
 
@@ -85,7 +84,7 @@ class InventoryReader(resultValidator:ScanEntityValidator)
           try {
             entry.setLastUpdated(updatedParser.parseDateTime(line(p)))
           } catch {
-            case ex => throw new InvalidInventoryException("Invalid updated timestamp '%s' on line %s: %s".format(
+            case ex => throw new RuntimeException("Invalid updated timestamp '%s' on line %s: %s".format(
               line(p), lineCounter, ex.getMessage))
           }
         })
@@ -94,7 +93,7 @@ class InventoryReader(resultValidator:ScanEntityValidator)
         try {
           resultValidator.process(entry)
         } catch { case error:InvalidEntityException =>
-          throw new InvalidInventoryException("Invalid parsed result on line: %s: %s".format(lineCounter, error.getMessage))
+          throw new RuntimeException("Invalid parsed result on line: %s: %s".format(lineCounter, error.getMessage))
         }
         result += entry
 
@@ -106,7 +105,7 @@ class InventoryReader(resultValidator:ScanEntityValidator)
   }
 
   private def requireField(name:String, header:Array[String]) = header.indexOf(name) match {
-    case -1 => throw new InvalidInventoryException("No '" + name + "' field is defined in the header")
+    case -1 => throw new RuntimeException("No '" + name + "' field is defined in the header")
     case x  => x
   }
   private def maybeField(name:String, header:Array[String]) = header.indexOf(name) match {

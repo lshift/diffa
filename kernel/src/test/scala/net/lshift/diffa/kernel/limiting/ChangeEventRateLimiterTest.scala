@@ -19,12 +19,13 @@ package net.lshift.diffa.kernel.limiting
 import org.easymock.EasyMock.{ createMock, expect, replay, reset }
 import net.lshift.diffa.adapter.changes.ChangeEvent
 import org.joda.time.DateTime
-import org.junit.{Before, Test, Assert}
+import org.junit.{Ignore, Before, Test, Assert}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, DataPoints, Theory}
 import net.lshift.diffa.schema.servicelimits.ChangeEventRate
 import net.lshift.diffa.kernel.config.DomainServiceLimitsView
 
+@Ignore
 @RunWith(classOf[Theories])
 class ChangeEventRateLimiterTest {
   import ChangeEventRateLimiterTest._

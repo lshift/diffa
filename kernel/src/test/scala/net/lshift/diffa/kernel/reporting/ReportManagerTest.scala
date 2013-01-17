@@ -2,7 +2,6 @@ package net.lshift.diffa.kernel.reporting
 
 import collection.mutable.{ListBuffer}
 import net.lshift.diffa.kernel.frontend.{PairReportDef, EndpointDef, PairDef}
-import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import org.easymock.EasyMock._
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.DateTime
@@ -26,9 +25,8 @@ class ReportManagerTest {
   var space:Space = null
 
   var pair:PairRef = null
-  val diagnostics = createNiceMock(classOf[DiagnosticsManager])
 
-  val reportManager = new ReportManager(domainConfigStore, domainDiffStore, diagnostics)
+  val reportManager = new ReportManager(domainConfigStore, domainDiffStore)
 
   val e1 = EndpointDef(name = "e1")
   val e2 = EndpointDef(name = "e2")

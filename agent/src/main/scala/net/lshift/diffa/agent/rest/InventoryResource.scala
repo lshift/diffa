@@ -17,7 +17,6 @@ package net.lshift.diffa.agent.rest
  */
 import javax.ws.rs._
 import core.{Context, UriInfo, Response}
-import net.lshift.diffa.kernel.frontend.{Configuration, Changes}
 import javax.servlet.http.HttpServletRequest
 import net.lshift.diffa.kernel.config.DomainConfigStore
 import scala.collection.JavaConversions._
@@ -32,7 +31,7 @@ import net.lshift.diffa.agent.auth.{EndpointTarget, Privileges}
 /**
  * Resource allowing participants to provide bulk details of their current status.
  */
-class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Long, permissionEvaluator:PermissionEvaluator)
+class InventoryResource(configStore:DomainConfigStore, space:Long, permissionEvaluator:PermissionEvaluator)
     extends IndividuallySecuredResource {
   @GET
   @Path("/{endpoint}")
@@ -43,11 +42,12 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Lo
   def startInventory(@PathParam("endpoint") endpoint: String, @PathParam("view") view:String):Response = {
     ensurePrivilege(permissionEvaluator, Privileges.POST_INVENTORY, new EndpointTarget(space, endpoint))
 
-    val requests = changes.startInventory(space, endpoint, if (view != null) Some(view) else None)
+    //val requests = changes.startInventory(space, endpoint, if (view != null) Some(view) else None)
 
-    Response.status(Response.Status.OK).
-      `type`("text/plain").
+    Response.status(Response.Status.OK).build()
+    /*  `type`("text/plain").
       entity(ScanRequestWriter.writeScanRequests(requests)).build()
+     */
   }
 
   @POST
@@ -69,11 +69,15 @@ class InventoryResource(changes:Changes, configStore:DomainConfigStore, space:Lo
     ep.buildConstraints(constraintsBuilder)
     ep.buildAggregations(aggregationBuilder)
 
+    /*
     val nextRequests = changes.submitInventory(space, endpoint, if (view != null) Some(view) else None,
       constraintsBuilder.toList.toSeq, aggregationBuilder.toList.toSeq, content.results)
     
     Response.status(Response.Status.ACCEPTED).
       `type`("text/plain").
       entity(ScanRequestWriter.writeScanRequests(nextRequests)).build()
+      */
+
+    Response.status(Response.Status.ACCEPTED).build()
   }
 }

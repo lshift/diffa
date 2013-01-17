@@ -18,13 +18,14 @@ package net.lshift.diffa.agent.itest.preferences
 import net.lshift.diffa.kernel.preferences.FilteredItemType
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.agent.client.{SecurityRestClient, SystemConfigRestClient, ConfigurationRestClient, UsersRestClient}
-import org.junit.{Before, Test}
+import org.junit.{Ignore, Before, Test}
 import org.junit.Assert._
 import net.lshift.diffa.client.{RestClientParams, AccessDeniedException}
 import net.lshift.diffa.kernel.frontend.{DomainPairDef,UserDef,EndpointDef,DomainDef}
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
 import org.apache.commons.lang3.RandomStringUtils
 
+@Ignore
 class UserPreferencesTest extends IsolatedDomainTest {
   
   val rootUserPreferencesClient = new UsersRestClient(agentURL, agentUsername)

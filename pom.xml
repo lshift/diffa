@@ -11,6 +11,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>auth-proxy</module>
     <module>agent</module>
     <module>kernel</module>
     <module>client-support</module>
@@ -18,10 +19,26 @@
     <module>adapter-support</module>
     <module>dist</module>
     <module>db-migrations</module>
+    <!--module>merkle</module-->
     <module>schema</module>
     <module>schema-bindings</module>
     <module>jst-packaging</module>
+    <!--module>partitioning</module-->
+    <module>daemon</module>
+    <module>configuration</module>
+    <module>system-configuration-client</module>
+    <module>conductor</module>
+    <module>conductor-client</module>
+    <module>change-events</module>
+    <module>railyard</module>
+    <module>railyard-client</module>
+    <module>interview</module>
+    <module>versioning</module>
+    <module>scanning-support</module>
+    <module>plumbing-support</module>
     <module>snowflake</module>
+    <module>sql-driver</module>
+    <module>db-testapp</module>
   </modules>
 
   <properties>
@@ -32,7 +49,7 @@
     <zookeeper.install.dir>/tmp/zookeeper-${zookeeper.version}</zookeeper.install.dir>
     <zookeeper.exec.bin>bin/zkServer.sh</zookeeper.exec.bin>
 
-    <scala.version>2.9.1-1</scala.version>
+    <scala.version>2.9.2</scala.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
     <spring.version>3.1.0.RELEASE</spring.version>
     <spring.security.version>3.1.2.RELEASE</spring.security.version>
@@ -52,17 +69,28 @@
     <jodatime.version>2.0</jodatime.version>
     <jadira.version>1.9</jadira.version>
     <javamail.file.transport.version>1.0</javamail.file.transport.version>
+    <slf4j.version>1.7.2</slf4j.version>
     <jooq.version>2.6.0</jooq.version>
-    <slf4j.version>1.6.4</slf4j.version>
     <logback.version>1.0.0</logback.version>
     <akka.version>2.0.1</akka.version>
     <quartz.version>2.1.3</quartz.version>
     <wroj.version>1.4.4</wroj.version>
+    <avro.version>1.7.3</avro.version>
+    <cassandra.version>1.1.7</cassandra.version>
+    <hector.version>1.1-2</hector.version>
+    <guava.version>11.0.2</guava.version>
+    <async-http-client.version>1.7.8</async-http-client.version>
+    <jopt.version>4.4-beta-3</jopt.version>
+    <netty.version>3.5.11.Final</netty.version>
+    <guice.version>3.0</guice.version>
+    <resteasy.version>2.3.5.Final</resteasy.version>
     <curator.version>1.2.3</curator.version>
     <hazelcast.version>2.4</hazelcast.version>
     <guava.version>11.0.1</guava.version>
     <zookeeper.version>3.4.5</zookeeper.version>
+    <mokito.version>1.9.5</mokito.version>
     <scalatest.version>1.8</scalatest.version>
+    <snappy.version>1.0.5-M3</snappy.version>
   </properties>
 
   <scm>
@@ -103,6 +131,11 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>${guice.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
@@ -180,9 +213,44 @@
       <version>1.5.5</version>
     </dependency>
     <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-netty</artifactId>
+      <version>${resteasy.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson-provider</artifactId>
+      <version>${resteasy.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty</artifactId>
+      <version>${netty.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>${mokito.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.jopt-simple</groupId>
+      <artifactId>jopt-simple</artifactId>
+      <version>${jopt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>${snappy.version}</version>
+    </dependency>
+    <dependency>
       <groupId>cglib</groupId>
       <artifactId>cglib-nodep</artifactId>
       <version>2.1_3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hectorclient</groupId>
+      <artifactId>hector-core</artifactId>
+      <version>${hector.version}</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.castor</groupId>
@@ -208,6 +276,11 @@
       <!-- Hibernate imports 1.5.2 of slf4j, which is incompatible with the version
            of logback that we're using. Force an upgrade.
       -->
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${avro.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-server</artifactId>
@@ -250,6 +323,11 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.tuckey</groupId>
       <artifactId>urlrewritefilter</artifactId>
       <version>${urlrewritefilter.version}</version>
@@ -272,6 +350,11 @@
     <dependency>
       <groupId>org.codehaus.jackson</groupId>
       <artifactId>jackson-mapper-asl</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-core-asl</artifactId>
       <version>${jackson.version}</version>
     </dependency>
     <dependency>
@@ -395,7 +478,7 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.4</version>
+      <version>1.6</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -453,7 +536,7 @@
     <dependency>
       <groupId>net.lshift</groupId>
       <artifactId>db-migrations</artifactId>
-      <version>1.7.0-SNAPSHOT</version>
+      <version>2.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -517,6 +600,11 @@
       <version>${jooq.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.ning</groupId>
+      <artifactId>async-http-client</artifactId>
+      <version>${async-http-client.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.gentlyweb</groupId>
       <artifactId>gentlyweb-utils</artifactId>
       <version>1.1</version>
@@ -538,6 +626,7 @@
   <build>
     <pluginManagement>
       <plugins>
+
         <plugin>
           <groupId>org.mortbay.jetty</groupId>
           <artifactId>jetty-maven-plugin</artifactId>
@@ -580,6 +669,7 @@
               <version>${commons.io.version}</version>
             </dependency>
           </dependencies>
+
           <configuration>
             <useTestClasspath>true</useTestClasspath>
             <systemProperties>
@@ -610,11 +700,14 @@
             <stopKey>foo</stopKey>
             <stopPort>19094</stopPort>
             <jettyConfig>${basedir}/src/test/conf/jetty.xml</jettyConfig>
+
             <webAppXml>${basedir}/src/test/conf/${webapp.file}</webAppXml>
+
             <webAppConfig>
               <contextPath>/diffa-agent</contextPath>
             </webAppConfig>
           </configuration>
+
           <executions>
             <execution>
               <id>start-jetty</id>
@@ -635,7 +728,9 @@
               </goals>
             </execution>
           </executions>
+
         </plugin>
+
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>

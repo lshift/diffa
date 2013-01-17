@@ -20,7 +20,8 @@ import net.lshift.diffa.kernel.config._
 import scala.collection.JavaConversions._
 import collection.immutable.Map
 import net.lshift.diffa.adapter.scanning._
-import net.lshift.diffa.kernel.participants.{IntegerCategoryFunction, ByNameCategoryFunction, StringPrefixCategoryFunction, CategoryFunction}
+import net.lshift.diffa.config._
+import net.lshift.diffa.kernel.config.EndpointView
 
 /**
  * Utility for transforming categories into
@@ -48,6 +49,7 @@ object CategoryUtil {
   /**
    * For a set of categories, returns the initial bucketing options.
    */
+  /*
   def initialBucketingFor(categories: Iterable[(String,CategoryDescriptor)]) : Seq[CategoryFunction] = {
     categories.flatMap {
       case (name, categoryType) => {
@@ -62,10 +64,12 @@ object CategoryUtil {
       }
     }.toSeq
   }
+  */
 
   /**
    * Creates Category Functions for the given aggregations.
    */
+  /*
   def categoryFunctionsFor(aggregations:Seq[ScanAggregation], categories: Iterable[(String,AggregatingCategoryDescriptor)]): Seq[CategoryFunction] = {
     val mappedCategories = categories.toMap
 
@@ -82,6 +86,7 @@ object CategoryUtil {
         RangeTypeRegistry.categoryFunctionFor(d.getAttributeName, d.getGranularity, cat.getDataType)
     }
   }
+  */
 
   /**
    * Derives the result of the initialConstraintsFor call and returns the constraints grouped into batches that can

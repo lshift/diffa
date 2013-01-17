@@ -1,0 +1,98 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.lshift.diffa</groupId>
+  <artifactId>diffa-railyard-client</artifactId>
+  <name>LShift Diffa Rail Yard Client</name>
+  <version>2.0-SNAPSHOT</version>
+
+  <packaging>jar</packaging>
+
+  <properties>
+    <buildVersion>${project.version}</buildVersion>    <!-- Can be overridden via -D -->
+    <slf4j.version>1.6.4</slf4j.version>
+    <async-http-client.version>1.7.8</async-http-client.version>
+    <jackson.version>1.9.2</jackson.version>
+    <guice.version>3.0</guice.version>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>change-events</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!--
+      Ideally the symbols we are referencing in this project here should be extracted out into a separate module,
+      but I'm not quite sure what that should look like right now and what it should contain, so for now,
+      we''ll just pull the whole thing in.
+    -->
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>interview</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>scanning-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.lshift.diffa</groupId>
+      <artifactId>plumbing-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>${guice.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.ning</groupId>
+      <artifactId>async-http-client</artifactId>
+      <version>${async-http-client.version}</version>
+    </dependency>
+
+    <!--dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-core-asl</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>${jackson.version}</version>
+    </dependency-->
+
+  </dependencies>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>2.3.2</version>
+          <configuration>
+            <source>1.6</source>
+            <target>1.6</target>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>
+

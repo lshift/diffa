@@ -99,6 +99,10 @@
            of logback that we're using. Force an upgrade.
       -->
     <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-server</artifactId>
     </dependency>
@@ -243,12 +247,16 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <goals><goal>exec</goal></goals>
+        <goals>
+          <goal>exec</goal>
+        </goals>
         <executions>
           <execution>
             <id>start-zookeeper-server</id>
             <phase>pre-integration-test</phase>
-            <goals><goal>exec</goal></goals>
+            <goals>
+              <goal>exec</goal>
+            </goals>
             <configuration>
               <executable>${zookeeper.exec.bin}</executable>
               <commandlineArgs>start</commandlineArgs>
@@ -258,7 +266,9 @@
           <execution>
             <id>stop-zookeeper-server</id>
             <phase>post-integration-test</phase>
-            <goals><goal>exec</goal></goals>
+            <goals>
+              <goal>exec</goal>
+            </goals>
             <configuration>
               <executable>${zookeeper.exec.bin}</executable>
               <commandlineArgs>stop</commandlineArgs>

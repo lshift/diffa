@@ -18,14 +18,14 @@ package net.lshift.diffa.client
 
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theory, Theories}
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import net.lshift.diffa.adapter.scanning.{TimeRangeConstraint, StringPrefixConstraint}
 import org.junit.Assert._
 import org.hamcrest.CoreMatchers._
-import net.lshift.diffa.kernel.participants.StringPrefixCategoryFunction
 import java.net.URI
 import org.joda.time.{DateTimeZone, Duration, ReadableDuration, DateTime}
 
+@Ignore
 @RunWith(classOf[Theories])
 class DiffaHttpQueryTest {
   import DiffaHttpQueryTest._
@@ -54,7 +54,7 @@ class DiffaHttpQueryTest {
       new URI("http://dummy/?property-start=2012-07-04T16%3A47%3A00.000Z&property-end=2012-07-04T17%3A47%3A00.000Z")))
   }
 
-
+  /*
   @Test
   def withAggregations {
     val aggregates = Seq(new StringPrefixCategoryFunction("property", 1, 2, 3))
@@ -63,6 +63,7 @@ class DiffaHttpQueryTest {
       equalTo(Map("property-length" -> Seq("1"))))
 
   }
+  */
 
 
   @Theory

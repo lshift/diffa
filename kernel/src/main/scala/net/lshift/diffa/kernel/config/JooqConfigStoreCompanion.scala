@@ -48,6 +48,7 @@ import net.lshift.diffa.kernel.util.AlertCodes._
 import org.jooq._
 import java.lang.{Long => LONG}
 import net.lshift.diffa.schema.tables.SpacePaths._
+import net.lshift.diffa.config._
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.kernel.frontend.RepairActionDef
@@ -95,7 +96,7 @@ object JooqConfigStoreCompanion {
         select(ENDPOINTS.getFields).
         select(Factory.field("null").as(VIEW_NAME_COLUMN)).
         select(RANGE_CATEGORIES.DATA_TYPE, RANGE_CATEGORIES.LOWER_BOUND, RANGE_CATEGORIES.UPPER_BOUND, RANGE_CATEGORIES.MAX_GRANULARITY).
-        select(PREFIX_CATEGORIES.STEP, PREFIX_CATEGORIES.PREFIX_LENGTH, PREFIX_CATEGORIES.MAX_LENGTH).
+        select(PREFIX_CATEGORIES.OFFSET).
         select(SET_CATEGORIES.VALUE).
         select(Factory.field("null").as(PERIOD_COLUMN)).
         select(Factory.field("null").as(OFFSET_COLUMN)).
@@ -134,7 +135,7 @@ object JooqConfigStoreCompanion {
         select(ENDPOINTS.getFields).
         select(ENDPOINT_VIEWS.NAME.as(VIEW_NAME_COLUMN)).
         select(RANGE_CATEGORY_VIEWS.DATA_TYPE, RANGE_CATEGORY_VIEWS.LOWER_BOUND, RANGE_CATEGORY_VIEWS.UPPER_BOUND, RANGE_CATEGORY_VIEWS.MAX_GRANULARITY).
-        select(PREFIX_CATEGORY_VIEWS.STEP, PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, PREFIX_CATEGORY_VIEWS.MAX_LENGTH).
+        select(PREFIX_CATEGORY_VIEWS.OFFSET).
         select(SET_CATEGORY_VIEWS.VALUE).
         select(ENDPOINT_VIEW_ROLLING_WINDOWS.PERIOD).
         select(ENDPOINT_VIEW_ROLLING_WINDOWS.OFFSET).
@@ -266,6 +267,18 @@ object JooqConfigStoreCompanion {
           }
         }
 
+        def applyPrefixOffsetToDescriptorMapForCurrentCategory[T <: CategoryDescriptor](offset:Int, descriptor: T,
+          insertNewPrefixOffsetFn: (PrefixCategoryDescriptor) => Unit) {
+          if (descriptor == null) {
+            val prefixDescriptor = new PrefixCategoryDescriptor()
+            prefixDescriptor.addOffset(offset)
+            insertNewPrefixOffsetFn(prefixDescriptor)
+          }
+          else {
+            descriptor.asInstanceOf[PrefixCategoryDescriptor].addOffset(offset)
+          }
+        }
+
         if (record.getValue(RANGE_CATEGORIES.DATA_TYPE) != null) {
           val dataType = record.getValue(RANGE_CATEGORIES.DATA_TYPE)
           val lowerBound = record.getValue(RANGE_CATEGORIES.LOWER_BOUND)
@@ -274,12 +287,22 @@ object JooqConfigStoreCompanion {
           val descriptor = new RangeCategoryDescriptor(dataType, lowerBound, upperBound, maxGranularity)
           applyCategoryToEndpointOrView(descriptor)
         }
-        else if (record.getValue(PREFIX_CATEGORIES.PREFIX_LENGTH) != null) {
-          val prefixLength = record.getValue(PREFIX_CATEGORIES.PREFIX_LENGTH)
-          val maxLength = record.getValue(PREFIX_CATEGORIES.MAX_LENGTH)
-          val step = record.getValue(PREFIX_CATEGORIES.STEP)
-          val descriptor = new PrefixCategoryDescriptor(prefixLength, maxLength, step)
-          applyCategoryToEndpointOrView(descriptor)
+        else if (record.getValue(PREFIX_CATEGORIES.OFFSET) != null) {
+          val offset = record.getValue(PREFIX_CATEGORIES.OFFSET)
+
+          // Offset values are a little trickier as well, since the offsets for one descriptor are split up over multiple rows
+
+          currentView match {
+            case None    =>
+              applyPrefixOffsetToDescriptorMapForCurrentCategory(offset,
+                resolvedEndpoint.categories.get(categoryName),
+                prefixCat => resolvedEndpoint.categories.put(categoryName, prefixCat))
+            case Some(v) =>
+              applyPrefixOffsetToDescriptorMapForCurrentCategory(offset,
+                v.categories.get(categoryName),
+                prefixCat => v.categories.put(categoryName, prefixCat))
+          }
+
         }
         else if (record.getValue(SET_CATEGORIES.VALUE) != null) {
 
@@ -643,13 +666,14 @@ object JooqConfigStoreCompanion {
                            categoryName:String,
                            descriptor:PrefixCategoryDescriptor) = {
 
-    t.insertInto(PREFIX_CATEGORIES).
+    descriptor.getOffsets.foreach(o => {
+      t.insertInto(PREFIX_CATEGORIES).
         set(PREFIX_CATEGORIES.ENDPOINT, endpointId).
         set(PREFIX_CATEGORIES.NAME, categoryName).
-        set(PREFIX_CATEGORIES.STEP, Integer.valueOf(descriptor.step)).
-        set(PREFIX_CATEGORIES.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
-        set(PREFIX_CATEGORIES.PREFIX_LENGTH, Integer.valueOf(descriptor.prefixLength)).
-      execute()
+        set(PREFIX_CATEGORIES.OFFSET, o).
+        execute()
+    })
+
   }
 
   def insertPrefixCategoryView(t:Factory,
@@ -658,14 +682,14 @@ object JooqConfigStoreCompanion {
                                categoryName:String,
                                descriptor:PrefixCategoryDescriptor) = {
 
-    t.insertInto(PREFIX_CATEGORY_VIEWS).
-      set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpointId).
-      set(PREFIX_CATEGORY_VIEWS.VIEW_NAME, view).
-      set(PREFIX_CATEGORY_VIEWS.NAME, categoryName).
-      set(PREFIX_CATEGORY_VIEWS.STEP, Integer.valueOf(descriptor.step)).
-      set(PREFIX_CATEGORY_VIEWS.MAX_LENGTH, Integer.valueOf(descriptor.maxLength)).
-      set(PREFIX_CATEGORY_VIEWS.PREFIX_LENGTH, Integer.valueOf(descriptor.prefixLength)).
-      execute()
+    descriptor.getOffsets.foreach(o => {
+      t.insertInto(PREFIX_CATEGORY_VIEWS).
+        set(PREFIX_CATEGORY_VIEWS.ENDPOINT, endpointId).
+        set(PREFIX_CATEGORY_VIEWS.NAME, categoryName).
+        set(PREFIX_CATEGORY_VIEWS.VIEW_NAME, view).
+        set(PREFIX_CATEGORY_VIEWS.OFFSET, o).
+        execute()
+    })
   }
 
   def insertSetCategory(t:Factory,

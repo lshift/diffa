@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.junit.Assert._
 import scala.collection.JavaConversions._
 import net.lshift.diffa.adapter.scanning.{SetConstraint, ScanConstraint}
+import net.lshift.diffa.config.{SetCategoryDescriptor, RangeCategoryDescriptor, AggregatingCategoryDescriptor}
 
 @RunWith(classOf[Theories])
 class ConstraintGroupingTest {

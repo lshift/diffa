@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import org.junit.Assert._
-import net.lshift.diffa.kernel.config.ConfigValidationException
+import net.lshift.diffa.config.{CategoryDescriptor, ConfigValidationException}
 
 /**
  * Common type and validation utilities for testing the validation constraints
@@ -18,6 +18,16 @@ trait DefValidationTestBase {
       fail("Should have thrown ConfigValidationException")
     } catch {
       case e:ConfigValidationException =>
+        assertEquals(msg, e.getMessage)
+    }
+  }
+
+  def validateErrorOnConstruction(fn: () => CategoryDescriptor, msg:String) {
+    try {
+      fn()
+      fail("Should have thrown IllegalArgumentException")
+    } catch {
+      case e:IllegalArgumentException =>
         assertEquals(msg, e.getMessage)
     }
   }

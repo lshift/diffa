@@ -20,7 +20,7 @@ import org.apache.commons.codec.binary.Hex
 import collection.JavaConversions._
 import net.lshift.diffa.adapter.scanning._
 import java.util.Comparator
-import net.lshift.diffa.kernel.config.{CollationOrdering, AsciiCollationOrdering}
+import net.lshift.diffa.kernel.config.CollationOrdering
 import net.lshift.diffa.kernel.frontend.SystemConfiguration
 import org.slf4j.LoggerFactory
 import net.lshift.diffa.schema.configs.InternalCollation

@@ -22,12 +22,16 @@ import java.util.*;
  * Helper for building constraints from a web request.
  */
 public class ConstraintsBuilder {
-  private final HttpServletRequest req;
+  private final HttpRequestParameters req;
   private final List<ScanConstraint> result;
 
-  public ConstraintsBuilder(HttpServletRequest req) {
-    this.req = req;
+  public ConstraintsBuilder(HttpRequestParameters request) {
+    this.req = request;
     this.result = new ArrayList<ScanConstraint>();
+  }
+
+  public ConstraintsBuilder(HttpServletRequest underlying) {
+    this(new ServletRequestParametersWrapper(underlying));
   }
 
   /**
@@ -36,6 +40,11 @@ public class ConstraintsBuilder {
    */
   public List<ScanConstraint> toList() {
     return result;
+  }
+
+  // TODO Potentially the underlying should be a set?
+  public Set<ScanConstraint> toSet() {
+    return new HashSet<ScanConstraint>(result);
   }
 
   /**

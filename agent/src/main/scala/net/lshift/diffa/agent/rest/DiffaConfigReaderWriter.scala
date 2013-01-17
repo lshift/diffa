@@ -31,6 +31,16 @@ import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.frontend._
 import java.util
 import net.lshift.diffa.kernel.util.CategoryUtil
+import net.lshift.diffa.config._
+import net.lshift.diffa.kernel.frontend.EndpointDef
+import net.lshift.diffa.kernel.frontend.RepairActionDef
+import net.lshift.diffa.kernel.frontend.PairDef
+import net.lshift.diffa.kernel.frontend.EndpointViewDef
+import net.lshift.diffa.kernel.frontend.PairReportDef
+import net.lshift.diffa.kernel.frontend.PolicyMember
+import net.lshift.diffa.kernel.frontend.EscalationDef
+import net.lshift.diffa.kernel.frontend.DiffaConfig
+import net.lshift.diffa.kernel.frontend.PairViewDef
 
 /**
  * Provider for encoding and decoding diffa configuration blocks.
@@ -210,14 +220,17 @@ class CastorSerializableRangeCategoryDescriptor(
 
   def toRangeCategoryDescriptor = new RangeCategoryDescriptor(dataType, lower, upper, maxGranularity)
 }
-class CastorSerializablePrefixCategoryDescriptor(@BeanProperty var name:String, @BeanProperty var prefixLength:Int,
-                                           @BeanProperty var maxLength:Int, @BeanProperty var step:Int) {
 
-  def this() = this(null, 1, 1, 1)
-  def this(name:String, pcd:PrefixCategoryDescriptor) = this(name, pcd.prefixLength, pcd.maxLength, pcd.step)
+class CastorSerializablePrefixCategoryDescriptor(@BeanProperty var name:String, @BeanProperty var offsets:java.util.Set[Offset]) {
+  def this() = this(null, new java.util.HashSet[Offset])
+  def this(name:String, pcd:PrefixCategoryDescriptor) = this(name, pcd.offsets.map(o => new Offset(o)).toSet)
 
-  def toPrefixCategoryDescriptor = new PrefixCategoryDescriptor(prefixLength, maxLength, step)
+  def toPrefixCategoryDescriptor = new PrefixCategoryDescriptor(new java.util.TreeSet(offsets.map(o => o.offset:java.lang.Integer)))
 }
+class Offset(@BeanProperty var offset:Int) {
+  def this() = this(-1)
+}
+
 class CastorSerializableSetCategoryDescriptor(@BeanProperty var name:String, @BeanProperty var values:java.util.Set[SetValue]) {
   def this() = this(null, new java.util.HashSet[SetValue])
   def this(name:String, scd:SetCategoryDescriptor) = this(name, scd.values.map(v => new SetValue(v)).toSet)

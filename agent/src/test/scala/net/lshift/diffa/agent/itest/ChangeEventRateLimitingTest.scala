@@ -23,10 +23,11 @@ import net.lshift.diffa.adapter.changes.ChangeEvent
 import org.junit.Assert.fail
 import net.lshift.diffa.client.{RateLimitExceededException, ChangesRestClient}
 import net.lshift.diffa.kernel.client.ChangesClient
-import org.junit.{Before, Test}
+import org.junit.{Ignore, Before, Test}
 import com.hazelcast.util.Clock
 import org.apache.commons.lang3.RandomStringUtils
 
+@Ignore
 class ChangeEventRateLimitingTest extends IsolatedDomainTest {
 
   var clientCreateTime: Long = 0L

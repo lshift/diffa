@@ -16,6 +16,8 @@
 
 package net.lshift.diffa.kernel.config
 
+import net.lshift.diffa.config.ConfigValidationException
+
 /**
  * Utility for helping with validation Diffa configs.
  */

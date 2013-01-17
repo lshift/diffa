@@ -20,10 +20,7 @@ import org.springframework.stereotype.Component
 import org.springframework.beans.factory.annotation.Autowired
 import javax.ws.rs._
 import core.{UriInfo, Context}
-import net.lshift.diffa.kernel.client.ActionsClient
-import net.lshift.diffa.kernel.diag.DiagnosticsManager
-import net.lshift.diffa.kernel.actors.PairPolicyClient
-import net.lshift.diffa.kernel.frontend.{Changes, Configuration}
+import net.lshift.diffa.kernel.frontend.Configuration
 import net.lshift.diffa.kernel.reporting.ReportManager
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
@@ -71,13 +68,10 @@ class DomainResource {
 
   @Autowired var config:Configuration = null
   @Autowired var credentialsManager:DomainCredentialsManager = null
-  @Autowired var actionsClient:ActionsClient = null
   @Autowired var differencesManager:DifferencesManager = null
-  @Autowired var diagnosticsManager:DiagnosticsManager = null
-  @Autowired var pairPolicyClient:PairPolicyClient = null
+
   @Autowired var domainConfigStore:DomainConfigStore = null
   @Autowired var systemConfigStore:CachedSystemConfigStore = null
-  @Autowired var changes:Changes = null
   @Autowired var changeEventRateLimiterFactory: DomainRateLimiterFactory = null
   @Autowired var reports:ReportManager = null
   @Autowired var diffStore:DomainDifferenceStore = null
@@ -165,32 +159,18 @@ class DomainResource {
   def getEscalationsResource(@PathParam("space") space:String) =
     withSpace(space, Privileges.CONFIGURE, (id:Long) => new EscalationsResource(config, diffStore, id))
 
-  @Path("/{space:.+}/actions")
-  def getActionsResource(@Context uri:UriInfo,
-                         @PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ActionsResource(actionsClient, id, uri, permissionEvaluator))
-
   @Path("/{space:.+}/reports")
   def getReportsResource(@Context uri:UriInfo,
                          @PathParam("space") space:String) =
     withSpace(space, (id:Long) => new ReportsResource(domainConfigStore, reports, id, uri, permissionEvaluator))
 
-  @Path("/{space:.+}/diagnostics")
-  def getDiagnosticsResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new DiagnosticsResource(diagnosticsManager, config, id, permissionEvaluator))
-
   @Path("/{space:.+}/scanning")
   def getScanningResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new ScanningResource(pairPolicyClient, config, domainConfigStore, diagnosticsManager, id, getCurrentUser(space), permissionEvaluator))
-
-  @Path("/{space:.+}/changes")
-  def getChangesResource(@PathParam("space") space:String) = {
-    withSpace(space, (id:Long) => new ChangesResource(changes, id, changeEventRateLimiterFactory, permissionEvaluator))
-  }
+    withSpace(space, (id:Long) => new ScanningResource(config, domainConfigStore, id, getCurrentUser(space), permissionEvaluator))
 
   @Path("/{space:.+}/inventory")
   def getInventoryResource(@PathParam("space") space:String) =
-    withSpace(space, (id:Long) => new InventoryResource(changes, domainConfigStore, id, permissionEvaluator))
+    withSpace(space, (id:Long) => new InventoryResource(domainConfigStore, id, permissionEvaluator))
 
   @Path("/{space:.+}/limits")
   def getLimitsResource(@PathParam("space") space:String) =

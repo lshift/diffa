@@ -17,9 +17,6 @@
 package net.lshift.diffa.client
 
 import com.sun.jersey.core.util.MultivaluedMapImpl
-import net.lshift.diffa.kernel.participants._
-import com.sun.jersey.api.client.ClientResponse
-import org.apache.commons.io.IOUtils
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.util.AlertCodes._
 import org.apache.http.util.EntityUtils
@@ -33,8 +30,7 @@ class ContentParticipantRestClient(pair: PairRef,
                                    scanUrl: String,
                                    serviceLimitsView: PairServiceLimitsView,
                                    credentialsLookup:DomainCredentialsLookup)
-  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup)
-  with ContentParticipantRef {
+  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup) {
 
   val log = LoggerFactory.getLogger(getClass)
 

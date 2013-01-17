@@ -55,14 +55,8 @@
     <field name="name" type="string" required="true">
       <bind-xml name="name" node="attribute" />
     </field>
-    <field name="prefixLength" type="int">
-      <bind-xml name="prefix-length" node="attribute" />
-    </field>
-    <field name="maxLength" type="int" required="true">
-      <bind-xml name="max-length" node="attribute" />
-    </field>
-    <field name="step" type="int">
-      <bind-xml name="step" node="attribute" />
+    <field name="offsets" type="net.lshift.diffa.agent.rest.Offset" collection="set">
+      <bind-xml name="offset" />
     </field>
   </class>
   <class name="net.lshift.diffa.agent.rest.SetValue">

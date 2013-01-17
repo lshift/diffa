@@ -27,7 +27,7 @@ import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.client.protocol.ClientContext
 import net.lshift.diffa.kernel.util.AlertCodes._
 import net.lshift.diffa.kernel.util.AlertCodes
-import net.lshift.diffa.kernel.differencing.ScanFailedException
+
 import org.apache.commons.io.IOUtils
 
 class ApacheHttpClient(connectionTimeout: Int,
@@ -75,7 +75,7 @@ class ApacheHttpClient(connectionTimeout: Int,
         case code =>
           logger.warn("%s - Query for URI: %s returned %s".format(
             formatAlertCode(AlertCodes.EXTERNAL_SCAN_ERROR), r.fullUri, resp.getStatusLine))
-          throw new ScanFailedException("%d - %s".format(code, resp.getStatusLine.getReasonPhrase))
+          throw new RuntimeException("%d - %s".format(code, resp.getStatusLine.getReasonPhrase))
       }
     } catch {
       case x:NoHttpResponseException =>
@@ -87,7 +87,7 @@ class ApacheHttpClient(connectionTimeout: Int,
         }
 
         logger.error("%s Non HTTP response from %s; %s".format(NON_HTTP_RESPONSE, uri, content))
-        throw new ScanFailedException("Non HTTP response from " + uri)
+        throw new RuntimeException("Non HTTP response from " + uri)
     }
     // This finally block is very important, so don't nuke it, otherwise the client will leak
     finally {

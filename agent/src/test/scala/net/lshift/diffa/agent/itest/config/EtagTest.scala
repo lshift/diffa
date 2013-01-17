@@ -16,7 +16,7 @@
 package net.lshift.diffa.agent.itest.config
 
 import net.lshift.diffa.agent.itest.support.TestConstants._
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import net.lshift.diffa.kernel.frontend.{PairDef, EndpointDef}
 import net.lshift.diffa.agent.client.ConfigurationRestClient
 import org.apache.http.impl.client.{BasicAuthCache, DefaultHttpClient}
@@ -29,6 +29,7 @@ import org.apache.http.protocol.BasicHttpContext
 import org.apache.http.client.protocol.ClientContext
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
 
+@Ignore
 class EtagTest extends IsolatedDomainTest {
 
   val configClient = new ConfigurationRestClient(agentURL, isolatedDomain)

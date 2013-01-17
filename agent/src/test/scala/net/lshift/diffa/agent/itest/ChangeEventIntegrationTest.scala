@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.itest
 
-import org.junit.{Before, Test}
+import org.junit.{Ignore, Before, Test}
 import org.junit.Assert._
 import support.TestConstants._
 import net.lshift.diffa.adapter.changes.ChangeEvent
@@ -25,6 +25,7 @@ import net.lshift.diffa.client.{InvalidChangeEventException, ChangesRestClient}
 import org.apache.commons.lang3.RandomStringUtils
 
 
+@Ignore
 class ChangeEventIntegrationTest extends IsolatedDomainTest {
 
   val endpoint = RandomStringUtils.randomAlphanumeric(10)

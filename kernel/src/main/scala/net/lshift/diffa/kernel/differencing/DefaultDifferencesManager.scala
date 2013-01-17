@@ -16,11 +16,7 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import collection.mutable.{ListBuffer, HashMap}
 import org.slf4j.{Logger, LoggerFactory}
-import net.lshift.diffa.kernel.matching.{MatchingManager, MatchingStatusListener}
-import net.lshift.diffa.kernel.actors.PairPolicyClient
-import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
@@ -48,19 +44,17 @@ class DefaultDifferencesManager(
         val systemConfig:SystemConfigStore,
         val domainConfig:DomainConfigStore,
         val domainDifferenceStore:DomainDifferenceStore,
-        val matching:MatchingManager,
-        val participantFactory:ParticipantFactory,
         val differenceListener:DifferencingListener,
         val escalationHandler:EscalationHandler)
     extends DifferencesManager
-    with DifferencingListener with MatchingStatusListener with AgentLifecycleAware {
+    with DifferencingListener with AgentLifecycleAware {
 
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
-  private val participants = new HashMap[Endpoint, Participant]
+  //private val participants = new HashMap[Endpoint, Participant]
 
   // Subscribe to events from the matching manager
-  matching.addListener(this)
+  //matching.addListener(this)
 
   //
   // DifferencesManager Implementation
@@ -81,10 +75,11 @@ class DefaultDifferencesManager(
         latestStoreVersion = storeVersion
       }
     }
-
+    /*
     def evictTombstones(tombstones:Iterable[Correlation]) {
       tombstones.foreach(t => onMatch(t.asVersionID, t.upstreamVsn, TriggeredByScan))
     }
+    */
 
     def abort() {
       // Nothing to do
@@ -119,6 +114,7 @@ class DefaultDifferencesManager(
   def countEvents(space:Long, pairKey: String, interval: Interval) =
     domainDifferenceStore.countUnmatchedEvents(PairRef(name = pairKey, space = space), interval.getStart, interval.getEnd)
 
+  /*
   def retrieveEventDetail(space:Long, evtSeqId:String, t: ParticipantType.ParticipantType) = {
     log.trace("Requested a detail query for domain (" + space + ") and seq (" + evtSeqId + ") and type (" + t + ")")
     // TODO This really needs refactoring :-(
@@ -137,9 +133,11 @@ class DefaultDifferencesManager(
       }
     }
   }
+  */
 
   // TODO The fact that 3 lambdas are passed in probably indicates bad factoring
   // -> the adapter factory call is probably low hanging fruit for refactoring
+  /*
   private def withValidEvent(space:Long, evtSeqId:String,
                      check:Function1[DifferenceEvent,Boolean],
                      resolve:(DomainPairDef) => String,
@@ -166,6 +164,7 @@ class DefaultDifferencesManager(
     }
 
   }
+  */
 
   //
   // Lifecycle Management
@@ -188,6 +187,7 @@ class DefaultDifferencesManager(
    */
   def onMismatch(id: VersionID, lastUpdate:DateTime, upstreamVsn: String, downstreamVsn: String, origin:MatchOrigin, level:DifferenceFilterLevel) = {
     log.trace("Processing mismatch for " + id + " with upstreamVsn '" + upstreamVsn + "' and downstreamVsn '" + downstreamVsn + "'")
+    /*
     matching.getMatcher(id.pair) match {
       case Some(matcher) => {
         matcher.isVersionIDActive(id) match {
@@ -200,6 +200,7 @@ class DefaultDifferencesManager(
         reportUnmatched(id, lastUpdate, upstreamVsn, downstreamVsn, origin)
       }
     }
+    */
   }
 
   /**

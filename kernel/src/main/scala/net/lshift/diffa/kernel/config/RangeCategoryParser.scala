@@ -18,9 +18,8 @@ package net.lshift.diffa.kernel.config
 
 import org.joda.time.format.{DateTimeFormatterBuilder, ISODateTimeFormat}
 import org.slf4j.LoggerFactory
-import net.lshift.diffa.kernel.differencing.{DateAttribute, StringAttribute, DateTimeAttribute, IntegerAttribute}
-import net.lshift.diffa.adapter.scanning.{IntegerRangeConstraint, TimeRangeConstraint, DateRangeConstraint}
 import org.joda.time.DateTimeZone
+import net.lshift.diffa.config.RangeCategoryDescriptor
 
 /**
  * This is a simple registry that can hydrate category values based on a descriptor
@@ -36,6 +35,7 @@ object RangeCategoryParser {
   def parseDate(s:String) = parseDateTime(s).toLocalDate
   def parseInt(s:String) = Integer.valueOf(s).intValue
 
+  /*
   def typedAttribute(descriptor:RangeCategoryDescriptor, value:String) = descriptor.dataType match {
     case "int"      => IntegerAttribute(parseInt(value))
     case "date"     => DateAttribute(parseDate(value))
@@ -44,4 +44,5 @@ object RangeCategoryParser {
       log.warn("Casting value %s (which has the configured type %s) to a string".format(value,t))
       StringAttribute(value)
   }
+  */
 }

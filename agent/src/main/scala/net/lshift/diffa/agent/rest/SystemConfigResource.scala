@@ -28,7 +28,8 @@ import scala.collection.JavaConversions._
 import javax.servlet.http.HttpServletRequest
 import net.lshift.diffa.kernel.frontend.{SystemConfiguration, DomainDef}
 import net.lshift.diffa.adapter.scanning._
-import net.lshift.diffa.kernel.config.{ValidationUtil, Domain, ConfigValidationException}
+import net.lshift.diffa.kernel.config.ValidationUtil
+import net.lshift.diffa.config.ConfigValidationException
 
 @Path("/root")
 @Component

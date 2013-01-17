@@ -19,10 +19,22 @@ import com.ibm.icu.text.Collator;
 import java.util.Locale;
 
 public class UnicodeCollation implements Collation {
+
+  private static final UnicodeCollation INSTANCE = new UnicodeCollation();
+
+  public static Collation get() {
+    return INSTANCE;
+  }
+
   private Collator coll = Collator.getInstance(Locale.ROOT);
 
   @Override
   public boolean sortsBefore(String left, String right) {
     return coll.compare(left, right) < 0;
+  }
+
+  @Override
+  public String getName() {
+    return "unicode";
   }
 }

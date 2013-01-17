@@ -1,8 +1,8 @@
 package net.lshift.diffa.kernel.frontend
 
 import org.junit.Test
-import net.lshift.diffa.kernel.config.{AsciiCollationOrdering, UnicodeCollationOrdering, Endpoint}
 import org.junit.Assert._
+import net.lshift.diffa.adapter.scanning.{AsciiCollation, UnicodeCollation}
 
 /**
  * Copyright (C) 2010-2012 LShift Ltd.
@@ -22,12 +22,12 @@ import org.junit.Assert._
 
 class EndpointDefTest {
   @Test def testGetCollatorForUnicode() = {
-    val ep = EndpointDef(collation = UnicodeCollationOrdering.name)
-    assertEquals(UnicodeCollationOrdering, ep.lookupCollation)
+    val ep = EndpointDef(collation = UnicodeCollation.get.getName)
+    assertEquals(UnicodeCollation.get, ep.lookupCollation)
   }
 
   @Test def testGetCollatorForAscii() = {
-    val ep = EndpointDef(collation = AsciiCollationOrdering.name)
-    assertEquals(AsciiCollationOrdering, ep.lookupCollation)
+    val ep = EndpointDef(collation = AsciiCollation.get.getName)
+    assertEquals(AsciiCollation.get, ep.lookupCollation)
   }
 }

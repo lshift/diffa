@@ -20,8 +20,8 @@ package net.lshift.diffa.adapter.scanning;
  * out of a set.
  */
 public class ByNameAggregation extends AbstractScanAggregation implements GranularityAggregation {
-  public ByNameAggregation(String name) {
-    super(name);
+  public ByNameAggregation(String name, String parent) {
+    super(name, parent);
   }
 
   @Override

@@ -23,7 +23,9 @@ import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import net.lshift.diffa.kernel.config.ExternalHttpCredentials
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
+import org.junit.Ignore
 
+@Ignore
 @RunWith(classOf[Theories])
 class CredentialsConfigTest extends IsolatedDomainTest {
   import CredentialsConfigTest.Scenario

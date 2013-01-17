@@ -18,7 +18,7 @@ package net.lshift.diffa.agent.rest.exceptions
 
 import javax.ws.rs.ext.{Provider, ExceptionMapper}
 import javax.ws.rs.core.Response
-import net.lshift.diffa.kernel.util.InvalidConstraintException
+import net.lshift.diffa.config.InvalidConstraintException
 
 /**
  * This transform all InvalidInventoryExceptions that occur in the application and returns an HTTP 400 to the requester.

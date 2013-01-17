@@ -18,8 +18,6 @@ package net.lshift.diffa.client
 
 import java.net.URI
 import scala.collection.JavaConversions._
-import net.lshift.diffa.adapter.scanning.ScanConstraint
-import net.lshift.diffa.kernel.participants.CategoryFunction
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.client.utils.URLEncodedUtils
 import org.apache.http.impl.client.DefaultHttpClient

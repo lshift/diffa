@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.config.{ConfigValidationException, ValidationUtil}
+import net.lshift.diffa.kernel.config.ValidationUtil
 import net.lshift.diffa.kernel.config.ExternalHttpCredentials._
 /**
  * Serializable representation of http credentials within the context of a domain, without any sensitive information.

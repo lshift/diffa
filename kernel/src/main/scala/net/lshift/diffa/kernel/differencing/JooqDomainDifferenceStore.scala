@@ -26,16 +26,19 @@ import net.lshift.diffa.schema.jooq.DatabaseFacade
 import net.lshift.diffa.schema.jooq.DatabaseFacade.{timestampToDateTime, dateTimeToTimestamp}
 import net.lshift.diffa.schema.Tables._
 import net.lshift.diffa.schema.tables.records.PendingDiffsRecord
+import org.jooq.{RecordMapper, Record, Field, ResultQuery}
+import org.jooq.impl.Factory
 import org.jooq.impl.Factory._
 import net.lshift.diffa.kernel.util.MissingObjectException
-import org.jooq.impl.Factory
 import org.slf4j.LoggerFactory
-import org.jooq._
 import java.lang.{Long => LONG}
 import java.sql.Timestamp
 import net.lshift.diffa.kernel.naming.CacheName
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.lifecycle.PairLifecycleAware
+import net.lshift.diffa.adapter.scanning.{ScanAggregation, ScanConstraint}
+import net.lshift.diffa.scanning.PruningHandler
+import net.lshift.diffa.sql.{PartitionMetadata, PartitionAwareDriver}
 import net.lshift.diffa.snowflake.IdProvider
 
 /**
@@ -62,7 +65,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
   val nonExistentReportedEvent = InternalReportedDifferenceEvent(seqId = NON_EXISTENT_SEQUENCE_ID)
 
   /**
-   * This is a heuristic that allows the cache to get prefilled if the agent is booted and
+   * This is a heuristic that allows the cache to get pre-filled if the agent is booted and
    * there were persistent pending diffs. The motivation is to reduce cache misses in subsequent calls.
    */
   val prefetchLimit = 1000 // TODO This should be a tuning parameter
@@ -71,6 +74,15 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
   val PAIR_NAME_ALIAS = "pair_name"
   val ESCALATION_NAME_ALIAS = "escalation_name"
 
+
+  // TODO We should be able to configure the metadata with JOOQ generated objects as well as just strings ......
+
+  val metadata = new PartitionMetadata(DIFFS.getName)
+  metadata.withId(DIFFS.SEQ_ID.getName, DIFFS.SEQ_ID.getDataType)
+  metadata.withVersion(DIFFS.SEQ_ID.getName, DIFFS.SEQ_ID.getDataType)
+  metadata.partitionBy(DIFFS.ENTITY_ID.getName, DIFFS.ENTITY_ID.getDataType)
+
+  val scanDriver = new PartitionAwareDriver(db.dataSource, metadata, db.resolvedDialect)
 
   def reset {
     pendingEvents.evictAll()
@@ -588,6 +600,10 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
     reset
     t.truncate(DIFFS).execute()
     t.truncate(PENDING_DIFFS).execute()
+  }
+
+  def scan(constraints: java.util.Set[ScanConstraint], aggregations: java.util.Set[ScanAggregation], maxSliceSize: Int, handler: PruningHandler) {
+    scanDriver.scan(constraints, aggregations, maxSliceSize, handler)
   }
 
   private def orphanExtentForPair(t:Factory, pair:PairRef) = {

@@ -18,4 +18,4 @@ package net.lshift.diffa.kernel.differencing
 
 import org.joda.time.DateTime
 
-case class VersionMismatch(id:String, attributes:Map[String,TypedAttribute], lastUpdated:DateTime, vsnA:String, vsnB:String)
+case class VersionMismatch(id:String, attributes:Map[String,String], lastUpdated:DateTime, vsnA:String, vsnB:String)

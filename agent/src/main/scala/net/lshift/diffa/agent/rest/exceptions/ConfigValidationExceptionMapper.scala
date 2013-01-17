@@ -19,7 +19,7 @@ package net.lshift.diffa.agent.rest.exceptions
 import javax.ws.rs.ext.{Provider, ExceptionMapper}
 import javax.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import net.lshift.diffa.kernel.config.ConfigValidationException
+import net.lshift.diffa.config.ConfigValidationException
 
 /**
  * This logs all ConfigValidationException that occur in the application and returns an HTTP 400 to the requester.

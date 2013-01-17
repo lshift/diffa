@@ -24,6 +24,7 @@ import org.junit.experimental.theories.DataPoints
 import scala.collection.JavaConversions.asJavaList
 import org.junit.experimental.theories.Theory
 import org.junit.experimental.theories.DataPoint
+import net.lshift.diffa.config._
 
 @RunWith(classOf[Theories])
 class TimeIntervalTest {

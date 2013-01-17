@@ -289,10 +289,8 @@ object Step0054 extends VerifiedMigrationStep {
     migration.createTable("prefix_categories").
       column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
-      column("prefix_length", Types.INTEGER, true).
-      column("max_length", Types.INTEGER, true).
-      column("step", Types.INTEGER, true).
-      pk("endpoint", "name")
+      column("offset", Types.INTEGER, false).
+      pk("endpoint", "name", "offset")
 
     migration.alterTable("prefix_categories").
       addForeignKey("fk_pfcg_ucns", Array("endpoint", "name"), "unique_category_names", Array("endpoint", "name"))
@@ -332,14 +330,12 @@ object Step0054 extends VerifiedMigrationStep {
       column("endpoint", Types.BIGINT, false).
       column("name", Types.VARCHAR, 50, false).
       column("view_name", Types.VARCHAR, 50, false).
-      column("prefix_length", Types.INTEGER, true).
-      column("max_length", Types.INTEGER, true).
-      column("step", Types.INTEGER, true).
-      pk("endpoint", "view_name", "name")
+      column("offset", Types.INTEGER, false).
+      pk("endpoint", "name", "view_name", "offset")
 
     migration.alterTable("prefix_category_views").
       addForeignKey("fk_pfcv_evws", Array("endpoint", "view_name"), "endpoint_views", Array("endpoint", "name")).
-      addForeignKey("fk_pfcv_pfcg", Array("endpoint", "name"), "prefix_categories", Array("endpoint", "name")).
+      addForeignKey("fk_pfcv_pfcg", Array("endpoint", "name", "offset"), "prefix_categories", Array("endpoint", "name", "offset")).
       addForeignKey("fk_pfcv_ucns", Array("endpoint", "name", "view_name"), "unique_category_view_names", Array("endpoint", "name", "view_name"))
 
     migration.createTable("set_category_views").
@@ -805,9 +801,7 @@ object Step0054 extends VerifiedMigrationStep {
       "endpoint" -> endpoint,
       "name" -> name,
       "view_name" -> view,
-      "prefix_length" -> "1",
-      "max_length" -> "2",
-      "step" -> "1"
+      "offset" -> "1"
     ))
   }
 
@@ -815,9 +809,7 @@ object Step0054 extends VerifiedMigrationStep {
     migration.insert("prefix_categories").values(Map(
       "endpoint" -> endpoint,
       "name" -> name,
-      "prefix_length" -> "1",
-      "max_length" -> "2",
-      "step" -> "1"
+      "offset" -> "1"
     ))
   }
 

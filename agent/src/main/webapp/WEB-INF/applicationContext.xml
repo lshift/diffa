@@ -35,65 +35,6 @@
 
   <!--
     ============
-      Policies
-    ============
-  -->
-  <bean id="versionPolicyManager" class="net.lshift.diffa.kernel.differencing.VersionPolicyManager"/>
-
-  <bean id="registerSamePolicy" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="versionPolicyManager"/>
-    <property name="targetMethod" value="registerPolicy"/>
-    <property name="arguments">
-      <list>
-        <value>same</value>
-        <bean class="net.lshift.diffa.kernel.differencing.SameVersionPolicy">
-            <constructor-arg ref="versionCorrelationStoreFactory" />
-            <constructor-arg ref="differencesManager" />
-            <constructor-arg ref="diagnosticsManager" />
-          </bean>
-      </list>
-    </property>
-  </bean>
-
-  <bean id="registerCorrelatedPolicy" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="versionPolicyManager"/>
-    <property name="targetMethod" value="registerPolicy"/>
-    <property name="arguments">
-      <list>
-        <value>correlated</value>
-        <bean class="net.lshift.diffa.kernel.differencing.CorrelatedVersionPolicy">
-          <constructor-arg ref="versionCorrelationStoreFactory" />
-          <constructor-arg ref="differencesManager" />
-          <constructor-arg ref="diagnosticsManager" />
-        </bean>
-      </list>
-    </property>
-  </bean>
-
-  <!--
-    ============
-      Matching
-    ============
-  -->
-  <bean id="matchingManager" class="net.lshift.diffa.kernel.matching.LocalEventMatchingManager" destroy-method="close">
-    <constructor-arg ref="systemConfigStore" />
-    <constructor-arg ref="domainConfigStore" />
-  </bean>
-
-  <!--
-    ==============
-      Scheduling
-    ==============
-  -->
-  <bean id="scanScheduler" class="net.lshift.diffa.kernel.scheduler.QuartzScanScheduler" destroy-method="close">
-    <constructor-arg ref="systemConfigStore" />
-    <constructor-arg ref="domainConfigStore" />
-    <constructor-arg ref="pairActorSupervisor" />
-    <constructor-arg value="DiffaScanScheduler" />
-  </bean>
-
-  <!--
-    ============
       Sessions
     ============
   -->
@@ -101,8 +42,6 @@
     <constructor-arg ref="systemConfigStore" />
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="domainDifferenceStore" />
-    <constructor-arg ref="matchingManager" />
-    <constructor-arg ref="participantFactory" />
     <constructor-arg ref="notificationCentre" />
     <constructor-arg ref="escalationManager" />
   </bean>
@@ -144,154 +83,17 @@
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="systemConfigStore" />
     <constructor-arg ref="domainDifferenceStore" />
-    <constructor-arg ref="actionsFrontend" />
     <constructor-arg ref="reportManager" />
-    <constructor-arg ref="actorSystem" />
     <constructor-arg ref="breakerHelper" />
   </bean>
 
   <bean id="reportManager" class="net.lshift.diffa.kernel.reporting.ReportManager">
     <constructor-arg ref="domainConfigStore" />
     <constructor-arg ref="domainDifferenceStore" />
-    <constructor-arg ref="diagnosticsManager" />
   </bean>
 
-  <!--
-    ============
-      Notifications
-    ============
-  -->
 
-  <bean id="notifier" class="net.lshift.diffa.kernel.notifications.EventNotifier">
-    <constructor-arg ref="differencesManager" />
-    <constructor-arg ref="domainConfigStore" />
-    <constructor-arg>
-      <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetClass" value="org.joda.time.Period"/>
-        <property name="targetMethod" value="minutes"/>
-        <property name="arguments">
-          <list>
-            <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-              <property name="targetObject" ref="systemConfigStore"/>
-              <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-              <property name="arguments">
-                <list>
-                  <value>event.notifier.quiet.time</value>
-                  <value>240</value>
-                </list>
-              </property>
-            </bean>
-          </list>
-        </property>
-      </bean>
-    </constructor-arg>
-  </bean>
 
-  <bean id="registerSmtpProvider" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="notifier"/>
-    <property name="targetMethod" value="registerProvider"/>
-    <property name="arguments">
-      <bean class="net.lshift.diffa.agent.notifications.SmtpNotifier">
-        <constructor-arg index="0">
-          <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-            <property name="jndiName" value="java:comp/env/mail/Session"/>
-          </bean>
-        </constructor-arg>
-        <constructor-arg index="1">
-          <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-            <property name="jndiName" value="java:comp/env/diffaCustomRoot"/>
-          </bean>
-        </constructor-arg>
-        <constructor-arg index="2">
-          <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-            <property name="targetObject" ref="systemConfigStore"/>
-            <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-            <property name="arguments">
-              <list>
-                <value>diffa.host</value>
-                <value>localhost:7654</value>
-              </list>
-            </property>
-          </bean>
-        </constructor-arg>
-      </bean>
-    </property>
-  </bean>  
-
-  <!--
-    ================
-      Participants
-    ================
-  -->
-  <bean id="participantFactory" class="net.lshift.diffa.kernel.participants.ParticipantFactory"/>
-
-  <!--
-    ===============================
-      Inbound Endpoint Management
-    ===============================
-  -->
-
-  <bean id="inboundEndpointManager" class="net.lshift.diffa.kernel.participants.InboundEndpointManager">
-    <constructor-arg ref="systemConfigStore" />
-  </bean>
-
-  <bean id="actorSystem" class="akka.actor.ActorSystem" factory-method="create">
-    <constructor-arg value="diffaActorSystem" />
-  </bean>
-  <!--
-    =============
-      Supervision
-    =============
-  -->
-
-  <bean id="pairActorSupervisor" class="net.lshift.diffa.kernel.actors.PairActorSupervisor">
-    <constructor-arg ref="versionPolicyManager"/>
-    <constructor-arg ref="systemConfigStore"/>
-    <constructor-arg ref="domainConfigStore"/>
-    <constructor-arg ref="notificationCentre" />
-    <constructor-arg ref="differencesManager" />
-    <constructor-arg ref="participantFactory"/>
-    <constructor-arg ref="versionCorrelationStoreFactory"/>
-    <constructor-arg ref="diagnosticsManager" />
-    <constructor-arg ref="scanActivityStore" />
-    <constructor-arg>
-      <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetObject" ref="systemConfigStore"/>
-        <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-        <property name="arguments">
-          <list>
-            <value>diffa.change.busy.timeout</value>
-            <value>5000</value>
-          </list>
-        </property>
-      </bean>
-    </constructor-arg>
-    <constructor-arg>
-      <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetObject" ref="systemConfigStore"/>
-        <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-        <property name="arguments">
-          <list>
-            <value>diffa.change.quiet.timeout</value>
-            <value>10000</value>
-          </list>
-        </property>
-      </bean>
-    </constructor-arg>
-    <constructor-arg>
-      <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetObject" ref="systemConfigStore"/>
-        <property name="targetMethod" value="systemConfigOptionOrDefault"/>
-        <property name="arguments">
-          <list>
-            <value>diffa.lucene.close.interval</value>
-            <value>100</value>
-          </list>
-        </property>
-      </bean>
-    </constructor-arg>
-    <constructor-arg ref="actorSystem" />
-  </bean>
 
   <!--
     =============
@@ -303,19 +105,10 @@
     <constructor-arg ref="systemConfigStore"/>
     <constructor-arg ref="serviceLimitsStore"/>
     <constructor-arg ref="userPreferencesStore"/>
-    <constructor-arg ref="matchingManager"/>
-    <constructor-arg ref="versionCorrelationStoreFactory"/>
-    <constructor-arg>
-      <list>
-        <ref bean="pairActorSupervisor"/>
-        <ref bean="escalationManager"/>
-      </list>
-    </constructor-arg>
     <constructor-arg ref="differencesManager"/>
-    <constructor-arg ref="inboundEndpointManager" />
-    <constructor-arg ref="scanScheduler" />
-    <constructor-arg ref="diagnosticsManager" />
-    <constructor-arg ref="pairActorSupervisor" />
+    <constructor-arg>
+      <bean class="net.lshift.diffa.kernel.config.NoopEndpointLifecycleListener"/>
+    </constructor-arg>
   </bean>
   <bean id="systemConfigurationFrontend" class="net.lshift.diffa.kernel.frontend.SystemConfiguration">
     <constructor-arg ref="systemConfigStore"/>
@@ -324,18 +117,7 @@
     <constructor-arg ref="notificationCentre" />
     <constructor-arg ref="configurationFrontend" />
   </bean>
-  <bean id="changesFrontend" class="net.lshift.diffa.kernel.frontend.Changes">
-    <constructor-arg ref="domainConfigStore"/>
-    <constructor-arg ref="pairActorSupervisor"/>
-    <constructor-arg ref="matchingManager"/>
-    <constructor-arg ref="diagnosticsManager"/>
-  </bean>
-  <bean id="actionsFrontend" class="net.lshift.diffa.kernel.frontend.wire.ActionsProxy">
-    <constructor-arg ref="domainConfigStore"/>
-    <constructor-arg ref="systemConfigStore"/>
-    <constructor-arg ref="participantFactory" />
-    <constructor-arg ref="diagnosticsManager" />
-  </bean>
+
 
   <!--
     ========
@@ -505,97 +287,8 @@
     <constructor-arg ref="jooqDatabaseFacade" />
   </bean>
 
-  <!--
-    ===========
-      Indexing
-    ===========
-  -->
 
-  <bean id="versionCorrelationStoreFactory" class="net.lshift.diffa.kernel.indexing.LuceneVersionCorrelationStoreFactory"
-        destroy-method="close">
-    <constructor-arg>
-      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-        <property name="jndiName" value="java:comp/env/diffaIndexDir"/>
-      </bean>
-    </constructor-arg>
-    <constructor-arg ref="systemConfigStore" />
-    <constructor-arg ref="domainConfigStore" />
-    <constructor-arg ref="diagnosticsManager" />
-  </bean>
 
-  <!--
-    ===========
-      Diagnostics
-    ===========
-  -->
-
-  <bean id="diagnosticsManager" class="net.lshift.diffa.kernel.diag.LocalDiagnosticsManager">
-    <constructor-arg ref="systemConfigStore" />
-    <constructor-arg ref="domainConfigStore" />
-    <constructor-arg ref="serviceLimitsStore" />
-    <constructor-arg>
-      <bean class="org.springframework.jndi.JndiObjectFactoryBean">
-        <property name="jndiName" value="java:comp/env/diffaExplainDir"/>
-      </bean>
-    </constructor-arg>
-  </bean>
-
-  <!--
-    ==============================
-      Message handling
-    ==============================
-  -->
-
-  <!-- register inbound AMQP support -->
-  <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="inboundEndpointManager" />
-    <property name="targetMethod" value="registerFactory" />
-    <property name="arguments">
-      <list>
-        <bean class="net.lshift.diffa.agent.amqp.AmqpInboundEndpointFactory">
-          <constructor-arg ref="changesFrontend" />
-        </bean>
-      </list>
-    </property>
-  </bean>
-
-  <!-- register REST client support for participants -->
-  <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="participantFactory" />
-    <property name="targetMethod" value="registerScanningFactory" />
-    <property name="arguments">
-      <list>
-        <bean class="net.lshift.diffa.client.ScanningParticipantRestClientFactory">
-          <constructor-arg ref="domainCredentialsStore" />
-          <constructor-arg ref="serviceLimitsStore" />
-        </bean>
-      </list>
-    </property>
-  </bean>
-  <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="participantFactory" />
-    <property name="targetMethod" value="registerContentFactory" />
-    <property name="arguments">
-      <list>
-        <bean class="net.lshift.diffa.client.ContentParticipantRestClientFactory">
-          <constructor-arg ref="domainCredentialsStore" />
-          <constructor-arg ref="serviceLimitsStore" />
-        </bean>
-      </list>
-    </property>
-  </bean>
-  <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="participantFactory" />
-    <property name="targetMethod" value="registerVersioningFactory" />
-    <property name="arguments">
-      <list>
-        <bean class="net.lshift.diffa.client.VersioningParticipantRestClientFactory">
-          <constructor-arg ref="domainCredentialsStore" />
-          <constructor-arg ref="serviceLimitsStore" />
-        </bean>
-      </list>
-    </property>
-  </bean>
 
   <!--
       ========

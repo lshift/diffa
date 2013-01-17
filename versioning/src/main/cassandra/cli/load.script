@@ -1,0 +1,80 @@
+CREATE KEYSPACE version_store
+with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy'
+and strategy_options = {replication_factor:1};
+
+USE version_store;
+
+CREATE COLUMN FAMILY entity_versions
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: version, validation_class: AsciiType}
+{column_name: lastUpdate, validation_class: DateType}
+{column_name: partition, validation_class: AsciiType}
+];
+
+CREATE COLUMN FAMILY user_defined_attributes
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: partition, validation_class: AsciiType}
+];
+
+-- User Defined Attribute Storage
+
+CREATE COLUMN FAMILY user_defined_buckets
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY user_defined_hierarchy
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY user_defined_digests
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: digest, validation_class: AsciiType}
+];
+
+-- Entity Id Storage
+
+CREATE COLUMN FAMILY entity_id_buckets
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY entity_id_hierarchy
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY entity_id_digests
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: digest, validation_class: AsciiType}
+];
+
+-- Pair Storage
+
+CREATE COLUMN FAMILY pair_buckets
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY pair_hierarchy
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType;
+
+CREATE COLUMN FAMILY pair_digests
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: digest, validation_class: AsciiType}
+];
+
+
+CREATE COLUMN FAMILY dirty_entities
+WITH comparator = AsciiType
+AND key_validation_class=AsciiType
+AND column_metadata = [
+{column_name: id, validation_class: AsciiType}
+];

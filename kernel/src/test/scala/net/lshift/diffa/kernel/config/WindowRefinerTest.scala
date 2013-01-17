@@ -21,6 +21,7 @@ import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
 import org.joda.time.format.ISOPeriodFormat
 import org.joda.time.DateTimeZone
+import net.lshift.diffa.config.{DateTimeType, TimeIntervalFactory, TimeInterval, WindowRefiner}
 
 class WindowRefinerTest {
   val dateTimeFormatter = ISODateTimeFormat.dateTime()

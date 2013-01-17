@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.itest.auth
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants.{agentURL, defaultDomain}
 import com.sun.jersey.api.client.{WebResource, ClientResponse, Client}
@@ -23,6 +23,7 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 import net.lshift.diffa.agent.itest.IsolatedDomainTest
 import org.apache.commons.lang3.RandomStringUtils
 
+@Ignore
 class DomainScopedPermissionsTest extends IsolatedDomainTest {
 
   val client = Client.create()

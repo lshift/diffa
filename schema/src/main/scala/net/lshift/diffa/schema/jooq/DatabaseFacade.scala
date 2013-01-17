@@ -28,8 +28,9 @@ import org.jooq._
 import org.joda.time.DateTime
 import org.jadira.usertype.dateandtime.joda.columnmapper.TimestampColumnDateTimeMapper
 import java.lang.reflect.UndeclaredThrowableException
+import org.slf4j.LoggerFactory
 
-class DatabaseFacade(dataSource: DataSource, dialect: String) {
+class DatabaseFacade(val dataSource: DataSource, dialect: String) {
 
   val resolvedDialect = SQLDialect.valueOf(dialect)
   private val settings = new Settings()

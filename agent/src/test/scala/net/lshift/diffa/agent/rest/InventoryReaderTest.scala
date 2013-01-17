@@ -22,7 +22,6 @@ import net.lshift.diffa.adapter.scanning.ScanResultEntry
 import org.joda.time.{DateTimeZone, DateTime}
 import java.util.HashMap
 import scala.collection.JavaConversions._
-import net.lshift.diffa.kernel.frontend.InvalidInventoryException
 import net.lshift.diffa.adapter.common.ScanEntityValidator
 import org.easymock.EasyMock._
 import org.hamcrest.Matchers._
@@ -66,7 +65,7 @@ class InventoryReaderTest {
     try {
       parseCSV("")
     } catch {
-      case e:InvalidInventoryException => assertEquals("CSV file appears to be empty. No header line was found", e.getMessage)
+      case e:Exception => assertEquals("CSV file appears to be empty. No header line was found", e.getMessage)
     }
   }
 
@@ -81,7 +80,7 @@ class InventoryReaderTest {
     try {
       parseCSV("version,updated", "v1,2012-03-07T12:31:00Z")
     } catch {
-      case e:InvalidInventoryException => assertEquals("No 'id' field is defined in the header", e.getMessage)
+      case e:Exception => assertEquals("No 'id' field is defined in the header", e.getMessage)
     }
   }
 
@@ -90,7 +89,7 @@ class InventoryReaderTest {
     try {
       parseCSV("id,updated", "a,2012-03-07T12:31:00Z")
     } catch {
-      case e:InvalidInventoryException => assertEquals("No 'version' field is defined in the header", e.getMessage)
+      case e:Exception => assertEquals("No 'version' field is defined in the header", e.getMessage)
     }
   }
 
@@ -108,7 +107,7 @@ class InventoryReaderTest {
     try {
       parseCSV("id,version,updated", "a,v1,2012-03-07T12:31:00Z", "b,v2,garbled")
     } catch {
-      case e:InvalidInventoryException => assertEquals("Invalid updated timestamp 'garbled' on line 3: Invalid format: \"garbled\"", e.getMessage)
+      case e:Exception => assertEquals("Invalid updated timestamp 'garbled' on line 3: Invalid format: \"garbled\"", e.getMessage)
     }
   }
 
@@ -117,7 +116,7 @@ class InventoryReaderTest {
     try {
       parseCSV("id,version,updated,foo,bar", "a,v1,2012-03-07T12:31:00Z,a,b", "b,v2,2012-03-07T12:31:00Z")
     } catch {
-      case e:InvalidInventoryException => assertEquals("Line 3 has 3 elements, but the header had 5", e.getMessage)
+      case e:Exception => assertEquals("Line 3 has 3 elements, but the header had 5", e.getMessage)
     }
   }
 
@@ -142,7 +141,7 @@ class InventoryReaderTest {
       parseCSV("id,version,updated,foo,bar", snowman + ",v1,2012-03-07T12:31:00Z,a,b")
       fail("Expected parsing to throw exception")
     } catch {
-      case e:InvalidInventoryException =>
+      case e:Exception =>
         assertThat(e.getMessage, containsString(snowman))
     }
   }

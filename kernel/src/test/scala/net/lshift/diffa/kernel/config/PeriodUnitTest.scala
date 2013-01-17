@@ -26,6 +26,7 @@ import org.junit.experimental.theories.DataPoint
 import org.junit.experimental.theories.Theory
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.Theories
+import net.lshift.diffa.config.{BoundedTimeInterval, PeriodUnit}
 
 @RunWith(classOf[Theories])
 class PeriodUnitTest {

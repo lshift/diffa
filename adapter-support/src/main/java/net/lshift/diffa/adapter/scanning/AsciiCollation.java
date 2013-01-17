@@ -16,8 +16,20 @@
 package net.lshift.diffa.adapter.scanning;
 
 public class AsciiCollation implements Collation {
+
+  private static final AsciiCollation INSTANCE = new AsciiCollation();
+
+  public static Collation get() {
+    return INSTANCE;
+  }
+
   @Override
   public boolean sortsBefore(String left, String right) {
     return left.compareTo(right) < 0;
+  }
+
+  @Override
+  public String getName() {
+    return "ascii";
   }
 }

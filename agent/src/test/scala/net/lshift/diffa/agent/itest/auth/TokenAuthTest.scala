@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.itest.auth
 
-import org.junit.{After, Before, Test}
+import org.junit.{Ignore, After, Before, Test}
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import net.lshift.diffa.kernel.frontend.{DomainDef, UserDef}
 import net.lshift.diffa.agent.client.{SystemConfigRestClient, ScanningRestClient, SecurityRestClient}
@@ -26,6 +26,7 @@ import org.apache.commons.lang.RandomStringUtils
 /**
  * Integration test for token based authentication.
  */
+@Ignore
 class TokenAuthTest {
   val securityClient = new SecurityRestClient(agentURL)
   val systemClient = new SystemConfigRestClient(agentURL)

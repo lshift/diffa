@@ -22,9 +22,9 @@ import net.lshift.diffa.agent.client.{DifferencesRestClient, ConfigurationRestCl
 import org.junit.Assert._
 import net.lshift.diffa.kernel.differencing.{ExternalDifferenceEvent, DifferenceEvent}
 import com.eaio.uuid.UUID
-import net.lshift.diffa.kernel.config.RangeCategoryDescriptor
 import net.lshift.diffa.kernel.frontend.{EndpointDef, PairDef}
 import net.lshift.diffa.adapter.changes.ChangeEvent
+import net.lshift.diffa.config.RangeCategoryDescriptor
 
 /**
  * Utility class to load lots of unmatched events into the agent.

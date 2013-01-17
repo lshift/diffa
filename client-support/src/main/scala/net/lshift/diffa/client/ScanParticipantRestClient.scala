@@ -16,28 +16,22 @@
 
 package net.lshift.diffa.client
 
-import net.lshift.diffa.adapter.scanning.{ScanResultEntry, ScanConstraint}
+
 import net.lshift.diffa.kernel.config._
-import net.lshift.diffa.kernel.participants.{CategoryFunction, ScanningParticipantRef}
 import org.slf4j.LoggerFactory
-import java.net.{SocketTimeoutException, SocketException, ConnectException, URI}
-import net.lshift.diffa.kernel.differencing.ScanFailedException
-import net.lshift.diffa.kernel.util.AlertCodes._
+
 import net.lshift.diffa.kernel.config.PairRef
-import net.lshift.diffa.kernel.config.QueryParameterCredentials
-import net.lshift.diffa.kernel.config.BasicAuthCredentials
-import scala.Some
-import org.apache.http.NoHttpResponseException
 
 class ScanParticipantRestClient(pair: PairRef,
                                 scanUrl: String,
                                 credentialsLookup: DomainCredentialsLookup,
                                 httpClient: DiffaHttpClient,
                                 parser: JsonScanResultParser)
-  extends ScanningParticipantRef {
+  {
 
   private val log = LoggerFactory.getLogger(getClass)
 
+  /*
   def scan(constraints: Seq[ScanConstraint], aggregations: Seq[CategoryFunction]) : Seq[ScanResultEntry] = {
     val query = DiffaHttpQuery(scanUrl).accepting("application/json").
       withConstraints(constraints).
@@ -57,7 +51,8 @@ class ScanParticipantRestClient(pair: PairRef,
       case ex => handleHttpError(ex, queryWithCredentials)
     }
   }
-
+  */
+  /*
   def handleHttpError(ex: Throwable, query: DiffaHttpQuery) = ex match {
     case ex: ConnectException =>
       log.error("%s Connection to %s refused".format(SCAN_CONNECTION_REFUSED, scanUrl))
@@ -75,6 +70,7 @@ class ScanParticipantRestClient(pair: PairRef,
         scanUrl, query.query))
     case ex => throw ex
   }
+  */
 }
 
 

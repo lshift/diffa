@@ -34,13 +34,16 @@ public class DateAggregation extends AbstractScanAggregation implements Granular
   private static final DateTimeFormatter DAILY_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
   private final DateGranularityEnum granularity;
 
-
-  public DateAggregation(String name, String granularity) {
-    this(name, parseGranularity(granularity));
+  public DateAggregation(String name, DateGranularityEnum granularity) {
+    this(name, granularity, null);
   }
 
-  public DateAggregation(String name, DateGranularityEnum granularity) {
-    super(name);
+  public DateAggregation(String name, String granularity, String parent) {
+    this(name, parseGranularity(granularity), parent);
+  }
+
+  public DateAggregation(String name, DateGranularityEnum granularity, String parent) {
+    super(name, parent);
 
     this.granularity = granularity;
   }

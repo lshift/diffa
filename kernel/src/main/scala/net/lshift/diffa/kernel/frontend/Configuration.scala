@@ -23,28 +23,16 @@ import org.slf4j.{Logger, LoggerFactory}
 import net.lshift.diffa.kernel.config._
 import limits.ValidServiceLimits
 import system.SystemConfigStore
-
-import net.lshift.diffa.kernel.matching.MatchingManager
-import net.lshift.diffa.kernel.differencing.{DifferencesManager, VersionCorrelationStoreFactory}
-import net.lshift.diffa.kernel.participants.EndpointLifecycleListener
-import net.lshift.diffa.kernel.scheduler.ScanScheduler
-import net.lshift.diffa.kernel.diag.DiagnosticsManager
-import net.lshift.diffa.kernel.actors.{PairPolicyClient, ActivePairManager}
 import net.lshift.diffa.kernel.util.{CategoryUtil, MissingObjectException}
 import net.lshift.diffa.kernel.preferences.UserPreferencesStore
+import net.lshift.diffa.kernel.differencing.DifferencesManager
 
 class Configuration(val configStore: DomainConfigStore,
                     val systemConfigStore: SystemConfigStore,
                     val serviceLimitsStore: ServiceLimitsStore,
                     val preferencesStore:UserPreferencesStore,
-                    val matchingManager: MatchingManager,
-                    val versionCorrelationStoreFactory: VersionCorrelationStoreFactory,
-                    val supervisors:java.util.List[ActivePairManager],
                     val differencesManager: DifferencesManager,
-                    val endpointListener: EndpointLifecycleListener,
-                    val scanScheduler: ScanScheduler,
-                    val diagnostics: DiagnosticsManager,
-                    val pairPolicyClient: PairPolicyClient) {
+                    val endpointListener: EndpointLifecycleListener) {
 
   private val log:Logger = LoggerFactory.getLogger(getClass)
 
@@ -127,7 +115,7 @@ class Configuration(val configStore: DomainConfigStore,
 
       if (changes.length > 0) {
         configStore.listPairsForEndpoint(space, endpointDef.name).foreach(p => {
-          versionCorrelationStoreFactory(p.asRef).ensureUpgradeable(p.withoutDomain.whichSide(existing), changes)
+          //versionCorrelationStoreFactory(p.asRef).ensureUpgradeable(p.withoutDomain.whichSide(existing), changes)
         })
       }
     } catch {
@@ -183,12 +171,12 @@ class Configuration(val configStore: DomainConfigStore,
 
     withCurrentPair(space, key, (p:PairRef) => {
 
-      supervisors.foreach(_.stopActor(p))
-      matchingManager.onDeletePair(p)
-      versionCorrelationStoreFactory.remove(p)
-      scanScheduler.onDeletePair(p)
+      //supervisors.foreach(_.stopActor(p))
+      //matchingManager.onDeletePair(p)
+      //versionCorrelationStoreFactory.remove(p)
+      //scanScheduler.onDeletePair(p)
       differencesManager.onDeletePair(p)
-      diagnostics.onDeletePair(p)
+      //diagnostics.onDeletePair(p)
     })
 
     serviceLimitsStore.deletePairLimitsByDomain(space)
@@ -276,11 +264,11 @@ class Configuration(val configStore: DomainConfigStore,
   def listSpaceMembers(space:Long) = configStore.listDomainMembers(space).map(m => PolicyMember(m.user, m.policy))
 
   def notifyPairUpdate(p:PairRef) {
-    supervisors.foreach(_.startActor(p))
-    matchingManager.onUpdatePair(p)
+    //supervisors.foreach(_.startActor(p))
+    //matchingManager.onUpdatePair(p)
     differencesManager.onUpdatePair(p)
-    scanScheduler.onUpdatePair(p)
-    pairPolicyClient.difference(p)
+    //scanScheduler.onUpdatePair(p)
+    //pairPolicyClient.difference(p)
   }
 
   def getEffectiveDomainLimit(space:Long, limitName:String) = {

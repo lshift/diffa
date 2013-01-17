@@ -33,9 +33,10 @@ import net.lshift.diffa.kernel.config.ExternalHttpCredentials
 import org.junit.experimental.theories.{DataPoints, Theories, Theory}
 import org.junit.runner.RunWith
 import scala.collection.JavaConversions._
-import org.junit.Before
+import org.junit.{Ignore, Before}
 import org.apache.commons.lang.RandomStringUtils
 
+@Ignore
 @RunWith(classOf[Theories])
 class ExternalHttpCredentialsTest extends IsolatedDomainTest {
   import ExternalHttpCredentialsTest._

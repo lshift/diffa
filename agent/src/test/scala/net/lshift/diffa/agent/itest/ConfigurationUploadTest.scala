@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.itest
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.Assert._
 import support.TestEnvironments
 import net.lshift.diffa.agent.util.ConfigComparisonUtil
@@ -31,6 +31,7 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 /**
  * Tests for bulk configuration upload over the rest interface.
  */
+@Ignore
 class ConfigurationUploadTest {
   @Test
   def shouldUploadAndDownloadConfig() {

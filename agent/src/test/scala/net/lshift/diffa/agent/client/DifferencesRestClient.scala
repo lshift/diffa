@@ -19,7 +19,6 @@ package net.lshift.diffa.agent.client
 import org.joda.time.DateTime
 import com.sun.jersey.core.util.MultivaluedMapImpl
 import com.sun.jersey.api.client.{WebResource, ClientResponse}
-import net.lshift.diffa.kernel.participants.ParticipantType
 import javax.ws.rs.core.{Response, MediaType}
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
@@ -98,6 +97,7 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
     }
   }
 
+  /*
   def eventDetail(evtSeqId:String, t:ParticipantType.ParticipantType) : String = {
     val path = resource.path("events/" + evtSeqId + "/" + t.toString )
     val media = path.accept(MediaType.TEXT_PLAIN_TYPE)
@@ -110,6 +110,7 @@ class DifferencesRestClient(serverRootUrl:String, domain:String, params: RestCli
       case x:Int  => handleHTTPError(x, path, status)
     }
   }
+  */
 
   def ignore(seqId: String) = {
     val response = delete("events/" + seqId)

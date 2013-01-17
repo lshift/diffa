@@ -1,0 +1,10 @@
+[
+  {"type": "record",
+   "namespace": "net.lshift.diffa.interview",
+   "name": "SerializableGroupedAnswer",
+   "fields": [
+       {"name": "digest", "type": "string" },
+       {"name": "group", "type": "string" }
+   ]
+  }
+]

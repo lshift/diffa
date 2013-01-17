@@ -15,7 +15,7 @@
  */
 package net.lshift.diffa.agent.itest.auth
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.Assert._
 import org.springframework.security.ldap.server.ApacheDSContainer
 import net.lshift.diffa.agent.itest.support.TestConstants._
@@ -29,6 +29,7 @@ import org.apache.commons.lang.RandomStringUtils
 /**
  * Test cases for Diffa external authentication support.
  */
+@Ignore
 class ExternalAuthTest {
   val cleanDomain = RandomStringUtils.randomAlphabetic(10)
 

@@ -18,7 +18,6 @@ package net.lshift.diffa.client
 import java.io.{IOException, InputStream}
 import net.lshift.diffa.adapter.common.JSONHelper
 import net.lshift.diffa.schema.servicelimits.ScanResponseSizeLimit
-import net.lshift.diffa.kernel.differencing.ScanLimitBreachedException
 import net.lshift.diffa.kernel.config.{PairServiceLimitsView, PairRef}
 import scala.collection.JavaConversions._
 
@@ -37,7 +36,8 @@ trait LengthCheckingParser extends JsonScanResultParser {
     try {
       super.parse(new LengthCheckingInputStream(s, responseSizeLimit))
     } catch {
-      case e:IOException if e.getCause.isInstanceOf[ScanLimitBreachedException] => throw e.getCause
+      //case e:IOException if e.getCause.isInstanceOf[ScanLimitBreachedException] => throw e.getCause
+      case e:IOException => throw e.getCause
     }
   }
 
@@ -50,7 +50,7 @@ trait LengthCheckingParser extends JsonScanResultParser {
       if (numBytes > sizeLimit) {
         val msg = "Scan response size for pair %s exceeded configured limit of %d bytes".format(
           pair.name, sizeLimit)
-        throw new ScanLimitBreachedException(msg)
+        throw new RuntimeException(msg)
       } else {
         byte
       }

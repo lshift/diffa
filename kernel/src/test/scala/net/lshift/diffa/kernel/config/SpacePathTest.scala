@@ -21,6 +21,7 @@ import org.junit.{Test, AfterClass}
 import org.junit.Assert._
 import org.apache.commons.lang.RandomStringUtils
 import net.lshift.diffa.kernel.util.MissingObjectException
+import net.lshift.diffa.config.ConfigValidationException
 
 class SpacePathTest {
 

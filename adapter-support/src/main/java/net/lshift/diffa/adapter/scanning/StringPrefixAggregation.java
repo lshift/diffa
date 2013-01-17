@@ -15,46 +15,74 @@
  */
 package net.lshift.diffa.adapter.scanning;
 
+import java.util.HashSet;
+import java.util.NavigableSet;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 /**
  * Aggregation for strings by prefix.
  */
 public class StringPrefixAggregation extends AbstractScanAggregation {
-  private final int length;
 
+  public static final NavigableSet<Integer> DEFAULT_OFFSETS = new TreeSet<Integer>();
 
-  public StringPrefixAggregation(String name, String length) {
-    this(name, parseGranularity(length));
+  static {
+    DEFAULT_OFFSETS.add(1);
   }
 
-  public StringPrefixAggregation(String name, int length) {
-    super(name);
+  private final NavigableSet<Integer> offsets;
 
-    this.length = length;
+
+  public StringPrefixAggregation(String name, String parent, String ... offsets) {
+    this(name, parent, parseOffsets(offsets));
+  }
+
+  public StringPrefixAggregation(String name, String parent, NavigableSet<Integer> offsets) {
+    super(name, parent);
+
+    this.offsets = offsets;
+  }
+
+  public NavigableSet<Integer> getOffsets() {
+    return offsets;
   }
 
   @Override
   public String bucket(String attributeVal) {
+    int length = (parent == null || parent.length() == 0) ? offsets.first() : offsets.higher(parent.length());
     if (attributeVal.length() <= length) return attributeVal;
     return attributeVal.substring(0, length);
   }
 
-  public int getLength() {
-    return length;
-  }
 
-  public static int parseGranularity(String lengthStr) {
-    return Integer.parseInt(lengthStr);
+
+  public static NavigableSet<Integer> parseOffsets(String ... args) {
+
+    if (args == null || args.length == 0) {
+      return DEFAULT_OFFSETS;
+    } else {
+
+      TreeSet<Integer> offsets = new TreeSet<Integer>();
+
+      for (String arg : args) {
+        offsets.add(Integer.parseInt(arg));
+      }
+
+      return offsets;
+    }
+
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (!(o instanceof StringPrefixAggregation)) return false;
     if (!super.equals(o)) return false;
 
     StringPrefixAggregation that = (StringPrefixAggregation) o;
 
-    if (length != that.length) return false;
+    if (offsets != null ? !offsets.equals(that.offsets) : that.offsets != null) return false;
 
     return true;
   }
@@ -62,7 +90,7 @@ public class StringPrefixAggregation extends AbstractScanAggregation {
   @Override
   public int hashCode() {
     int result = super.hashCode();
-    result = 31 * result + length;
+    result = 31 * result + (offsets != null ? offsets.hashCode() : 0);
     return result;
   }
 }

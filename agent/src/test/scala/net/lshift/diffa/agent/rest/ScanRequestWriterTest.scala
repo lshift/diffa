@@ -46,7 +46,7 @@ class ScanRequestWriterTest {
         Seq(
           new ScanRequest(
             Set[ScanConstraint](new SetConstraint("someString", Set("ss", "tt"))),
-            Set[ScanAggregation](new DateAggregation("someDate", "yearly")))
+            Set[ScanAggregation](new DateAggregation("someDate", "yearly", null)))
         ))
     )
   }
@@ -60,7 +60,7 @@ class ScanRequestWriterTest {
         Seq(
           new ScanRequest(
             Set[ScanConstraint](new SetConstraint("someString", Set("ss"))),
-            Set[ScanAggregation](new DateAggregation("someDate", "yearly"))),
+            Set[ScanAggregation](new DateAggregation("someDate", "yearly", null))),
           new ScanRequest(
             Set[ScanConstraint](new SetConstraint("someString", Set("tt"))),
             Set[ScanAggregation]())

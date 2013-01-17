@@ -5,10 +5,11 @@ import scala.collection.JavaConversions._
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import net.lshift.diffa.kernel.config
-import config.{UnicodeCollationOrdering, AsciiCollationOrdering, UnorderedCollationOrdering}
-import config.{AggregatingCategoryDescriptor, RangeCategoryDescriptor, PrefixCategoryDescriptor, SetCategoryDescriptor}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{Theory, DataPoint, Theories}
+import net.lshift.diffa.config.{AggregatingCategoryDescriptor, SetCategoryDescriptor, PrefixCategoryDescriptor, RangeCategoryDescriptor}
+import net.lshift.diffa.adapter.scanning.{UnorderedCollation, UnicodeCollation, AsciiCollation}
+import java.util
 
 /**
  * Verify that EndpointDef constraints are enforced.
@@ -80,21 +81,21 @@ class EndpointDefValidationTest extends DefValidationTestBase {
   @Test
   def shouldDefaultToAsciiOrdering() = {
     val endpoint = EndpointDef(name="dummy")
-    assertEquals(AsciiCollationOrdering.name, endpoint.collation)
+    assertEquals(AsciiCollation.get.getName, endpoint.collation)
   }
 
   def shouldAcceptEndpointWithAsciiCollation {
     val endpoint = EndpointDef(name="dummy", collation="ascii")
     assertIsValid(endpoint)
 
-    assertEquals(AsciiCollationOrdering.name, endpoint.collation)
+    assertEquals(AsciiCollation.get.getName, endpoint.collation)
   }
 
   @Test
   def shouldAcceptEndpointWithUnicodeCollation {
     val endpoint = EndpointDef(name="dummy", collation="unicode")
     assertIsValid(endpoint)
-    assertEquals(UnicodeCollationOrdering.name, endpoint.collation)
+    assertEquals(UnicodeCollation.get.getName, endpoint.collation)
   }
 
   @Test
@@ -105,44 +106,51 @@ class EndpointDefValidationTest extends DefValidationTestBase {
 
   @Theory
   def shouldRejectNoOrderingWithAggregation(scenario: Scenario) {
-    val endpoint = EndpointDef(name = "ep", collation = UnorderedCollationOrdering.name, categories = Map("c" -> scenario.aggregatingCategory))
+    val endpoint = EndpointDef(name = "ep", collation = UnorderedCollation.get.getName, categories = Map("c" -> scenario.aggregatingCategory))
     validateError(endpoint, "config/endpoint[name=ep]/category[name=c]: A strict collation order is required when aggregation is enabled.")
   }
 
   @Test
   def shouldAcceptAsciiOrderingWithAggregation {
-    val endpoint = EndpointDef(name="aggregated-ascii", collation=AsciiCollationOrdering.name,
+    val endpoint = EndpointDef(name="aggregated-ascii", collation=AsciiCollation.get.getName,
       categories = Map("agg" -> new RangeCategoryDescriptor("int")))
     assertIsValid(endpoint)
     Assert.assertNotSame("individual", endpoint.categories.get("agg").asInstanceOf[RangeCategoryDescriptor].getMaxGranularity)
-    assertEquals(AsciiCollationOrdering.name, endpoint.collation)
+    assertEquals(AsciiCollation.get.getName, endpoint.collation)
   }
 
   @Test
   def shouldAcceptUnicodeOrderingWithAggregation {
-    val endpoint = EndpointDef(name="aggregated-unicode", collation=UnicodeCollationOrdering.name,
+    val endpoint = EndpointDef(name="aggregated-unicode", collation=UnicodeCollation.get.getName,
       categories = Map("agg" -> new RangeCategoryDescriptor("int")))
     assertIsValid(endpoint)
     Assert.assertNotSame("individual", endpoint.categories.get("agg").asInstanceOf[RangeCategoryDescriptor].getMaxGranularity)
-    assertEquals(UnicodeCollationOrdering.name, endpoint.collation)
+    assertEquals(UnicodeCollation.get.getName, endpoint.collation)
   }
 
   @Test
   def shouldAcceptNoOrderingWithoutAggregationWithRangeCategory {
-    val endpoint = EndpointDef(name="unaggregated-unordered", collation = UnorderedCollationOrdering.name,
+    val endpoint = EndpointDef(name="unaggregated-unordered", collation = UnorderedCollation.get.getName,
       categories = Map("ind" -> new RangeCategoryDescriptor("date", "2012-01-01", "2012-01-02", "individual")))
     assertIsValid(endpoint)
     assertEquals("individual", endpoint.categories.get("ind").asInstanceOf[RangeCategoryDescriptor].getMaxGranularity)
-    assertEquals(UnorderedCollationOrdering.name, endpoint.collation)
+    assertEquals(UnorderedCollation.get.getName, endpoint.collation)
   }
 }
 
 object EndpointDefValidationTest {
   case class Scenario(aggregatingCategory: AggregatingCategoryDescriptor)
-
+  /*
   @DataPoint def yearly = Scenario(new RangeCategoryDescriptor("date", "2012-01-01", "2013-01-01", "yearly"))
   @DataPoint def monthly = Scenario(new RangeCategoryDescriptor("date", "2012-01-01", "2012-02-01", "monthly"))
   @DataPoint def daily = Scenario(new RangeCategoryDescriptor("date", "2012-01-01", "2012-01-02", "daily"))
   @DataPoint def setCat = Scenario(new SetCategoryDescriptor(Set("a")))
-  @DataPoint def prefixCat = Scenario(new PrefixCategoryDescriptor(1, 2, 1))
+  */
+  @DataPoint def prefixCat = Scenario(
+    new PrefixCategoryDescriptor(
+      new java.util.TreeSet[java.lang.Integer](
+        java.util.Arrays.asList(2:java.lang.Integer)
+      )
+    )
+  )
 }

@@ -17,7 +17,6 @@
 package net.lshift.diffa.client
 
 import com.sun.jersey.core.util.MultivaluedMapImpl
-import net.lshift.diffa.kernel.participants._
 import com.sun.jersey.api.client.ClientResponse
 import org.apache.commons.io.IOUtils
 import javax.ws.rs.core.MediaType
@@ -36,8 +35,7 @@ class VersioningParticipantRestClient(pair: PairRef,
                                       scanUrl: String,
                                       serviceLimitsView: PairServiceLimitsView,
                                       credentialsLookup:DomainCredentialsLookup)
-  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup)
-  with VersioningParticipantRef {
+  extends InternalRestClient(pair, scanUrl, serviceLimitsView, credentialsLookup) {
 
   val log = LoggerFactory.getLogger(getClass)
 

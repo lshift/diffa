@@ -18,6 +18,9 @@ package net.lshift.diffa.adapter.scanning;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import java.util.Arrays;
+import java.util.TreeSet;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
@@ -40,6 +43,7 @@ public class AggregationBuilderTest {
   public void shouldAddDateAggregationWhenParameterIsAvailable() {
     MockHttpServletRequest req = new MockHttpServletRequest();
     req.addParameter("bizDate-granularity", "monthly");
+    req.addParameter("bizDate-parent", "2009");
     AggregationBuilder builder = new AggregationBuilder(req);
 
     builder.maybeAddDateAggregation("bizDate");
@@ -124,7 +128,9 @@ public class AggregationBuilderTest {
   @Test
   public void shouldAddStringPrefixAggregationWhenParameterIsAvailable() {
     MockHttpServletRequest req = new MockHttpServletRequest();
-    req.addParameter("someString-length", "5");
+    req.addParameter("someString-offset", "3");
+    req.addParameter("someString-offset", "5");
+    req.addParameter("someString-offset", "7");
     AggregationBuilder builder = new AggregationBuilder(req);
 
     builder.maybeAddStringPrefixAggregation("someString");
@@ -133,13 +139,14 @@ public class AggregationBuilderTest {
 
     StringPrefixAggregation a = (StringPrefixAggregation) builder.toList().get(0);
     assertEquals("someString", a.getAttributeName());
-    assertEquals(5, a.getLength());
+
+    assertEquals(new TreeSet<Integer>(Arrays.asList(3,5,7)), a.getOffsets());
   }
 
   @Test
   public void shouldBucketStringPrefix() {
     MockHttpServletRequest req = new MockHttpServletRequest();
-    req.addParameter("someString-length", "4");
+    req.addParameter("someString-offset", "4");
     AggregationBuilder builder = new AggregationBuilder(req);
     builder.maybeAddStringPrefixAggregation("someString");
 
@@ -150,7 +157,7 @@ public class AggregationBuilderTest {
   @Test
   public void shouldBucketStringPrefixWithShortString() {
     MockHttpServletRequest req = new MockHttpServletRequest();
-    req.addParameter("someString-length", "3");
+    req.addParameter("someString-offset", "3");
     AggregationBuilder builder = new AggregationBuilder(req);
     builder.maybeAddStringPrefixAggregation("someString");
 

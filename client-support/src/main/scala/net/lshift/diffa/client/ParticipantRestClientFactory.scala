@@ -16,11 +16,9 @@
 
 package net.lshift.diffa.client
 
-import net.lshift.diffa.kernel.participants._
+
 import net.lshift.diffa.kernel.config._
-import java.io.InputStream
-import net.lshift.diffa.adapter.scanning.ScanResultEntry
-import net.lshift.diffa.kernel.differencing.EntityValidator
+
 import net.lshift.diffa.schema.servicelimits.{ScanReadTimeout, ScanConnectTimeout}
 import net.lshift.diffa.kernel.config.PairRef
 
@@ -30,7 +28,7 @@ trait ParticipantRestClientFactory {
 }
 
 class ScanningParticipantRestClientFactory(credentialsLookup:DomainCredentialsLookup, limits: PairServiceLimitsView)
-  extends ScanningParticipantFactory with ParticipantRestClientFactory {
+  extends ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.scanUrl)
 
   def createParticipantRef(endpoint: Endpoint, pairRef:PairRef) = {
@@ -54,7 +52,7 @@ object ScanningParticipantRestClientFactory {
 }
 
 class ContentParticipantRestClientFactory(credentialsLookup:DomainCredentialsLookup, limits: PairServiceLimitsView)
-  extends ContentParticipantFactory with ParticipantRestClientFactory {
+  extends  ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.contentRetrievalUrl)
 
   def createParticipantRef(endpoint: Endpoint, pair:PairRef)
@@ -65,7 +63,7 @@ class ContentParticipantRestClientFactory(credentialsLookup:DomainCredentialsLoo
 }
 
 class VersioningParticipantRestClientFactory(credentialsLookup:DomainCredentialsLookup, limits: PairServiceLimitsView)
-  extends VersioningParticipantFactory with ParticipantRestClientFactory {
+  extends ParticipantRestClientFactory {
   def supports(endpoint: Endpoint) = supportsAddress(endpoint.versionGenerationUrl)
 
   def createParticipantRef(endpoint: Endpoint, pair:PairRef)

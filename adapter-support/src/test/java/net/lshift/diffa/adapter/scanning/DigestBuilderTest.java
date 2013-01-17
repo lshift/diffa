@@ -37,9 +37,9 @@ import static org.junit.Assert.fail;
 @RunWith(Theories.class)
 public class DigestBuilderTest {
   private static final ScanAggregation bizDateAggregation =
-      new DateAggregation("bizDate", DateGranularityEnum.Daily);
+      new DateAggregation("bizDate", DateGranularityEnum.Daily, "2009-06");
   private static final ScanAggregation someStringAggregation =
-      new ByNameAggregation("someString");
+      new ByNameAggregation("someString", null);
   private static final List<ScanAggregation> aggregations = Arrays.asList(
       bizDateAggregation, someStringAggregation);
 

@@ -18,7 +18,6 @@ package net.lshift.diffa.kernel.differencing
 
 import net.lshift.diffa.kernel.events.VersionID
 import reflect.BeanProperty
-import net.lshift.diffa.kernel.participants.ParticipantType
 import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}
 import java.util.HashMap
@@ -82,7 +81,7 @@ trait DifferencesManager {
    * should generally only be called on explicit user request.
    * @throws MissingObjectException if the requested domain does not exist
    */
-  def retrieveEventDetail(space:Long, evtSeqId:String, t:ParticipantType.ParticipantType) : String
+  //def retrieveEventDetail(space:Long, evtSeqId:String, t:ParticipantType.ParticipantType) : String
 
   /**
    * Informs the difference manager that a pair has been updated.
@@ -117,7 +116,7 @@ trait DifferenceWriter {
   /**
    * Indicates that the following correlations are tombstones and differences associated with them can be deleted
    */
-  def evictTombstones(tombstones:Iterable[Correlation])
+  //def evictTombstones(tombstones:Iterable[Correlation])
 
   /**
    * Aborts this difference writer. Any locks held by this writer will be released (as per the close method), but no

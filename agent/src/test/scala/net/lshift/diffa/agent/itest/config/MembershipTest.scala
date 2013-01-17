@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.agent.itest.config
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.Assert._
 import net.lshift.diffa.agent.itest.support.TestConstants._
 import com.eaio.uuid.UUID
@@ -32,6 +32,7 @@ import net.lshift.diffa.kernel.config.system.PolicyStatement
 /**
  * Tests whether domain membership admin is accessible via the REST API
  */
+@Ignore
 class MembershipTest extends IsolatedDomainTest {
 
   val username = RandomStringUtils.randomAlphabetic(10)

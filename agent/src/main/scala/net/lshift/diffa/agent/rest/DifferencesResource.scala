@@ -19,7 +19,6 @@ package net.lshift.diffa.agent.rest
 import javax.ws.rs._
 import core._
 import org.slf4j.{Logger, LoggerFactory}
-import net.lshift.diffa.kernel.participants.ParticipantType
 import scala.collection.JavaConversions._
 import org.joda.time.format.{ISODateTimeFormat, DateTimeFormat}
 import org.joda.time.{DateTime, Interval}
@@ -29,6 +28,7 @@ import net.lshift.diffa.kernel.config.{DomainConfigStore, PairRef}
 import org.springframework.security.access.PermissionEvaluator
 import net.lshift.diffa.agent.rest.PermissionUtils._
 import net.lshift.diffa.agent.auth.{DiffTarget, PairTarget, Privileges}
+import java.util
 
 class DifferencesResource(val differencesManager: DifferencesManager,
                           val domainConfigStore:DomainConfigStore,
@@ -120,7 +120,8 @@ class DifferencesResource(val differencesManager: DifferencesManager,
                 @PathParam("participant") participant:String) : String = {
     ensurePrivilege(permissionEvaluator, Privileges.READ_EVENT_DETAILS, new DiffTarget(space, evtSeqId))
 
-    differencesManager.retrieveEventDetail(space, evtSeqId, ParticipantType.withName(participant))
+    //differencesManager.retrieveEventDetail(space, evtSeqId, ParticipantType.withName(participant))
+    null
   }
 
   @DELETE

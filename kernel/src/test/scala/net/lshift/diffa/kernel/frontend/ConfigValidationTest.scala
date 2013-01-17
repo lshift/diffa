@@ -23,6 +23,7 @@ import net.lshift.diffa.kernel.config._
 import org.junit.experimental.theories.{Theories, Theory, DataPoint}
 import org.junit.runner.RunWith
 import DiffaConfigValidatorConverter._
+import net.lshift.diffa.config.{ConfigValidationException, RangeCategoryDescriptor, PrefixCategoryDescriptor, SetCategoryDescriptor}
 
 @RunWith(classOf[Theories])
 class ConfigValidationTest extends DefValidationTestBase {
@@ -157,15 +158,15 @@ class ConfigValidationTest extends DefValidationTestBase {
 
   @Test
   def shouldAcceptAnyPrefixCategoryRefinementsThatArePrefixCategories() {
-    val base = new PrefixCategoryDescriptor(5, 12, 1)
+    val base = new PrefixCategoryDescriptor(5, 12, 13)
 
-    assertTrue(base.isRefinement(new PrefixCategoryDescriptor(2, 12, 1)))
-    assertTrue(base.isRefinement(new PrefixCategoryDescriptor(5, 10, 2)))
+    assertTrue(base.isRefinement(new PrefixCategoryDescriptor(2, 12, 13)))
+    assertTrue(base.isRefinement(new PrefixCategoryDescriptor(5, 10, 20)))
   }
 
   @Test
   def shouldRejectAnyPrefixCategoryRefinementsThatAreNotPrefixCategories() {
-    val base = new PrefixCategoryDescriptor(5, 12, 1)
+    val base = new PrefixCategoryDescriptor(5, 12, 13)
 
     assertFalse(base.isRefinement(new SetCategoryDescriptor(Set("a", "b"))))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31")))
@@ -192,7 +193,7 @@ class ConfigValidationTest extends DefValidationTestBase {
   def shouldRejectAnySetCategoryRefinementsThatAreNotSetCategories() {
     val base = new SetCategoryDescriptor(Set("a", "b", "c"))
 
-    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 1)))
+    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 13)))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31")))
   }
 
@@ -267,7 +268,7 @@ class ConfigValidationTest extends DefValidationTestBase {
     val base = new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31")
 
     assertFalse(base.isRefinement(new SetCategoryDescriptor(Set("c", "b", "a", "d"))))
-    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 1)))
+    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 13)))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("datetime", "2011-01-01T00:00:00.000Z", "2011-12-31T23:59:59.999Z")))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("integer", "52", "104")))
   }
@@ -277,7 +278,7 @@ class ConfigValidationTest extends DefValidationTestBase {
     val base = new RangeCategoryDescriptor("datetime", "2011-01-01T00:00:00.000Z", "2011-12-31T00:00:00.000Z")
 
     assertFalse(base.isRefinement(new SetCategoryDescriptor(Set("c", "b", "a", "d"))))
-    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 1)))
+    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 13)))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31")))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("integer", "52", "104")))
   }
@@ -287,7 +288,7 @@ class ConfigValidationTest extends DefValidationTestBase {
     val base = new RangeCategoryDescriptor("integer", "52", "104")
 
     assertFalse(base.isRefinement(new SetCategoryDescriptor(Set("c", "b", "a", "d"))))
-    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 1)))
+    assertFalse(base.isRefinement(new PrefixCategoryDescriptor(5, 12, 13)))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("date", "2011-01-01", "2011-12-31")))
     assertFalse(base.isRefinement(new RangeCategoryDescriptor("datetime", "2011-01-01T00:00:00.000Z", "2011-12-31T00:00:00.000Z")))
   }

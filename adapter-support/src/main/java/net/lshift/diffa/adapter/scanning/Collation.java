@@ -47,4 +47,6 @@ public interface Collation {
    * @return The result of said comparison.
    */
   public boolean sortsBefore(String left, String right);
+
+  public String getName();
 }

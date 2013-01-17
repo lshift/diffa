@@ -9,6 +9,7 @@ import net.lshift.diffa.kernel.lifecycle.NotificationCentre
 import net.lshift.diffa.kernel.StoreReferenceContainer
 import net.lshift.diffa.schema.environment.TestDatabaseEnvironments
 import org.junit.{AfterClass, Test}
+import net.lshift.diffa.config.ConfigValidationException
 
 /**
  * Test cases for apply System Configuration.

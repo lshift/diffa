@@ -16,8 +16,8 @@
 
 package net.lshift.diffa.kernel.config
 
-import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.adapter.scanning.{DateGranularityEnum, AggregationBuilder, ConstraintsBuilder}
+import net.lshift.diffa.config.RangeCategoryDescriptor
 
 /**
  * Simple registry to be allow to dispatching on RangeCategoryDescriptors by their data type.
@@ -29,12 +29,16 @@ object RangeTypeRegistry {
   /**
    * Resolve the default category function for any given data type name
    */
+
+  /*
   def defaultCategoryFunction(attrName:String, desc:RangeCategoryDescriptor) : Option[CategoryFunction] = desc.dataType match {
     case "date"     => defaultOrMaxGranularity(attrName, desc, DateDataType)
     case "datetime" => defaultOrMaxGranularity(attrName, desc, TimeDataType)
     case "int"      => Some(IntegerCategoryFunction(attrName, 1000, 10))
   }
+  */
 
+  /*
   def categoryFunctionFor(attrName: String, granularity: DateGranularityEnum, dataType: String): CategoryFunction = {
     val dateDataType = dataType match {
       case "date"     => DateDataType
@@ -48,6 +52,7 @@ object RangeTypeRegistry {
     }
 
   }
+  */
 
   def buildConstraint(builder:ConstraintsBuilder, attrName:String, desc:RangeCategoryDescriptor) {
     desc.dataType match {
@@ -69,6 +74,7 @@ object RangeTypeRegistry {
    * If if a date range is specified and the maximum granularity field is set, use that to define the initial
    * category function
    */
+  /*
   def defaultOrMaxGranularity(attrName:String, desc:RangeCategoryDescriptor, t:DateCategoryDataType) = desc.maxGranularity match {
     case "yearly" | "" | null => Some(YearlyCategoryFunction(attrName, t))
     case "monthly"            => Some(MonthlyCategoryFunction(attrName, t))
@@ -76,4 +82,5 @@ object RangeTypeRegistry {
     // If individual granularity has been specified, then no aggregation will be performed
     case "individual"         => None
   }
+  */
 }

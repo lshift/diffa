@@ -5,7 +5,7 @@ import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.hamcrest.Matchers._
 import org.hamcrest.MatcherAssert.assertThat
-import net.lshift.diffa.adapter.scanning.{AsciiCollation, Collation}
+import net.lshift.diffa.adapter.scanning.{UnorderedCollation, UnicodeCollation, AsciiCollation, Collation}
 import org.junit.Assert._
 import scala.Tuple3
 
@@ -20,7 +20,7 @@ trait CollationTestMixin {
 
 @RunWith(classOf[Theories])
 class UnicodeCollationOrderingTest extends CollationTestMixin {
-  val ordering = UnicodeCollationOrdering
+  val ordering = UnicodeCollation.get
 }
 object UnicodeCollationOrderingTest {
   @DataPoint def trivial = ("a", "b", true)
@@ -34,7 +34,7 @@ object UnicodeCollationOrderingTest {
 
 @RunWith(classOf[Theories])
 class AsciiCollationOrderingTest extends CollationTestMixin {
-  val ordering = AsciiCollationOrdering
+  val ordering = AsciiCollation.get
 }
 object AsciiCollationOrderingTest {
   @DataPoint def trivial = ("a", "b", true)
@@ -47,7 +47,7 @@ object AsciiCollationOrderingTest {
 
 @RunWith(classOf[Theories])
 class UnorderedCollationOrderingTest extends CollationTestMixin {
-  val ordering = UnorderedCollationOrdering
+  val ordering = UnorderedCollation.get
 }
 object UnorderedCollationOrderingTest {
   @DataPoint def trivial = ("a", "b", true)
@@ -62,14 +62,14 @@ object UnorderedCollationOrderingTest {
 
 class CollationOrderingTest {
   @Test def testGetCollatorForUnicode() = {
-    assertEquals(UnicodeCollationOrdering, CollationOrdering.named("unicode"))
+    assertEquals(UnicodeCollation.get, CollationOrdering.named("unicode"))
   }
   @Test def testGetCollatorForAscii() = {
-    assertEquals(AsciiCollationOrdering, CollationOrdering.named("ascii"))
+    assertEquals(AsciiCollation.get, CollationOrdering.named("ascii"))
   }
 
   @Test def shouldHaveAnUnorderedCollator() = {
-    assertEquals(UnorderedCollationOrdering, CollationOrdering.named("unordered"))
+    assertEquals(UnorderedCollation.get, CollationOrdering.named("unordered"))
   }
 
   @Test(expected=classOf[Exception])

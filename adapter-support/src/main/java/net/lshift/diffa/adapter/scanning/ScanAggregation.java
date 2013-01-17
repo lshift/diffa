@@ -25,6 +25,8 @@ public interface ScanAggregation {
    */
   String getAttributeName();
 
+  String getParent();
+
   /**
    * Retrieves the name of the bucket that the given attribute value should be applied to.
    * @param attributeVal the attribute value

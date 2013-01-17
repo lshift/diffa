@@ -18,7 +18,6 @@ package net.lshift.diffa.kernel.reporting
 import net.lshift.diffa.kernel.config.{PairRef, PairReportType, DomainConfigStore}
 import net.lshift.diffa.kernel.differencing.DomainDifferenceStore
 import org.apache.http.impl.client.DefaultHttpClient
-import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import org.apache.http.client.methods.HttpPost
 import org.apache.commons.io.FileUtils
 import java.io.{FileInputStream, FileWriter, PrintWriter, File}
@@ -30,7 +29,7 @@ import net.lshift.diffa.kernel.util.MissingObjectException
 /**
  * Component responsible for executing reports defined on a pair.
  */
-class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceStore, diagnostics:DiagnosticsManager) {
+class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceStore) {
   import PairReportType._
 
   /**
@@ -41,7 +40,8 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
     val reportDef = configStore.getPairDef(pair).reports.
       find(_.name == name).getOrElse(throw new MissingObjectException("pair report"))
 
-    diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Initiating report %s".format(name))
+    //diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Initiating report %s".format(name))
+
     try {
       // Execute the report, and stream it to disk. It is necessary to do this because a HttpPost needs to
       // include a length, which we won't know till we've assembled the report
@@ -57,10 +57,12 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
 
         postReport(reportDef.target, reportTmp)
       })
-      diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Completed report %s".format(name))
+
+      //diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Completed report %s".format(name))
+
     } catch {
       case e =>
-        diagnostics.logPairEvent(None, pair, DiagnosticLevel.ERROR, "Report %s failed: %s".format(name, e.getMessage))
+        // diagnostics.logPairEvent(None, pair, DiagnosticLevel.ERROR, "Report %s failed: %s".format(name, e.getMessage))
     }
   }
 

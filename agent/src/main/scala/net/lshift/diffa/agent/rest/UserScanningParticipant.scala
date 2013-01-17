@@ -1,7 +1,6 @@
 package net.lshift.diffa.agent.rest
 
-import net.lshift.diffa.kernel.config.system.SystemConfigStore
-import net.lshift.diffa.kernel.participants.CategoryFunction
+
 import net.lshift.diffa.kernel.config.User
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.frontend.SystemConfiguration

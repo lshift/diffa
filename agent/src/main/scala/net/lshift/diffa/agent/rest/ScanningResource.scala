@@ -16,11 +16,9 @@
 
 package net.lshift.diffa.agent.rest
 
-import net.lshift.diffa.kernel.actors.PairPolicyClient
 import javax.ws.rs.core.Response
 import net.lshift.diffa.kernel.frontend.Configuration
 import javax.ws.rs._
-import net.lshift.diffa.kernel.diag.DiagnosticsManager
 import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 import org.slf4j.{LoggerFactory, Logger}
 import net.lshift.diffa.kernel.util.AlertCodes._
@@ -28,10 +26,9 @@ import org.springframework.security.access.PermissionEvaluator
 import net.lshift.diffa.agent.rest.PermissionUtils._
 import net.lshift.diffa.agent.auth.{SpaceTarget, PairTarget, Privileges}
 
-class ScanningResource(val pairPolicyClient:PairPolicyClient,
+class ScanningResource(
                        val config:Configuration,
                        val domainConfigStore:DomainConfigStore,
-                       val diagnostics:DiagnosticsManager,
                        val space:Long,
                        val currentUser:String,
                        val permissionEvaluator:PermissionEvaluator)
@@ -45,13 +42,14 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   def getAllPairStates = {
       // Ensure that we're allowed to see at least some pair states
     ensurePrivilege(permissionEvaluator, Privileges.SCAN_STATUS, new SpaceTarget(space))
-
+    /*
     val states = diagnostics.retrievePairScanStatesForDomain(space)
     val filteredStates = states.filter {
       case (pair, state) => hasPrivilege(permissionEvaluator, Privileges.SCAN_STATUS, new PairTarget(space, pair))
     }
-
-    Response.ok(scala.collection.JavaConversions.mapAsJavaMap(filteredStates)).build
+    */
+    //Response.ok(scala.collection.JavaConversions.mapAsJavaMap(filteredStates)).build
+    Response.status(Response.Status.OK).build
   }
 
   @POST
@@ -82,7 +80,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
 
       log.info(message)
 
-      pairPolicyClient.scanPair(ref, Option(view), Some(currentUser))
+      //pairPolicyClient.scanPair(ref, Option(view), Some(currentUser))
       Response.status(Response.Status.ACCEPTED).build
 
     }
@@ -93,7 +91,7 @@ class ScanningResource(val pairPolicyClient:PairPolicyClient,
   def cancelScanning(@PathParam("pairKey") pairKey:String) = {
     ensurePrivilege(permissionEvaluator, Privileges.CANCEL_SCAN, new PairTarget(space, pairKey))
 
-    pairPolicyClient.cancelScans(PairRef(pairKey, space))
+    //pairPolicyClient.cancelScans(PairRef(pairKey, space))
     Response.status(Response.Status.OK).build
   }
 

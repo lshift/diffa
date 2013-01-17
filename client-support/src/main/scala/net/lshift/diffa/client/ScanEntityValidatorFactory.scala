@@ -18,11 +18,12 @@ package net.lshift.diffa.client
 import net.lshift.diffa.adapter.common.ScanEntityValidator
 import net.lshift.diffa.kernel.differencing.EntityValidator
 import net.lshift.diffa.kernel.config.CollationOrdering
+import net.lshift.diffa.adapter.scanning.Collation
 
 trait ScanEntityValidatorFactory {
   def createValidator: ScanEntityValidator
 }
 
-class CollationOrderEntityValidatorFactory(ordering: CollationOrdering) extends ScanEntityValidatorFactory {
+class CollationOrderEntityValidatorFactory(ordering: Collation) extends ScanEntityValidatorFactory {
   def createValidator = new CollationOrderEntityValidator(ordering, EntityValidator)
 }

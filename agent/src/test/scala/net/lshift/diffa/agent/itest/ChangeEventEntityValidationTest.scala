@@ -18,7 +18,7 @@ package net.lshift.diffa.agent.itest
 import net.lshift.diffa.client.{RateLimitExceededException, InvalidChangeEventException, ChangesRestClient}
 import support.TestConstants.{ agentURL, defaultDomain, yesterday }
 import com.eaio.uuid.UUID
-import org.junit.{Before, BeforeClass, Test}
+import org.junit.{Ignore, Before, BeforeClass, Test}
 import org.junit.Assert.fail
 import net.lshift.diffa.adapter.changes.ChangeEvent
 import net.lshift.diffa.agent.client.ConfigurationRestClient
@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import org.apache.commons.lang3.RandomStringUtils
 
 
+@Ignore
 class ChangeEventEntityValidationTest extends IsolatedDomainTest {
 
   val logger = LoggerFactory.getLogger(getClass)

@@ -22,12 +22,12 @@ public class IntegerAggregation extends AbstractScanAggregation implements Granu
   private final int granularity;
 
 
-  public IntegerAggregation(String name, String granularity) {
-    this(name, parseGranularity(granularity));
+  public IntegerAggregation(String name, String granularity, String parent) {
+    this(name, parseGranularity(granularity), parent);
   }
 
-  public IntegerAggregation(String name, int granularity) {
-    super(name);
+  public IntegerAggregation(String name, int granularity, String parent) {
+    super(name, parent);
 
     this.granularity = granularity;
   }
