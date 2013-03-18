@@ -364,6 +364,13 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
   private def flushInternal() {
     getWriter.commit(Map(VERSION_LABEL -> latestVersion.toString))
     updatedDocs.clear()
+
+    // Clear readers to avoid memory issues while writing large volumes of updates to the index
+    val toClose = readers.remove(writer)
+    if (toClose != null) {
+      toClose.foreach(_.close())
+    }
+
     log.trace("Writer flushed")
   }
 }

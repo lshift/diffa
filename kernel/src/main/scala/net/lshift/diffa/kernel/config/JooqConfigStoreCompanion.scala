@@ -143,20 +143,25 @@ object JooqConfigStoreCompanion {
           on(RANGE_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
           and(RANGE_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(RANGE_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
+          and(RANGE_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
 
         leftOuterJoin(PREFIX_CATEGORY_VIEWS).
           on(PREFIX_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
           and(PREFIX_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(PREFIX_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
+          and(PREFIX_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
 
         leftOuterJoin(SET_CATEGORY_VIEWS).
           on(SET_CATEGORY_VIEWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
           and(SET_CATEGORY_VIEWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
           and(SET_CATEGORY_VIEWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
+          and(SET_CATEGORY_VIEWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME)).
+
         leftOuterJoin(ENDPOINT_VIEW_ROLLING_WINDOWS).
           on(ENDPOINT_VIEW_ROLLING_WINDOWS.DOMAIN.equal(ENDPOINT_VIEWS.DOMAIN)).
           and(ENDPOINT_VIEW_ROLLING_WINDOWS.ENDPOINT.equal(ENDPOINT_VIEWS.ENDPOINT)).
-          and(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME))
+          and(ENDPOINT_VIEW_ROLLING_WINDOWS.NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.NAME)).
+          and(ENDPOINT_VIEW_ROLLING_WINDOWS.VIEW_NAME.equal(UNIQUE_CATEGORY_VIEW_NAMES.VIEW_NAME))
 
       val secondUnionPart = domain match {
         case None    => bottomHalf
@@ -186,6 +191,7 @@ object JooqConfigStoreCompanion {
       results.iterator().foreach(record => {
 
         val currentEndpoint = DomainEndpointDef(
+          domain = record.getValue(ENDPOINT.DOMAIN),
           name = record.getValue(ENDPOINT.NAME),
           scanUrl = record.getValue(ENDPOINT.SCAN_URL),
           contentRetrievalUrl = record.getValue(ENDPOINT.CONTENT_RETRIEVAL_URL),
