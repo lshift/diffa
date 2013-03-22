@@ -16,17 +16,20 @@
 
 */
 
-@content-inspector-height: 500px;
+@content-inspector-height: 600px;
+@content-inspector-width: 950px;
+
 @code-box-height: @content-inspector-height - 50px;
+@code-box-width: (@content-inspector-width - 50px) / 2;
 
 .bp-last {margin-right:0;padding-right:0;}
 .bp-span {float:left;margin-right:10px;}
-.bp-span-8 {.bp-span; width:350px;}
+.bp-span-8 {.bp-span; width: @code-box-width;}
 
 
 .diffa-diffinspector {
   height: @content-inspector-height;
-  width: 750px;
+  width: @content-inspector-width;
 
   .endpoint-label {
     .viewer-inner-span;
@@ -49,7 +52,7 @@
 
   div.code-box {
     height: @code-box-height;
-    .viewer-outer-span;
+    width: @code-box-width;
     .bp-last;
 
     pre {
@@ -58,4 +61,3 @@
     }
   }
 }
-
