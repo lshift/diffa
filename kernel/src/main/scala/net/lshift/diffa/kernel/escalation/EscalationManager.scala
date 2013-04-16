@@ -160,7 +160,14 @@ class EscalationManager(val config:DomainConfigStore,
     escalations.sortBy(e => (e.delay, e.name))
 
   def escalateDiffs() {
-    diffs.pendingEscalatees(DateTime.now(), escalateDiff(_))
+    try {
+      diffs.pendingEscalatees(DateTime.now(), escalateDiff(_))
+    } catch {
+      case e: Throwable =>
+        // Log errors for alerting but continue so if, for example, we lose the database momentarily,
+        // the escalations timer can continue to fire until the database issue is resolved.
+        log.error("An exception was thrown while escalating differences: " + e.getMessage)
+    }
   }
 
   def escalateDiff(diff:DifferenceEvent) {

@@ -25,7 +25,8 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.jooq.conf.{RenderNameStyle, Settings}
 import org.jooq.impl.Factory
 import org.jooq._
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.format.{DateTimeFormatterBuilder, DateTimeFormatter}
 import org.jadira.usertype.dateandtime.joda.columnmapper.TimestampColumnDateTimeMapper
 import java.lang.reflect.UndeclaredThrowableException
 
@@ -73,6 +74,7 @@ class DatabaseFacade(dataSource: DataSource, dialect: String) {
 
 object DatabaseFacade {
 
+  // TODO: Use TimestampColumnUtcDateTimeMapper here instead?
   private val columnMapper = new TimestampColumnDateTimeMapper()
 
   def timestampToDateTime(timestamp: Timestamp) = {
@@ -89,7 +91,33 @@ object DatabaseFacade {
       null
     }
     else {
-      columnMapper.toNonNullValue(dateTime)
+      toNonNullValue(dateTime)
     }
+  }
+
+  /**
+   * This is an adapted version of the Joda library's TimestampColumnDateTimeMapper.toNonNullValue function
+   * which claims to store the resulting TimeStamp in UTC yet appears to use the database's local time instead?
+   *
+   * A later version of Joda appears to have added TimestampColumnUtcDateTimeMapper, however at time of writing
+   * that doesn't seem to have been published to Maven Central.
+   *
+   * Adapted version here essentially forces all incoming DateTimes into UTC Timestamps.
+   *
+   * @param value A DateTime in any timezone for conversion into a UTC Timestamp ready to be written to storage.
+   * @return The equivalent Timestamp converted into UTC
+   */
+  def toNonNullValue(value: DateTime): Timestamp = {
+
+    val DATETIME_FORMATTER: DateTimeFormatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss'.'").appendFractionOfSecond(0, 9).toFormatter
+    val zone: DateTimeZone = DateTimeZone.UTC
+    val valueWithZone : DateTime = value.withZone(zone)
+    var formattedTimestamp : String = DATETIME_FORMATTER.print(valueWithZone)
+
+    if (formattedTimestamp.endsWith(".")) {
+      formattedTimestamp = formattedTimestamp.substring(0, formattedTimestamp.length - 1)
+    }
+
+    Timestamp.valueOf(formattedTimestamp)
   }
 }

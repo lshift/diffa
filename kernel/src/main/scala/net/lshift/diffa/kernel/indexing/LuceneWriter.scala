@@ -238,10 +238,10 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
       updateStoreVersion(doc)
       f(doc)
 
-      // If the participant does not supply a timestamp, then create one on the fly
+      // If the participant does not supply a timestamp, then create one on the fly, ensuring zone is UTC
       val lastUpdated = lastUpdatedIn match {
-        case null => new DateTime
-        case d    => d
+        case null => new DateTime().withZone(DateTimeZone.UTC)
+        case d    => d.withZone(DateTimeZone.UTC)
       }
 
       val oldLastUpdate = parseDate(doc.get("lastUpdated"))

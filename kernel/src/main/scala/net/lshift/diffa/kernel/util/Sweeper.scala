@@ -18,17 +18,26 @@ package net.lshift.diffa.kernel.util
 import net.lshift.diffa.kernel.differencing.DomainDifferenceStore
 import java.util.{TimerTask, Timer}
 import org.joda.time.DateTime
+import org.slf4j.LoggerFactory
 
 /**
  * Component responsible for periodically cleaning up internal system resources.
  */
 class Sweeper(val period:Int, diffStore:DomainDifferenceStore) {
+  val log = LoggerFactory.getLogger(getClass)
   val timer = new Timer()
   val matchAgeMins = 5    // How long ago matches should be purged from
 
   val sweepTask = new TimerTask {
     def run() {
-      diffStore.expireMatches(new DateTime().minusMinutes(matchAgeMins))
+      try {
+        diffStore.expireMatches(new DateTime().minusMinutes(matchAgeMins))
+      } catch {
+        case e: Throwable =>
+          // Log errors for alerting but continue so if, for example, we lose the database momentarily,
+          // the sweeper timer can continue to fire until the database issue is resolved.
+          log.error("An exception was thrown while expiring matches: " + e.getMessage)
+      }
     }
   }
 

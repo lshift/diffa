@@ -21,6 +21,7 @@ import net.lshift.diffa.kernel.participants._
 import net.lshift.diffa.kernel.config.AggregatingCategoryDescriptor
 import scala.collection.JavaConversions._
 import net.lshift.diffa.participant.scanning.{ScanConstraint, ScanResultEntry}
+import org.joda.time.DateTimeZone
 
 /**
  * Utility methods for differencing sequences of digests.

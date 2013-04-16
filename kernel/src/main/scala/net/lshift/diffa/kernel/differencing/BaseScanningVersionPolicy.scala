@@ -98,8 +98,8 @@ abstract class BaseScanningVersionPolicy(val stores:VersionCorrelationStoreFacto
 
   def maybe(lastUpdate:DateTime) = {
     lastUpdate match {
-      case null => new DateTime
-      case d    => d
+      case null => new DateTime().withZone(DateTimeZone.UTC)
+      case d    => d.withZone(DateTimeZone.UTC)
     }
   }
 
