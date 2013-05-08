@@ -51,6 +51,16 @@ class ChangesTest {
   }
 
   @Test
+  def shouldAcceptChangeWithoutVersionAndAttributes() {
+    changeEventClient.propagateChangeEvent(UpstreamPairChangeEvent(VersionID(pairRef, "id1"), Map(), now, null)); expectLastCall
+    expect(matchingManager.getMatcher(anyObject[DiffaPairRef])).andStubReturn(None)
+    replay(changeEventClient, matchingManager)
+
+    changes.onChange("d1", "e1", ChangeEvent.forChange("id1", null, now))
+    verify(changeEventClient, matchingManager)
+  }
+
+  @Test
   def shouldAcceptChangeWithValidAttributes() {
     changeEventClient.propagateChangeEvent(
       DownstreamPairChangeEvent(VersionID(pairRef, "id1"), Map("s" -> StringAttribute("a")), now, "v1")); expectLastCall

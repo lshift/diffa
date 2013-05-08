@@ -119,9 +119,6 @@ public class ChangeEvent {
     if (id == null || id.length() == 0) {
       throw new MissingMandatoryFieldException("id");
     }
-    if (version == null || version.length() == 0) {
-      throw new MissingMandatoryFieldException("version");
-    }
   }
 
   @Override

@@ -30,8 +30,6 @@ public class ChangeEventTest {
   @DataPoint public static ChangeEvent completelyEmptyEvent = new ChangeEvent();
   @DataPoint public static ChangeEvent nullIdWithValidVersion = new ChangeEvent(null,"version", null, null, null);
   @DataPoint public static ChangeEvent emptyIdWithValidVersion = new ChangeEvent("" ,"version", null, null, null);
-  @DataPoint public static ChangeEvent validIdWithEmptyVersion = new ChangeEvent("id" , "", null, null, null);
-  @DataPoint public static ChangeEvent validIdWithNullVersion = new ChangeEvent("id" , null, null, null, null);
 
   @Theory
   @Test(expected = MissingMandatoryFieldException.class)
@@ -43,7 +41,6 @@ public class ChangeEventTest {
   public void shouldAcceptMinimumFields() {
     ChangeEvent validEvent = new ChangeEvent();
     validEvent.setId("id");
-    validEvent.setVersion("version");
     validEvent.ensureContainsMandatoryFields();
   }
 }

@@ -275,7 +275,7 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
         retrieveCurrentDoc(this, id)
 
     currentDoc match {
-      case None => Correlation.asDeleted(id, new DateTime)
+      case None => Correlation.asDeleted(id, new DateTime().withZone(DateTimeZone.UTC))
       case Some(doc) => {
 
         // Increment the version counter and update the entry
@@ -287,6 +287,11 @@ class LuceneWriter(index: Directory, diagnostics:DiagnosticsManager,
         // Update the match status of the document. A document with neither participant is matched (and will be seen
         // as a tombstone)
         updateField(doc, boolField("isMatched", !hasUpstream(doc) && !hasDownstream(doc)))
+
+        // Set last updated to now, otherwise the previous one stored in the index will be taken and
+        // used as the DETECTED_AT timestamp when inserting into PENDING_DIFFS.  This in turn will
+        // mean a resulting blob could incorrectly appear in the heat map some time ago in the past.
+        updateField(doc, dateTimeField("lastUpdated", new DateTime().withZone(DateTimeZone.UTC), indexed = false))
 
         prepareUpdate(id, doc)
 

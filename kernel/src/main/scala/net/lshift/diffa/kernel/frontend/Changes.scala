@@ -61,10 +61,13 @@ class Changes(val domainConfig:DomainConfigStore,
         }
       }
 
-      // Validate that the entities provided meet the constraints of the endpoint
+      // Validate that the entities provided meet the constraints of the endpoint,
+      // unless a deletion event (one with a null version) has been received in which case we just need the entity id
       val endpointCategories = targetEndpoint.categories.toMap
-      val issues = AttributesUtil.detectAttributeIssues(
-        endpointCategories, targetEndpoint.initialConstraints(None), evtAttributes, typedAttributes)
+      val issues: Map[String, String] = evt.getVersion match {
+        case null => Map()
+        case _ => AttributesUtil.detectAttributeIssues(endpointCategories, targetEndpoint.initialConstraints(None), evtAttributes, typedAttributes)
+      }
 
       if (issues.size > 0) {
         log.warn("Dropping invalid pair event " + pairEvt + " due to issues " + issues)
