@@ -773,7 +773,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
   private val recordToReportedDifferenceEventAsDifferenceEvent =
     recordToReportedDifferenceEvent.andThen(_.asDifferenceEvent)
 
-  private val recordToPendingDifferenceEvent = (r: PendingDiffsRecord) =>
+  private def recordToPendingDifferenceEvent(r: PendingDiffsRecord) = {
     PendingDifferenceEvent(oid = r.getValue(PENDING_DIFFS.OID),
       objId = VersionID(pair = DiffaPairRef(domain = r.getValue(PENDING_DIFFS.DOMAIN),
         key = r.getValue(PENDING_DIFFS.PAIR)),
@@ -782,7 +782,7 @@ class JooqDomainDifferenceStore(db: DatabaseFacade,
       lastSeen = timestampToDateTime(r.getValue(PENDING_DIFFS.LAST_SEEN)),
       upstreamVsn = r.getValue(PENDING_DIFFS.UPSTREAM_VSN),
       downstreamVsn = r.getValue(PENDING_DIFFS.DOWNSTREAM_VSN))
-
+  }
 }
 
 case class PendingDifferenceEvent(

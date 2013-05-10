@@ -874,6 +874,18 @@ class JooqDomainDifferenceStoreTest {
     Some(TileGroup(alignedTimespan.getStart, interestingAggregates.map(t => t.start -> t.count).toMap))
   }
 
+  @Test
+  def pendingUnmatchedEventsShouldSurviveRestarting() {
+    val timestamp = new DateTime()
+    domainDiffStore.addPendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"), timestamp, "uV", "dV", timestamp)
+
+    val newDomainDiffStore = JooqDomainDifferenceStoreTest.simulateRestart.domainDifferenceStore
+
+    newDomainDiffStore.upgradePendingUnmatchedEvent(VersionID(DiffaPairRef("pair1", "domain"), "id1"))
+    val interval = new Interval(timestamp.minusDays(1), timestamp.plusDays(1))
+    assertEquals(1, newDomainDiffStore.retrieveUnmatchedEvents("domain", interval).length)
+  }
+
   //
   // Helpers
   //
@@ -915,6 +927,9 @@ object JooqDomainDifferenceStoreTest {
     TestDatabaseEnvironments.uniqueEnvironment("target/domainCache")
 
   private[JooqDomainDifferenceStoreTest] val storeReferences =
+    StoreReferenceContainer.withCleanDatabaseEnvironment(env)
+
+  def simulateRestart() =
     StoreReferenceContainer.withCleanDatabaseEnvironment(env)
 
   @AfterClass
