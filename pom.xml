@@ -61,7 +61,7 @@
     <curator.version>1.2.3</curator.version>
     <hazelcast.version>2.4</hazelcast.version>
     <guava.version>11.0.1</guava.version>
-    <zookeeper.version>3.4.5</zookeeper.version>
+    <zookeeper.version>3.4.6</zookeeper.version>
     <scalatest.version>1.8</scalatest.version>
   </properties>
 
@@ -81,6 +81,24 @@
     </developer>
   </developers>
     
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Central Repo</name>
+      <url>https://repo1.maven.org/maven2</url>
+    </repository>
+    <repository>
+      <id>maven-restlet</id>
+      <name>Public online Restlet repository</name>
+      <url>http://maven.restlet.com</url>
+    </repository>
+    <repository>
+      <id>typesafe</id>
+      <name>Typesafe Repository</name>
+      <url>http://repo.typesafe.com/typesafe/releases/</url>
+    </repository>
+  </repositories>
+
   <dependencyManagement>
   <dependencies>
     <dependency>

@@ -18,7 +18,7 @@
     <scalatest.version>1.8</scalatest.version>
     <curator.version>1.2.3</curator.version>
     <junit.version>4.10</junit.version>
-    <zookeeper.version>3.4.5</zookeeper.version>
+    <zookeeper.version>3.4.6</zookeeper.version>
     <zookeeper.url.root>http://www.mirrorservice.org/sites/ftp.apache.org</zookeeper.url.root>
     <zookeeper.install.dir>/tmp/zookeeper-${zookeeper.version}</zookeeper.install.dir>
     <zookeeper.exec.bin>bin/zkServer.sh</zookeeper.exec.bin>
@@ -173,7 +173,7 @@
               <url>${zookeeper.url.root}/zookeeper/zookeeper-${zookeeper.version}/zookeeper-${zookeeper.version}.tar.gz</url>
               <unpack>true</unpack>
               <outputDirectory>/tmp</outputDirectory>
-              <md5>f64fef86c0bf2e5e0484d19425b22dcb</md5>
+              <md5>971c379ba65714fd25dc5fe8f14e9ad1</md5>
             </configuration>
           </execution>
         </executions>
