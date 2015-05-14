@@ -174,12 +174,14 @@
       <artifactId>icu4j</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.gentlyweb</groupId>
-      <artifactId>gentlyweb-utils</artifactId>
+      <groupId>org.apache.servicemix.bundles</groupId>
+      <artifactId>org.apache.servicemix.bundles.gentlyweb-utils</artifactId>
+      <version>1.5_1</version>
     </dependency>
     <dependency>
-      <groupId>org.josql</groupId>
-      <artifactId>josql</artifactId>
+      <groupId>org.apache.servicemix.bundles</groupId>
+      <artifactId>org.apache.servicemix.bundles.josql</artifactId>
+      <version>1.5_5</version>
     </dependency>
     <dependency>
       <groupId>postgresql</groupId>
