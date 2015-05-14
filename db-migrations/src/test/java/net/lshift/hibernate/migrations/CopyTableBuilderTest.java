@@ -60,7 +60,7 @@ public class CopyTableBuilderTest {
 
     Connection conn = createStrictMock(Connection.class);
 
-    String sql = "insert into dest(foo,bar2,baz) select foo,bar,baz from src where bar = 'b' and foo = 'a'";
+    String sql = "insert into dest(foo,bar2,baz) select foo,bar,baz from src where foo = 'a' and bar = 'b'";
 
     expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatementForUpdate(1));
     replay(conn);
