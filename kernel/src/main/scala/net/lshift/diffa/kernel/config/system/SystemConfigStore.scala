@@ -22,7 +22,7 @@ import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.config.User
 import net.lshift.diffa.kernel.config.Member
 import net.lshift.diffa.kernel.util.MissingObjectException
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 
 /**

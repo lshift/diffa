@@ -20,7 +20,7 @@ import org.joda.time.format.ISODateTimeFormat
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.adapter.scanning._
 import scala.Option._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
  * Utility for working with attribute maps.
@@ -36,7 +36,7 @@ object AttributesUtil {
   }
 
   def toMap(keys:Iterable[String], attrs:Iterable[String]):Map[String, String] = toMap(keys.toSeq, attrs.toSeq)
-  def toMap(keys:Seq[String], attrs:Seq[String]):Map[String, String] = (keys.sorted, attrs).zip.toMap
+  def toMap(keys:Seq[String], attrs:Seq[String]):Map[String, String] = (keys.sorted, attrs).zipped.toMap
 
   def toTypedMap(categories:Map[String, CategoryDescriptor], attrs:Map[String, String]):Map[String, TypedAttribute] = {
     categories.keys.map { name =>
@@ -110,7 +110,7 @@ object AttributesUtil {
               if (s.contains(v.value)) {
                 None
               } else {
-                Some(constraint.getAttributeName -> (v.value + " is not a member of " + s.getValues.toSet))
+                Some(constraint.getAttributeName -> (v.value + " is not a member of " + s.getValues.asScala.toSet))
               }
             case r:RangeConstraint =>
               val valid = r match {

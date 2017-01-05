@@ -18,7 +18,7 @@ package net.lshift.diffa.schema.hibernate
 
 import org.hibernate.{Session, SessionFactory}
 import org.slf4j.LoggerFactory
-import java.sql.Connection
+import java.sql.{SQLException, Connection}
 import org.hibernate.jdbc.Work
 
 /**
@@ -63,17 +63,15 @@ class SessionHelper(val sessionFactory: SessionFactory) {
       case ex: Exception => ex.getCause match {
         case recov: java.sql.SQLRecoverableException =>
           log.warn("Retrying failed operation: %s".format(recov.getMessage))
-          try {
-            val session = sessionFactory.openSession
-            val result = dbCommands(session)
-            session.flush
+          val session = sessionFactory.openSession
+          val result = dbCommands(session)
+          session.flush
 
-            result
-          }
+          result
         case _ =>
           throw ex
       }
-      case exc =>
+      case exc: Throwable =>
         throw exc
     } finally {
       session.close
@@ -98,7 +96,7 @@ class SessionHelper(val sessionFactory: SessionFactory) {
           try {
             stmt.execute(stmtText)
           } catch {
-            case ex =>
+            case ex: SQLException =>
               println("Failed to execute prep stmt: %s".format(stmtText))
               if (treatErrorsAsFatal) throw ex
           }

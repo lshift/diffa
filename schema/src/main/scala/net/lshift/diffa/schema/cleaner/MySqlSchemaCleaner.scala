@@ -1,5 +1,7 @@
 package net.lshift.diffa.schema.cleaner
 
+import java.sql.SQLException
+
 import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHelper
 import net.lshift.diffa.schema.environment.DatabaseEnvironment
 
@@ -22,7 +24,7 @@ object MySqlSchemaCleaner extends SchemaCleaner {
           try {
             stmt.execute(stmtText)
           } catch {
-            case ex =>
+            case ex: SQLException =>
               println("Failed to execute prepared statement: %s".format(stmtText))
           }
         }

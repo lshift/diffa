@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.differencing
 
 import net.lshift.diffa.kernel.events.VersionID
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.participants.ParticipantType
 import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.kernel.config.{PairRef, DiffaPairRef}

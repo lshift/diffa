@@ -17,7 +17,7 @@
 package net.lshift.diffa.kernel.participants
 
 import org.joda.time.DateTime
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 /**
  * Describes a digest of version information, or the actual version itself.

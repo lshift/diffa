@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import scala.collection.JavaConversions._
 import org.joda.time.{DateTime, Interval}
 import net.lshift.diffa.kernel.config.{JooqConfigStoreCompanion, PairRef}

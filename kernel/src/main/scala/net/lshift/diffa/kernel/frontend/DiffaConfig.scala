@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.frontend
 
 import net.lshift.diffa.kernel.config._
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import org.quartz.CronExpression
 import java.util.HashMap
 import scala.collection.JavaConversions._
@@ -263,7 +263,7 @@ case class PairDef(
         // diagnostics of why it is wrong.
         new CronExpression(scanCronSpec)
       } catch {
-        case ex =>
+        case ex: Throwable =>
           throw new ConfigValidationException(pairPath, "Schedule '" + scanCronSpec + "' is not a valid: " + ex.getMessage)
       }
     }
@@ -330,7 +330,7 @@ case class PairViewDef(
         // diagnostics of why it is wrong.
         new CronExpression(scanCronSpec)
       } catch {
-        case ex =>
+        case ex:Throwable =>
           throw new ConfigValidationException(viewPath, "Schedule '" + scanCronSpec + "' is not a valid: " + ex.getMessage)
       }
     }
@@ -422,7 +422,7 @@ case class EscalationDef (
 
   def this() = this(name = null)
 
-  def validate(path:String = null) {
+  def validate(path:String = null): Unit = {
     val escalationPath = ValidationUtil.buildPath(path, "escalation", Map("name" -> name))
 
     action = ValidationUtil.maybeNullify(action)
@@ -438,7 +438,8 @@ case class EscalationDef (
         EscalationManager.validateRule(rule, escalationPath)
       case REPORT =>
         rule match {
-          case SCAN_FAILED | SCAN_COMPLETED => rule
+          case SCAN_FAILED | SCAN_COMPLETED =>
+            // rule
           case _ =>
             throw new ConfigValidationException(escalationPath,
               "Invalid escalation event source type %s for action type %s".format(rule, actionType))

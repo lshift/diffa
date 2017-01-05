@@ -21,7 +21,6 @@ import org.junit.Assert
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.Theories
 import org.junit.experimental.theories.DataPoints
-import scala.collection.JavaConversions.asJavaList
 import org.junit.experimental.theories.Theory
 import org.junit.experimental.theories.DataPoint
 

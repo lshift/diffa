@@ -67,7 +67,7 @@ class LuceneVersionCorrelationStore(val pair: PairRef,
     }
   }
 
-  val writer = new LuceneWriter(index, diagnostics)
+  lazy val writer = new LuceneWriter(index, diagnostics)
 
   def openWriter() = writer // TODO: rename this - openWriter is a misnomer; probably should be getWriter
 
@@ -202,8 +202,7 @@ class LuceneVersionCorrelationStore(val pair: PairRef,
         partQuery.add(wq, BooleanClause.Occur.MUST)
       }
       case s:SetConstraint  => {
-        val setMatchQuery = new BooleanQuery
-        s.getValues.foreach(x => setMatchQuery.add(new TermQuery(new Term(prefix + s.getAttributeName, x)), BooleanClause.Occur.SHOULD))
+        val setMatchQuery = setConstraintQuery(s, prefix)
         partQuery.add(setMatchQuery, BooleanClause.Occur.MUST)
       }
     }
@@ -225,6 +224,13 @@ class LuceneVersionCorrelationStore(val pair: PairRef,
         query.add(partQuery, BooleanClause.Occur.MUST)
       }
     }
+  }
+
+  private def setConstraintQuery(s: SetConstraint, prefix: String): Query = {
+    val termFun = (s: SetConstraint, x: String) => new TermQuery(new Term(prefix + s.getAttributeName, x))
+    val setMatchQuery = new BooleanQuery
+    s.getValues.foreach(x => setMatchQuery.add(termFun(s, x), BooleanClause.Occur.SHOULD))
+    setMatchQuery
   }
 
   private def preventEmptyQuery(query: BooleanQuery): Query =

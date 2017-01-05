@@ -24,5 +24,5 @@ import net.lshift.diffa.kernel.differencing.FeedbackHandle
  */
 class NonCancellingFeedbackHandle extends FeedbackHandle {
   def isCancelled = false
-  def cancel() = null
+  def cancel() = {}
 }

@@ -45,18 +45,10 @@ import org.slf4j.LoggerFactory
 import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
-import org.jooq._
+import org.jooq.{Field, Record, Result}
 import java.lang.{Long => LONG}
 import net.lshift.diffa.schema.tables.SpacePaths._
-import net.lshift.diffa.kernel.frontend.DomainPairDef
-import net.lshift.diffa.kernel.frontend.EndpointDef
-import net.lshift.diffa.kernel.frontend.RepairActionDef
-import scala.Some
-import net.lshift.diffa.kernel.frontend.EndpointViewDef
-import net.lshift.diffa.kernel.frontend.PairReportDef
-import net.lshift.diffa.kernel.frontend.EscalationDef
-import net.lshift.diffa.kernel.frontend.DomainEndpointDef
-import net.lshift.diffa.kernel.frontend.PairViewDef
+import net.lshift.diffa.kernel.frontend._
 
 /**
  * This object is a workaround for the fact that Scala is so slow
@@ -571,7 +563,7 @@ object JooqConfigStoreCompanion {
           case r:RangeCategoryDescriptor  => insertRangeCategory(t, endpointId, categoryName, r)
           case s:SetCategoryDescriptor    => insertSetCategory(t, endpointId, categoryName, s)
           case p:PrefixCategoryDescriptor => insertPrefixCategory(t, endpointId, categoryName, p)
-          case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoints.
+//          case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoints.
         }
       }
       catch {
@@ -581,8 +573,8 @@ object JooqConfigStoreCompanion {
             log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), msg))
             log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
             throw e
-          case x =>
-            log.error("%s Error inserting categories".format(formatAlertCode(space, DB_EXECUTION_ERROR)), x)
+          case x: Throwable =>
+            log.error("%s Error inserting categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
             throw x
       }
     }}

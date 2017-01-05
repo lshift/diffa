@@ -22,18 +22,20 @@ import net.lshift.diffa.adapter.scanning.ScanningParticipantRequestHandler
 /**
  * Application entry 
  */
-object FilePair extends Application {
+object FilePair {
   val upstreamPort = 19194
   val downstreamPort = 19195
 
-  ensureDir("target/upstream")
-  ensureDir("target/downstream")
+  def main(args: Array[String]): Unit = {
+    ensureDir("target/upstream")
+    ensureDir("target/downstream")
 
-  val upstream = new UpstreamFileParticipant("a", "target/upstream", "http://localhost:19093/diffa-agent")
-  val downstream = new DownstreamFileParticipant("b", "target/downstream", "http://localhost:19093/diffa-agent")
+    val upstream = new UpstreamFileParticipant("a", "target/upstream", "http://localhost:19093/diffa-agent")
+    val downstream = new DownstreamFileParticipant("b", "target/downstream", "http://localhost:19093/diffa-agent")
 
-  forkServer(upstreamPort, null)
-  forkServer(downstreamPort, null)
+    forkServer(upstreamPort, null)
+    forkServer(downstreamPort, null)
+  }
 
   private def ensureDir(path:String) {
     (new File(path)).mkdirs

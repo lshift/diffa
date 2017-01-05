@@ -37,7 +37,7 @@ import net.lshift.diffa.kernel.naming.CacheName._
 import net.lshift.diffa.kernel.util.MissingObjectException
 import net.lshift.diffa.kernel.lifecycle.{PairLifecycleAware, DomainLifecycleAware}
 import net.lshift.diffa.kernel.util.cache.{KeyPredicate, CacheProvider}
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import java.util
 import collection.mutable.ListBuffer
 import org.jooq.impl.Factory
@@ -51,7 +51,6 @@ import net.lshift.diffa.snowflake.IdProvider
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.frontend.EndpointDef
 import net.lshift.diffa.kernel.frontend.PairDef
-import scala.Some
 import net.lshift.diffa.kernel.frontend.DomainEndpointDef
 
 class JooqDomainConfigStore(jooq:JooqDatabaseFacade,

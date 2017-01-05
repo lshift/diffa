@@ -16,11 +16,10 @@
 
 package net.lshift.diffa.kernel.differencing
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import org.joda.time.DateTime
 import scala.collection.Map
-import scala.collection.JavaConversions.MapWrapper
-import scala.collection.JavaConversions.asMap
+import scala.collection.JavaConverters._
 import collection.mutable.HashMap
 import net.lshift.diffa.kernel.events.VersionID
 import net.lshift.diffa.kernel.config.PairRef._
@@ -67,7 +66,7 @@ case class Correlation(
   // TODO [#2] Can these proxies not be members of this class instead of being created on the stack?
   def getDownstreamAttributes() : java.util.Map[String,String] = {
     if (downstreamAttributes != null) {
-      new MapWrapper[String,String](downstreamAttributes)
+      downstreamAttributes.asJava
     } else {
       null
     }
@@ -75,15 +74,15 @@ case class Correlation(
 
   def getUpstreamAttributes() : java.util.Map[String,String] = {
     if (upstreamAttributes != null) {
-      new MapWrapper[String,String](upstreamAttributes)
+      upstreamAttributes.asJava
     } else {
       null
     }
   }
 
 
-  def setUpstreamAttributes(a:java.util.Map[String,String]) : Unit = upstreamAttributes = asMap(a)
-  def setDownstreamAttributes(a:java.util.Map[String,String]) : Unit = downstreamAttributes = asMap(a)
+  def setUpstreamAttributes(a:java.util.Map[String,String]) : Unit = upstreamAttributes = a.asScala
+  def setDownstreamAttributes(a:java.util.Map[String,String]) : Unit = downstreamAttributes = a.asScala
 
   def asVersionID = VersionID(PairRef(pairing,space),id)
 }

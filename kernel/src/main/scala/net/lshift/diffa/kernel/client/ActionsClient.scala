@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.client
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.frontend.wire.InvocationResult
 import net.lshift.diffa.kernel.config.RepairAction._
 import net.lshift.diffa.kernel.frontend.RepairActionDef

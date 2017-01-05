@@ -44,7 +44,11 @@ class LuceneVersionCorrelationStoreFactory(
     stores.getOrElseUpdate(pair,
       new LuceneVersionCorrelationStore(pair, luceneDirectory(pair), configStore, domainConfigStore, diagnostics))
 
-  private def directory(pair: PairRef) = new File(baseDir, pair.identifier)
+  private def directory(pair: PairRef) = {
+    val dir = new File(baseDir)
+    if (!dir.exists()) dir.mkdirs()
+    new File(baseDir, pair.identifier)
+  }
 
   private def luceneDirectory(pair: PairRef) =
     directoryClass.getConstructor(classOf[File]).newInstance(directory(pair))

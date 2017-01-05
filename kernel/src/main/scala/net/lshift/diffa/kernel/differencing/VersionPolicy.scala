@@ -78,7 +78,7 @@ trait FeedbackHandle {
   /**
    * This cancels the current running task.
    */
-  def cancel()
+  def cancel(): Unit
 
   /**
    * This indicates whether the current running task has been cancelled.

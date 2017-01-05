@@ -43,6 +43,9 @@ import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.junit.{Ignore, Test, After, Before}
 import net.lshift.diffa.kernel.frontend.DomainPairDef
 import net.lshift.diffa.kernel.scanning.{ScanStatement, ScanActivityStore}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @Ignore
 @RunWith(classOf[Theories])

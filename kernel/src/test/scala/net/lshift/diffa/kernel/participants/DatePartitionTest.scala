@@ -146,8 +146,8 @@ class DatePartitionTest {
 
   @Test
   def descendFromYearlyCategoryFunction {
-    val expectedStart = new DateTime(1986, 01, 01, 0, 0, 0, 0, DateTimeZone.UTC)
-    val expectedEnd = new DateTime(1987, 01, 01, 0, 0, 0, 0, DateTimeZone.UTC).minusMillis(1)
+    val expectedStart = new DateTime(1986, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC)
+    val expectedEnd = new DateTime(1987, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC).minusMillis(1)
     assertEquals(Some(MonthlyCategoryFunction("bizDate", TimeDataType)), YearlyCategoryFunction("bizDate", TimeDataType).descend)
     assertEquals(new TimeRangeConstraint("bizDate", expectedStart, expectedEnd),
       YearlyCategoryFunction("bizDate", TimeDataType).constrain(None, "1986"))

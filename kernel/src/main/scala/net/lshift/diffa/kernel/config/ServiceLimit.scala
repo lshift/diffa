@@ -1,6 +1,6 @@
 package net.lshift.diffa.kernel.config
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 case class ServiceLimitDefinitions(@BeanProperty var limitName: String = null,
                                    @BeanProperty var limitDescription: String = null) {
