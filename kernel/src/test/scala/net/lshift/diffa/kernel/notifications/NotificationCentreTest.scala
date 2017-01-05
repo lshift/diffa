@@ -37,7 +37,7 @@ class NotificationCentreTest {
     val l1 = createStrictMock("l1", classOf[DifferencingListener])
     val l2 = createStrictMock("l2", classOf[DifferencingListener])
     val l3 = createStrictMock("l2", classOf[DifferencingListener])
-    val now = new DateTime(2011, 07, 14, 14, 49, 0, 0)
+    val now = new DateTime(2011, 7, 14, 14, 49, 0, 0)
 
     nc.registerForDifferenceEvents(l1, Unfiltered)
     nc.registerForDifferenceEvents(l2, Unfiltered)

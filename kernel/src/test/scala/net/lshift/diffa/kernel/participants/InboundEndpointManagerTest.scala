@@ -34,7 +34,7 @@ class InboundEndpointManagerTest {
 
     def canHandleInboundEndpoint(url: String) = url.startsWith("amqp")
     def ensureEndpointReceiver(e: DomainEndpointDef) = lastEp = e
-    def endpointGone(domain: String, endpoint: String) = null
+    def endpointGone(domain: String, endpoint: String) = {}
   }
 
   @Test

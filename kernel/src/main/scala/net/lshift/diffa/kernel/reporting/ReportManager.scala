@@ -59,7 +59,7 @@ class ReportManager(configStore:DomainConfigStore, diffStore:DomainDifferenceSto
       })
       diagnostics.logPairEvent(None, pair, DiagnosticLevel.INFO, "Completed report %s".format(name))
     } catch {
-      case e =>
+      case e: Throwable =>
         diagnostics.logPairEvent(None, pair, DiagnosticLevel.ERROR, "Report %s failed: %s".format(name, e.getMessage))
     }
   }

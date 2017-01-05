@@ -3,8 +3,8 @@ package net.lshift.diffa.schema.cleaner
 import net.lshift.diffa.schema.environment.DatabaseEnvironment
 import net.lshift.diffa.schema.hibernate.SessionHelper.sessionFactoryToSessionHelper
 import org.hibernate.jdbc.Work
-import java.sql.Connection
-import org.hibernate.SessionFactory
+import java.sql.{SQLException, Connection}
+import org.hibernate.{HibernateException, SessionFactory}
 import org.slf4j.LoggerFactory
 import org.joda.time.DateTime
 import org.joda.time.Interval
@@ -148,7 +148,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
             stmt.execute(stmtText)
             log.debug("Executed: %s".format(stmtText))
           } catch {
-            case ex =>
+            case ex: SQLException =>
               log.error("Failed to execute prepared statement: %s".format(stmtText))
               throw ex
           }
@@ -170,7 +170,7 @@ object OracleSchemaCleaner extends SchemaCleaner {
         sessionFactory.openSession
         connected = true
       } catch {
-        case ex =>
+        case ex: HibernateException =>
           Thread.sleep(pollIntervalMs)
           failCount += 1
           if (failCount >= failThreshold) {

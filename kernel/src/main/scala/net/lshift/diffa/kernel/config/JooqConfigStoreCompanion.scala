@@ -510,7 +510,7 @@ object JooqConfigStoreCompanion {
           case r:RangeCategoryDescriptor  => insertRangeCategory(t, domain, endpoint.name, categoryName, r)
           case s:SetCategoryDescriptor    => insertSetCategory(t, domain, endpoint.name, categoryName, s)
           case p:PrefixCategoryDescriptor => insertPrefixCategory(t, domain, endpoint.name, categoryName, p)
-          case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoint Views.
+//          case rw: RollingWindowFilter    => // Rolling Windows can only be defined on Endpoint Views.
         }
       }
       catch {
@@ -520,7 +520,7 @@ object JooqConfigStoreCompanion {
             log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
             log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
             throw e
-          case x =>
+          case x: Throwable =>
             log.error("%s Error inserting categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
             throw x
       }
@@ -557,7 +557,7 @@ object JooqConfigStoreCompanion {
           log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), msg))
           log.warn("%s %s".format(formatAlertCode(domain, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
           throw e
-        case x =>
+        case x: Throwable =>
           log.error("%s Error inserting view categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
           throw x
       }

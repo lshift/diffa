@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.differencing.AttributesUtil
 import scala.Option._

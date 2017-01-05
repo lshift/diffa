@@ -61,7 +61,7 @@ class DigestDifferencingUtilsTest {
       DigestDifferencingUtils.differenceAggregates(a, b, Seq(MonthlyCategoryFunction("bizDateTime", TimeDataType)), Seq())
       fail("Should have thrown Exception")
     } catch {
-      case ex =>
+      case ex: Throwable =>
         assertEquals(
           "Invalid format: \"2010\" is too short { bucketing = List(MonthlyCategoryFunction(bizDateTime,TimeDataType)), constraints = List(), partitions = Map(bizDateTime -> 2010), results = ListBuffer() }",
           ex.getMessage)

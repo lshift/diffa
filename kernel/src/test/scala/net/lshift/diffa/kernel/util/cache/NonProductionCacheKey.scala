@@ -16,7 +16,7 @@
 package net.lshift.diffa.kernel.util.cache
 
 import java.io.Serializable
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 /**
  * Do not use this in production - it is just a test class that a java library can serialize

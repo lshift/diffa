@@ -30,7 +30,7 @@ class ResultOnlyMappingJacksonJsonView extends MappingJacksonJsonView {
     if (filtered.size > 1) {
       filtered
     } else {
-      filtered(filtered.keySet.first)
+      filtered(filtered.keySet.head)
     }
   }
 }

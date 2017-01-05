@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.differencing
 import net.lshift.diffa.kernel.events.VersionID
 import org.joda.time.{Interval, DateTime}
 import net.lshift.diffa.kernel.config.DiffaPairRef
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 /**
  * The domain cache provides facilities for storing difference events that occur, and managing the states of these

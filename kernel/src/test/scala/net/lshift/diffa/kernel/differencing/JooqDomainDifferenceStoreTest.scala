@@ -733,7 +733,7 @@ class JooqDomainDifferenceStoreTest {
         assertTrue("Cause must be an SQLIntegrityConstraintViolationException or ORA-14400",
           e.getCause.isInstanceOf[SQLIntegrityConstraintViolationException]
           || e.getMessage.contains("ORA-14400"))
-      case unexpected =>
+      case unexpected: Throwable =>
         throw unexpected
     }
   }

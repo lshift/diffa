@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.frontend.wire
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 /**
  * This is the wire format for invoking an action against a participant

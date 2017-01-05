@@ -55,7 +55,7 @@ object StoreSynchronizationUtils {
       // Close the diff writer
       diffWriter.close()
     } catch {
-      case ex =>
+      case ex: Throwable =>
         diffWriter.abort()
         throw ex      // The exception will be logged below. This block is simply to ensure that abort is called.
     }
