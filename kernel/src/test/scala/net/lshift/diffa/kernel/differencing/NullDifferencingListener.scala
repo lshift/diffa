@@ -24,6 +24,6 @@ import org.joda.time.DateTime
  * Differencing listener that just ignores all reports.
  */
 class NullDifferencingListener extends DifferencingListener {
-  def onMismatch(id: VersionID, lastUpdate:DateTime, upstreamVsn: String, downstreamVsn: String, origin:MatchOrigin, level:DifferenceFilterLevel) = null
-  def onMatch(id: VersionID, vsn: String, origin:MatchOrigin) = null
+  def onMismatch(id: VersionID, lastUpdate:DateTime, upstreamVsn: String, downstreamVsn: String, origin:MatchOrigin, level:DifferenceFilterLevel) = {}
+  def onMatch(id: VersionID, vsn: String, origin:MatchOrigin) = {}
 }

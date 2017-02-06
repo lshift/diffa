@@ -18,7 +18,7 @@ package net.lshift.diffa.kernel.notifications
 
 import org.joda.time.DateTime
 import net.lshift.diffa.kernel.events.VersionID
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 case class NotificationEvent (
   @BeanProperty var id:VersionID,

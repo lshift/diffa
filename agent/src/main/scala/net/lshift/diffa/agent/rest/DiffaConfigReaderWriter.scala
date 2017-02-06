@@ -26,7 +26,7 @@ import org.springframework.oxm.castor.CastorMarshaller
 import java.io.{StringWriter, OutputStream, InputStream}
 import javax.xml.transform.stream.{StreamSource, StreamResult}
 import scala.collection.JavaConversions._
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.kernel.frontend._
 import java.util

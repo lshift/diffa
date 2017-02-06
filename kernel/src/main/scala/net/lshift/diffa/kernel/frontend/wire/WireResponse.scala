@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.frontend.wire
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import java.util.List
 import net.lshift.diffa.participant.correlation.ProcessingResponse
 import scala.collection.JavaConversions._

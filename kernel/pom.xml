@@ -54,11 +54,11 @@
     </dependency>
     <dependency>
       <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-actor</artifactId>
+      <artifactId>akka-actor_${scala.prefix.version}</artifactId>
     </dependency>
     <dependency>
       <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-testkit</artifactId>
+      <artifactId>akka-testkit_${scala.prefix.version}</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -207,6 +207,17 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_${scala.prefix.version}</artifactId>
+      <version>${scalatest.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.eaio.uuid</groupId>
+      <artifactId>uuid</artifactId>
+      <version>3.2</version>
     </dependency>
   </dependencies>
 

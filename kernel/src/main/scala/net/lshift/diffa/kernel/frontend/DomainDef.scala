@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.frontend
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.config.ValidationUtil
 
 /**

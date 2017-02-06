@@ -1,7 +1,7 @@
 package net.lshift.diffa.kernel.diag
 
 import org.joda.time.DateTime
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.differencing.PairScanState
 import net.lshift.diffa.kernel.config.DiffaPairRef
 import java.io.OutputStream

@@ -43,7 +43,7 @@ class DiffaHttpQueryTest {
   @Test
   def withTimeRangeConstraints() {
 
-    val start = new DateTime(2012, 07, 04, 16, 47, DateTimeZone.UTC)
+    val start = new DateTime(2012, 7, 4, 16, 47, DateTimeZone.UTC)
     val end = start.plus(3600 * 1000)
     val constraints = Seq(new TimeRangeConstraint("property", start, end))
     val expectedQueryParameters = Map("property-start" -> Seq("2012-07-04T16:47:00.000Z"), "property-end" -> Seq("2012-07-04T17:47:00.000Z"))

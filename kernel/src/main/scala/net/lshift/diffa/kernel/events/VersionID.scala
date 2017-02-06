@@ -17,8 +17,8 @@
 package net.lshift.diffa.kernel.events
 
 import java.io.Serializable
-import reflect.BeanProperty
 import net.lshift.diffa.kernel.config.DiffaPairRef
+import scala.beans.BeanProperty
 
 /**
  * Identifier for a version within a given pair.

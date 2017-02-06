@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.participants.domain
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 
 /**
  * Describes an entity belonging to a participant.
