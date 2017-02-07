@@ -445,7 +445,7 @@ class JooqSystemConfigStore(jooq:JooqDatabaseFacade,
 
     // The order of deletion is important. Incorrect ordering will cause foreign key constraint violations.
     // TODO describe this ordering dependency in a more obvious and visible fashion.
-    val dependentTables = Seq(
+    val dependentTables: Seq[org.jooq.Table[_ <: Record]] = Seq(
       PREFIX_CATEGORY_VIEWS,
       PREFIX_CATEGORIES,
       SET_CATEGORY_VIEWS,

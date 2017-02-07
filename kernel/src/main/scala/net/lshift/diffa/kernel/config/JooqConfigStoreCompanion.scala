@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory
 import org.jooq.exception.DataAccessException
 import java.sql.SQLIntegrityConstraintViolationException
 import net.lshift.diffa.kernel.util.AlertCodes._
-import org.jooq.{Field, Record, Result}
+import org.jooq.{Field, Record, Result, Table}
 import java.lang.{Long => LONG}
 import net.lshift.diffa.schema.tables.SpacePaths._
 import net.lshift.diffa.kernel.frontend._
@@ -574,7 +574,7 @@ object JooqConfigStoreCompanion {
             log.warn("%s %s".format(formatAlertCode(space, INTEGRITY_CONSTRAINT_VIOLATED), e.getMessage))
             throw e
           case x: Throwable =>
-            log.error("%s Error inserting categories".format(formatAlertCode(domain, DB_EXECUTION_ERROR)), x)
+            log.error("%s Error inserting categories".format(formatAlertCode(space, DB_EXECUTION_ERROR)), x)
             throw x
       }
     }}
@@ -743,7 +743,7 @@ object JooqConfigStoreCompanion {
 
   def deleteCategories(t:Factory, space:Long, endpoint:String) = {
     // The order of these tables is important. Incorrect ordering will result in foreign key constraint violation.
-    val categoryTables = Seq(
+    val categoryTables: Seq[org.jooq.Table[_ <: Record]] = Seq(
       PREFIX_CATEGORY_VIEWS,
       PREFIX_CATEGORIES,
       SET_CATEGORY_VIEWS,

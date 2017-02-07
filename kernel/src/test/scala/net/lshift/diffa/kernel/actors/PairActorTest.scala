@@ -37,7 +37,6 @@ import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
 import net.lshift.diffa.adapter.scanning._
-import akka.dispatch.{ExecutionContext, Future}
 import org.junit.runner.RunWith
 import org.junit.experimental.theories.{DataPoint, Theories, Theory}
 import org.junit.{Ignore, Test, After, Before}
@@ -443,7 +442,6 @@ class PairActorTest {
 
     val timeToWait = 2000L
     implicit val system =  actorSystem
-    implicit val ec = ExecutionContext.defaultExecutionContext
 
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall     // Expect once when the pair actor starts the call
     scanListener.pairScanStateChanged(pair.asRef, PairScanState.SCANNING); expectLastCall[Unit].andAnswer(new IAnswer[Unit] {
@@ -646,7 +644,6 @@ class PairActorTest {
     expect(writer.flush()).andStubAnswer(new IAnswer[Unit] {
       def answer = {
         mailbox.add(new Object)
-        null
       }
     })
     replay(writer, store, diffWriter)
