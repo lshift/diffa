@@ -549,8 +549,7 @@ class PairActorTest {
       Thread.sleep(100);
     }
 
-    println("Cancellation delay: %s; cancelled? %s".format(Duration.between(started, Instant.now()), handle.isCancelled))
-    assertTrue(handle.isCancelled)
+    assertTrue("feeback handle should be marked as cancelled", handle.isCancelled)
     verify(versionPolicy, scanListener, diagnostics)
   }
 
