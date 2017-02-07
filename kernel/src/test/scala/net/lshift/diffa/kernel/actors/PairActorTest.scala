@@ -16,6 +16,8 @@
 
 package net.lshift.diffa.kernel.actors
 
+import java.time.{Duration, Instant}
+
 import org.easymock.EasyMock._
 import org.junit.Assert._
 import net.lshift.diffa.kernel.differencing._
@@ -34,6 +36,7 @@ import concurrent.{SyncVar}
 import net.lshift.diffa.kernel.diag.{DiagnosticLevel, DiagnosticsManager}
 import net.lshift.diffa.kernel.config.{DomainConfigStore, DiffaPairRef, Domain, Endpoint, DiffaPair}
 import java.util.concurrent.LinkedBlockingQueue
+import scala.Exception
 import scala.collection.JavaConversions._
 import net.lshift.diffa.kernel.util._
 import net.lshift.diffa.participant.scanning._
@@ -518,7 +521,7 @@ class PairActorTest {
 
   @Test
   def shouldCancelFeedbackHandleWhenAParticipantFails = {
-    val wasMarkedAsCancelled = new SyncVar[Boolean]
+    val downstreamFeedbackHandle = new SyncVar[FeedbackHandle]
 
     expectFailingUpstreamScanAndUseProvidedDownstreamHandler(downstreamHandler = new IAnswer[Unit] {
       def answer() {
@@ -526,7 +529,7 @@ class PairActorTest {
         println("Marking as cancelled for %s".format(feedbackHandle))
         awaitFeedbackHandleCancellation(feedbackHandle)
         println("Feedbackhandle %s cancelled? %s".format(feedbackHandle, feedbackHandle.isCancelled))
-        wasMarkedAsCancelled.set(feedbackHandle.isCancelled)
+        downstreamFeedbackHandle.set(feedbackHandle)
       }
     })
 
@@ -538,7 +541,15 @@ class PairActorTest {
 
     supervisor.startActor(pair.asRef)
     supervisor.scanPair(pair.asRef, None, None)
-    assertTrue(wasMarkedAsCancelled.get(4000).getOrElse(throw new Exception("Feedback handle check never reached in participant stub")))
+    val handle: FeedbackHandle = downstreamFeedbackHandle.get(4000).getOrElse(throw new Exception("Feedback handle check never reached in participant stub"))
+
+    val started: Instant = Instant.now()
+    val deadline = started.plus(Duration.ofSeconds(4));
+    while(Instant.now().isBefore(deadline) && !handle.isCancelled) {
+      Thread.sleep(100);
+    }
+
+    assertTrue("feeback handle should be marked as cancelled", handle.isCancelled)
     verify(versionPolicy, scanListener, diagnostics)
   }
 
