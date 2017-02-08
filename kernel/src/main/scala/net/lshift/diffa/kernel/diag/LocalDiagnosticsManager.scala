@@ -3,6 +3,7 @@ package net.lshift.diffa.kernel.diag
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.differencing.{PairScanState, PairScanListener}
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
+import org.slf4j.{Logger, LoggerFactory}
 import java.io._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
@@ -11,7 +12,6 @@ import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.joda.time.{DateTimeZone, DateTime}
 import net.lshift.diffa.kernel.config._
 import net.lshift.diffa.schema.servicelimits._
-import scala.Some
 
 /**
  * Local in-memory implementation of the DiagnosticsManager.
@@ -187,7 +187,13 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
 
     private def currentExplainDirectory = {
       if (explainDir == null) {
-        explainDir = new File(pairExplainRoot, fileNameFormatter.print(new DateTime))
+        val now: DateTime = new DateTime
+        var cnt = 0;
+        do {
+          val dt: String = fileNameFormatter.print(now)
+          explainDir = new File(pairExplainRoot, "%s-%06d".format(dt, cnt))
+          cnt += 1;
+        } while (explainDir.exists() || zipFileForExplainDir(explainDir).exists())
         explainDir.mkdirs()
       }
 
@@ -197,7 +203,7 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     private def compressExplanationDir(dir:File) {
       val explainFiles = dir.listFiles()
       if (explainFiles != null) {
-        val zos = new ZipOutputStream(new FileOutputStream(new File(pairExplainRoot, dir.getName + ".zip")))
+        val zos = new ZipOutputStream(new FileOutputStream(zipFileForExplainDir(dir)))
 
         explainFiles.foreach(f => {
           zos.putNextEntry(new ZipEntry(f.getName))
@@ -217,6 +223,10 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
       dir.delete()
     }
 
+    def zipFileForExplainDir(dir: File): File = {
+      new File(pairExplainRoot, dir.getName + ".zip")
+    }
+
     /**
      * Ensures that for each pair, only <maxExplainFilesPerPair> zips are kept. When this value is exceeded,
      * files with older modification dates are removed first.
@@ -226,9 +236,12 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
         def accept(dir: File, name: String) = name.endsWith(".zip")
       })
       if (explainFiles != null && explainFiles.length > getMaxExplainFiles) {
-        val orderedFiles = explainFiles.toSeq.sortBy(f => (f.lastModified, f.getName))
-        orderedFiles.take(explainFiles.length - getMaxExplainFiles).foreach(f => f.delete())
+        val orderedFiles = explainFiles.toSeq.sortBy(_.getName)
+        val todelete: Seq[File] = orderedFiles.take(explainFiles.length - getMaxExplainFiles)
+        todelete.foreach(f => log.debug(s"Removing file: ${f}"))
+        todelete.foreach(f => f.delete())
       }
     }
   }
 }
+
