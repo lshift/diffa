@@ -56,14 +56,14 @@ public class CopyTableBuilderTest {
     // We use a TreeMap instead of a HashMap as the implementation depends on
     // iteration-order. Ideally, we'd re-write these to use an in-memory DB instance.
     Map<String,String> predicates = new TreeMap<String, String>();
-    predicates.put("bar", "b");
-    predicates.put("foo", "a");
+    predicates.put("a", "foo");
+    predicates.put("b", "bar");
 
     mb.copyTableContents("src", "dest", sourceCols, destCols).whereSource(predicates);
 
     Connection conn = createStrictMock(Connection.class);
 
-    String sql = "insert into dest(foo,bar2,baz) select foo,bar,baz from src where bar = 'b' and foo = 'a'";
+    String sql = "insert into dest(foo,bar2,baz) select foo,bar,baz from src where a = 'foo' and b = 'bar'";
 
     expect(conn.prepareStatement(sql)).andReturn(mockExecutablePreparedStatementForUpdate(1));
     replay(conn);
