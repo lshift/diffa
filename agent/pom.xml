@@ -247,7 +247,7 @@
         <artifactId>maven-scala-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.mortbay.jetty</groupId>
+        <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-maven-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -308,12 +308,6 @@
               <value>${basedir}/src/test/resources/logback-test.xml</value>
             </systemProperty>
           </systemProperties>
-          <connectors>
-            <connector implementation="org.eclipse.jetty.server.nio.SelectChannelConnector">
-              <port>19093</port>
-              <maxIdleTime>60000</maxIdleTime>
-            </connector>
-          </connectors>
           <scanIntervalSeconds>600</scanIntervalSeconds>
           <stopKey>foo</stopKey>
           <stopPort>19094</stopPort>
@@ -328,7 +322,7 @@
             <id>start-jetty</id>
             <phase>pre-integration-test</phase>
             <goals>
-              <goal>run</goal>
+              <goal>start</goal>
             </goals>
             <configuration>
               <scanIntervalSeconds>0</scanIntervalSeconds>

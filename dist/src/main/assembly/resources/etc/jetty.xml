@@ -46,7 +46,6 @@
     <Item>org.mortbay.jetty.plus.webapp.EnvConfiguration</Item>
     <Item>org.mortbay.jetty.plus.webapp.Configuration</Item>
     <Item>org.mortbay.jetty.webapp.JettyWebXmlConfiguration</Item>
-    <Item>org.mortbay.jetty.webapp.TagLibConfiguration</Item>
   </Array>
 
 
@@ -123,7 +122,6 @@
         <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
         <Item>org.eclipse.jetty.plus.webapp.PlusConfiguration</Item>
         <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.TagLibConfiguration</Item>
       </Array>
     </Set>
 
@@ -191,7 +189,6 @@
         <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
         <Item>org.eclipse.jetty.plus.webapp.PlusConfiguration</Item>
         <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.TagLibConfiguration</Item>
       </Array>
     </Set>
 

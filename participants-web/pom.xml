@@ -116,7 +116,7 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.mortbay.jetty</groupId>
+        <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-maven-plugin</artifactId>
         <version>${jetty.version}</version>
         <dependencies>
@@ -153,6 +153,12 @@
             <artifactId>commons-io</artifactId>
             <version>${commons.io.version}</version>
           </dependency>
+
+          <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+            <version>1.4.1</version>
+          </dependency>
         </dependencies>
 
         <configuration>
@@ -171,12 +177,6 @@
               <value>http://localhost:19093/diffa-agent</value>
             </systemProperty>
           </systemProperties>
-          <connectors>
-            <connector implementation="org.eclipse.jetty.server.nio.SelectChannelConnector">
-              <port>19293</port>
-              <maxIdleTime>60000</maxIdleTime>
-            </connector>
-          </connectors>
           <scanIntervalSeconds>600</scanIntervalSeconds>
           <stopKey>foo</stopKey>
           <stopPort>19294</stopPort>
@@ -191,13 +191,12 @@
             <id>start-jetty</id>
             <phase>pre-integration-test</phase>
             <goals>
-              <goal>run</goal>
+              <goal>start</goal>
             </goals>
             <configuration>
               <jettyConfig>${basedir}/src/test/conf/jetty-test.xml</jettyConfig>
               <webAppXml>${basedir}/src/test/conf/jetty-env.xml</webAppXml>
               <scanIntervalSeconds>0</scanIntervalSeconds>
-              <daemon>true</daemon>
               <systemProperties>
                 <systemProperty>
                   <name>demo.basedir</name>
