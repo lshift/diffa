@@ -205,7 +205,6 @@ class LocalDiagnosticsManagerTest {
     assertTrue(content.contains("[Test Case] Attached object upstream.123.json"))
   }
 
-  @Ignore("ignore for now, flaky test")
   @Test
   def shouldCreateMultipleOutputsWhenMultipleNonQuietRunsHaveBeenMade() {
     val pairKey = "explained_20_2"
