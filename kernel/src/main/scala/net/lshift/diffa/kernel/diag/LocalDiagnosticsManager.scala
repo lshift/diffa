@@ -3,7 +3,7 @@ package net.lshift.diffa.kernel.diag
 import collection.mutable.{ListBuffer, HashMap}
 import net.lshift.diffa.kernel.differencing.{PairScanState, PairScanListener}
 import net.lshift.diffa.kernel.lifecycle.{NotificationCentre, AgentLifecycleAware}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import java.io._
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import org.apache.commons.io.IOUtils
@@ -25,6 +25,7 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     extends DiagnosticsManager
     with PairScanListener
     with AgentLifecycleAware {
+  import LocalDiagnosticsManager._
 
   private val pairs = HashMap[DiffaPairRef, PairDiagnostics]()
 
@@ -107,7 +108,7 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
 
   private class PairDiagnostics(pair:DiffaPairRef) {
     private val pairExplainRoot = new File(explainRootDir, pair.identifier)
-    private val log = ListBuffer[PairEvent]()
+    private val eventLog = ListBuffer[PairEvent]()
     var scanState:PairScanState = PairScanState.UNKNOWN
     private val pairDef = getPairFromRef(pair)
 
@@ -119,22 +120,22 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     private def getMaxExplainFiles = limits.getEffectiveLimitByNameForPair(pair.domain, pair.key, ExplainFiles)
 
     def logPairEvent(evt:PairEvent) {
-      log.synchronized {
-        log += evt
+      eventLog.synchronized {
+        eventLog += evt
 
-        val drop = log.length - getEventBufferSize
+        val drop = eventLog.length - getEventBufferSize
         if (drop > 0)
-          log.remove(0, drop)
+          eventLog.remove(0, drop)
       }
     }
 
     def queryEvents(maxEvents:Int):Seq[PairEvent] = {
-      log.synchronized {
-        val startIdx = log.length - maxEvents
+      eventLog.synchronized {
+        val startIdx = eventLog.length - maxEvents
         if (startIdx < 0) {
-          log.toSeq
+          eventLog.toSeq
         } else {
-          log.slice(startIdx, log.length).toSeq
+          eventLog.slice(startIdx, eventLog.length).toSeq
         }
       }
     }
@@ -187,8 +188,16 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
 
     private def currentExplainDirectory = {
       if (explainDir == null) {
-        explainDir = new File(pairExplainRoot, fileNameFormatter.print(new DateTime))
+        val now: DateTime = new DateTime
+        var cnt = 0;
+        do {
+          val dt: String = fileNameFormatter.print(now)
+          explainDir = new File(pairExplainRoot, "%s-%06d".format(dt, cnt))
+          cnt += 1;
+          log.debug(s"Considering: ${explainDir}; exists? ${explainDir.exists()}; zip exists? ${zipFileForExplainDir(explainDir).exists()}")
+        } while (explainDir.exists() || zipFileForExplainDir(explainDir).exists())
         explainDir.mkdirs()
+
       }
 
       explainDir
@@ -197,7 +206,7 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
     private def compressExplanationDir(dir:File) {
       val explainFiles = dir.listFiles()
       if (explainFiles != null) {
-        val zos = new ZipOutputStream(new FileOutputStream(new File(pairExplainRoot, dir.getName + ".zip")))
+        val zos = new ZipOutputStream(new FileOutputStream(zipFileForExplainDir(dir)))
 
         explainFiles.foreach(f => {
           zos.putNextEntry(new ZipEntry(f.getName))
@@ -217,6 +226,10 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
       dir.delete()
     }
 
+    def zipFileForExplainDir(dir: File): File = {
+      new File(pairExplainRoot, dir.getName + ".zip")
+    }
+
     /**
      * Ensures that for each pair, only <maxExplainFilesPerPair> zips are kept. When this value is exceeded,
      * files with older modification dates are removed first.
@@ -226,9 +239,15 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
         def accept(dir: File, name: String) = name.endsWith(".zip")
       })
       if (explainFiles != null && explainFiles.length > getMaxExplainFiles) {
-        val orderedFiles = explainFiles.toSeq.sortBy(f => (f.lastModified, f.getName))
-        orderedFiles.take(explainFiles.length - getMaxExplainFiles).foreach(f => f.delete())
+        val orderedFiles = explainFiles.toSeq.sortBy(_.getName)
+        val todelete: Seq[File] = orderedFiles.take(explainFiles.length - getMaxExplainFiles)
+        todelete.foreach(f => log.debug(s"Removing file: ${f}"))
+        todelete.foreach(f => f.delete())
       }
     }
   }
+}
+
+object LocalDiagnosticsManager {
+  private val log: Logger = LoggerFactory.getLogger(classOf[LocalDiagnosticsManager])
 }
