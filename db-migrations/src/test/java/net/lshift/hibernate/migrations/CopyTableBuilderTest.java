@@ -53,6 +53,8 @@ public class CopyTableBuilderTest {
 
     Iterable<String> sourceCols = Arrays.asList("foo", "bar", "baz");
     Iterable<String> destCols = Arrays.asList("foo", "bar2", "baz");
+    // We use a TreeMap instead of a HashMap as the implementation depends on
+    // iteration-order. Ideally, we'd re-write these to use an in-memory DB instance.
     Map<String,String> predicates = new TreeMap<String, String>();
     predicates.put("bar", "b");
     predicates.put("foo", "a");
