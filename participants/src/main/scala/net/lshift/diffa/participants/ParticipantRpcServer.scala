@@ -25,7 +25,7 @@ import net.lshift.diffa.adapter.common.ServletHelper
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.security.authentication.BasicAuthenticator
 import org.eclipse.jetty.security.{HashLoginService, ConstraintMapping, ConstraintSecurityHandler}
-import org.eclipse.jetty.http.security.{Credential, Constraint}
+import org.eclipse.jetty.util.security.{Credential, Constraint}
 import org.slf4j.LoggerFactory
 
 /**

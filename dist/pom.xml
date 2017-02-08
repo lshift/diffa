@@ -26,6 +26,13 @@
       <type>war</type>
     </dependency>
 
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4.1</version>
+    </dependency>
+
+
     <!-- Jetty Boot -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -63,7 +70,7 @@
     <!-- JSP resources -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-jsp-2.1</artifactId>
+      <artifactId>apache-jsp</artifactId>
       <version>${jetty.version}</version>
     </dependency>
     <dependency>

@@ -382,8 +382,94 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.mortbay.jetty</groupId>
+            <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-maven-plugin</artifactId>
+            <dependencies>
+              <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>9.4.1.v20170120</version>
+              </dependency>
+              <dependency>
+                <groupId>org.hsqldb</groupId>
+                <artifactId>hsqldb</artifactId>
+                <version>${hsqldb.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>com.jolbox</groupId>
+                <artifactId>bonecp</artifactId>
+                <version>${bonecp.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>net.lshift.javamail</groupId>
+                <artifactId>javamail-file-transport</artifactId>
+                <version>${javamail.file.transport.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+              </dependency>
+            </dependencies>
+            <configuration>
+              <useTestClasspath>true</useTestClasspath>
+              <systemProperties>
+                <systemProperty>
+                  <name>JETTY_NO_SHUTDOWN_HOOK</name>
+                  <value>true</value>
+                </systemProperty>
+                <systemProperty>
+                  <name>basedir</name>
+                  <value>${basedir}</value>
+                </systemProperty>
+                <systemProperty>
+                  <name>diffa.maildir</name>
+                  <value>${basedir}/target/messages</value>
+                </systemProperty>
+                <systemProperty>
+                  <name>logback.configurationFile</name>
+                  <value>${basedir}/src/test/resources/logback-test.xml</value>
+                </systemProperty>
+              </systemProperties>
+              <scanIntervalSeconds>600</scanIntervalSeconds>
+              <stopKey>foo</stopKey>
+              <stopPort>19094</stopPort>
+              <jettyConfig>${basedir}/src/test/conf/jetty.xml</jettyConfig>
+              <webAppXml>${basedir}/src/test/conf/jetty-env.xml</webAppXml>
+              <webAppConfig>
+                <contextPath>/diffa-agent</contextPath>
+              </webAppConfig>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-jetty</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <scanIntervalSeconds>0</scanIntervalSeconds>
+                  <daemon>true</daemon>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-jetty</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>stop</goal>
+                </goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
@@ -409,7 +495,7 @@
             <artifactId>maven-scala-plugin</artifactId>
           </plugin>
           <plugin>
-            <groupId>org.mortbay.jetty</groupId>
+            <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-maven-plugin</artifactId>
             <dependencies>
               <dependency>
