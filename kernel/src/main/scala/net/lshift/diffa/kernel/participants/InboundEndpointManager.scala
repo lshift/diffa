@@ -48,7 +48,7 @@ class InboundEndpointManager(configStore:SystemConfigStore) extends EndpointLife
           try {
             f.ensureEndpointReceiver(e)
           } catch {
-            case ex => log.error("Failed to create an endpoint receiver for " + e, ex)
+            case ex: Throwable => log.error("Failed to create an endpoint receiver for " + e, ex)
           }
         })
       }

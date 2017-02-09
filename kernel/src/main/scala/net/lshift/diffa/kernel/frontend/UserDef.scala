@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.frontend
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import java.security.MessageDigest
 import org.apache.commons.codec.binary.Hex
 import net.lshift.diffa.kernel.config.ValidationUtil

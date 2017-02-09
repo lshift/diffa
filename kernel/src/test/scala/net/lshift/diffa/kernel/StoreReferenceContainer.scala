@@ -172,7 +172,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     try {
       _ds.get.close()
     } catch {
-      case x => {
+      case x: Throwable => {
         log.warn("Could not close data source", x)
       }
     }
@@ -180,7 +180,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     try {
       _sessionFactory.get.close()
     } catch {
-      case x => {
+      case x: Throwable => {
         log.warn("Could not close sessionFactory", x)
       }
     }
@@ -191,7 +191,7 @@ class LazyCleanStoreReferenceContainer(val applicationEnvironment: DatabaseEnvir
     try {
       performCleanerAction(cleaner => cleaner.drop)
     } catch {
-      case _ =>
+      case _: Throwable =>
     }
 
   }

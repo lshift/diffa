@@ -33,7 +33,7 @@ import org.quartz.JobBuilder.newJob
 import net.lshift.diffa.kernel.actors.PairPolicyClient
 import net.lshift.diffa.kernel.config.system.SystemConfigStore
 import scala.collection.JavaConversions._
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.config.{PairRef, DomainConfigStore}
 
 /**
@@ -74,7 +74,7 @@ class QuartzScanScheduler(systemConfig:SystemConfigStore,
           log.info(formatAlertCode(pair, VIEW_SCHEDULED_SCAN_STARTED) + " starting scheduled scan for view " + view)
         } catch {
             // Catch, log, and drop exceptions to prevent the scheduler trying to do any misfire handling
-          case ex =>
+          case ex: Throwable =>
             log.error(formatAlertCode(pair, VIEW_SCHEDULED_SCAN_FAILED) + " failed to start scheduled scan for view " + view)
         }
       }

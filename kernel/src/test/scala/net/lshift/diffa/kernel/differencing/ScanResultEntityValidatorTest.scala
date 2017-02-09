@@ -115,5 +115,5 @@ trait EntityValidatorTestChecks[T] {
   }
 
   protected def exceptionOf(thunk: => Unit): Option[Throwable] =
-    try { thunk; None } catch { case e => Some(e) }
+    try { thunk; None } catch { case e: Throwable => Some(e) }
 }

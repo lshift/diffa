@@ -19,7 +19,7 @@ package net.lshift.diffa.agent.util
 import org.springframework.orm.hibernate3.LocalSessionFactoryBean
 
 import org.hibernate.cfg.Configuration
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.schema.migrations.HibernatePreparationStep
 
 /**

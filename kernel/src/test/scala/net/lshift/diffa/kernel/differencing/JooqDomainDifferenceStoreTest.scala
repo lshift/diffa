@@ -763,7 +763,7 @@ class JooqDomainDifferenceStoreTest {
       fail("No DataAccessException was thrown")
     } catch {
       case e: IllegalStateException => assertTrue("Cause must be due to non-existent pair", e.getMessage.contains("No extent for pair"))
-      case unexpected =>
+      case unexpected: Throwable =>
         throw unexpected
     }
   }

@@ -50,7 +50,7 @@ class EventNotifier(val differencesManager:DifferencesManager,
   /**
    * Ignore matching events for now because they are not so interesting
    */
-  def onMatch(id:VersionID, vsn:String, origin:MatchOrigin) = null
+  def onMatch(id:VersionID, vsn:String, origin:MatchOrigin) = {}
 
   def onMismatch(id:VersionID, lastUpdated:DateTime, upstreamVsn:String, downstreamVsn:String, origin:MatchOrigin, level:DifferenceFilterLevel) {
     val now = new DateTime()

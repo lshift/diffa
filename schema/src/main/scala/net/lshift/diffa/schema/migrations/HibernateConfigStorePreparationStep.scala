@@ -30,7 +30,7 @@ import scala.collection.JavaConversions._
 import org.hibernate.`type`.IntegerType
 import org.hibernate.dialect.{Oracle10gDialect, Dialect}
 import net.lshift.hibernate.migrations.dialects.DialectExtensionSelector
-import org.hibernate.{SessionFactory}
+import org.hibernate.{HibernateException, SessionFactory}
 
 /**
  * Preparation step to ensure that the configuration for the Hibernate Config Store is in place.
@@ -91,7 +91,7 @@ class HibernateConfigStorePreparationStep
                   tx.commit()
                 }
                 catch {
-                  case x => {
+                  case x: HibernateException => {
                     tx.rollback()
                     throw x
                   }
@@ -111,7 +111,7 @@ class HibernateConfigStorePreparationStep
               }
 
             } catch {
-              case ex =>
+              case ex: HibernateException =>
                 println("Failed to prepare the database - attempted to execute the following statements for step " + step.versionId + ":")
                 println("_" * 80)
                 println()

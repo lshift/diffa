@@ -103,7 +103,7 @@ class JooqServiceLimitsStoreTest {
     try {
       serviceLimitsStore.setSystemHardLimit(limit, Unlimited.value - 1)
     } catch {
-      case ex =>
+      case ex: Throwable =>
         // Verify
         assertEquals(oldLimit, serviceLimitsStore.getSystemHardLimitForName(limit).get)
         // Then
@@ -165,7 +165,7 @@ class JooqServiceLimitsStoreTest {
     try {
       serviceLimitsStore.setDomainHardLimit(spaceId, limit, Unlimited.value - 1)
     } catch {
-      case ex =>
+      case ex: Throwable =>
         // Verify
         assertEquals(oldLimit, serviceLimitsStore.getDomainHardLimitForDomainAndName(spaceId, limit).get)
         // Then

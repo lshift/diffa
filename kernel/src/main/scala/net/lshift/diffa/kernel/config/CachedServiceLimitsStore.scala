@@ -16,7 +16,7 @@
 
 package net.lshift.diffa.kernel.config
 
-import reflect.BeanProperty
+import scala.beans.BeanProperty
 import net.lshift.diffa.kernel.util.cache.{KeyPredicate, CacheProvider}
 import net.lshift.diffa.schema.servicelimits.ServiceLimit
 

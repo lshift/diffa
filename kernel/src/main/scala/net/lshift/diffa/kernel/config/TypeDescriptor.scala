@@ -19,7 +19,7 @@ package net.lshift.diffa.kernel.config
 /**
  * This is metadata associated with a category that gives it strong type information.
  */
-abstract case class TypeDescriptor {
+abstract class TypeDescriptor {
 
   /**
    * The name of the data type.
