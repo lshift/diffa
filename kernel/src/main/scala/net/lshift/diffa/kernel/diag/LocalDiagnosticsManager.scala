@@ -238,10 +238,8 @@ class LocalDiagnosticsManager(systemConfigStore:SystemConfigStore,
       if (explainFiles != null && explainFiles.length > getMaxExplainFiles) {
         val orderedFiles = explainFiles.toSeq.sortBy(_.getName)
         val todelete: Seq[File] = orderedFiles.take(explainFiles.length - getMaxExplainFiles)
-        todelete.foreach(f => log.debug(s"Removing file: ${f}"))
         todelete.foreach(f => f.delete())
       }
     }
   }
 }
-
