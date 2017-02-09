@@ -44,12 +44,10 @@ class CorrelatedVersionPolicyTest extends AbstractPolicyTest {
    */
   protected def downstreamVersionFor(v:String) = v + "-dvsn"
 
-  @Ignore("TODO: Fails with latest Scala")
   @Test
   def shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipantForDateCategories =
     shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipant(dateCategoryData)
 
-  @Ignore("TODO: Fails with latest Scala")
   @Test
   def shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipantForIntegerCategories =
     shouldUpdateDownstreamVersionsWhenStoreIsOutOfDateWithDownstreamParticipant(integerCategoryData)

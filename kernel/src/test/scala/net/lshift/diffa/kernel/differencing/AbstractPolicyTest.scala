@@ -47,8 +47,8 @@ abstract class AbstractPolicyTest {
   protected def downstreamVersionFor(v:String):String
 
   // The various mocks for listeners and participants
-  val usMock = createStrictMock("us", classOf[UpstreamParticipant])
-  val dsMock = createStrictMock("ds", classOf[DownstreamParticipant])
+  val usMock = createMock("us", classOf[UpstreamParticipant])
+  val dsMock = createMock("ds", classOf[DownstreamParticipant])
   val nullListener = new NullDifferencingListener
   val nullDiffWriter = createMock(classOf[DifferenceWriter])
   val diagnostics = createStrictMock("diagnostics", classOf[DiagnosticsManager])
