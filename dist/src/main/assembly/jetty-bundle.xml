@@ -59,6 +59,8 @@
         <include>org.eclipse.jetty:jetty-util</include>
         <include>org.eclipse.jetty:jetty-plus</include>
         <include>org.eclipse.jetty:jetty-jmx</include>
+        <include>org.eclipse.jetty:jetty-xml</include>
+        <include>org.eclipse.jetty:jetty-servlet</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
@@ -68,7 +70,7 @@
       <useTransitiveFiltering>false</useTransitiveFiltering>
       <useStrictFiltering>true</useStrictFiltering>
       <includes>
-        <include>javax.servlet:servlet-api</include>
+        <include>javax.servlet:javax.servlet-api</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
@@ -91,12 +93,14 @@
 
     <!-- JSP Support -->
     <dependencySet>
-      <outputDirectory>lib/jsp</outputDirectory>
+      <outputDirectory>lib/apache-jsp</outputDirectory>
       <!--<useTransitiveFiltering>true</useTransitiveFiltering>-->
       <useStrictFiltering>true</useStrictFiltering>
       <includes>
-        <include>org.eclipse.jetty:apache-jsp</include>
         <include>org.eclipse.jdt.core.compiler:ecj</include>
+        <include>org.eclipse.jetty:apache-jsp</include>
+        <include>org.mortbay.jasper:apache-jsp</include>
+        <include>org.mortbay.jasper:apache-el</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
