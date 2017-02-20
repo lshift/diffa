@@ -73,6 +73,11 @@
       <artifactId>jetty-xml</artifactId>
       <version>${jetty.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-annotations</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
 
     <!-- JSP resources -->
     <dependency>

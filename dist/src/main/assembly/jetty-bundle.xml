@@ -22,7 +22,7 @@
   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.1 http://maven.apache.org/xsd/assembly-1.1.1.xsd">
  <id>jetty-bundle</id>
   <formats>
-    <!--<format>dir</format>-->     <!-- Uncomment this when working on the packaging -->
+    <format>dir</format>     <!-- Uncomment this when working on the packaging -->
     <format>zip</format>
   </formats>
     
@@ -61,6 +61,7 @@
         <include>org.eclipse.jetty:jetty-jmx</include>
         <include>org.eclipse.jetty:jetty-xml</include>
         <include>org.eclipse.jetty:jetty-servlet</include>
+        <include>org.eclipse.jetty:jetty-annotations</include>
       </includes>
       <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
