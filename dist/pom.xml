@@ -13,6 +13,8 @@
 
   <packaging>pom</packaging>
 
+
+
   <properties>
     <assembled.filename>diffa-b${diffa.build.number}</assembled.filename>
   </properties>
@@ -53,6 +55,11 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
       <version>${jetty.version}</version>
     </dependency>
@@ -62,9 +69,14 @@
       <version>${jetty.version}</version>
     </dependency>
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <scope>provided</scope>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-xml</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-annotations</artifactId>
+      <version>${jetty.version}</version>
     </dependency>
 
     <!-- JSP resources -->
@@ -74,9 +86,9 @@
       <version>${jetty.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.mortbay.jetty</groupId>
-      <artifactId>jsp-2.1-glassfish</artifactId>
-      <version>2.1.v20100127</version>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- JNDI resources -->
@@ -101,7 +113,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.2-beta-5</version>
+        <version>3.0.0</version>
         <configuration>
           <finalName>${assembled.filename}</finalName>
           <attach>false</attach>
@@ -110,7 +122,7 @@
           </descriptors>
           <archive>
             <manifest>
-              <mainClass>org.eclipse.start.Main</mainClass>
+              <mainClass>org.eclipse.jetty.start.Main</mainClass>
             </manifest>
           </archive>
         </configuration>

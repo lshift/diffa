@@ -34,19 +34,21 @@
     </Arg>
   </New>
 
-  <Call class="org.eclipse.jetty.util.log.Log" name="info">
-    <Arg>Redirecting Jetty stderr to<Ref id="ServerLogName"/></Arg>
-  </Call>
-  <Call class="java.lang.System" name="setErr">
+  <!--<Call class="org.eclipse.jetty.util.log.Log" name="getLog">
+    <Call class="org.eclipse.jetty.util.log.Logger" name="info">
+      <Arg>Redirecting Jetty stderr to<Ref id="ServerLogName"/></Arg>
+    </Call>
+  </Call>-->
+  <!--<Call class="java.lang.System" name="setErr">
     <Arg><Ref id="ServerLog"/></Arg>
-  </Call>
+  </Call>-->
 
   <Array id="plusConfig" type="java.lang.String">
-    <Item>org.mortbay.jetty.webapp.WebInfConfiguration</Item>
-    <Item>org.mortbay.jetty.plus.webapp.EnvConfiguration</Item>
-    <Item>org.mortbay.jetty.plus.webapp.Configuration</Item>
-    <Item>org.mortbay.jetty.webapp.JettyWebXmlConfiguration</Item>
-    <Item>org.mortbay.jetty.webapp.TagLibConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.WebInfConfiguration</Item>
+    <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
+    <Item>org.eclipse.jetty.plus.webapp.Configuration</Item>
+    <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.TagLibConfiguration</Item>
   </Array>
 
 
@@ -65,41 +67,6 @@
     </New>
   </Set>
 
-  <Call name="addConnector">
-    <Arg>
-      <New class="org.eclipse.jetty.server.nio.SelectChannelConnector">
-        <Set name="host">
-          <Property name="jetty.host"/>
-        </Set>
-        <Set name="port">7654</Set>
-        <Set name="maxIdleTime">300000</Set>
-        <Set name="Acceptors">2</Set>
-        <Set name="statsOn">false</Set>
-        <!-- <Set name="confidentialPort">8443</Set> -->
-        <Set name="lowResourcesConnections">20000</Set>
-        <Set name="lowResourcesMaxIdleTime">5000</Set>
-      </New>
-    </Arg>
-  </Call>
-
-  <Call id="MBeanServer" class="java.lang.management.ManagementFactory" name="getPlatformMBeanServer"/>
-
-  <!-- =========================================================== -->
-  <!-- Initialize the Jetty MBean container                        -->
-  <!-- =========================================================== -->
-  <Get id="Container" name="container">
-    <Call name="addEventListener">
-      <Arg>
-        <New class="org.eclipse.jetty.jmx.MBeanContainer">
-          <Arg>
-            <Ref id="MBeanServer"/>
-          </Arg>
-          <Call name="start"/>
-        </New>
-      </Arg>
-    </Call>
-  </Get>
-
   <!-- =========================================================== -->
   <!-- Initialize the two web apps to run inside ths instance      -->
   <!-- of Jetty:                                                   -->
@@ -107,73 +74,6 @@
   <!-- 2. Teh demo participants application                        -->
   <!-- =========================================================== -->
 
-  <!-- 1. Boot the agent -->
-  <New class="org.eclipse.jetty.webapp.WebAppContext">
-    <Arg>
-      <Ref id="Contexts"/>
-    </Arg>
-    <Arg><SystemProperty name="diffa.home" default="."/>/webapps/root</Arg>
-    <Arg>/</Arg>
-    <Set name="ConfigurationClasses">
-      <Array type="java.lang.String">
-        <Item>org.eclipse.jetty.webapp.WebInfConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.WebXmlConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.MetaInfConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.FragmentConfiguration</Item>
-        <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
-        <Item>org.eclipse.jetty.plus.webapp.PlusConfiguration</Item>
-        <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
-      </Array>
-    </Set>
-
-
-    <New class="java.io.File">
-      <Arg>target/webapp-data/diffa</Arg>
-      <Get id="dbPath" name="absolutePath"/>
-    </New>
-
-    <New id="diffaDS" class="org.eclipse.jetty.plus.jndi.Resource">
-      <Arg></Arg>
-      <Arg>jdbc/diffaDS</Arg>
-      <Arg>
-      <New class="com.jolbox.bonecp.BoneCPDataSource">
-        <Arg>
-          <New class="com.jolbox.bonecp.BoneCPConfig">
-            <Set name="jdbcUrl">jdbc:hsqldb:<Ref id="dbPath"/></Set>
-            </New>
-          </Arg>
-          <Set name="driverClass">org.hsqldb.jdbc.JDBCDriver</Set>
-          <Set name="username">sa</Set>
-          <Set name="password"></Set>
-        </New>
-      </Arg>
-    </New>
-    <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
-      <Arg></Arg>
-      <Arg>diffaHibernateDialect</Arg>
-      <Arg type="java.lang.String">org.hibernate.dialect.HSQLDialect</Arg>
-      <Arg type="boolean">true</Arg>
-    </New>
-    <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">
-      <Arg>mail/Session</Arg>
-      <Arg>
-        <New class="org.eclipse.jetty.jndi.factories.MailSessionReference">
-          <Set name="user"></Set>
-          <Set name="password"></Set>
-          <Set name="properties">
-            <New class="java.util.Properties">
-              <Put name="mail.smtp.host">localhost</Put>
-              <Put name="mail.from">diffa@localhost</Put>
-              <Put name="mail.senderName">diffa Agent</Put>
-              <Put name="mail.debug">false</Put>
-            </New>
-          </Set>
-        </New>
-      </Arg>
-    </New>
-
-
-  </New>
 
   <!-- 2. Boot the demo participant -->
   <!-- <New class="org.eclipse.jetty.webapp.WebAppContext">

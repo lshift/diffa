@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure_9_3.dtd">
+
+<!-- ============================================================= -->
+<!-- Configure the Jetty Server instance with an ID "Server"       -->
+<!-- by adding a HTTP connector.                                   -->
+<!-- This configuration must be used in conjunction with jetty.xml -->
+<!-- ============================================================= -->
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+  <Call name="addConnector">
+    <Arg>
+      <New id="httpConnector" class="org.eclipse.jetty.server.ServerConnector">
+        <Arg name="server"><Ref refid="Server" /></Arg>
+        <Set name="host">0.0.0.0</Set>
+        <Set name="port">7654</Set>
+        <Set name="idleTimeout">300000</Set>
+      </New>
+    </Arg>
+  </Call>
+
+  <!-- 1. Boot the agent -->
+  <New id="webappAgent" class="org.eclipse.jetty.webapp.WebAppContext">
+    <Arg>
+      <Ref id="Contexts"/>
+    </Arg>
+    <Arg><SystemProperty name="diffa.home" default="."/>/webapps/root</Arg>
+    <Arg>/</Arg>
+    <Set name="ConfigurationClasses">
+      <Array type="java.lang.String">
+        <Item>org.eclipse.jetty.webapp.WebInfConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.WebXmlConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.MetaInfConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.FragmentConfiguration</Item>
+        <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
+        <Item>org.eclipse.jetty.plus.webapp.PlusConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
+      </Array>
+    </Set>
+
+    <New class="java.io.File">
+      <Arg>target/webapp-data/diffa</Arg>
+      <Get id="dbPath" name="absolutePath"/>
+    </New>
+
+    <New id="diffaDS" class="org.eclipse.jetty.plus.jndi.Resource">
+      <Arg></Arg>
+      <Arg>jdbc/diffaDS</Arg>
+      <Arg>
+        <New class="com.jolbox.bonecp.BoneCPDataSource">
+          <Arg>
+            <New class="com.jolbox.bonecp.BoneCPConfig">
+              <Set name="jdbcUrl">jdbc:hsqldb:<Ref id="dbPath"/></Set>
+            </New>
+          </Arg>
+          <Set name="driverClass">org.hsqldb.jdbc.JDBCDriver</Set>
+          <Set name="username">sa</Set>
+          <Set name="password"></Set>
+        </New>
+      </Arg>
+    </New>
+    <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+      <Arg></Arg>
+      <Arg>diffaHibernateDialect</Arg>
+      <Arg type="java.lang.String">org.hibernate.dialect.HSQLDialect</Arg>
+      <Arg type="boolean">true</Arg>
+    </New>
+    <New id="mail" class="org.eclipse.jetty.plus.jndi.Resource">
+      <Arg>mail/Session</Arg>
+      <Arg>
+        <New class="org.eclipse.jetty.jndi.factories.MailSessionReference">
+          <Set name="user"></Set>
+          <Set name="password"></Set>
+          <Set name="properties">
+            <New class="java.util.Properties">
+              <Put name="mail.smtp.host">localhost</Put>
+              <Put name="mail.from">diffa@localhost</Put>
+              <Put name="mail.senderName">diffa Agent</Put>
+              <Put name="mail.debug">false</Put>
+            </New>
+          </Set>
+        </New>
+      </Arg>
+    </New>
+
+    <Call name="setAttribute">
+      <Arg type="String">org.eclipse.jetty.containerInitializers</Arg>
+      <Arg>
+        <New class="java.util.ArrayList">
+          <Call name="add">
+            <Arg>
+              <New class="org.eclipse.jetty.plus.annotation.ContainerInitializer">
+                <Arg>
+                  <New class="org.eclipse.jetty.apache.jsp.JettyJasperInitializer"></New>
+                </Arg>
+                <Arg></Arg>
+              </New>
+            </Arg>
+          </Call>
+        </New>
+      </Arg>
+    </Call>
+
+    <Call name="setAttribute">
+      <Arg type="String">org.apache.tomcat.InstanceManager</Arg>
+      <Arg>
+        <New class="org.apache.tomcat.SimpleInstanceManager" />
+      </Arg>
+    </Call>
+
+    <Call name="addBean">
+      <Arg>
+        <New class="org.eclipse.jetty.annotations.ServletContainerInitializersStarter">
+          <Arg><Ref id="webappAgent" /></Arg>
+        </New>
+      </Arg>
+    </Call>
+
+  </New>
+
+  <!-- 2. Boot the demo participant -->
+  <!--<New class="org.eclipse.jetty.webapp.WebAppContext">
+    <Arg>
+      <Ref id="Contexts"/>
+    </Arg>
+    <Arg>webapps/participant-demo</Arg>
+    <Arg>/participant-demo</Arg>
+
+    <Set name="ConfigurationClasses">
+      <Array type="java.lang.String">
+        <Item>org.eclipse.jetty.webapp.WebInfConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.WebXmlConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.MetaInfConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.FragmentConfiguration</Item>
+        <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
+        <Item>org.eclipse.jetty.plus.webapp.PlusConfiguration</Item>
+        <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
+      </Array>
+    </Set>
+
+    <New class="org.eclipse.jetty.plus.jndi.EnvEntry">
+      <Arg>demoProperties</Arg>
+      <Arg>
+        <New class="java.util.Properties">
+          <Call name="load">
+            <Arg>
+              <New class="java.io.FileReader">
+                <Arg type="java.lang.String">etc/demo.properties</Arg>
+              </New>
+            </Arg>
+          </Call>
+        </New>
+      </Arg>
+    </New>
+  </New>-->
+
+
+</Configure>
