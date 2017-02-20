@@ -83,6 +83,39 @@
       </Arg>
     </New>
 
+    <Call name="setAttribute">
+      <Arg type="String">org.eclipse.jetty.containerInitializers</Arg>
+      <Arg>
+        <New class="java.util.ArrayList">
+          <Call name="add">
+            <Arg>
+              <New class="org.eclipse.jetty.plus.annotation.ContainerInitializer">
+                <Arg>
+                  <New class="org.eclipse.jetty.apache.jsp.JettyJasperInitializer"></New>
+                </Arg>
+                <Arg></Arg>
+              </New>
+            </Arg>
+          </Call>
+        </New>
+      </Arg>
+    </Call>
+
+    <Call name="setAttribute">
+      <Arg type="String">org.apache.tomcat.InstanceManager</Arg>
+      <Arg>
+        <New class="org.apache.tomcat.SimpleInstanceManager" />
+      </Arg>
+    </Call>
+
+    <Call name="addBean">
+      <Arg>
+        <New class="org.eclipse.jetty.annotations.ServletContainerInitializersStarter">
+          <Arg><Ref id="webappAgent" /></Arg>
+        </New>
+      </Arg>
+    </Call>
+
   </New>
 
   <!-- 2. Boot the demo participant -->
