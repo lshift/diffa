@@ -32,6 +32,27 @@
   </context-param>
 
   <filter>
+    <filter-name>cross-origin</filter-name>
+    <filter-class>org.eclipse.jetty.servlets.CrossOriginFilter</filter-class>
+    <init-param>
+      <param-name>allowedOrigins</param-name>
+      <param-value>*</param-value>
+    </init-param>
+    <init-param>
+      <param-name>allowedMethods</param-name>
+      <param-value>GET,POST,HEAD,PUT,OPTIONS</param-value>
+    </init-param>
+    <init-param>
+      <param-name>allowedHeaders</param-name>
+      <param-value>X-Requested-With,Content-Type,Accept,Origin</param-value>
+    </init-param>
+  </filter>
+  <filter-mapping>
+    <filter-name>cross-origin</filter-name>
+    <url-pattern>*</url-pattern>
+  </filter-mapping>
+
+  <filter>
     <filter-name>UrlRewriteFilter</filter-name>
     <filter-class>org.tuckey.web.filters.urlrewrite.UrlRewriteFilter</filter-class>
     <init-param>
