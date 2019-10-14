@@ -49,7 +49,7 @@
     <jersey.version>1.13</jersey.version>
     <urlrewritefilter.version>4.0.3</urlrewritefilter.version>
     <jackson.version>1.9.2</jackson.version>
-    <lucene.version>3.6.1</lucene.version>
+    <lucene.version>7.1.0</lucene.version>
     <jodatime.version>2.0</jodatime.version>
     <jadira.version>1.9</jadira.version>
     <javamail.file.transport.version>1.0</javamail.file.transport.version>
