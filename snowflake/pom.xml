@@ -17,7 +17,7 @@
     <buildVersion>${project.version}</buildVersion>    <!-- Can be overridden via -D -->
     <scalatest.version>1.8</scalatest.version>
     <curator.version>1.2.3</curator.version>
-    <junit.version>4.10</junit.version>
+    <junit.version>4.13.1</junit.version>
     <zookeeper.version>3.4.6</zookeeper.version>
     <zookeeper.url.root>http://www.mirrorservice.org/sites/ftp.apache.org</zookeeper.url.root>
     <zookeeper.install.dir>/tmp/zookeeper-${zookeeper.version}</zookeeper.install.dir>
