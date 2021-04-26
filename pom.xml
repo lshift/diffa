@@ -45,7 +45,7 @@
     <jetty.version>9.3.16.v20170120</jetty.version>
     <rabbitmq.version>2.7.0</rabbitmq.version>
     <accent.version>0.9</accent.version>
-    <commons.io.version>2.0.1</commons.io.version>
+    <commons.io.version>2.7</commons.io.version>
     <jersey.version>1.13</jersey.version>
     <urlrewritefilter.version>4.0.3</urlrewritefilter.version>
     <jackson.version>1.9.2</jackson.version>
