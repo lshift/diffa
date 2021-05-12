@@ -36,7 +36,7 @@
     <scala.prefix.version>2.10</scala.prefix.version>
     <scala.plugin.version>2.14.1</scala.plugin.version>
     <spring.version>3.1.0.RELEASE</spring.version>
-    <spring.security.version>3.1.2.RELEASE</spring.security.version>
+    <spring.security.version>5.2.10.RELEASE</spring.security.version>
     <hibernate.version>3.6.10.Final</hibernate.version>
     <!-- Downgraded to 2.2.8 because of annoying NPE in HSQL 2.2.9 :-( -->
     <hsqldb.version>2.2.8</hsqldb.version>
